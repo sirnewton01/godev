@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset=utf-8>
+		<title>Go Doc Search</title>
+		<link rel="stylesheet" type="text/css" href="godoc.css" />
+		<script src="../../requirejs/require.js"></script>
+		<script type="text/javascript">
+		/*global require*/
+		require({
+			  baseUrl: '../..',
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["godoc.js"]);
+		</script>
+	</head>
+	<body class="orionPage" id="godoc-searchResults">
+		<div class="content-fixedHeight">
+			<div class="auxpane sidePanelLayout hasSplit">
+				<div id="outlineContainer" style="height:100%;width:100%;position:relative;">
+					<table>
+					<tr><td><input type="text" placeholder="Type a package (e.g. go/ast)" style="min-width:20em;" id="pkgInput" class="search-control"/></td></tr>
+					<tr><td><input type="text" placeholder="Type an optional name (e.g. func, type)" style="min-width:20em;" id="nameInput" class="search-control"/></td></tr>
+					<tr><td><input type="button" id="searchButton" value="Search"></input></td></tr>
+					</table>
+				</div>
+			</div>
+			<div class="split splitLayout" style="left:33%;"></div>
+			<div id="rightPane" class="mainpane mainPanelLayout hasSplit" style="overflow:scroll;">
+				<div style="margin:20px;font-family:monospace;font-size:12pt;">
+					<pre id="outputArea">
+					</pre>
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer"></div>
+	</body>
+</html>

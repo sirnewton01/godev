@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Plugin Content</title>
+		<link rel="stylesheet" type="text/css" href="content.css" />
+    	<script type="text/javascript" src="../requirejs/require.js"></script>
+		<script type="text/javascript">
+		require({
+			  baseUrl: '..',
+			  packages: [
+			  ],
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["content.js"]);
+		</script>
+	</head>
+	
+		<body id="orion-delegatedContent" class="orionPage">
+		<div class="content-fixedHeight">
+			<div class="fixedToolbarHolder mainpane mainPanelLayout">
+				<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+				<div id="delegatedContent" class="toolbarTarget">
+					<div>Loading content from plugin...</div>
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer">
+		</div>
+	</body>	
+</html>

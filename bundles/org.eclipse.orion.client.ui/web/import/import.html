@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+		<script src="../requirejs/require.js"></script>
+		<script>
+		/*global require*/
+		require({
+			baseUrl: '../',
+			paths: {
+				text: 'requirejs/text',
+				i18n: 'requirejs/i18n', //import/orion-override/i18n
+				domReady: 'requirejs/domReady'
+			},
+			/* Override orion/bootstrap with an import-specific implementation */
+			map: {
+				'*': {
+					'orion/bootstrap': 'import/orion-override/bootstrap-import'/*,
+					'orion/i18n': 'import/orion-override/i18n',
+					'orion/i18n!': 'import/orion-override/i18n',
+					'orion/i18nUtil': 'import/orion-override/i18nUtil',
+					'orion': 'import/orion-override'*/
+				}
+			}
+		});
+		require(["import.js"]);
+		</script>
+</head>
+<body>Orion importer</body>
+</html>

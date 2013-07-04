@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010, 2012." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title>Welcome to Orion</title>
+		<script src="requirejs/require.js"></script>
+		<script type="text/javascript">
+		/*global require*/
+		require({
+		  baseUrl: '',
+		
+		  // set the paths to our library packages
+		  packages: [],
+		  paths: {
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'
+		  }
+		});
+		
+		require(["index.js"]);
+		</script>
+</head>
+	<body>
+	</body>
+</html>

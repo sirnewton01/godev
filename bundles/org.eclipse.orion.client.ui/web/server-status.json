@@ -1,0 +1,13 @@
+{
+"README.TXT" : "Each message needs to have a title, startdate, enddate and description field. Only the first message can be displayed on the login screen.",
+"messages" : [
+],
+"example-messages" : [
+	{
+		"title" : "This is the title of the server message",
+		"startdate" : "2012/10/22",
+		"enddate" : "2012/10/23",
+		"description" : "This is the longer description of the message.  You can see that this message will be displayed from October 22nd until the end of October 23rd."
+	}
+]
+}

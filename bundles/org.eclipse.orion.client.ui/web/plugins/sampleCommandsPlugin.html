@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" src="../orion/plugin.js"></script>
+	<script>
+		window.onload = function() {
+			var provider = new orion.PluginProvider({postInstallUrl:"../plugin/list.html"});
+			provider.registerService("orion.navigate.command", {
+				run : function(item) {
+					window.alert("Running code on: " + item.Location);
+				}
+			}, {
+				image: "../images/gear.gif",
+				name: "Run Code on Single Item",
+				id: "sample.commands.sample1",
+				forceSingleItem: true,
+				tooltip: "Run plugin code only on single file/dir"
+			});
+			provider.registerService("orion.navigate.command", {
+				run : function(item) {
+					return item.Location;
+				}
+			}, {
+				image: "../images/gear.gif",
+				name: "Open HTML Raw",
+				id: "sample.commands.sample2",
+				forceSingleItem: true,
+				href: true,
+				contentType: ["text/html"],
+				tooltip: "Link to raw html on server"
+			});
+			
+			provider.registerService("orion.navigate.command", {
+				run : function(items) {
+					var locations = [];
+					for (var i = 0; i<items.length; i++) {
+						locations.push(items[i].Location);
+					}
+					window.alert("Bulk operation on: " + locations);
+				}
+			}, {
+				image: "../images/gear.gif",
+				name: "Bulk Item Command",
+				id: "sample.commands.sample3",
+				tooltip: "Bulk command operates on selections"
+			});
+			
+			provider.registerService("orion.navigate.command", {
+				run : function(item) {
+					window.alert("Running command for " + item.Location + ".  I can even run on a non-navigator page like editor.");
+				}
+			}, {
+				image: "../images/gear.gif",
+				name: "Generic File Command",
+				forceSingleItem: true,
+				validationProperties: [
+					{source: "Directory", match: false}
+				],
+				id: "sample.commands.sample4",
+				tooltip: "Navigator command that can appear on other pages",
+				showGlobally: true
+			});
+
+			provider.registerService("orion.navigate.command", {}, {
+				image: "http://www.google.com/favicon.ico",
+				name: "Google Search",
+				id: "sample.commands.sample5",
+				forceSingleItem: true,
+				uriTemplate: "http://www.google.com/#q={Name}",
+				tooltip: "Link to google search for this file name"
+			});
+				
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

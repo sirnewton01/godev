@@ -1,0 +1,316 @@
+/*******************************************************************************
+ * @license
+ * Copyright (c) 2012 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * 
+ * Contributors: IBM Corporation - initial API and implementation
+ ******************************************************************************/
+ /*global define window document*/
+define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'orion/commonHTMLFragments'], function(lib, mSelection, mCommands, mHTMLFragments){
+	
+	/**
+	 * Generates a section
+	 * 
+	 * @name orion.widgets.Section
+	 * @class Generates a section
+	 * @param {DomNode} parent parent node
+	 * @param {String} options.id id of the section header
+	 * @param {String} options.title title (in HTML) of the section
+	 * @param {orion.preferences.PreferencesService} [options.preferenceService] used to store the hidden/shown state of the section if specified
+	 * @param {String|Array} [options.iconClass] a class or array of classes to use in the icon decorating section, no icon displayed if not provided
+	 * @param {Function} [options.getItemCount] function to return the count of items in the section. If not provided, no count is shown.
+	 * @param {String|DomNode} [options.content] HTML or DOM node giving the Section's initial contents. May be set later using {@link #setContent()}
+	 * @param {Boolean} [options.slideout] if true section will contain generated slideout
+	 * @param {Boolean} [options.canHide] if true section may be hidden
+	 * @param {Boolean} [options.hidden] if true section will be hidden at first display
+	 * @param {Boolean} [options.useAuxStyle] if true the section will be styled for an auxiliary pane
+	 * @param {Function} [options.onExpandCollapse] a function that will be called when the expanded/collapsed state changes
+	 */
+	function Section(parent, options) {
+		
+		var that = this;
+		
+		this._expandImageClass = "core-sprite-openarrow"; //$NON-NLS-0$
+		this._collapseImageClass = "core-sprite-closedarrow"; //$NON-NLS-0$
+		this._twistieSpriteClass = "modelDecorationSprite"; //$NON-NLS-0$
+		
+		// ...
+		
+		if (!options.id) {
+			throw new Error("Missing required argument: id"); //$NON-NLS-0$
+		}
+		this.id = options.id;
+				
+		if (!options.title) {
+			throw new Error("Missing required argument: title"); //$NON-NLS-0$
+		}
+
+		// setting up the section
+		var wrapperClasses = options.useAuxStyle ? ["sectionWrapper", "sectionWrapperAux", "toolComposite"] : ["sectionWrapper", "toolComposite"]; //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		this.domNode = document.createElement("div"); //$NON-NLS-0$
+		parent.appendChild(this.domNode);
+		for(var i=0; i<wrapperClasses.length; i++) {
+			this.domNode.classList.add(wrapperClasses[i]);
+		}
+		this.domNode.id = options.id;
+
+		// if canHide, add twistie and stuff...
+		if(options.canHide){
+			this.twistie = document.createElement("span"); //$NON-NLS-0$
+			this.twistie.classList.add("modelDecorationSprite"); //$NON-NLS-0$
+			this.twistie.classList.add("layoutLeft"); //$NON-NLS-0$
+			this.twistie.classList.add("sectionTitle"); //$NON-NLS-0$
+			this.domNode.style.cursor = "pointer"; //$NON-NLS-0$
+			this.domNode.appendChild(this.twistie);
+			this.domNode.tabIndex = 0; //$NON-NLS-0$
+			this.domNode.addEventListener("click", function(evt) { //$NON-NLS-0$
+				if (evt.target === that.titleNode || evt.target === that.twistie) {
+					that._changeExpandedState();
+				}
+			}, false);
+			this.domNode.addEventListener("keydown", function(evt) { //$NON-NLS-0$
+				if(evt.keyCode === lib.KEY.ENTER && (evt.target === that.domNode || evt.target === that.titleNode || evt.target === that.twistie)) {
+					that._changeExpandedState();
+				}
+			}, false);
+		}
+
+		if(options.iconClass){
+			var icon = document.createElement("span"); //$NON-NLS-0$
+			icon.classList.add("sectionIcon"); //$NON-NLS-0$
+			this.domNode.appendChild(icon);
+			var classes = Array.isArray(options.iconClass) ? options.iconClass : [options.iconClass];
+			classes.forEach(function(aClass) {
+				icon.classList.add(aClass);
+			});
+		}
+		
+		this.titleNode = document.createElement("div"); //$NON-NLS-0$
+		this.titleNode.id = options.id + "Title"; //$NON-NLS-0$
+		this.titleNode.classList.add("sectionAnchor"); //$NON-NLS-0$
+		this.titleNode.classList.add("sectionTitle"); //$NON-NLS-0$
+		this.titleNode.classList.add("layoutLeft"); //$NON-NLS-0$
+		this.domNode.appendChild(this.titleNode);
+		this.titleNode.textContent = options.title;
+
+		// Add item count
+		if (typeof options.getItemCount === "function") { //$NON-NLS-0$
+			var count = document.createElement("div"); //$NON-NLS-0$
+			count.classList.add("layoutLeft"); //$NON-NLS-0$
+			count.classList.add("sectionItemCount"); //$NON-NLS-0$
+			this.domNode.appendChild(count);
+			count.textContent = options.getItemCount(this);
+		}
+
+		this._progressNode = document.createElement("div"); //$NON-NLS-0$
+		this._progressNode.id = options.id + "Progress"; //$NON-NLS-0$
+		this._progressNode.classList.add("sectionProgress"); //$NON-NLS-0$
+		this._progressNode.classList.add("sectionTitle"); //$NON-NLS-0$
+		this._progressNode.classList.add("layoutLeft"); //$NON-NLS-0$
+		this._progressNode.style.visibility = "hidden"; //$NON-NLS-0$
+		this._progressNode.textContent = "..."; //$NON-NLS-0$ 
+		this.domNode.appendChild(this._progressNode);
+		// add filter search box
+		var searchbox = document.createElement("div"); //$NON-NLS-0$
+		searchbox.id = options.id + "FilterSearchBox"; //$NON-NLS-0$
+		this.domNode.appendChild(searchbox);
+		
+		this._toolActionsNode = document.createElement("div"); //$NON-NLS-0$
+		this._toolActionsNode.id = options.id + "ToolActionsArea"; //$NON-NLS-0$
+		this._toolActionsNode.classList.add("layoutRight"); //$NON-NLS-0$
+		this._toolActionsNode.classList.add("sectionActions"); //$NON-NLS-0$
+		this.domNode.appendChild(this._toolActionsNode);
+		this.actionsNode = document.createElement("div"); //$NON-NLS-0$
+		this.actionsNode.id = options.id + "ActionArea"; //$NON-NLS-0$
+		this.actionsNode.classList.add("layoutRight"); //$NON-NLS-0$
+		this.actionsNode.classList.add("sectionActions"); //$NON-NLS-0$
+		this.domNode.appendChild(this.actionsNode);
+		this.selectionNode = document.createElement("div"); //$NON-NLS-0$
+		this.selectionNode.id = options.id + "SelectionArea"; //$NON-NLS-0$
+		this.selectionNode.classList.add("layoutRight"); //$NON-NLS-0$
+		this.selectionNode.classList.add("sectionActions"); //$NON-NLS-0$
+		this.domNode.appendChild(this.selectionNode);
+		
+		if(options.slideout){
+			var slideoutFragment = mHTMLFragments.slideoutHTMLFragment(options.id);
+			var range = document.createRange();
+			range.selectNode(this.domNode);
+			slideoutFragment = range.createContextualFragment(slideoutFragment);
+			this.domNode.appendChild(slideoutFragment);
+		}
+
+		this._contentParent = document.createElement("div"); //$NON-NLS-0$
+		this._contentParent.id = this.id + "Content"; //$NON-NLS-0$
+		this._contentParent.role = "region"; //$NON-NLS-0$
+		this._contentParent.classList.add("sectionTable"); //$NON-NLS-0$
+		this._contentParent.setAttribute("aria-labelledby", this.titleNode.id); //$NON-NLS-0$
+		parent.appendChild(this._contentParent);
+
+		if(options.content){
+			this.setContent(options.content);
+		}
+		
+		this.hidden = options.hidden;
+		if (typeof(options.onExpandCollapse) === "function") { //$NON-NLS-0$
+			this._onExpandCollapse = options.onExpandCollapse;
+		}
+		this._preferenceService = options.preferenceService;
+		// initially style as hidden until we determine what needs to happen
+		this._contentParent.style.display = "none"; //$NON-NLS-0$
+		// should we consult a preference?
+		if (this._preferenceService) {
+			var self = this;
+			this._preferenceService.getPreferences("/window/views").then(function(prefs) {  //$NON-NLS-0$
+				var isExpanded = prefs.get(self.id);
+				
+				if (isExpanded === undefined){
+				} else {
+					self.hidden = !isExpanded;
+				}
+
+				if (!self.hidden) {
+					self._contentParent.style.display = "block"; //$NON-NLS-0$
+				}
+				
+				self._updateExpandedState(!self.hidden, false);
+			});
+		} else {
+			if (!this.hidden) {
+				this._contentParent.style.display = "block"; //$NON-NLS-0$
+			}
+			this._updateExpandedState(!this.hidden, false);
+		}
+		this._commandService = options.commandService;
+		this._lastMonitor = 0;
+		this._loading = {};
+	}
+	
+	Section.prototype = /** @lends orion.widgets.Section.prototype */ {
+			
+		/**
+		 * Changes the title of section
+		 * @param title
+		 */
+		setTitle: function(title){
+			this.titleNode.textContent = title;
+		},
+		
+		/**
+		 * Changes the contents of the section.
+		 * @param {String|DomNode} content
+		 */
+		setContent: function(content){
+			if (typeof content === 'string') {  //$NON-NLS-0$
+				this._contentParent.innerHTML = content;
+			} else {
+				this._contentParent.innerHTML = ""; //NON-NLS-0$
+				this._contentParent.appendChild(content);
+			}
+		},
+
+		/**
+		 * @returns {DomNode} The dom node that holds the section contents.
+		 */
+		getContentElement: function() {
+			return this._contentParent;
+		},
+
+		createProgressMonitor: function(){
+			return new ProgressMonitor(this);
+		},
+		
+		_setMonitorMessage: function(monitorId, message){
+			this._progressNode.style.visibility = "visible"; //$NON-NLS-0$
+			this._loading[monitorId] = message;
+			var progressTitle = "";
+			for(var loadingId in this._loading){
+				if(progressTitle!==""){
+					progressTitle+="\n"; //$NON-NLS-0$
+				}
+				progressTitle+=this._loading[loadingId];
+			}
+			this._progressNode.title = progressTitle;
+		},
+		
+		_monitorDone: function(monitorId){
+			delete this._loading[monitorId];
+			var progressTitle = "";
+			for(var loadingId in this._loading){
+				if(progressTitle!==""){
+					progressTitle+="\n"; //$NON-NLS-0$
+				}
+				progressTitle+=this._loading[loadingId];
+			}
+			this._progressNode.title = progressTitle;
+			if(progressTitle===""){
+				this._progressNode.style.visibility = "hidden"; //$NON-NLS-0$
+			}
+		},
+		
+		_changeExpandedState: function() {
+			// TODO we could use classes with CSS transitions to animate				
+			if (!this.hidden){
+				this._contentParent.style.display = "none"; //$NON-NLS-0$
+				this.hidden = true;
+			} else {
+				this._contentParent.style.display = "block"; //$NON-NLS-0$
+				this.hidden = false;
+			}
+			
+			this._updateExpandedState(!this.hidden, true);
+		},
+		
+		_updateExpandedState: function(isExpanded, storeValue) {
+			var expandImage = this.twistie;
+			var id = this.id;
+			if (expandImage) {
+				expandImage.classList.add(isExpanded ? this._expandImageClass : this._collapseImageClass);
+				expandImage.classList.remove(isExpanded ? this._collapseImageClass : this._expandImageClass);
+			}
+			// if a preference service was specified, we remember the state.
+			if (this._preferenceService && storeValue) {
+				this._preferenceService.getPreferences("/window/views").then(function(prefs){ //$NON-NLS-0$
+					prefs.put(id, isExpanded);
+				}); 
+			}
+			
+			// notify the client
+			if (this._onExpandCollapse) {
+				this._onExpandCollapse(isExpanded, this);
+			}
+		}
+	};
+	
+	Section.prototype.constructor = Section;
+	
+	// ProgressMonitor
+	
+	function ProgressMonitor(section){
+		this._section = section;
+		this._id = ++section._lastMonitor;
+	}
+	
+	ProgressMonitor.prototype = {
+		begin: function(message){
+			this.status = message;
+			this._section._setMonitorMessage(this.id, message);
+		},
+		
+		worked: function(message){
+			this.status = message;
+			this._section._setMonitorMessage(this.id, message);
+		},
+		
+		done: function(status){
+			this.status = status;
+			this._section._monitorDone(this.id);
+		}
+	};
+	
+	ProgressMonitor.prototype.constructor = ProgressMonitor;
+
+	return {Section: Section};
+});

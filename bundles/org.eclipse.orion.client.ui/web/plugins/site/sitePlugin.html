@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src='../../requirejs/require.js'></script>
+	<script>
+		/*global require*/
+		require({
+		  baseUrl: '../../',
+		  paths: {
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'
+		  }
+		});
+
+		require(['sitePlugin.js']);
+	</script>
+</head>
+<body>
+</body>
+</html>

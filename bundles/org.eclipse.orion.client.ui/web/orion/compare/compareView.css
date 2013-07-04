@@ -1,0 +1,213 @@
+@import "../../orion/editor/editor.css";
+
+.diffNormal {
+	background: #DDDDDD;
+}
+
+.diffConflict {
+	background: #EEB4B4;
+}
+
+.diffNormalSelect {
+	background: #BBBBBB;
+}
+
+.diffConflictSelect {
+	background: #F08080;
+}
+
+.diffInlineAddedSelect {
+	background: #00B400;
+}
+
+.diffInlineAdded {
+	background: #99EE99;
+}
+
+.diffInlineRemovedSelect {
+	background: #B44040;
+}
+
+.diffInlineRemoved {
+	background: #EE9999;
+}
+
+.compareCanvas {
+	background: #EEEEEE;
+	border: 0;
+}
+
+.compareEditorParent {
+	clear: both;
+	overflow: hidden;
+    position: absolute;
+    top: 30px;  /* $Editor title Height */
+    bottom: 0;
+    left: 0;
+    width: 100%;
+	margin-bottom: 30px;  /* $Editor line number div height */   
+}
+
+.compareEditorParentWithCanvas {
+	clear: both;
+	overflow: hidden;
+    position: absolute;
+    left: 44px;
+    right: 0;
+	height:100%;
+}
+
+.canvasContainer {
+	position: absolute;
+	width:44px;
+	height:100%;
+	overflow: hidden;
+}
+
+.titleContainer {
+	width:100%;
+	height:30px;
+	overflow: hidden;
+	background: #EEEEEE;
+}
+
+.statusContainer {
+	position: absolute;
+	bottom:0;
+	width:100%;
+	height:30px;
+	overflow: hidden;
+	text-align: center;  
+}
+
+.leftPanelLayout {
+	display: block;
+	position: absolute;
+	left: 0;
+    overflow: hidden;
+	width: 50%;
+	height: 100%;
+}
+
+.rightPanelLayout {
+	display: block;
+	position: absolute;
+	right: 0;
+    overflow: hidden;
+	width: 50%;
+	height: 100%;
+}
+
+.compareSplitLayout {
+	position: absolute;
+	left: 50%;  /* override this value if you want a different proportion of the two split panes */
+	height: 100%;
+	z-index: 50;
+	width: 3px;
+	cursor: e-resize;
+	background: #dedede;
+	visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
+}
+
+/*** Styles for diff annotations ***/
+
+/** Styles for normal diff blocks **/
+
+/* The added block in the new file/left side, lightest green */
+.annotationLine.addedBlockDiff {
+	background-color: #B3E8B3;
+}
+
+/* The current added block in the new file/left side, 2nd lightest green */
+.annotationLine.currentAddedBlockDiff {
+	background-color: #8EDD8E;
+}
+
+/* The deleted block in the old file/right side, lightest red */
+.annotationLine.deletedBlockDiff {
+	background-color: #FFD2D2; /*'#FFEFEF;*/
+}
+
+/* The current deleted block in the old file/right side, 2nd lightest red */
+.annotationLine.currentDeletedBlockDiff {
+	background-color: #FFB0B0;
+}
+
+/* Style for an empty block, which draws a lighter black line on top of a line to indicate an insertion or deletion */
+/* diff-border.png */
+.annotationLine.blockDiffTopOnly {
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC4AAAABCAIAAAAuIQuDAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAPSURBVBhXY6yvr2cYHAAAzPsBf2hZ98wAAAAASUVORK5CYII=");
+ 	background-repeat: repeat-x;
+ 	background-position: left top
+}
+
+/* Style for the current empty block, which draws a darker black line on top of a line to indicate an insertion or deletion */
+/* diff-border-sel.png */
+.annotationLine.currentBlockDiffTopOnly {
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC4AAAABCAIAAAAuIQuDAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAMSURBVBhXY2AYNAAAAIsAAR6L5FUAAAAASUVORK5CYII=");
+ 	background-repeat: repeat-x;
+ 	background-position: left top
+}
+
+/** Styles for conflicting diff blocks **/
+
+/* The conflicting block in both the old file/right side and new file/left side, lighter yellow */
+.annotationLine.blockDiffConflict {
+	background-color: #FFFFCA;
+}
+
+/* The curent conflicting block in both the old file/right side and new file/left side, darker yellow */
+.annotationLine.currentBlockDiffConflict {
+	background-color: #FFFF5B;
+}
+
+/** Styles for diff words **/
+
+/* The added word in the new file/left side, 3rd lightest green */
+.annotationRange.addedWordDiff {
+	background-color: #63CF63;
+}
+
+/* The current added word in the new file/left side, darkest green */
+.annotationRange.currentAddedWordDiff {
+	background-color: #31A231;
+}
+
+/* The deleted word in the old file/right side, 3rd lightest red */
+.annotationRange.deletedWordDiff {
+	background-color: #EE9999;
+}
+
+/* The current deleted word in the old file/right side, darkest red */
+.annotationRange.currentDeletedWordDiff {
+	background-color: #E66868;
+}
+
+/* The following 4 styles are for the special annotations when presenting a position between 2 characters, which looks like a caret cursor.
+ * They are all using the same 18X2 PNG on either right or left side of a character.
+ * diff-empty-word-border-black.png
+ */
+
+.annotationRange.emptyDeletedWordDiffLeft {
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAASCAYAAABxYA+/AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAUSURBVBhXY2RgYPgPxAxMIGIwMgCpaAEjILHq8AAAAABJRU5ErkJggg==");
+ 	background-repeat: repeat-y;
+ 	background-position: left top
+}
+
+.annotationRange.emptyDeletedWordDiffRight {
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAASCAYAAABxYA+/AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAUSURBVBhXY2RgYPgPxAxMIGIwMgCpaAEjILHq8AAAAABJRU5ErkJggg==");
+ 	background-repeat: repeat-y;
+ 	background-position: right top
+}
+
+.annotationRange.emptyAddedWordDiffLeft {
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAASCAYAAABxYA+/AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAUSURBVBhXY2RgYPgPxAxMIGIwMgCpaAEjILHq8AAAAABJRU5ErkJggg==");
+ 	background-repeat: repeat-y;
+ 	background-position: left top
+}
+
+.annotationRange.emptyAddedWordDiffRight {
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAASCAYAAABxYA+/AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAUSURBVBhXY2RgYPgPxAxMIGIwMgCpaAEjILHq8AAAAABJRU5ErkJggg==");
+ 	background-repeat: repeat-y;
+ 	background-position: right top
+}

@@ -1,0 +1,53 @@
+/* this is just to aid visual inspection, not required for tests to pass */
+.invalid {
+	background-color: red;
+	color: white;
+}
+
+.keyword {
+	background-color: #eee;
+}
+
+.constant {
+	color: blue;
+}
+
+.entity-name-tag {
+	color: #3f7f7f;
+}
+
+.punctuation-definition-tag {
+	background-color: #bbb;
+}
+
+.keyword-control {
+	font-weight: bold;
+	color: #7f074;
+}
+
+.keyword-other {
+	font-weight: bold;
+	color: darkred;
+	text-decoration: underline;
+}
+
+.keyword-operator-logical {
+	font-family: sans-serif;
+}
+
+.punctuation {
+	color: #3f5fbf;
+}
+
+.meta {
+	background-color: #ccc;
+	color: black;
+}
+
+.comment {
+	color: green;
+}
+
+.storage {
+	font-weight: bold;
+}

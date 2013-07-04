@@ -1,0 +1,18 @@
+@import "../../../compare/compare.css";
+
+.compareContainer {
+	position: absolute;
+	top: 80px;  /* $ToolbarHeight + 1 */
+ 	bottom: 0;
+ 	width: 99%;
+ 	overflow-y: auto;
+	margin-left:5px;
+	border:1px solid #bebebe;
+}
+
+body {
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	background-color: #ededed;
+}

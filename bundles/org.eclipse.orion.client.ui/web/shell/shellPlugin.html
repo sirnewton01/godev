@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="copyright" content="Copyright (c) IBM Corporation and others 2012." >
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" src="../orion/plugin.js"></script>
+	<script>
+		/*global window orion*/
+		window.onload = function() {
+			var serviceImpl = { /* All data is in properties */ };
+			var provider = new orion.PluginProvider();
+			provider.registerService("orion.page.link", serviceImpl, {
+				nameKey: "Shell",
+				nls: "orion/nls/messages",
+				id: "orion.shell",
+				uriTemplate: "{OrionHome}/shell/shellPage.html"
+			});
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+<h1>Shell Plugin</h1>
+</body>
+</html>

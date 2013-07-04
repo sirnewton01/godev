@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset=utf-8>
+		<title>Debug</title>
+		<link rel="stylesheet" type="text/css" href="debug.css" />
+		<script src="../../requirejs/require.js"></script>
+		<script type="text/javascript">
+		/*global require*/
+		require({
+			  baseUrl: '../..',
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["debug.js"]);
+		</script>
+	</head>
+	<body class="orionPage" id="debug-main">
+		<div class="content-fixedHeight" style="bottom: 66px;">
+			<div class="auxpane sidePanelLayout hasSplit">
+				<div id="outlineContainer" style="height:100%;width:100%;position:relative;">
+					<table cellpadding="3" style="font-size:13px;">
+					<tr><td colspan="2"><label>Executables:</label></td></tr>
+					<tr><td colspan="2">Is your executable missing or out of date?</td></tr>
+					<tr><td colspan="2">Run &quot;go install&quot; in the <a href="/shell/shellPage.html">shell</a>.</td></tr>
+					<tr><td><select id="executables"></select></td>
+						<td><input type="text" placeholder="Type command line arguments" style="width:100%;" id="argInput"/></td>
+					</tr>
+					<tr><td colspan="2"><input type="button" id="execute" value="Execute" style="width:100%;"></input></td></tr>
+					</tr>
+					<tr><td colspan="2"><label>Running Processes:</label></td></tr>
+					<tr><td colspan="2"><select id="processes"></select></td></tr>
+					<tr><td colspan="2"><input type="button" id="clear" value="Clear Finished" style="width:100%;"></input></td></tr>
+					</table>
+				</div>
+			</div>
+			<div class="split splitLayout" style="left:33%;">
+			</div>
+			<div id="rightPane" class="mainpane mainPanelLayout hasSplit" style="height:100%; overflow: scroll;">
+				<div style="margin:20px;font-family:monospace;font-size:12pt;">
+					<pre id="outputArea">
+					</pre>
+				</div>
+			</div>
+		</div>
+		<table class="footer-fixed-bottom footer" style="z-index: 100; bottom: 33px;" cellpadding="2" style="width:100%;padding:15px 25px 0px 5px;">
+				<tr>
+					<td style="width:100%;"><input type="text" placeholder="Input" id="cmdInput" style="width:100%;"/></td>
+					<td><input type="button" id="killButton" value="Stop"></input></td>
+				</tr>
+		</table>
+		<div class="footer-fixed-bottom footer" id="footer"></div>
+	</body>
+</html>

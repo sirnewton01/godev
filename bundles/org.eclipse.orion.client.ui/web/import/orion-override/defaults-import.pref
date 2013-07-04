@@ -1,0 +1,7 @@
+{
+	"/import-plugins":{
+		"plugins/authenticationPlugin.html": true,
+		"plugins/fileClientPlugin.html": true,
+		"profile/userservicePlugin.html": true
+	}
+}

@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+    <head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title id="projectTitle">Project</title>
+		<link rel="stylesheet" type="text/css" href="projectPage.css" />
+		<link rel="shortcut icon" href="/projectpage.ico" />
+		<script src="../../requirejs/require.js"></script>
+		<script type="text/javascript">
+			require({ baseUrl: '..', paths: { text: 'requirejs/text', i18n: 'requirejs/i18n',domReady: 'requirejs/domReady' } });	
+			require(["projectPage.js"]);
+		</script>
+    </head>
+    <body id="orion-projects" spellcheck="false" class="orionPage">
+		<div class="content-fixedHeight"  >
+			<div id="innerPanels" style="height:100%;width:100%;">
+				<div id="leftPane" class="auxpane sidePanelLayout hasSplit">
+					<div class="mainToolbar toolComposite toolbarLayout" id="projectConfiguration" style="padding-top:7px;">
+					</div>
+					<div id="projectNavigation" class="sidePanelMargins"></div>
+				</div>
+				<div class="split splitLayout"></div>
+				<div id="rightPane" class="mainpane mainPanelLayout hasSplit" style="background:#FDFDFD;">
+					<div id="informationPane" class="alert-clear"></div>
+					<div id="SFTPConfiguration" class="sidePanelMargins"></div>
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer"></div>
+	</body>
+</html>

@@ -1,0 +1,13 @@
+<table>
+  <colgroup>
+    <col class="gcli-pref-list-name"/>
+    <col class="gcli-pref-list-value"/>
+  </colgroup>
+  <tr class="gcli-pref-list-row" foreach="preference in ${promisePreferences}">
+    <td>${preference.name}</td>
+    <td onclick="${onSetClick}" data-command="pref set ${preference.name} ">
+      ${preference.value}
+      <img class="gcli-pref-list-command" _src="${edit}"/>
+    </td>
+  </tr>
+</table>

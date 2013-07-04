@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script src="../../orion/plugin.js"></script>
+	<script>
+		/*global window eclipse*/
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			var name = "test/i18n/nls/message8";
+			var locale = typeof navigator === "undefined" ? "root" : (navigator.language || navigator.userLanguage || "root").toLowerCase();
+			var serviceName = "test/i18n/nls/" + locale + "/message8";
+
+			provider.registerService("orion.i18n.message", {
+				getMessageBundle: function() {
+					return {
+						root: {
+							test: "test"
+						}
+					};
+				}
+			}, {
+				name: name
+			});
+	
+			provider.registerService("orion.i18n.message", {
+				getMessageBundle: function() {
+					return {
+						test: "test-" + locale
+					};
+				}
+			}, {
+				name: serviceName
+			});
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

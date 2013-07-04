@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+	<meta name="copyright" content="Copyright (c) IBM Corporation and others 2011.">
+	<meta http-equiv="Content-Language" content="en-us">
+	<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+	<title>User Profile</title>
+	<link rel="stylesheet" type="text/css" href="user-profile.css" />
+	<script type="text/javascript" src="../requirejs/require.js"></script>
+		<script type="text/javascript">
+		require({
+			  baseUrl: '..',
+			  packages: [],
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+			      domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["user-profile.js"]);
+		</script>
+</head>
+	<body id="orion-profile" class="orionPage">
+		<div class="content-fixedHeight">
+			<div class="fixedToolbarHolder mainpane mainPanelLayout">
+				<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+				<div id="mainNode" class="settings toolbarTarget">
+					<div id="table" class="displayTable" style="padding-bottom: 20px;">
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer">
+		</div>
+	</body>	
+</html>

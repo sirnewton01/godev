@@ -1,0 +1,874 @@
+/*
+	Items that should appear on top of other orion visual components should have a z-index of 100 or greater.
+*/
+
+@import "./progress.css";
+
+html {
+  cursor: default;
+  height: 100%;
+}
+
+html, body {
+	margin: 0;
+	padding: 0;
+	font: 8pt Lucida Sans Unicode,Lucida Grande,Verdana,Arial,Helvetica,Myriad,Tahoma,clean,sans-serif; 
+	min-width:700px;
+} 
+
+h1 {
+	font-size:1.5em;
+	font-weight: bold;
+	color: #6d6d6d;
+	line-height: 36px;
+	position:absolute;
+	top:0;
+	bottom:0;
+	margin:auto;
+}
+
+h2 {
+	font-size: 1.1em;
+	font-weight: bold;
+	color: #6d6d6d;
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+/** remove unwanted borders on img in IE **/
+img {
+	border: 0;
+}
+
+/**
+ * Remove unwanted button padding in Firefox
+ */ 
+button::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+}
+
+.navlink {
+	display: inline-block;
+	padding: 2px;
+}
+
+.nav_fakelink:hover {
+	cursor: pointer;
+}
+
+.navlinkonpage, .nav_fakelink {
+	text-decoration: none;
+	padding: 2px;
+}
+
+.navlinkonpage:active {
+	text-decoration: none;
+}
+
+.navlinkonpage:hover {
+	text-decoration: none;
+	border-bottom: 1px dotted;
+}
+
+.dragOver {
+	background: #ffffd8;
+	outline: #AAA 2px dotted !important;
+}
+
+.logo {
+	background-image: url(../images/core_sprites.png);
+	background-repeat: no-repeat;
+	background-position: 0 -517px; 
+	width: 37px; height: 14px; 
+	margin-top: 6px;
+	margin-right:5px;
+}
+
+.toolbarTarget:focus{
+	outline:none;
+}
+
+.pageNav {
+	color: #808080;
+	font-size: 8pt;
+}
+
+.pageActions {
+	min-height: 28px;
+	margin-top: 4px;
+}
+
+/* 4px margin used by toolbar, plus 4px of border/padding */
+.status {
+	padding-top: 8px;
+	vertical-align: baseline;
+}
+
+/* marker for finding section and main toolbars */
+.toolComposite {
+}
+
+.taskTitle {
+	min-width: 10em;
+}
+
+.taskDescription {
+	font-size: 8pt;
+	padding: 8px;
+}
+
+.pageNavigationActions {
+	text-align: right;
+	min-height: 30px;
+}
+
+/* slideout styles */
+
+/* the left hand side of slideout containing parameter fields */
+.parameters {
+	color: whitesmoke;
+	vertical-align: middle;
+}
+
+/* the right hand side of slideout containing dismiss buttons */
+.parametersDismiss {
+	color: whitesmoke;
+	vertical-align: middle;
+	font-weight: normal;
+	padding: 3px;
+	padding-bottom: 0;
+}
+
+/* buttons used to dismiss or complete a slideout */
+.dismissButton {
+	border: 1px solid transparent;
+	background: transparent;
+	color: silver;
+    border-radius: 1px;
+	padding: 2px;
+	font: 8pt Lucida Sans Unicode,Lucida Grande,Verdana,Arial,Helvetica,Myriad,Tahoma,clean,sans-serif;  /* to override user agent stylesheet */
+	margin: 0 4px 0;
+	vertical-align: middle;
+	min-height: 16px;
+	min-width: 16px;
+}
+
+.dismissButton:hover {
+	color: #fdfdfd;
+}
+
+.parameterPrompt {
+	color: #fdfdfd;
+	display: block;
+	padding: 6px 4px 0;
+}
+
+/* button contained in a slideout next to parameter fields */
+.parameterInlineButton {
+	vertical-align: baseline;
+}
+
+/* parameter labels */
+label.parameterInput{
+	color: whitesmoke;
+	white-space: nowrap;
+}
+
+/* parameter fields */
+.parameterInput {
+	margin: 4px;
+	font-weight: normal;
+	vertical-align: baseline;
+	color:#333;
+	outline:none;
+}
+
+/* Adjust default sizes and layout for certain types */
+input.parameterInput[type=url] {
+	width: 30em;
+}
+
+input.parameterInput[type=checkbox] {
+	width: auto;
+}
+
+textarea.parameterInput {
+	vertical-align: top;
+	width: 50em;
+}
+
+.parameterPopup {
+	min-width: 15em;
+	max-width: 100em;
+	color: #333;
+}
+
+.parameterPopup > label{
+	color: whitesmoke;
+}
+
+.parameterPopup > input{
+	color: #333;
+}
+
+
+.navTableHeading {
+	color: #404040;
+	border-bottom: 1px solid #404040;
+}
+
+.navColumn {
+	min-width: 150px;
+	padding-right: 8px;
+	vertical-align: baseline;
+}
+
+.navRow {
+	vertical-align: baseline;
+	border-spacing: 8px;
+}
+
+.mainNavColumn {
+	display: inline-block;
+	padding: 4px;
+	vertical-align: baseline;
+}
+
+.singleNavColumn {
+	width: 100%;
+	white-space: nowrap;
+}
+
+.actionsColumn {
+	min-width: 300px;
+	text-align: right;
+	padding-left: 16px;
+	vertical-align: middle;
+	height: 24px;  /* breathing room */
+}
+
+.selectionCheckmarkSprite {
+	display: inline-block; 
+	vertical-align: middle; 
+	background-image: url(../images/core_sprites.png);
+	padding: 4px;
+	padding-left: 8px;
+	padding-right: 8px;
+	margin-right: 4px;
+}
+
+.modelDecorationSprite { 
+	display: inline-block; 
+	vertical-align: middle; 
+	background-image: url(../images/core_sprites.png);
+	margin-left: 8px;
+	padding-right: 8px;
+	margin-right: 8px;
+}
+
+.advancedSearchDecorationSprite { 
+	display: inline-block; 
+	vertical-align: middle; 
+	background-image: url(../images/core_sprites.png);
+	margin-left: 0px;
+	padding-right: 0px;
+}
+
+.thumbnail {
+	vertical-align: middle; 
+	padding: 0;
+	margin: 0;
+	margin-left: 8px; 
+	padding-right: 8px;
+	margin-right: 8px;
+	max-height: 24px;
+	max-width: 48px;
+}
+
+/* less hit-area since we aren't worried about touch */
+@media all and (min-device-width: 1025px) {
+	.modelDecorationSprite { 	
+		padding: 0;
+		margin: 0;
+		margin-left: 2px;
+		padding-right: 2px;
+		margin-right: 2px;
+	}
+	
+	.thumbnail {
+		margin-left: 2px; 
+		padding-right: 2px;
+		margin-right: 2px;
+		max-height: 24px;
+		max-width: 48px;
+	}
+	
+	.selectionCheckmarkSprite { 	
+		padding: 0;
+		padding-left: 2px;
+		padding-right: 2px;
+		margin-right: 2px;
+	}
+	
+	.checkColumn {
+		width: 22px;
+	}
+}
+
+.pane {
+   	margin: 0;
+    padding: 0;
+    background: #FFFFFF;
+    min-width: 300px;
+}
+
+.userEditBoxPrompt {
+	background: white;
+	color: black;
+}
+
+.auxPadding {
+	padding-left: 8px;
+	padding-top: 2px;
+    padding-bottom: 8px;
+}
+ 
+.help {
+	font-weight: bold;
+	font-size: 1.2em;
+	padding-left: 8px;
+	padding-right: 8px;
+}
+
+.footer {
+	text-align: left;
+	width: 100%;
+	border: 0;
+	padding: 0;
+	border-top: 1px solid #dbdbdb
+}
+
+.toolbarLabel {
+	padding-left: 8px;
+}
+
+.slideContainer {
+	height: auto;
+	width: 100%;
+	clear: both;
+	float: left;
+	margin: 2px;
+	margin-top: 3px;
+	display: none;
+	vertical-align: middle;
+	font-size: 11px;
+	z-index: 50;
+	color: #999;
+}
+
+.slideParameters {
+	border: 1px solid #666;
+	background-color: #666;
+}
+
+.slideContainerActive {
+	display: block;
+}
+
+.activeCommand {
+	background-color: #e3e3e3;
+	border: 1px solid #9a9a9a;
+}
+
+/* marker used by parameter collectors to identify commands */
+.commandMarker {
+}
+
+.bannerMenu {
+	margin: 0;
+	margin-left: 8px;
+	margin-right: 8px;
+	font-size: 7pt;
+	display: inline-block;
+	padding-tp:0 !important;
+	vertical-align: baseline;
+}
+
+.bannerMenuSearchOptions {
+	margin-left: -20px;
+}
+
+.bannerButton {
+	border: 1px solid transparent;
+	text-align: center;
+	vertical-align: baseline;
+    cursor: pointer;
+    display: inline-block;
+    border-radius:3px;
+    margin: 2px;
+    padding: 2px;
+}
+
+.bannerButton:hover {
+	background-color: #e6e6e6;
+	border: 1px solid #808080;
+}
+
+.toolbarButton {
+	border: 0;
+	padding: 0;
+	height: 20px;
+}
+
+.keyAssistFloat {
+	color: white;
+	display: none;
+	background: rgba(51, 51, 51, 0.9);
+	position: fixed;
+	right: 44px;
+	top: 75px;
+	min-width: 250px;
+	padding: 5px;
+	z-index:100;
+	border-radius: 4px;
+}
+
+.keyAssistContents {
+	width: auto;
+	height: 400px;
+	margin-top: 8px;
+	margin-bottom: 1px;
+	overflow: hidden;
+}
+
+.keyAssistInput {
+	color: inherit;
+	background: #333;
+	width: 100%;
+	margin: 0;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.keyAssistList {
+	width: 100%;
+	border-collapse: collapse;
+	outline: none;
+}
+
+.keyAssistItem {
+}
+
+.keyAssistItem:hover {
+	color: black;
+	background: rgba(255, 255, 255, 0.3);
+}
+
+.keyAssistFloat h2 {
+	color: gold;
+}
+
+.keyAssistItem.selected {
+	color: black;
+	background: rgba(255, 255, 255, 0.6);
+}
+
+.keyAssistName {
+	text-align: left;
+	padding: 3px;
+	border-top-left-radius: 4px;
+	border-bottom-left-radius: 4px;
+}
+
+.keyAssistAccel {
+	font-weight: bold;
+	color: gold;
+	text-align: right;
+	padding: 3px;
+	border-top-right-radius: 4px;
+	border-bottom-right-radius: 4px;
+}
+
+.inputCompletionContainer {
+	color: black;
+	display: block;
+	border:  1px solid #666;
+	background: white;
+	max-height: 300px;
+	max-width: 300px;
+	min-width: 150px;
+	position: absolute;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 2px;
+	z-index:200;
+}
+
+.inputCompletionUL {
+	list-style : none;
+	margin: 0;
+	padding: 0;
+}
+
+.inputCompletionLISelected {
+	background : #ffeecc;/*#0080ff;*/
+}
+
+.inputCompletionLICategory {
+	font-weight: bold;
+}
+
+.inputCompletionLINormal {
+	background : white;
+}
+
+#tree {
+	margin-right: 9em;
+	overflow-x: hidden;
+}
+
+#treeButtons br {
+	line-height: 0.5em;
+}
+
+#treeButtons {
+	margin: 0;
+	padding: 0;
+	float: right;
+	width: 9em;
+}
+
+#treeButtons .contentButton {
+	width: 8.5em;
+	margin: 0;
+	margin-bottom: 3px;
+	font-size: 1em;
+}
+
+.testResult {
+	background-color: #444444 !important;
+	color: white;
+}
+
+.folderItem {
+	background: url(../images/folder.gif);
+}
+
+.fileItem {
+	background: url(../images/file.gif);
+}
+
+.newItem {
+	background: url(../images/add.gif);
+}
+
+.treetable {
+	border-spacing: 0;
+	width:100%;
+	padding:5px;
+}
+
+.favoritesTable {
+	border-collapse: separate;
+	border-spacing: 2;
+	overflow-x: hidden; /* because it is placed inside a div with overflow scrollbars */
+}
+
+.secondaryColumn {
+	color: #666666;	
+	padding-right: 8px;
+}
+
+.primaryColumn {
+	color: #3087B3;
+	text-decoration: none;
+}
+
+.checkColumn {
+	padding: 0;
+}
+
+.testNavTreetable {
+	min-width: 150px;
+}
+
+.testResultTreetable {
+	min-width: 600px;
+}
+
+.selectionModelContainer {
+	outline: none;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: -moz-none; /*-moz-none allows override in children*/
+	-ms-user-select: none;
+	user-select: none;
+}
+
+input {
+	-moz-user-select: text;
+	text-indent: none;
+	text-indent: 0px;
+	text-shadow: none;
+	border: solid 1px #666;
+	color: #333;
+	font-size: 9pt;
+	padding: 2px;
+	margin-left: 5px;
+}
+
+.treeIterationCursor {
+	outline: #AAA 1px dotted !important;
+	border-radius:4px;
+}
+
+.treeIterationCursorRow {
+	background-color: #f3f6fe;
+}
+
+.treeIterationCursorRow_Dotted {
+	outline: #AAA 1px dotted !important;
+	background-color: #f3f6fe;
+}
+
+.searchCmdGroupMargin {
+	margin-left: 16px;
+	margin-top: 2px;
+}
+
+.LoginWindowLeft {
+	padding-left: 0.5em;
+}
+
+.LoginWindowRight {
+	padding-right: 0.5em;
+}
+
+.LoginWindowComment {
+	font-size: 0.9em;
+	padding-left: 15px;
+}
+
+#outline #switchOutlineMenu {
+	float: right;
+}
+
+#outline #switchOutlineMenu .commandImage {
+	display: none;
+}
+
+#outline>ul {
+	padding-left: 0 !important;
+	clear: both;
+	margin: 4px 0 0 8px;
+}
+
+#outline ul {
+	padding-left: 14px;
+}
+
+#outline li {
+	padding-bottom: 2px;
+	list-style-type: none;
+	white-space: nowrap; /*wrapping makes indented list hard to read*/
+}
+
+.uploadContainer{
+	padding:20px;
+	font-weight:bold;
+}
+
+.dottedOutline{
+	border: #DDD 4px dashed;
+	border-radius: 2px;
+	padding:50px;
+	height:300px;
+	width: 300px;
+}
+
+.floatingSection{
+	color: #DDD;
+}
+
+.uploadInstruction{
+	font-size: 18pt;
+	color: #CCC;
+	padding: 0 0 25px;
+	text-align:center;
+}
+
+.tipInstruction{
+	font-size: 12pt;
+	color: #CCC;
+	padding: 0 0 100px;
+	text-align:center;
+}
+
+.uploadOptions {
+	font-size: 14pt;
+	color: #BBB;
+	padding: 0 0 100px;
+	text-align: center;
+	vertical-align: middle;
+}
+
+.uploadOptionsItem {
+	font-size: 12pt;
+	color: #BBB;
+	text-align: center;
+	vertical-align: middle;
+	margin: 0 8px !important;
+}
+
+/* don't try to fight the poor styling and alignment of file inputs.  The browser will defeat you.  Just make it look like its own reasonable island */
+/* the real solution is to overlay a styled button on top.  http://stackoverflow.com/questions/572768/styling-an-input-type-file-button/9546968  */
+.uploadChooser{
+	vertical-align: middle;
+	margin-right: 24px;
+	margin-bottom: 4px;
+	border: 1px solid #dedede;
+    border-radius:1px;
+}
+
+.targetSelector{
+
+}
+
+#folderNameparameterCollector{
+	color:#333;
+}
+
+#urlparameterCollector{
+	color:#333;
+}
+
+
+.setting-control {
+	display: inline-block;
+	width: 130px;
+	padding: 4px;
+	margin: 5px;
+	outline: none;
+	background-color: white;
+	border: 1px solid #CCC;
+	border-radius: 3px;
+	font-size: 12px;
+	color: #222;
+}
+
+.settingsPanelLabel {
+	margin-top: 10px;
+	min-width: 80px;
+	display:inline-block;
+	text-transform: uppercase;
+	color: #555;
+}
+
+.settingsPanelValue {
+	display: inline;
+}
+
+.settingsPanel{
+	position: relative;
+	float: right;
+	padding: 10px;
+}
+
+.delegatedUI {
+	position: absolute; 
+	min-width: 250px;
+	min-height: 100px;
+	/* width, height may be overridden by the provider */
+	width: 600px;
+	height: 400px;
+	z-index: 150;
+	border: 1px inset;
+}
+
+/* FOR NAVIGATION DROP DOWN */
+
+.centralNavigation {
+	padding-top:2px;
+	cursor:pointer;
+}
+
+.centralNavigation:hover{
+
+}
+
+.navigationLabel{
+	color:#ddd;
+	cursor:pointer;
+	display: inline;
+	padding-right: 3px;
+}
+
+.dropDownContainer{
+	border-radius:3px;
+	background:#fefefe;
+	border: 1px solid #CCC;
+	padding:10px;
+	margin-top:5px;
+	position:absolute;
+	z-index:100;
+	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+
+.dropDownContainer ul {
+	list-style: none;
+	padding:0;
+}
+
+.dropDownContainer ul li a {
+	display: block;
+	padding: 5px 15px;
+	color:#3087B3;
+	line-height: 1;
+}
+
+.dropDownContainer ul li a:focus,
+.dropDownContainer ul li a:hover {
+	color:#F58B0F;
+}
+
+.dropDownContainer ul li a:active {
+	background: #ddd;
+}	
+
+.groupedContentDivider{
+	float: left;
+	width: 1px;
+	height: 160px;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	border-left: dashed 1px #ddd;
+}
+
+.navigationBreadcrumb{
+	font-family: sans-serif;
+	padding-bottom:5px;
+}
+
+.currentLocation{
+	margin-left:auto;
+	margin-right:auto;
+}
+
+.modifiedFileMarker{
+	color:white;
+	padding-left:5px;
+}
+
+.noFile {
+	padding: 10px;
+	vertical-align: middle;
+}
+
+.icon-inline {
+	display: inline-block;
+	vertical-align: middle;
+	margin: 0 2px 0 2px;
+}

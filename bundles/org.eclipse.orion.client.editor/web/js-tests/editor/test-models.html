@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="../../orion/plugin.js"></script>
+	<script src="../../requirejs/require.js"></script>
+	<script>
+	/*global require window*/
+	require({
+		  baseUrl: '../..',
+		  paths: {
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'	    
+		  }
+		});
+	
+	window.onload = function() {
+		require(["orion/test","test-model.js", "test-projectionModel.js", "test-annotationModel.js"], function(test, model, projectionModel, annotationModel) {
+			test.run({
+				"test model": model,
+				"test projection model": projectionModel,
+				"test annotation model": annotationModel
+			});		
+		});
+	};
+	</script>
+</head>
+<body>
+<div id="divParent" style="width:800px;height:800px;"></div>
+</body>
+</html>

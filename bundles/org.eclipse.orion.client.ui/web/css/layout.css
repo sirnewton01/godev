@@ -1,0 +1,337 @@
+/*
+Layout classes used in Orion.
+The model is one of a "side panel" defaulting to 1/3 width on the left and a "main panel" taking the rest
+of the room.  A page always has a fixed header but may have a fluid footer (at the bottom of content) or
+a fixed footer on the bottom of the page.
+
+To split a page in different proportions, modify the left hand position of the split bar to override the
+33% width position described in the class splitLayout
+
+The transition delays used for splitter animation (0.5) have a relationship with the animation delay used
+by the splitter bar.  If these values change, then change the delay in the splitter.
+
+Items that should appear on top of other orion visual components should have a z-index of 100 or greater.  Values
+under 100 are used to achieve layering of the header, footer, and splitters.
+*/
+
+/*
+There are implied LESS variables here, for now set up as layout classes that live here and refer to the
+hard-coded numbers elsewhere.
+*/
+
+/* $HeaderHeight */
+.headerLayout {
+	height: 60px;
+}
+
+/* $FooterHeight */
+.footerLayout {
+	height: 28px;
+	padding-left:10px;
+	font-size:0.9em;
+	font-weight:bold;
+	background:linear-gradient( rgba(242, 242, 242, 0.9), rgba(222, 222, 222, 0.9)) 28px;
+}
+
+/* $ToolbarHeight */
+.toolbarLayout {
+	height: 34px;
+}
+
+
+/* Banner Layout Classes */
+
+.bannerLeftArea{
+
+	-ms-flex: 1 6 20%;
+	-moz-box-ordinal-group: 1;	
+	-webkit-order: 1;
+	-ms-flex-order: 1;              /* TWEENER - IE 10 */
+	order: 1; 
+
+	-moz-box-flex: 1;
+
+	-webkit-box-flex:1;
+	-webkit-box-ordinal-group: 1;
+    
+    width: 20%; 
+}
+
+.bannerMiddleArea{
+	-ms-flex: 3 1 60%;
+
+	-webkit-order: 2;
+	-ms-flex-order: 2;              /* TWEENER - IE 10 */
+	order: 2;  
+
+ 	-moz-box-flex: 1;
+    -moz-box-ordinal-group: 2;
+    
+    -webkit-box-flex:1;
+	-webkit-box-ordinal-group: 2;
+    width: 60%; 
+}
+
+@media only screen and (device-width: 768px) {
+  /* For general iPad layouts */
+  
+  .bannerMiddleArea{
+	-ms-flex: 3 1 60%;
+
+	-webkit-order: 2;
+	-ms-flex-order: 2;              /* TWEENER - IE 10 */
+	order: 2;  
+
+ 	-moz-box-flex: 1;
+    -moz-box-ordinal-group: 2;
+    
+    -webkit-box-flex:1;
+	-webkit-box-ordinal-group: 2;
+    width: 59%; 
+}
+  
+}
+
+
+.bannerRightArea{
+	-ms-flex: 1 6 20%;
+	-moz-box-ordinal-group: 3;
+	-webkit-order: 3;
+	-ms-flex-order: 3;              /* TWEENER - IE 10 */
+	order: 3;  
+
+	-moz-box-flex: 1;
+	
+	-webkit-box-flex:1;
+	-webkit-box-ordinal-group: 3;
+
+    width: 20%; 
+}
+
+.content-fixedHeight {
+	clear: both;
+	overflow: hidden;
+    position: absolute;
+    top: 36px;
+	bottom: 33px; /* $FooterHeight + footer border (1px) */
+    left: 0;
+    width: 100%;
+	/*margin-bottom: 29px;*/
+}
+
+.content-fixedHeight-maximized {
+	top: 0;
+	bottom: 0;
+}
+
+.content-fluid {
+}
+
+.footer-fixed-bottom {
+	position: fixed;
+	bottom: 0;
+	z-index: 50;
+	right: 0;
+	left: 0;
+	height: 32px; /* It has to be this */
+	background:linear-gradient( rgba(242, 242, 242, 0.9), rgba(222, 222, 222, 0.9)) 32px;
+}
+
+.footerBlock {
+	float: left;
+	margin: 4px;
+	color: #7F7F7F;
+	font-weight: bold;
+	float: left;
+}
+
+.footerRightBlock {
+	float: right;
+	margin: 4px;
+}
+
+.footerRightBlock ul {
+	margin: 0;
+}
+
+.footerRightBlock li {
+	display: inline;
+}
+
+.footerRightBlock li:after {
+	content: ' |';
+	padding: 0 5px;
+}
+
+.footerRightBlock li:last-child:after {
+	content: none;
+}
+
+.layoutBlock {
+	clear: both;
+	margin: 0;
+	/* padding: 2px 8px; */
+	padding: 4px 4px 0 4px;
+	vertical-align: baseline;
+}
+
+.layoutLeft {
+	float: left;
+	margin: 0;
+}
+
+.layoutRight {
+	float: right;
+	margin: 0;
+}
+
+.spacingLeft {
+	margin-left: 5px;
+}
+
+.spacingRight {
+	margin-right: 5px;
+}
+
+.clear {
+	clear: both;
+}
+
+.hidden {
+	visibility: hidden;
+}
+
+.sidePanelLayout {
+	display: block;
+	position: absolute;
+	left: 0;
+	width: 33%;
+	height: 100%;
+}
+
+.sidePanelLayoutAnimation {
+	-webkit-transition: width 0.5s ease;
+	-moz-transition: width 0.5s ease;
+	-o-transition: width 0.5s ease;
+	transition: width 0.5s ease;
+	z-index: 50;
+    overflow: auto;
+}
+
+.sidePanelMargins {
+	margin-left: 8px;
+	margin-top: 2px;
+    margin-bottom: 8px;
+    width: auto;
+}
+
+.mainPanelLayout {
+	display: block;
+	position: absolute;
+	right: 0;
+	width: 66%;
+	height: 100%;
+}
+
+.mainPanelLayoutAnimation {
+	-webkit-transition: width 0.5s ease;
+	-moz-transition: width 0.5s ease;
+	-o-transition: width 0.5s ease;
+	transition: width 0.5s ease;
+}
+
+.fixedToolbarHolder {
+	position: relative;
+	left: 0;
+	top: 0;
+	height: 100%;
+	width: 100%;
+	min-width: 250px;
+}
+
+.toolbarTarget {
+	position: absolute;
+	top: 37px;  /* $ToolbarHeight + 1 */
+ 	width: 100%;
+ 	bottom: 0;
+ 	overflow-y: auto;
+}
+
+.hasSplit {
+   display: none;
+}
+
+.splitLayout {
+	position: absolute;
+	left: 33%;  /* override this value if you want a different proportion of the two split panes */
+	height: 100%;
+	z-index: 50;
+	width: 4px;
+	margin-right: 3px;
+	cursor: e-resize;
+	visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
+}
+
+.splitVerticalLayout {
+	position: absolute;
+	top: 33%;  /* override this value if you want a different proportion of the two split panes */
+	width: 100%;
+	z-index: 50;
+	height: 3px;
+	margin-bottom: 3px;
+	cursor: n-resize;
+	visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
+}
+
+.splitThumbLayout {
+	position: relative;
+	left: 0;
+	height: 2em;
+	top: 49%;
+	cursor: pointer;
+}
+
+splitVerticalThumbLayout {
+	position: relative;
+	top: 0;
+	width: 2em;
+	left: 49%;
+	cursor: pointer;
+}
+
+.splitLayoutAnimation {
+	background: transparent !important;
+}
+
+.panelTracking {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	overflow: auto;
+}
+
+/* command layout */
+
+/* spacing for commands in a list */
+.commandList {
+	padding: 0;
+	margin-left: 0;
+	margin-right: 0;
+	list-style-type: none;
+	vertical-align: baseline;
+}
+
+.commandList > li {
+	float: left;
+	margin-left: 4px;
+	margin-right: 4px;
+}
+
+/* for commands not in a list we add margins for backward compatibility */
+.commandMargins {
+	margin-left: 4px !important;
+	margin-right: 4px !important;
+}

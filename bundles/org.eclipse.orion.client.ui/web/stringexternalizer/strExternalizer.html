@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+    <head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title>Externalize Strings</title>
+		<link rel="stylesheet" type="text/css" href="strExternalizer.css" /> 
+		<link rel="shortcut icon" href="/replaceAll.ico" />
+		<script src="../requirejs/require.js"></script>
+		<script>
+		/*globals require*/
+		require({
+			  baseUrl: '..',
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["strExternalizer.js"]);
+		</script>	
+   </head>
+   
+     <body id="orion-externalizeResults" class="orionPage" spellcheck="false">
+		<div class="content-fixedHeight">
+			<div id="outlineContainer" class="auxpane sidePanelLayout hasSplit">
+				<div class="sidePanelMargins" id="favoriteProgress"></div>
+			</div>
+			<div class="split splitLayout"></div>
+			<div id="rightPane" class="mainpane mainPanelLayout hasSplit">
+				<div class="fixedToolbarHolder">
+					<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+					<div class="toolbarTarget" tabindex="0">
+						<div class="mainpane" id="results" tabindex="0" style="height:100%;width:100%;position:relative;">
+						</div>
+					</div>	
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer"></div>
+	</body>
+</html>

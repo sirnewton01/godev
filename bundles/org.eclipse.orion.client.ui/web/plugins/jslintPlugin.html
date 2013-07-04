@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>JSLint plugin</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script src="../requirejs/require.js"></script>
+	<script>
+		/*global require*/
+		require({
+		  baseUrl: '..',
+		  paths: {
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'
+		  }
+		});
+
+		require(['jslintPlugin.js']);
+	</script>
+</head>
+<body>
+</body>
+</html>

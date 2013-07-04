@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="../../examples/editor/themes/default.css" />
+	<script src="../../orion/plugin.js"></script>
+	<script src="../../requirejs/require.js"></script>
+	<script type="text/javascript">
+	/*global require window*/
+	require({
+		  baseUrl: '../..',
+		  paths: {
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'	    
+		  }
+		});
+	
+	window.onload = function() {
+		require(["orion/test","test-performance.js"], function(test, performanceTest) {
+			test.run(performanceTest);		
+		});
+	};
+	</script>
+</head>
+<body spellcheck="false">
+<div id="divParent" style="border:1px solid gray;width:1000px;height:800px;"></div>
+</body>
+</html>

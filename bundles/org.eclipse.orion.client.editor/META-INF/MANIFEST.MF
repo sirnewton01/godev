@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %Bundle-Name
+Bundle-Vendor: %Bundle-Vendor
+Bundle-SymbolicName: org.eclipse.orion.client.editor
+Bundle-Version: 1.0.0.qualifier
+Bundle-Localization: bundle
+Eclipse-BundleShape: dir

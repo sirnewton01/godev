@@ -1,0 +1,300 @@
+@import "../css/layout.css";
+@import "../css/ide.css";
+@import "../css/images.css";
+@import "../css/sections.css"; /* for outliner */
+@import "../css/theme.css";
+
+.outlineExplorer {
+	overflow-y: none;
+}
+
+.findOptionsDiv {
+	display: inline-block;
+	margin: 0;
+	padding: 0;
+}
+
+.findSlideoutButton {
+	color: silver;
+	border: 1px solid transparent;
+	text-align: center;
+	vertical-align: top;
+    cursor: pointer;
+    display: inline-block;
+    padding: 2px;
+    margin-left: 8px;
+    border-radius:1px;
+    font-weight: normal;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+.findSlideoutMenu {
+	color: silver;
+	background-color: transparent;
+	border: 1px solid transparent;
+	padding: 2px;
+    font-weight: normal;
+    margin: 0;
+    margin-left: 8px;
+	text-align: center;
+}
+
+.findSlideoutButton:hover {
+	background-color: #efefef;
+	border: 1px solid #222;
+}
+
+.projectCreation{
+	min-height: 29px;
+	font-size: 13px;
+	padding: 10px 0 6px 10px;
+}
+
+.projectButtonMain {
+	background-color: #FFB724; /* 3087B3; */
+	border: 1px solid transparent;
+	color: white;
+	text-shadow: 0 1px rgba(0, 0, 0, 0.1);
+	text-transform: uppercase;
+}
+
+.projectButtonMain {
+	background-color: #E0E0E0;
+	border: 1px solid #CCC;
+	color: #333;
+	text-shadow: 0 1px rgba(0, 0, 0, 0.1);
+	text-transform: uppercase;
+}
+
+.projectButton {
+	-webkit-border-radius: 2px;
+	-moz-border-radius: 2px;
+	border-radius: 2px;
+	cursor: default;
+	font-size: 11px;
+	text-align: center;
+	white-space: nowrap;
+	margin-right: 16px;
+	height: 27px;
+	line-height: 27px;
+	min-width: 54px;
+	outline: 0;
+	padding: 0 8px;
+}
+
+.projectInlineBlock {
+	position: relative;
+	display: inline-block;
+}
+
+.projectTreeRow {
+	padding-top: 0;
+	padding-bottom: 0;
+	position: relative;
+	vertical-align: top;
+	cursor: pointer;
+}
+
+.projectTreeRowHover {
+	background: #EEE;
+	border: 1px solid #EEE !important;
+	color: black;
+}
+
+.projectTreeRow {
+	padding: 2px 0 2px 8px;
+	vertical-align: middle;
+	cursor: default;
+	white-space: nowrap;
+}
+
+user agent stylesheetdiv {
+	display: block;
+}
+
+
+.projectTreeRow {
+	line-height: 14px;
+}
+
+.projectTreeItem .selected {
+	color: #DD4B39;	
+}
+
+.projectTreeItem .selected {
+	cursor: default;
+	white-space: nowrap;
+}
+
+.projectTreeContainer{
+	min-height: 29px;
+	font-size: 11px;
+	padding: 10px 0 6px 10px;
+}
+
+.leftButton {
+	height:30px;
+	width:30px;
+	background-color: whiteSmoke;
+	color: #444;
+	border: 1px solid gainsboro;
+	display:inline-block;
+}
+
+.rightButton {
+	height:30px;
+	width:30px;
+	background-color: whiteSmoke;
+	color: #444;
+	border: 1px solid gainsboro;
+	display:inline-block;
+}
+
+.buttonBox{
+	float:right;
+	padding:10px;
+}
+
+ol.thumb-grid li {
+	float: left;
+	width: 25%;
+	margin: 0 5% 5% 0;
+	list-style:none;
+	padding:10px;
+	background:white;
+	box-shadow: 0 1px 3px rgba(34, 25, 25, 0.4);
+}
+
+ol.thumb-grid li:nth-child(3n) {
+	margin-right: 0;
+}
+
+ol.thumb-grid li a img {
+	width: 100%;
+}		
+	
+.projectListNode{
+	padding-top:50px;
+}
+
+table {
+	margin: 0;
+	padding: 20px;
+	padding-top: 0;
+	border-spacing: 2px;
+	border-color: gray;
+	font-family: Arial;
+	font-size: 16px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+}
+
+table th,
+table td {
+	padding: 10px 20px;
+	text-align: left;
+	border-bottom: 1px solid #ccc;
+}
+
+table th {
+	border-width: 2px;
+	background: whiteSmoke;
+	font-size: 11px;
+	font-weight: bold;
+	text-transform: uppercase;
+	z-index: 1;
+	text-align: left;
+}
+
+table td {
+	color: #666;
+	transition: font-size .218s,height .218s,line-height .218s,margin .218s,padding .218s,width .218s;
+	overflow: hidden;
+	white-space: nowrap;
+	width: 100%;
+	empty-cells: show;
+	font-size: 13px;
+	font-family: arial,sans-serif;
+}
+
+table tr:last-child th,
+table tr:last-child td {
+	border-bottom: none;
+}
+
+table tr:nth-child(even) {
+	/* background: #eee; */
+}	
+
+.tileDate{
+	font-size:10px;
+	color:#999;
+}	
+
+.tileTitle{
+	color:#333;
+	padding-top: 30px;
+}
+
+.tab{
+   position:relative;
+   height:200px;
+}
+
+.tab .iframeOverlay{
+    position:absolute;
+    z-index:95;
+    left:0;top:0;
+    height:100%;width:100%;
+    background:#fff;
+    opacity:0;
+}
+
+.tab iframe{
+	border:none;
+    position:relative;
+    -webkit-transform: scale(0.3, 0.29);
+    -moz-transform: scale(0.3, 0.29);
+    transform: scale(0.3, 0.29);
+    -moz-transform-origin:0 0;
+    -webkit-transform-origin:0 0;
+    transform-origin:0 0;
+    position:relative;
+    z-index:90;
+}
+
+.projectCreationMenu{
+	height:200px;
+	width:200px;
+	background:white;
+	border: 1px solid #EEEEEE;
+	z-index:100;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.projectMenuitem{
+	position: relative;
+	color: #333;
+	cursor: pointer;
+	list-style: none;
+	margin: 0;
+	padding-top: 10px;
+	padding-left: 10px;
+	white-space: nowrap;
+}
+
+.projectConfiguration{
+	padding-left:20px;
+}
+
+.coaching {
+	font-family: "Helvetica Neue", HelveticaNeue, "Droid Sans", Roboto, Helvetica, sans-serif;
+	color: #444;
+	font-size: 12px;
+}

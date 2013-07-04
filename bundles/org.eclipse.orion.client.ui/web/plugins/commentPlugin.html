@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" src="../orion/plugin.js"></script>
+	<script>
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			// testing that command service handles image-less actions properly
+			provider.registerService("orion.edit.command", {
+				run : function(selectedText, text, selection) { 
+					return {text: text.substring(0,selection.start) + "/*" + text.substring(selection.start,selection.end) + "*/" + text.substring(selection.end),
+					selection: {start:selection.start,end:selection.end+4}}; 
+				}
+			}, {
+				nameKey : "Comment",
+				nls: "orion/editor/nls/messages",
+				key : [ "m", true, true ] // ctrl+shift+m
+			});
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

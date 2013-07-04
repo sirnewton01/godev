@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<link rel="stylesheet" type="text/css" href="css/manageOpenids.css" />
+		<script src="../requirejs/require.js"></script>
+		<script>
+		/*global require*/
+		require({
+		  baseUrl: '..',
+		
+		  // set the paths to our library packages
+		  packages: [],
+		  paths: {
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'
+		  }
+		});
+		
+		require(['manageOpenids.js']);
+		</script>
+	</head>
+<body>
+	<div id="newOpenId">
+		<h2 style="margin: 10px 5px 10px 0; float: left;" id="addExternalAccount">Add external account:</h2>
+	</div>
+	<div id="openidList"></div>
+</body>
+</html>

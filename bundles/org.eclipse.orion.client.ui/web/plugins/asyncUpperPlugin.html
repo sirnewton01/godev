@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script src="../orion/Deferred.js"></script>
+	<script src="../orion/plugin.js"></script>
+	<script>
+	/*global window orion*/
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			provider.registerService("orion.edit.command", {
+				run : function(text) {
+					// return text.toUpperCase(); <-- original call
+					
+					var d = new orion.Deferred(); // create a promise
+					
+					setTimeout(function() { // wait two seconds
+						d.resolve(text.toUpperCase()); // then "resolve" the promise - do the regular call
+					}, 2000);
+					
+					return d; // return the promise immediately
+				}
+			}, {
+				name : "UPPERCASE_ASYNC",
+				img : "../images/gear.gif",
+				key : [ "a", true ]
+			});
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

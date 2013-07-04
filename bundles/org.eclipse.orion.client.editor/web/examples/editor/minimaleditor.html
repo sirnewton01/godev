@@ -1,0 +1,33 @@
+<!doctype html>
+<html style="height: 100%;">
+    <head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010, 2012." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title>Minimal Editor</title>
+		<link rel="stylesheet" type="text/css" href="minimaleditor.css" />
+		<!-- Note if running this standalone you will need to copy requirejs from bundles/org.eclipse.orion.client.core/web/ -->
+		<script src="../../requirejs/require.js"></script>
+		<script type="text/javascript">
+		/*globals require*/
+			require({
+			  baseUrl: '../..',
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+			      domReady: 'requirejs/domReady'
+			  }
+			});
+			require(["minimaleditor.js"]);
+		</script>
+   </head>
+
+    <body style="height: 100%;">
+	<div id="logo" style="height: 28px; background: #404040; text-align: left;">
+		<img src="images/skinnyheaderlogo.png" alt="Orion">
+		<span id="status" style="height: 28px; vertical-align: top; color: #FFFFFF;"></span>
+	</div>
+    <div id="editor" style="width: 100%; height: 100%;">
+	</div>
+</body>
+</html>

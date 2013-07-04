@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" src="../orion/plugin.js"></script>
+	<script>
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			var serviceImpl = {
+				run : function(text) {
+					return text.toUpperCase();
+				}
+			};
+			var serviceProps = {
+				name : "UPPERCASE",
+				img : "../images/gear.gif",
+				key : [ "u", true ]
+			};
+			provider.registerService("orion.edit.command", serviceImpl, serviceProps);
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

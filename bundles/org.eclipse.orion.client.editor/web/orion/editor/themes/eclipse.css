@@ -1,0 +1,62 @@
+.eclipse {
+	font-family: monospace;
+	font-size: 10pt;
+	color: darkSlateGray;
+}
+.eclipse.textview {
+	background-color: white;
+}
+.eclipse .ruler.annotations {
+	background-color: white;
+}
+.eclipse .ruler.lines {
+	background-color: white;
+}
+.eclipse .ruler.folding {
+	background-color: white;
+}
+.eclipse .ruler.overview {
+	background-color: white;
+}
+.eclipse .rulerLines {
+	color: #444;
+}
+.eclipse .rulerLines.even {
+	color: #444;
+}
+.eclipse .rulerLines.odd {
+	color: #444;
+}
+.eclipse .annotationLine.currentLine {
+	background-color: #EAF2FE;
+}
+.eclipse .entity-name-tag {
+	color: #7f0055;
+}
+.eclipse .entity-other-attribute-name {
+	color: cadetBlue;
+}
+.eclipse .string-quoted {
+	color: blue;
+}
+.eclipse .line_caret {
+	background-color: #EAF2FE;
+}
+.eclipse .token_keyword {
+	color: #7f0055;
+}
+.eclipse .token_string {
+	color: blue;
+}
+.eclipse .token_singleline_comment {
+	color: green;
+}
+.eclipse .token_multiline_comment {
+	color: green;
+}
+.eclipse .token_doc_comment {
+	color: green;
+}
+.eclipse .token_doc_html_markup {
+	color: green;
+}

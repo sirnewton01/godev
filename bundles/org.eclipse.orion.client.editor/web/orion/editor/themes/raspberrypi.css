@@ -1,0 +1,62 @@
+.raspberrypi {
+	font-family: monospace;
+	font-size: 10pt;
+	color: dimgray;
+}
+.raspberrypi.textview {
+	background-color: seashell;
+}
+.raspberrypi .ruler.annotations {
+	background-color: seashell;
+}
+.raspberrypi .ruler.lines {
+	background-color: seashell;
+}
+.raspberrypi .ruler.folding {
+	background-color: seashell;
+}
+.raspberrypi .ruler.overview {
+	background-color: seashell;
+}
+.raspberrypi .rulerLines {
+	color: #E73E36;
+}
+.raspberrypi .rulerLines.even {
+	color: #E73E36;
+}
+.raspberrypi .rulerLines.odd {
+	color: #E73E36;
+}
+.raspberrypi .annotationLine.currentLine {
+	background-color: #F5B1AE;
+}
+.raspberrypi .entity-name-tag {
+	color: #E73E36;
+}
+.raspberrypi .entity-other-attribute-name {
+	color: cadetBlue;
+}
+.raspberrypi .string-quoted {
+	color: darkorange;
+}
+.raspberrypi .line_caret {
+	background-color: #F5B1AE;
+}
+.raspberrypi .token_keyword {
+	color: #E73E36;
+}
+.raspberrypi .token_string {
+	color: darkorange;
+}
+.raspberrypi .token_singleline_comment {
+	color: #66B32F;
+}
+.raspberrypi .token_multiline_comment {
+	color: #66B32F;
+}
+.raspberrypi .token_doc_comment {
+	color: #66B32F;
+}
+.raspberrypi .token_doc_html_markup {
+	color: #66B32F;
+}

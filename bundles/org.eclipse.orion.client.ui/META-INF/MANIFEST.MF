@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %Bundle-Name
+Bundle-Localization: bundle
+Bundle-Vendor: %Bundle-Vendor
+Bundle-SymbolicName: org.eclipse.orion.client.ui
+Bundle-Version: 2.0.0.qualifier

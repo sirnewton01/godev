@@ -1,0 +1,80 @@
+@CHARSET "UTF-8";
+
+html, body {
+	margin: 0;
+	padding: 0;
+	font: 9pt Arial,Helvetica,Myriad,Tahoma,clean,sans-serif; 
+}
+
+h2 {
+	font-size: 1.1em;
+	font-weight: bold;
+	color: #6d6d6d;
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+a {
+	cursor: hand;
+	text-decoration: none;
+	color: #024892;
+}
+
+a:visited {
+	color: #024892;
+}
+
+a:active {
+	color: #024892;
+}
+
+a:hover {
+	cursor: hand;
+	text-decoration: underline;
+	color: #024892;
+}
+
+img.loginWindow{
+	height: 30px;
+	border: 0px;
+	margin-left: 5px;
+	margin-right: 5px;
+}
+
+.secondaryColumn {
+	color: #666666;	
+}
+
+.manageOpenIdsTable{
+	border-spacing: 0;
+}
+
+.manageOpenIdRow .removeOpenId {
+	cursor: pointer;
+	visibility: hidden;
+}
+
+.manageOpenIdRow:hover .removeOpenId {
+	visibility: visible !important;
+}
+
+/*.removeOpenId {
+	cursor: pointer;
+}*/
+
+.lightTreeTableRow {
+	background-color: #FFFFFF;
+}
+
+.darkTreeTableRow {
+	background-color: #f7f7f7;
+}
+
+.navTableHeading {
+	color: #404040;
+	border-bottom: 1px solid #404040;
+}
+
+.navColumn {
+	min-width: 150px;
+}

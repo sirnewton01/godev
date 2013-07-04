@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Plugin Content</title>
+		<link rel="stylesheet" type="text/css" href="content.css" />
+    	<script type="text/javascript" src="../requirejs/require.js"></script>
+		<script type="text/javascript">
+		require({
+			  baseUrl: '..',
+			  packages: [ 
+			  ],
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'    
+			  }
+			});
+		
+		require(["saveHook.js"]);
+		</script>
+	</head>
+   <body class="orionPage">
+	<div id="orion.saveRequest" style="margin: 8px;">
+		<div>Handling save request</div>
+	</div>
+	
+</body>
+</html>

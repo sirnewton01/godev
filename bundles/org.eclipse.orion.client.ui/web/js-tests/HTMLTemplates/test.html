@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- standard scripts -->
+	<script src="../../requirejs/require.js"></script>
+	<script src="../../orion/HTMLTemplates-shim.js"></script>
+	<script>
+	/*global require window*/
+	require({
+		  baseUrl: '../..',
+		  paths: {
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'	    
+		  },
+		  isTest: true
+		});
+	
+	window.onload = function() {
+		require(["orion/test","testcase.js"], function(test, testcase) {
+			test.run(testcase);			
+		});
+	};
+	</script>
+</head>
+<body>
+	<template id="commentTemplate3">
+	    <div>
+	        <img src="">
+	        <div class="comment3"></div>
+	        …
+	    </div>
+	</template>
+</body>
+</html>

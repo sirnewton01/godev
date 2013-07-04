@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+    <head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title></title>
+		<link rel="stylesheet" type="text/css" href="search.css" /> 
+		<link rel="shortcut icon" href="/replaceAll.ico" />
+		<script src="../requirejs/require.js"></script>
+		<script type="text/javascript">
+		/*global require*/
+		require({
+			  baseUrl: '..',
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["search.js"]);
+		</script>
+   </head>
+   
+       <body id="orion-searchResults" class="orionPage">
+		<div class="content-fixedHeight">
+			<div class="auxpane sidePanelLayout hasSplit">
+				<div id="outlineContainer" style="height:100%;width:100%;position:relative;">
+					<div id="outlineTop" class="topPanelLayout">
+						<div id="searchBuilder" class="sidePanelMargins">
+						</div>
+					</div>
+					<div class="outlinerSplitLayout"></div>
+					<div id="outlineBottom" class="bottomPanelLayout">
+						<div class="sidePanelMargins" id="searchProgress"></div>
+					</div>
+				</div>
+			</div>
+			<div class="split splitLayout" style="left:33%;"></div>
+			<div id="rightPane" class="mainpane mainPanelLayout hasSplit">
+				<div class="fixedToolbarHolder">
+					<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+					<div class="toolbarTarget" tabindex="0">
+						<div class="mainpane" id="results" tabindex="0" style="height:100%;width:100%;position:relative;">
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer"></div>
+	</body>
+</html>

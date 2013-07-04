@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Search Proposal Filtered</title>
+	<script type="text/javascript" src="../orion/plugin.js"></script>
+	<script>
+	  window.onload = function() {
+	  	  var bindData = [{category: "Filtered by me", datalist:["I am always here", "Stay here till uninstalled"]},
+	  	  				  {category: "Filtered by web service", datalist:["I am always here", "Stay here till uninstalled"]}
+	  	  ];
+	  
+	      var provider = new orion.PluginProvider();
+	      var serviceImpl = {
+	              run: function(keyWords) {
+	                  return bindData;
+	              }
+	          };
+	      var serviceProperties = { 
+	              "filterForMe": false
+	          };
+	      provider.registerService("orion.search.proposal", serviceImpl, serviceProperties);
+	      provider.connect();
+	  };
+	</script>
+</head>
+<body>
+</body>
+</html>

@@ -1,0 +1,605 @@
+/* Page color */
+
+.orionPage {
+	background-color: #fdfdfd;
+	width: 100%;
+	height: 100%;
+}
+
+/* Top row/navigation banner */
+
+.topRowBanner {
+	margin: 0;
+	border: 0;
+	background-color: rgb(51, 51, 51);
+	height: 15px;
+	padding: 10px 3px 10px 10px;
+	display: -webkit-box;
+	display: -moz-box;         /* OLD - Firefox 19- (buggy but mostly works) */
+	display: -ms-flexbox;     /* TWEENER - IE 10 */
+	display: -webkit-flex;     /* NEW - Chrome */
+	display: flex; 
+	width: calc(100% - 10px - 3px);
+	whitespace: nowrap;
+}
+
+
+/* Footer */
+.logoFooter {
+	float: left;
+}
+
+a {
+	text-decoration: none;
+	color: #3087B3;
+}
+
+a:hover {
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+/* Navigation text */
+
+.primaryNav {
+	font-size: 8pt; 
+	font-weight: normal;
+	color: #BFBFBF;
+	vertical-align: baseline;
+}
+
+.primaryNav > div {
+	padding-top: 6px;
+}
+
+.primaryNav > nav {
+	padding-top: 6px;
+}
+
+.primaryNav > nav > a {
+	color: #BFBFBF;
+	margin-right: 6px;
+	margin-left: 6px; 
+	text-decoration: none;
+}
+
+.primaryNav > nav > a:hover, .primaryNav span.dropdownTrigger:hover {
+	cursor: pointer;
+	color: white;
+}
+
+/* Title area - the place for location/breadcrumbs */
+
+.titleArea {
+    margin: 0;
+    padding-top: 3px;
+    border: 0;
+    background: #EFEFEF;
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#EFEFEF), color-stop(100%,#EFEFEF));
+    border-bottom: 1px solid #DEDEDE;
+    min-height: 20px;
+}
+
+/* Row selection */
+
+.checkedRow {
+	background-color: #ffeecc !important; /* was e3e3e3 */
+}
+
+.navbar-item-selected {
+	background: #FEC;
+	color: black;
+}
+
+/* Breadcrumbs */
+
+.breadcrumb {
+	font-size: 8pt;
+	text-decoration: none;
+	color: #CCC;
+	padding-top: 2px;
+}
+
+a.breadcrumb:hover {
+	text-decoration: none;
+	border-bottom: 1px dotted;
+	color: #F58B0F;
+	cursor: pointer;
+}
+
+/* a.breadcrumb:visited {
+	color: #3087B3;
+} */
+
+.breadcrumbSeparator {
+	font-size: 8pt;
+	text-decoration: none;
+	color: #333;
+	font-weight: bold;
+}
+
+.currentLocation {
+	padding-top:1px;
+	font-weight: bold;
+	font-size: 8pt;
+	color: #444;
+	text-decoration: none;
+	text-wrap: normal;
+	line-height: 10pt;
+}
+
+a.currentLocation:hover {
+	font-weight: bold;
+	font-size: 10pt;
+	color: #666666;
+	text-decoration: none;
+	border-bottom: 0;
+}
+
+.auxpane {
+	border: 0;
+	background: #fbfbfb;
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#fbfbfb), color-stop(100%,#fbfbfb));
+	background: -moz-linear-gradient(top, #fbfbfb 0%, #fbfbfb 100%);
+}
+
+.mainpane {
+	border: 0;
+	background: white;
+}
+
+/* Set a min-width on a treetable if it's the main attraction */
+.mainpane .treetable {
+	min-width: 600px;
+}
+
+.mainToolbar {
+ 	background: #ffffff;
+	border-bottom: 1px solid #ebebeb;
+}
+
+.sidebarToolbar {
+	padding-right: 4px;
+}
+
+/* Searchbox in the top navigation area seems a difficult thing to 
+   get right. I've worked with a range of colors. What I notice is that
+   if the edges are curved, then it seems to need a lighter shade. That
+   draws more attention to the search box. It is more passive and fitting
+   if drawn with straight edges and a darker background */
+
+.searchbox {
+    background-image: url(../images/core_sprites.png);
+    background-repeat: no-repeat; 
+    background-position: 4px -297px; 
+    width: 12px; height: 12px;
+    background-color: #444;
+	border: 1px solid #222;
+	font-size: 11px;
+	width: 15em;
+	height: 16px;
+	border-radius: 10px; /* 10px */
+	color: #999;
+	padding: 0;
+	padding-left: 20px;
+	padding-right: 16px;
+	margin-left: 5px;
+	font: 7pt Lucida Sans Unicode,Lucida Grande,Verdana,Arial,Helvetica,Myriad,Tahoma,clean,sans-serif !important;
+}
+
+.searchbox:focus{
+	color: white;
+	outline: none;
+}
+
+/* Orion button provides standard padding, margin, alignment for any button, regardless of whether it is a command or not.  Using
+   this helps non-gray buttons remain uniform looking with respect to size. */
+   
+.orionButton {
+	border: 1px solid transparent;
+	text-align: center;
+	vertical-align: baseline;
+    display: inline-block;
+    padding: 2px 6px 3px;
+    border-radius: 2px;
+    line-height: 12px;
+	font: 8pt Lucida Sans Unicode,Lucida Grande,Verdana,Arial,Helvetica,Myriad,Tahoma,clean,sans-serif;  /* to override user agent stylesheet */
+	margin: 0;  /* to override user agent stylesheet */
+}
+
+.commandButton {
+	color: #222;
+	border: 1px solid #dedede;
+	background-color: #ddd;
+	border-radius: 2px;
+}
+
+.commandButton:hover, .commandButton:focus {
+	background-color: #eee;
+}
+
+.commandButton.disabled {
+	color: #cdcdcd;
+}
+
+.commandImage {
+	border: 1px solid transparent;
+    border-radius: 2px;
+	background-color: transparent;
+	vertical-align: baseline;
+	cursor: pointer;
+	display: inline-block;
+	padding: 1px;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+.commandImage:hover, .commandImage:focus {
+	background-color: #e6e6e6;
+	border: 1px solid #ccc;
+}
+
+/* should be used in conjunction with .commandButton when a tool has no icon. */
+.commandMissingImageButton {
+	font-weight: bold;
+}
+
+.commandLink {
+	display: inline-block;
+	vertical-align: baseline;
+	padding: 2px;  /* other commands have 1px plus a border, so we need 2 */
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+.commandSeparator {
+	padding: 2px;
+}
+
+.commandActive {
+	background-color: #e6e6e6 !important;
+	border: 1px solid #808080 !important;
+    border-radius: 2px !important;
+}
+
+
+/* placeholders for possible hover states on command items */
+.commandActiveItem {
+}
+
+.commandInactiveItem {
+}
+
+/* widget theming */
+/* splitter - typically the color of the title area */
+.split {
+	background: #efefef;
+}
+
+.splitTracking {
+	background: #dedede;
+}
+
+.splitThumb {
+	background: #cdcdcd;
+}
+
+/* dropdowns */
+.dropdown {
+} 
+
+.dropdownArrowEmpty{
+	width: 16px; 
+	height: 16px;
+	display: inline-block; 
+	vertical-align: top; 
+	cursor: pointer;
+}
+
+.dropdownArrowDown {
+	background-position: 0 -432px;	
+	width: 5px;
+	height: 3px;
+	background-image: url(../images/core_sprites.png); 
+	display: inline-block; 
+	margin: 4px 4px 0;
+	vertical-align: top; 
+}
+
+.dropdownArrowRight {
+	background-position: 0 -72px; 
+	width: 16px;
+	height: 16px;
+	background-image: url(../images/core_sprites.png); 
+	margin-right: 4px;
+	float: right;
+}
+
+.dropdownTrigger {
+	font-weight: normal;
+}
+
+.dropdownTrigger a {
+	text-decoration: none;
+}
+
+.dropdownTriggerOpen {
+	
+}
+
+.dropdownMenu {
+	color: #222;
+	background-color: #fbfbfb;
+	visibility: hidden;
+	z-index: 150;
+	position: absolute;
+	list-style-type: none;
+	border-radius: 3px;
+	border: 1px solid #DDD;
+	padding: 0;
+	background-color: white;
+	padding: 10px;
+	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+	display: none; /* don't take part in layout until open */
+}
+
+.dropdownMenuOpen {
+	min-width: 120px;
+	display: block;
+}
+
+.dropdownSubMenu {
+	position: relative
+}
+
+.dropdownSubMenu > ul {
+	top: 0;
+	left: 100%;
+}
+
+.dropdownMenu > li {
+	min-width: 120px;
+	padding: 0 2px;
+	display: block;
+}
+
+.dropdownMenu > li > a, .dropdownMenu > li > span {
+	width: 100%;
+	margin: 0;
+}
+
+.dropdownMenu > li > *:focus {
+	outline: 1px dotted #ddd;
+	background: #f3f6fe;
+	padding-right: 0;
+}
+
+.dropdownMenu > li:hover {
+	text-decoration: none;
+	background: #ffeecc;
+}
+
+.dropdownMenuOpen {
+	visibility: visible;
+}
+
+.dropdownSeparator {
+	height: 1px;
+	background-color: #ddd;
+	color: #ddd;
+	padding: 0 !important;
+	margin: 0;
+}
+
+.dropdownMenuItem, .dropdownMenuItem a {
+	display: inline-block;
+	vertical-align: baseline;
+	color: #222 !important;
+	padding: 5px;
+	cursor: pointer;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+.checkedMenuItem {
+	margin: 4px 6px 2px 0;
+	vertical-align: bottom;
+}
+
+/* tooltips */
+
+.tooltipContainer {
+	visibility: hidden;
+	z-index: 200;
+	background: transparent;
+	position: absolute;
+	min-width: 15em;
+	max-width: 110em;
+}
+.tooltip {
+	color: #fafafa;
+	background-color: #555;
+	border-radius: 3px;
+	position: absolute;
+	padding: 8px;
+	z-index: 200;
+}
+
+.tooltip.left {
+	min-width: 15em;
+}
+
+.tooltip .navlinkonpage {
+	color: skyblue;
+}
+
+.tooltip h2 {
+	color: #fafafa;
+}
+
+.tooltip .operationStatus {
+	color: skyblue;
+}
+
+.tooltip .operationError {
+	color: orangered;
+}
+
+.tooltipTailFromleft {
+	position: absolute;
+	display: inline-block;
+	border: 8px solid;
+	border-color: transparent transparent transparent #555;
+	top: 4px;
+	content: '';
+	z-index: 201;
+}
+
+.tooltipTailBorderFromleft {
+	position: absolute;
+	display: inline-block;
+	border: 10px solid;
+	border-color: transparent transparent transparent #555;
+	top: 2px;
+	right: -17px;
+	content: '';
+}
+
+.tooltipTailFromright {
+	position: absolute;
+	display: inline-block;
+	border: 8px solid;
+	border-color: transparent #555 transparent transparent;
+	left: -15px;
+	top: 4px;
+	content: '';
+	z-index: 201;
+}
+
+.tooltipTailBorderFromright {
+	position: absolute;
+	display: inline-block;
+	border: 10px solid;
+	border-color: transparent #555 transparent transparent;
+	left: -17px;
+	top: 2px;
+	content: '';
+}
+
+.tooltipTailFrombelow {
+	position: absolute;
+	display: block;
+	border: 8px solid;
+	border-color: transparent transparent #555 transparent;
+	left: 16px;
+	top: -15px;
+	content: '';
+	z-index: 201;
+}
+
+.tooltipTailBorderFrombelow {
+	position: absolute;
+	display: block;
+	border: 10px solid;
+	border-color: transparent transparent #555 transparent;
+	left: 14px;
+	top: -17px;
+	content: '';
+}
+
+.tooltipTailFromabove {
+	position: absolute;
+	display: block;
+	border: 8px solid;
+	border-color: #555 transparent transparent;
+	left: 16px;
+	content: '';
+	bottom: -15px;
+	z-index: 201;
+}
+
+.tooltipTailBorderFromabove {
+	position: absolute;
+	display: block;
+	border: 10px solid;
+	border-color: #555 transparent transparent;
+	left: 14px;
+	bottom: -17px;
+	content: '';
+}
+
+.tooltipShowing {
+	visibility: visible;
+}
+
+/* dialogs */
+.dialog {
+	visibility: hidden;
+	z-index: 175;  /* less than tooltips, more than the rest */
+	position: absolute;
+	background-color: #fbfbfb;
+	border-radius: 2px;
+	border: 1px solid #BBB;
+	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+.dialogShowing {
+	visibility: visible;
+}
+
+.dialogTitle {
+	display: block;
+}
+
+.dialogTitle {
+	padding-top: 5px;
+	display: inline-block;
+	background: #555;
+	width: 100%;
+	padding-bottom: 5px;
+	border-top-left-radius: 1px;
+	border-top-right-radius: 1px;
+}
+
+
+.dialogTitleText {
+	margin: 2px 2px 0;
+	color: whitesmoke;
+	font-size: 1em;
+	height: 18px;
+	padding-left: 4px;
+}
+
+
+.dialogDismiss {
+	display: block;
+	cursor: pointer;
+	padding: 2px;
+}
+
+.dialogContent {
+	padding: 8px;
+}
+
+.dialogButtons {
+	float: right;
+	margin: 2px 8px 4px;
+}
+
+.modalBackdrop {
+	opacity: 0.5;
+	-webkit-transition: opacity 0.2s ease-in;
+	transition: opacity 0.2s ease-in;
+}

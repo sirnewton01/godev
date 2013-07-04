@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.pde.ui.RuntimeWorkbench">
+<booleanAttribute key="append.args" value="true"/>
+<booleanAttribute key="askclear" value="true"/>
+<booleanAttribute key="automaticAdd" value="true"/>
+<booleanAttribute key="automaticValidate" value="false"/>
+<stringAttribute key="bad_container_name" value="webApplication"/>
+<stringAttribute key="bootstrap" value=""/>
+<stringAttribute key="checked" value="[NONE]"/>
+<booleanAttribute key="clearConfig" value="false"/>
+<booleanAttribute key="clearws" value="false"/>
+<booleanAttribute key="clearwslog" value="false"/>
+<stringAttribute key="configLocation" value="${workspace_loc}/.metadata/.plugins/org.eclipse.pde.core/Web IDE Application"/>
+<booleanAttribute key="default" value="false"/>
+<booleanAttribute key="includeOptional" value="false"/>
+<stringAttribute key="location" value="${workspace_loc}/../web"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-os ${target.os} -ws ${target.ws} -arch ${target.arch} -nl ${target.nl} -consoleLog"/>
+<stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.pde.ui.workbenchClasspathProvider"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Xms256m -Xmx768m&#13;&#10;-Dorg.eclipse.equinox.http.jetty.http.port=8080"/>
+<stringAttribute key="pde.version" value="3.3"/>
+<stringAttribute key="product" value="org.eclipse.sdk.ide"/>
+<stringAttribute key="selected_target_plugins" value="com.ibm.icu@default:default,com.jcraft.jsch@default:default,com.jcraft.jsch@default:default,javax.servlet@default:default,org.eclipse.ant.core@default:default,org.eclipse.core.contenttype@default:default,org.eclipse.core.expressions@default:default,org.eclipse.core.filesystem@default:default,org.eclipse.core.jobs@default:default,org.eclipse.core.net@default:default,org.eclipse.core.runtime.compatibility.registry@default:false,org.eclipse.core.runtime@default:true,org.eclipse.core.variables@default:default,org.eclipse.equinox.app@default:default,org.eclipse.equinox.common@2:true,org.eclipse.equinox.http.servlet@default:default,org.eclipse.equinox.preferences@default:default,org.eclipse.equinox.registry@default:default,org.eclipse.equinox.security@default:default,org.eclipse.jdt.junit.runtime@default:default,org.eclipse.jsch.core@default:default,org.eclipse.osgi.services*3.3.0.v20110411@default:default,org.eclipse.osgi.services*3.3.0.v20110513@default:default,org.eclipse.osgi@-1:true,org.eclipse.osgi@-1:true,org.eclipse.team.core@default:default,org.hamcrest.core@default:default,org.mortbay.jetty.server@default:default,org.mortbay.jetty.util@default:default"/>
+<stringAttribute key="selected_workspace_plugins" value="aa.compute.bundle.ee@default:default,ch.qos.logback.classic@default:default,ch.qos.logback.core@default:default,ch.qos.logback.slf4j@default:false,com.jcraft.jsch@default:default,org.dojotoolkit@default:default,org.eclipse.core.tests.harness@default:default,org.eclipse.equinox.http.registry@default:default,org.eclipse.equinox.http.servlet@default:default,org.eclipse.equinox.registry@default:default,org.eclipse.help.base@default:default,org.eclipse.help.webapp@default:default,org.eclipse.jdt.doc.user@default:default,org.eclipse.jgit@default:default,org.eclipse.mylyn.help.ui@default:default,org.eclipse.mylyn.wikitext.core@default:default,org.eclipse.mylyn.wikitext.mediawiki.core@default:default,org.eclipse.orion.client.core@default:default,org.eclipse.orion.client.editor@default:default,org.eclipse.orion.client.git@default:default,org.eclipse.orion.client.users@default:default,org.eclipse.orion.doc.isv@default:default,org.eclipse.orion.doc.user@default:default,org.eclipse.orion.dojo@default:default,org.eclipse.orion.server.authentication@default:default,org.eclipse.orion.server.configurator@default:default,org.eclipse.orion.server.core@default:default,org.eclipse.orion.server.git@default:default,org.eclipse.orion.server.hosting@default:default,org.eclipse.orion.server.logback.config@default:false,org.eclipse.orion.server.search@default:default,org.eclipse.orion.server.servlets@default:default,org.eclipse.orion.server.tests@default:default,org.eclipse.orion.server.user.securestorage@default:default,org.eclipse.orion.server.useradmin@default:default,org.eclipse.osgi@-1:true,org.eclipse.pde.doc.user@default:default,org.eclipse.platform.doc.isv@default:default,org.eclipse.platform.doc.user@default:default,org.eclipse.sdk@default:default,org.eclipse.test.performance@default:default,org.json@default:default,org.mozilla.javascript@default:default,org.openid4java@default:default,org.slf4j.api@default:default,org.slf4j.jcl@default:default,zzJohn@default:default"/>
+<booleanAttribute key="show_selected_only" value="false"/>
+<stringAttribute key="templateConfig" value="${target_home}/configuration/config.ini"/>
+<booleanAttribute key="tracing" value="false"/>
+<booleanAttribute key="useCustomFeatures" value="false"/>
+<booleanAttribute key="useDefaultConfig" value="true"/>
+<booleanAttribute key="useDefaultConfigArea" value="true"/>
+<booleanAttribute key="useProduct" value="false"/>
+</launchConfiguration>

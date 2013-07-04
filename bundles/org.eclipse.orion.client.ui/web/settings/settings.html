@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Settings</title>
+		<link rel="stylesheet" type="text/css" href="settings.css"/>
+		<script src="../requirejs/require.js"></script>
+		<script type="text/javascript">
+			/*global require*/
+			require({ baseUrl: '..',
+				      packages: [],
+				      paths: { text: 'requirejs/text', i18n: 'requirejs/i18n', domReady: 'requirejs/domReady' } 
+			});
+			require(["settings.js"]);
+		</script>
+	</head>
+	
+	<body id="orion-settings" class="orionPage">
+		<div class="content-fixedHeight">
+			<div id="categoriesContainer" class="auxpane sidePanelLayout hasSplit">
+			</div>
+			<div class="split splitLayout settingsSplitLayout" style="left:33%;"></div>
+			<div id="rightPane" class="mainpane mainPanelLayout hasSplit">
+				<div class="fixedToolbarHolder">
+					<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+					<div class="toolbarTarget" tabindex="0" id="settings">
+					</div>				
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer"></div>
+		</div>
+	</body>
+</html>

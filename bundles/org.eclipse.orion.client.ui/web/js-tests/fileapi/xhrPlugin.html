@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script src="../../orion/Deferred.js"></script>
+	<script src="../../orion/plugin.js"></script>
+	<script>
+		/*global window orion*/
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			provider.registerService("xhr", {
+				call : function(method, url, headers, message) {
+					var d = new orion.Deferred(); // create a promise
+					var xhr = new XMLHttpRequest();
+					var header;
+					try {
+						xhr.open(method, url);
+						if (headers !== null) {
+							for (header in headers) {
+								if (headers.hasOwnProperty(header)) {
+									xhr.setRequestHeader(header, headers[header]);
+								}
+							}
+						}
+						xhr.send(message);
+						xhr.onreadystatechange = function() {
+							if (xhr.readyState === 4) {
+								d.resolve({
+									status: xhr.status,
+									statusText: xhr.statusText,
+									headers: xhr.getAllResponseHeaders(),
+									responseText: xhr.responseText
+								});
+							}
+						};
+					} catch (e) {
+						d.reject(e);
+					}
+					return d; // return the promise immediately
+				}
+			});
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

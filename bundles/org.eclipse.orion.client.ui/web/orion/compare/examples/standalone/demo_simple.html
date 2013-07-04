@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+	<title>Orion Compare Editor Sample</title>
+	<style type="text/css">
+		body {
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+			background-color: #ededed;
+		}
+		.compareContainer {
+			position: absolute;
+			top: 48px;
+			bottom: 0;
+			width: 99%;
+			overflow-y: auto;
+			margin-left:5px;
+			border:1px solid #bebebe;
+		}
+	</style>
+    <link rel="stylesheet" type="text/css" href="http://eclipse.org/orion/compare/releases/3.0/built-compare.css"/>
+	<script src="http://requirejs.org/docs/release/2.1.4/minified/require.js"></script>
+	<script>
+	/*global require window */
+	require(["http://eclipse.org/orion/compare/releases/3.0/built-compare.min.js"], function(Compare) {
+		var document = window.document;
+		var contentOnLeft = "Sample Orion compare contents on left side\n\nYou can replace the contents here and and click on [Compare Again] to see the new result\n"; //$NON-NLS-0$
+		var	contentOnRight = "Sample Orion compare contents on right side\n\nYou can replace the contents here and and click on [Compare Again] to see the new result\n"; //$NON-NLS-0$
+		// Compare options with simply two strings
+	    var options = {
+	        parentDivId: "compareParentDiv",
+	        newFile: {
+	            readonly: false,
+	            Content: contentOnLeft
+	        },
+	        oldFile: {
+	            readonly: false,
+	            Content: contentOnRight
+	        }
+	    };
+	    //Constructing the Compare instance starts the compare view automatically
+		var compare = new Compare(options);
+	
+		function doCompare() {
+			var widget = compare.getCompareView().getWidget();
+			if(widget.type === "twoWay"){
+				var editors = widget.getEditors();
+				var oldContents = editors[0].getTextView().getText();
+				var newContents = editors[1].getTextView().getText();
+				widget.options.oldFile.Content = oldContents;
+				widget.options.newFile.Content = newContents;
+				widget.options.mapper = null;
+				//refresh function refresh the compare view with the new options
+				compare.refresh(true);
+			}
+		}
+		var bCompare = document.getElementById("doCompare");
+		bCompare.onclick = doCompare;
+	});
+</script>
+</head>
+<body>
+    <div style="height:28px;width:99%;">
+		<button id="doCompare" type="button">Compare Again</button>
+    </div>
+    <hr>
+    <div>
+        <div id="compareParentDiv" class="compareContainer"></div>
+    </div>
+</body>
+</html>

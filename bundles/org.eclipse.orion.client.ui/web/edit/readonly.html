@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+    <head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title>View File</title>
+		<link rel="stylesheet" type="text/css" href="readonly.css" />
+		<link rel="shortcut icon" href="/file.ico" />
+		<script src="../requirejs/require.js"></script>
+		<script type="text/javascript">
+			/*global require*/
+			require({
+				baseUrl: '..',
+				paths: {
+					text: 'requirejs/text',
+					i18n: 'requirejs/i18n',
+					domReady: 'requirejs/domReady'    
+				}
+			});
+			require(["readonly.js"]);
+		</script>
+    </head>
+
+	<body id="orion-editor" spellcheck="false" class="orionPage">
+		<div class="content-fixedHeight">
+			<div id="innerPanels"> <!--  style="height:100%;width:100%;" -->
+				<div class="auxpane sidePanelLayout hasSplit">
+					<div class="fixedToolbarHolder">
+						<div id="sidebarToolbar" class="sidebarToolbar mainToolbar toolComposite toolbarLayout"></div>
+						<div id="sidebar" class="toolbarTarget"></div>
+					</div>
+				</div>
+				<div class="split splitLayout" style="left: 25%;"></div> <!-- 1:3 -->
+				<div id="rightPane" class="mainpane mainPanelLayout hasSplit">
+					<div class="fixedToolbarHolder">
+						<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+						<div id="editor" class="toolbarTarget"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer">
+		</div>
+		<div id="contentassist" class="contentassist" role="listbox" tabindex="-1"></div>
+	</body>
+</html>

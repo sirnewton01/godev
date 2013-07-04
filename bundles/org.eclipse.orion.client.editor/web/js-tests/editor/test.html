@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- standard scripts -->
+	<script src="../../orion/plugin.js"></script>
+	<script src="../../requirejs/require.js"></script>
+	<script>
+	/*global require window*/
+	require({
+		  baseUrl: '../..',
+		  paths: {
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'
+		  }
+		});
+
+	window.onload = function() {
+		require(["orion/test", "testcase-editor.js", "testcase-codemirror.js"], function(test, editor, codeMirror) {
+			test.run({testEditor: editor, testCodeMirror: codeMirror});
+		});
+	};
+	</script>
+	<title>TEST: Editor</title>
+</head>
+<body>
+	<div style="padding-bottom:1em;">Editor tests</div>
+
+	<div id="editorDiv"></div>
+</body>
+</html>

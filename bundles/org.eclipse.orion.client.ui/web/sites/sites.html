@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Site Configurations</title>
+		<link rel="stylesheet" type="text/css" href="sites.css" />
+		<script src="../requirejs/require.js"></script>
+		<script>
+		/*global require*/
+		require({
+			  baseUrl: '..',
+			  packages: [],
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["sites.js"]);
+		</script>
+	</head>
+	
+	
+	<body id="orion-sites" class="orionPage">
+		<div class="content-fixedHeight">
+			<div class="fixedToolbarHolder mainpane mainPanelLayout">
+				<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+				<div id="mainNode" class="toolbarTarget">
+					<div id="table" class="displayTable sitesPanel" style="padding-bottom: 20px;">
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer">
+		</div>
+	</body>	
+
+</html>

@@ -1,0 +1,18 @@
+{
+	"version": "3.0",
+	"name": "Orion Cloud Development Environment",
+	"description": "Orion is a Cloud based Development Environment",
+	"icons": {
+		"16": "/webapp/orion-16.png",
+		"32": "/webapp/orion-32.png",
+		"48": "/webapp/orion-128.png",
+		"96": "/webapp/orion-96.png",
+		"128": "/webapp/orion-128.png"
+	},
+	"developer": {
+		"name": "Eclipse Foundation",
+		"url": "http://wiki.eclipse.org/Orion"
+	},
+	"installs_allowed_from": ["*"],
+	"launch_path": "/"
+}

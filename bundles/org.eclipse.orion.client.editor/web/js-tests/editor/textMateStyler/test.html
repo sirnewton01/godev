@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="test.css" />
+<!-- standard scripts -->
+	<script src="../../../orion/plugin.js"></script>
+	<script src="../../../requirejs/require.js"></script>
+	<script>
+	/*global require window*/
+	require({
+		  baseUrl: '../../..',
+		  paths: {
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'	    
+		  }
+		});
+	
+	window.onload = function() {
+		require(["orion/test","testcase.js"], function(test, testcase) {
+			test.run(testcase);			
+		});
+	};
+	</script>
+	<title>TEST: TextMateStyler</title>
+</head>
+<body>
+	<div id="editorDiv"></div>
+</body>
+</html>

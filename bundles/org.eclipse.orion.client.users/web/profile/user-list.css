@@ -1,0 +1,13 @@
+@import "../css/layout.css";
+
+@import "../css/ide.css";
+
+@import "../css/images.css";
+
+@import "css/user.css";
+
+@import "../css/theme.css";
+
+th {
+	text-align: left;
+}

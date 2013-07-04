@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script src="../../orion/Deferred.js"></script>
+	<script src="../../orion/plugin.js"></script>
+	<script>
+	/*global window orion*/
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			provider.registerService("orion.file", {
+				read: function(url, headers, message) {
+					var d = new orion.Deferred(); // create a promise
+					var xhr = new XMLHttpRequest();
+					var header;
+					try {
+						xhr.open("GET", url);
+						xhr.setRequestHeader("Orion-Version","1");
+						if (headers !== null) {
+							for (header in headers) {
+								if (headers.hasOwnProperty(header)) {
+									xhr.setRequestHeader(header, headers[header]);
+								}
+							}
+						}
+						xhr.send(message);
+						xhr.onreadystatechange = function() {
+							if (xhr.readyState === 4) {
+								if (xhr.status >= 200 && xhr.status < 300) {
+									d.resolve({
+										status: xhr.status,
+										statusText: xhr.statusText,
+										headers: xhr.getAllResponseHeaders(),
+										responseText: xhr.responseText
+									});
+								} else {
+									d.reject({
+										status: xhr.status,
+										statusText: xhr.statusText,
+										headers: xhr.getAllResponseHeaders(),
+										responseText: xhr.responseText,
+										log: false
+									});
+								}
+							}
+						};
+					} catch (e) {
+						d.reject(e);
+					}
+					return d; // return the promise immediately
+				},
+				write: function(url, data, headers) {
+					var d = new orion.Deferred(); // create a promise
+					var xhr = new XMLHttpRequest();
+					var header;
+					try {
+						xhr.open("PUT", url);
+						xhr.setRequestHeader("Orion-Version","1");
+						if (headers !== null) {
+							for (header in headers) {
+								if (headers.hasOwnProperty(header)) {
+									xhr.setRequestHeader(header, headers[header]);
+								}
+							}
+						}
+						xhr.send(data);
+						xhr.onreadystatechange = function() {
+							if (xhr.readyState === 4) {
+								d.resolve({
+									status: xhr.status,
+									statusText: xhr.statusText,
+									headers: xhr.getAllResponseHeaders(),
+									responseText: xhr.responseText
+								});
+							}
+						};
+					} catch (e) {
+						d.reject(e);
+					}
+					return d; // return the promise immediately
+				},
+				remove: function(url, data, headers) {
+					var d = new orion.Deferred(); // create a promise
+					var xhr = new XMLHttpRequest();
+					var header;
+					try {
+						xhr.open("DELETE", url);
+						xhr.setRequestHeader("Orion-Version","1");
+						if (headers !== null) {
+							for (header in headers) {
+								if (headers.hasOwnProperty(header)) {
+									xhr.setRequestHeader(header, headers[header]);
+								}
+							}
+						}
+						xhr.send(data);
+						xhr.onreadystatechange = function() {
+							if (xhr.readyState === 4) {
+								d.resolve({
+									status: xhr.status,
+									statusText: xhr.statusText,
+									headers: xhr.getAllResponseHeaders(),
+									responseText: xhr.responseText
+								});
+							}
+						};
+					} catch (e) {
+						d.reject(e);
+					}
+					return d; // return the promise immediately
+				},
+				mkdir: function(url, headers) {
+					var d = new orion.Deferred(); // create a promise
+					var xhr = new XMLHttpRequest();
+					if (url[url.length-1] === "/") {
+						url = url.substring(0, url.length-1);
+					}
+					var name = url.substring(url.lastIndexOf("/")+1, url.length);
+					url = url.substring(0, url.lastIndexOf("/")+1);
+					var header;
+					try {
+						xhr.open("POST", url);
+						xhr.setRequestHeader("Orion-Version","1");
+						if (headers !== null) {
+							for (header in headers) {
+								if (headers.hasOwnProperty(header)) {
+									xhr.setRequestHeader(header, headers[header]);
+								}
+							}
+						}
+						xhr.send('{"Name":' + name + ',"LocalTimeStamp":"0","Directory":"true"}');
+						xhr.onreadystatechange = function() {
+							if (xhr.readyState === 4) {
+								d.resolve({
+									status: xhr.status,
+									statusText: xhr.statusText,
+									headers: xhr.getAllResponseHeaders(),
+									responseText: xhr.responseText
+								});
+							}
+						};
+					} catch (e) {
+						d.reject(e);
+					}
+					return d; // return the promise immediately
+				},
+				list: function(url, headers, message) {
+					var d = new orion.Deferred(); // create a promise
+					var xhr = new XMLHttpRequest();
+					var header;
+					try {
+						xhr.open("GET", url + "?depth=1");
+						xhr.setRequestHeader("Orion-Version","1");
+						if (headers !== null) {
+							for (header in headers) {
+								if (headers.hasOwnProperty(header)) {
+									xhr.setRequestHeader(header, headers[header]);
+								}
+							}
+						}
+						xhr.send(message);
+						xhr.onreadystatechange = function() {
+							if (xhr.readyState === 4) {
+								if (xhr.status >= 200 && xhr.status < 300) {
+									d.resolve({
+										status: xhr.status,
+										statusText: xhr.statusText,
+										headers: xhr.getAllResponseHeaders(),
+										responseText: xhr.responseText
+									});
+								} else {
+									d.reject({
+										status: xhr.status,
+										statusText: xhr.statusText,
+										headers: xhr.getAllResponseHeaders(),
+										responseText: xhr.responseText,
+										log: false
+									});
+								}
+							}
+						};
+					} catch (e) {
+						d.reject(e);
+					}
+					return d; // return the promise immediately
+				}	
+			}, {
+				root: (function() {
+					var temp = document.createElement('a');
+					temp.href = '.';
+					return temp.href;
+				}())
+			});
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

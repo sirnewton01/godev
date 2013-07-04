@@ -1,0 +1,49 @@
+<div>
+	<style>
+	.form {
+		width: auto;
+		list-style-type: none; 
+		padding: 0; 
+		margin: 0;
+		-webkit-padding-start: 0;
+		-webkit-margin-before: 0;
+	}
+	.form li {
+		margin: 0;
+	}
+	.msg {
+		clear: both;
+		width: 25em;
+	}
+	.pad1 { padding: 8px 0 0 0; }
+	.pad2 { padding: 20px 0 0 0; }
+	.field {
+		float: left;
+		width: 6em;
+	}
+	.col { float: left; }
+	.okButton {
+		float: right;
+		clear: both;
+	}
+	</style>
+	<div>
+		<ul class="form">
+			<li class="msg">
+				<div>${SelectRepoSourceFolder}</div>
+			</li>
+			<li class="pad1">
+				<div class="col">
+					<button class="browseButton commandButton" id="browseButton">${Browse...}</button>
+					<span class="folderText" id="folderText"></span>
+				</div>
+			</li>
+			<li class="msg pad2">
+				<div>${EnterPortNumber}</div>
+			</li>
+			<li class="pad1">
+				<input class="field port" id="port" type="number" />
+			</li>
+		</ul>
+	</div>
+</div>

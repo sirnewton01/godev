@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+    <head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010, 2011." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title>Compare</title>    
+		<link rel="stylesheet" type="text/css" href="compare.css" />
+		<script src="../requirejs/require.js"></script>
+		<script>
+		/*global require*/
+		require({
+			  baseUrl: '..',
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+			require(["compare.js"]);
+		</script>
+	</head>
+	<body id="orion-compare" class="orionPage">
+		<div class="content-fixedHeight">
+			<div class="fixedToolbarHolder mainpane">
+				<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+				<div id="compareContainer" class="toolbarTarget">
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer">
+		</div>
+	</body>	
+</html>

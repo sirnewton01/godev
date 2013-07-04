@@ -1,0 +1,62 @@
+.prospecto {
+	font-family: monospace;
+	font-size: 10pt;
+	color: #333;
+}
+.prospecto.textview {
+	background-color: white;
+}
+.prospecto .ruler.annotations {
+	background-color: white;
+}
+.prospecto .ruler.lines {
+	background-color: white;
+}
+.prospecto .ruler.folding {
+	background-color: white;
+}
+.prospecto .ruler.overview {
+	background-color: white;
+}
+.prospecto .rulerLines {
+	color: silver;
+}
+.prospecto .rulerLines.even {
+	color: silver;
+}
+.prospecto .rulerLines.odd {
+	color: silver;
+}
+.prospecto .annotationLine.currentLine {
+	background-color: #EAF2FE;
+}
+.prospecto .entity-name-tag {
+	color: #CC4C07;
+}
+.prospecto .entity-other-attribute-name {
+	color: cadetBlue;
+}
+.prospecto .string-quoted {
+	color: #446FBD;
+}
+.prospecto .line_caret {
+	background-color: #EAF2FE;
+}
+.prospecto .token_keyword {
+	color: #CC4C07;
+}
+.prospecto .token_string {
+	color: #446FBD;
+}
+.prospecto .token_singleline_comment {
+	color: #3C802C;
+}
+.prospecto .token_multiline_comment {
+	color: #3C802C;
+}
+.prospecto .token_doc_comment {
+	color: #3C802C;
+}
+.prospecto .token_doc_html_markup {
+	color: #3C802C;
+}

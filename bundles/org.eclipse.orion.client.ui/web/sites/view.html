@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>View on Site</title>
+		<link rel="stylesheet" type="text/css" href="view.css" />
+		<script src="../requirejs/require.js"></script>
+		<script>
+		/*global require*/
+		require({
+			  baseUrl: '..',
+			  packages: [],
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["view.js"]);
+		</script>
+	</head>
+	
+	<body id="orion-viewSites" class="orionPage">
+		<div class="content-fixedHeight">
+			<div class="fixedToolbarHolder mainpane mainPanelLayout">
+				<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+				<div id="mainNode" class="sites toolbarTarget">
+					<div id="viewOnSiteCaption"></div>
+					<div id="table" class="displayTable">
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer">
+		</div>
+	</body>	
+	
+</html>

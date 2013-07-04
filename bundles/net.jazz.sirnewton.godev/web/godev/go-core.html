@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!--
+// Copyright 2013 Chris McGee <sirnewton_01@yahoo.ca>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+-->
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Go Language Core Plugin</title>
+  <script src="../requirejs/require.js"></script>
+  <script src="go-code-assist.js"></script>
+  <script>
+	/*global require eclipse*/
+	require({
+	  baseUrl: '..',
+	  paths: {
+		  domReady: 'requirejs/domReady'
+	  }
+	});
+			
+	require(['go-core.js']);
+</script>
+</head>
+<body></body>
+</html>

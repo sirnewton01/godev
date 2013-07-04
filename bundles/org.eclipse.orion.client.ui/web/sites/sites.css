@@ -1,0 +1,77 @@
+@import "../css/layout.css";
+
+@import "../css/ide.css";
+
+@import "../css/images.css";
+
+@import "../css/sections.css";
+
+@import "../css/theme.css";
+
+html,body {
+	height: 100%;
+}
+
+.statusPane {
+	font-weight: bold;
+}
+
+.sitesPanel {
+	min-width: 600px;
+	/*max-width: 900px;*/
+	/*padding-left: 20px;
+	padding-right: 40px;*/
+}
+
+.statusField {
+	padding: 0 10px 0 10px;
+}
+
+.inlineAction {
+	padding-left: 10px;
+}
+
+.domCommandToolbar {
+	padding-left: 8px;
+}
+
+tr.treeTableRow td:first-child {
+	padding-left: 16px !important;
+}
+
+.treeTableRow {
+	vertical-align: baseline;
+}
+
+.newSiteRow > td {
+	background-color: #f4f4f4;
+}
+
+.newSiteCol {
+	font-weight: bold;
+}
+
+.treetable th {
+	font-weight: bold;
+	text-align: left;
+}
+
+.treetable td {
+	padding: 10px 0 10px 10px;
+}
+
+.treetable th {
+	padding: 10px 0 0 10px;
+}
+
+.urlCol {
+	width: 300px;
+}
+
+.siteURL {
+	white-space: nowrap;
+}
+
+.siteConfigDetails {
+	padding-left: 16px;
+}

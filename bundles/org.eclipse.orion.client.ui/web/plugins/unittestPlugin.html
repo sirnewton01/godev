@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" src="../orion/plugin.js"></script>
+	<script>
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			provider.registerService("orion.navigate.command", {}, {
+				name: "Run as Unit Test",
+				id: "eclipse.runUnitTest",
+				tooltip: "Run as Unit Test",
+				contentType: ["text/html"],
+				uriTemplate: "{OrionHome}/test/unittest.html#{Location}",
+				forceSingleItem: true
+			});
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

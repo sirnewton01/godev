@@ -1,0 +1,33 @@
+@import "../../../orion/editor/themes/default.css";
+
+.logo {
+	background-color: black;
+	border-radius: 5px;
+	padding-left: 10px;
+}
+
+.group {
+	border: 1px solid black;
+	padding:5px;
+	margin-top:5px;
+	background-color: #ffd400;
+	border-radius: 5px;
+}
+
+.editor_group {
+	border: 1px solid black;
+}
+
+.console {
+	overflow:scroll;
+	white-space:pre;
+	height:200px;
+	background-color:white;
+}
+
+body {
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	background-color: #ededed;
+}

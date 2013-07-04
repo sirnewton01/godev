@@ -1,0 +1,62 @@
+<div class="siteEditor">
+	<div class="sectionTable" role="region">
+		<div>
+			<div class="sectionTableItem ">
+				
+				<form id="siteForm" class="siteForm">
+					<table class="siteEditorTable">
+						<tr>
+							<td>
+								<label class="siteConfigNameLabel">${Name:}</label>
+							</td>
+							<td>
+								<input class="siteConfigName" required="required" pattern="\s*\S+\s*" value="">
+								<div class="nameInvalid">${Not a valid name}</div>
+							</td>
+						</tr>
+						
+						<tr>
+							<td>
+								<label class="hostHintLabel">${Hostname hint:}</label>
+							</td>
+							<td>
+								<input class="hostHint" required="required" pattern="^(?:\s*|[A-Za-z0-9-_]+)$" value="">
+								<em>${Optional; used to determine the URL where a started site can be accessed.}</em>
+								<div class="hostInvalid">${Not a valid hostname}</div>
+							</td>
+						</tr>
+						
+						<tr>
+							<td>
+								<label class="hostingStatusLabel">${Status:}</label>
+							</td>
+							<td class="hostingStatusArea">
+								<span class="hostingStatus"></span>
+								<span class="siteStartedWarning">
+									<em>${Changes you make here won't affect the running site.}</em>
+								</span>
+							</td>
+						</tr>
+					</table>
+				</form>
+				
+				
+			</div>
+		</div>
+	</div>
+
+	<table class="siteEditorTable">
+			<tr>
+				<td>
+					<div class="mappingsGridTable"></div>
+				</td>
+			</tr>
+			
+			<tr>
+				<td>
+					<div class="convertToolbar"></div>
+				</td>
+			</tr>		
+	</table>
+
+</div>

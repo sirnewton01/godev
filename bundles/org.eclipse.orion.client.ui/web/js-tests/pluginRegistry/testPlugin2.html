@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
+	<script src='../../orion/plugin.js'></script>
+	<script>
+		/*global orion window eclipse console*/
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			var callOrder = [];
+			provider.registerService('testOrdering', {
+				testOrdering1: function() {
+					callOrder.push('testOrdering1');
+				},
+				testOrdering2: function() {
+					callOrder.push('testOrdering2');
+				},
+				getCallOrder: function() {
+					return callOrder;
+				}
+			}, {name : 'testOrdering'});
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

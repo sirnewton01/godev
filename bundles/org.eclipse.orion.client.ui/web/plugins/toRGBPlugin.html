@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" src="../orion/plugin.js"></script>
+	<script>
+		function toCssRgb(text) {
+			var tokens = text.split(',');
+			// don't do it if it's not the number of tokens we expect.
+			if (tokens.length !== 3) {
+				return;
+			}
+			var rgb = [0,0,0];
+			for (var i=0; i<tokens.length; i++) {
+				var num = parseInt(tokens[i]);
+				if (!isNaN(num)) {
+					rgb[i] = num.toString(16);
+				}
+				if (rgb[i].length === 1) {
+					rgb[i] = '0'+rgb[i];
+				} else if (rgb[i].length > 2) {
+					rgb[i] = rgb[i].substring(0,2);
+				}
+			}
+			return "#"+rgb[0]+rgb[1]+rgb[2];
+		}
+		
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			var serviceImpl = {
+				run : function(text, fullText, selection, fileName) {
+					return toCssRgb(text);	
+				}
+			};
+			var serviceProps = {
+				name : "toRGB",
+				tooltip : "Converts n,n,n decimal to #RRGGBB for use in CSS",
+				id : "org.eclipse.orion.client.core.toRGB",
+				contentType: ["text/css", "text/html"],
+				key : [ "b", true, true ]
+			};
+			provider.registerService("orion.edit.command", serviceImpl, serviceProps);
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

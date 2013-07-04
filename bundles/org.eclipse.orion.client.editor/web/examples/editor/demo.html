@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010, 2012."/>
+<meta http-equiv="PRAGMA" content="NO-CACHE"/>
+<meta http-equiv="Expires" content="-1"/>
+<meta http-equiv='X-UA-Compatible' content='IE=EmulateIE7,IE=edge'/>
+<title>Orion TextView Demo</title>
+<link rel="stylesheet" type="text/css" href="demo.css" />
+<!-- Note if running this standalone you will need to copy requirejs from bundles/org.eclipse.orion.client.core/web/ -->
+<script src="../../requirejs/require.js"></script>
+<script type="text/javascript">
+	/*globals require*/
+	require({
+	  baseUrl: '../..',
+	  paths: {
+		  text: 'requirejs/text',
+		  i18n: 'requirejs/i18n',
+		  tests: 'js-tests',
+		  domReady: 'requirejs/domReady'
+	  }
+	});
+	require(["demo.js"]);
+</script>
+</head>
+<body spellcheck="false" style="display:none;">
+<table id="table" style="width:100%;">
+<tr>
+<td style="width:15%;height:100%;vertical-align:top;">
+	<div style="overflow:auto;height:100%;">
+		<div class="logo">
+			<img src="images/logo.png"/>
+		</div>
+		<div id="options" role="group" class="group">
+			<label for="options"><b>Options</b></label>
+			<div>
+				<select id="contentsSelect">
+					<option value="createJavaScriptSample">JavaScript</option>
+					<option value="createHtmlSample">HTML</option>
+					<option value="createJavaSample">Java</option>
+					<option value="createPlainTextSample">Plain</option>
+					<option value="createBidiTextSample">BIDI</option>
+				</select>
+				<label for="contentsSelect">Contents</label>
+			</div>
+			<div>
+				<select id="themeSelect">
+					<option value="">Default</option>
+					<option value="adelante">Adelante</option>
+					<option value="ambience">Ambience</option>
+					<option value="blue">Blue</option>
+					<option value="eclipse">Eclipse</option>
+					<option value="nimbus">Nimbus</option>
+					<option value="prospecto">Prospecto</option>
+					<option value="raspberrypi">Raspberry Pi</option>
+					<option value="tierra">Tierra</option>
+				</select>
+				<label for="themeSelect">Theme</label>
+			</div>
+			<div>
+				<select id="bindingsSelect">
+					<option value="" selected="selected">Default</option>
+					<option value="emacs">Emacs</option>
+					<option value="vi">VI</option>
+				</select>
+				<label for="bindingsSelect">Key Bindings</label>
+			</div>
+			<div>
+				<select id="tabSize">
+					<option value="1">1</option>
+					<option value="2">2</option>
+					<option value="3">3</option>
+					<option value="4" selected="selected">4</option>
+					<option value="5">5</option>
+					<option value="6">6</option>
+					<option value="7">7</option>
+					<option value="8">8</option>
+					<option value="9">9</option>
+					<option value="10">10</option>
+					<option value="11">11</option>
+					<option value="12">12</option>
+					<option value="13">13</option>
+					<option value="14">14</option>
+					<option value="15">15</option>
+					<option value="16">16</option>
+					<option value="17">17</option>
+					<option value="18">18</option>
+					<option value="19">19</option>
+					<option value="20">20</option>
+				</select>
+				<label for="tabSize">Tab Size</label>
+			</div>
+			<div>
+				<select id="scrollAnimation">
+					<option value="0">None</option>
+					<option value="100">100ms</option>
+					<option value="200">200ms</option>
+					<option value="300" selected="selected">300ms</option>
+					<option value="500">500ms</option>
+					<option value="600">600ms</option>
+					<option value="700">700ms</option>
+					<option value="800">800ms</option>
+					<option value="900">900ms</option>
+					<option value="1000">1000ms</option>
+				</select>
+				<label for="scrollAnimation">Scroll Animation</label>
+			</div>
+			<div>
+				<input type="checkbox" id="readOnly">
+				<label for="readOnly">Read Only</label>
+			</div>
+			<div>
+				<input type="checkbox" checked="checked" id="fullSelection">
+				<label for="fullSelection">Full Selection</label>
+			</div>
+			<div>
+				<input type="checkbox" id="wrap">
+				<label for="wrap">Word Wrap</label>
+			</div>
+			<div>
+				<input type="checkbox" id="expandTab">
+				<label for="expandTab">Expand Tabs</label>
+			</div>
+			<div>
+				<input type="checkbox" checked="checked" id="autoSetOptions">
+				<label for="autoSetOptions">Auto Set Options</label>
+			</div>
+			<button id='setOptions'>Set Options</button>
+		</div>
+		<div id="testing" role="group" class='group'>
+			<label for="testing"><b>Testing</b></label>
+			<div>
+				<select id="testSelect"></select>
+				<label for="testSelect">Test</label>
+			</div>
+			<button id='test'>Run Test</button>
+		</div>
+		<div id='consoleParent' role="group" class='group' style='display:none;'>
+			<label for="consoleParent"><b>Console</b></label>
+			<div id='console' class="console" tabindex="0" role="textbox" aria-label="Console" aria-multiline="true" aria-readonly="true"></div>
+			<button id='clearLog'>Clear</button>
+			<button id='hideLog'>Hide</button>
+		</div>
+	</div>
+</td>
+<td style="height:100%;">
+	<div id='divParent' style="height:100%;" class='editor_group'>
+	</div>
+</td>
+</tr>
+</table>
+</body>
+</html>

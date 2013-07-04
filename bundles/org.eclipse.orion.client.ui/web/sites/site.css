@@ -1,0 +1,35 @@
+@import "../css/layout.css";
+
+@import "../css/ide.css";
+
+@import "../css/images.css";
+
+@import "../css/sections.css";
+
+@import "./siteEditor.css";
+
+@import "../css/theme.css";
+
+html,body {
+	height: 100%;
+}
+
+.statusPane {
+	font-weight: bold;
+}
+
+.sitePanel {
+	min-width: 800px;
+}
+
+.invalid {
+	border: 2px solid red;
+}
+
+.nameInvalid, .hostInvalid {
+	visibility: hidden;
+}
+
+.visible {
+	visibility: visible;
+}

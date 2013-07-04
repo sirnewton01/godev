@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Single Pane Page</title>
+		<link rel="stylesheet" type="text/css" href="singlepane.css" />
+    	<script type="text/javascript" src="../requirejs/require.js"></script>
+		<script type="text/javascript">
+		require({
+			  baseUrl: '..',
+			  packages: [ ],
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["singlepane.js"]);
+		</script>
+	</head>
+	
+		<body id="orion-singlepanepageid" class="orionPage">
+		<div class="content-fixedHeight">
+			<div class="fixedToolbarHolder mainpane mainPanelLayout">
+				 <!-- currently we need a toolbar so we can show status info, even if there are no plans to put commands in -->
+				<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+				<div id="pageContent" class="toolbarTarget">
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer">
+		</div>
+	</body>	
+</html>

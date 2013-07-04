@@ -1,0 +1,68 @@
+@CHARSET "UTF-8";
+
+label.userprofile {
+	min-width: 120px;
+	float: left;
+	clear: both;
+}
+
+.userprofileSection{
+	margin-top: 10px;
+	margin-bottom: 5px;
+	background-color: #F6F6FF;
+	height: 24px;
+	vertical-align: middle;
+}
+
+div.userprofile {
+	clear: left;
+}
+
+.userprofile {
+	margin-top: 2.5px;
+	margin-bottom: 2.5px;
+}
+
+h2.userprofile {
+	margin-top: 5px;
+}
+
+div.fileinputs {
+	position: relative;
+}
+
+div.fakefile {
+	width: 270px;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	z-index: 1;
+}
+
+input.userprofilefile {
+	position: relative;
+	margin-left: 200px;
+	text-align: right;
+	-moz-opacity: 0;
+	filter: alpha(opacity :   0);
+	opacity: 0;
+	z-index: 2;
+}
+
+table.usersTable {
+	min-width: 300px;
+	border-spacing: 0px;
+}
+
+td.usersTable {
+	padding-right: 10px;
+	padding-left: 10px;
+}
+
+img.usersTable {
+	opacity: 0.2;
+}
+
+img.usersTable:hover {
+	opacity: 1;
+}

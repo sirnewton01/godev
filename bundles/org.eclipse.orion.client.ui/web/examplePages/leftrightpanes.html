@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Left and Right Pane Page</title>
+		<link rel="stylesheet" type="text/css" href="leftrightpanes.css" />
+    	<script type="text/javascript" src="../requirejs/require.js"></script>
+		<script type="text/javascript">
+		require({
+			  baseUrl: '..',
+			  packages: [ ],
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["leftrightpanes.js"]);
+		</script>
+	</head>
+	
+	<body id="orion-leftrightpage" class="orionPage">
+		<div class="content-fixedHeight">
+			<div id="sectionContainer" class="auxpane sidePanelLayout hasSplit">
+				<div id="leftPane" class="sidePanelMargins"></div>
+			</div>
+			<div class="split splitLayout"></div>
+			<div id="rightContainer" class="mainpane mainPanelLayout hasSplit">
+				<div class="fixedToolbarHolder">
+					<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+					<div class="toolbarTarget" tabindex="0"  id="rightPane">
+					</div>				
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer"></div>
+		</div>
+	</body>
+</html>

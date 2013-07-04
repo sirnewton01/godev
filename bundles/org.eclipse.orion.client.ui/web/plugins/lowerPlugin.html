@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" src="../orion/plugin.js"></script>
+	<script>
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			provider.registerService("orion.edit.command", {
+				run : function(text) {
+					return text.toLowerCase();
+				}
+			}, {
+				name : "Lowercase",
+				img : "../images/gear.gif",
+				key : [ "u", true, true ] // ctrl+shift+u
+			});
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

@@ -1,0 +1,51 @@
+.siteEditorTable {
+	-webkit-user-select: none;
+	-moz-user-select: -moz-none; /*required so .hostingStatusArea can override*/
+	user-select: none;
+}
+
+.hostingStatusArea {
+	-webkit-user-select: text;
+	-moz-user-select: text;
+	user-select: text;
+}
+
+.siteEditorTable td, .siteEditorTable th {
+	padding: 10px 10px 5px 10px;
+}
+.siteEditorTable th {
+	text-align: left;
+}
+
+/* Style leftmost column of siteEditorTable */
+.siteEditorTable>tbody>tr>td:first-child {
+	vertical-align: top;
+	min-width: 10em;
+	/*background-color: #fafafa;*/
+}
+.siteEditorTable>tbody>tr>td {
+	/*border-bottom: 1px solid #ddd;*/
+
+	vertical-align: middle;
+}
+.navColumn {
+	font-weight: bold;
+}
+.isValidColumn {
+	min-width: 32px;
+	width: 40px;
+}
+.isValidCell {
+	text-align: center;
+	vertical-align: middle;
+}
+.pathInput, .serverPathInput {
+	min-width: 20em;
+}
+.addMappingToolbar {
+	padding-top: 15px;
+}
+.siteForm {
+	display: table;
+}
+

@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %Bundle-Name
+Bundle-Localization: bundle
+Bundle-SymbolicName: org.eclipse.orion.client.core;singleton:=true
+Bundle-Version: 2.0.0.qualifier
+Bundle-Vendor: %Bundle-Vendor
+Eclipse-BundleShape: dir

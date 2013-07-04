@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" src="../orion/plugin.js"></script>
+	<script>
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			provider.registerService("profilePlugin", {
+				info : function() {
+					return {
+						name : "Manage OpenIds",
+					};
+				},
+				getDivContent: function() {
+				  	var content = {"sections" : [
+				  	                             {"id": "openids", "name": "Manage External Accounts", "type": "iframe", "data" : {"src": "../mixlogin/manageopenids", "style" : "border: 0px; width: 500px"}}
+				  	                             ]
+				  	};
+				  	return content;
+				}
+			});
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

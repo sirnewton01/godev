@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010, 2012."/>
+<meta http-equiv="PRAGMA" content="NO-CACHE"/>
+<meta http-equiv="Expires" content="-1"/>
+<meta http-equiv='X-UA-Compatible' content='IE=EmulateIE7,IE=edge'/>
+<title>Orion Compare Demo</title>
+<link rel="stylesheet" type="text/css" href="demo.css" />
+<script src="../../../requirejs/require.js"></script>
+<script type="text/javascript">
+	/*globals require*/
+	require({
+	  baseUrl: '../../..',
+	  paths: {
+		  text: 'requirejs/text',
+		  i18n: 'requirejs/i18n',
+		  domReady: 'requirejs/domReady'
+	  }
+	});
+	require(["demo.js"]);
+</script>
+</head>
+<body>
+    <div style="height:30px;width:99%;">
+	<table>
+	<tr>
+	<td>
+		<label style="padding-left:5px;margin-top:1px;" for="compareTypeSelect">Compare with</label>
+		<select id="compareTypeSelect" style="margin-top:5px;">
+			<option value="byTwoContents">Two text contents</option>
+			<option value="byFileURLs">Two file URLs</option>
+			<!-- <option value="byDiff">Base contents + unified diff</option> -->
+		</select>
+	</td>
+	<td id="contentTypes">
+		<label style="padding-left:5px;margin-top:1px;" for="fileTypeSelect">Content type</label>
+		<select id="contentTypeSelect" style="margin-top:5px;">
+			<option value="js">JavaScript</option>
+			<option value="html">HTML</option>
+			<option value="css">Css</option>
+			<option value="java">Java</option>
+			<option value="txt">Plain</option>
+		</select>
+	</td>
+	</tr>
+	</table>
+    </div>
+    <hr>
+    <div style="height:28px;width:99%;">
+	<table style="float:left;">
+	<tr>
+	<td>
+		<button id="loadSample" type="button">Load sample</button>
+    </td>
+	<td>
+		<button id="doCompare" type="button">Compare Again</button>
+    </td>
+	<td>
+		<button id="animateDiffs" type="button">Walk all diffs</button>
+    </td>
+	<td>
+		<label for="animateInterval">With</label>
+		<select id="animateInterval">
+			<option value="500">500ms</option>
+			<option value="1000">1000ms</option>
+			<option value="1500">1500ms</option>
+			<option value="2000">2000ms</option>
+			<option value="3000">3000ms</option>
+		</select>
+	</td>
+	</tr>
+	</table>
+        <span id="compareCmdDiv" style="float:right;"></span> 
+    </div>
+    <hr>
+    <div>
+        <div id="compareParentDiv" class="compareContainer"></div>
+    </div>
+</body>
+</html>

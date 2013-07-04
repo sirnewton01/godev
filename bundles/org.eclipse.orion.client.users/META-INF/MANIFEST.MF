@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %Bundle-Name
+Bundle-Vendor: %Bundle-Vendor
+Bundle-Localization: bundle
+Bundle-SymbolicName: org.eclipse.orion.client.users
+Bundle-Version: 1.0.0.qualifier
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.eclipse.orion.client.core;bundle-version="0.1.0"

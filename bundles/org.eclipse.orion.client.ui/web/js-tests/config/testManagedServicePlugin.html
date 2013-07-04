@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="../../orion/plugin.js"></script>
+	<script>
+		/*global console eclipse window*/
+		window.onload = function() {
+			var provider = new orion.PluginProvider();
+			var callOrder = [];
+			provider.registerService(['test.bogus', 'orion.cm.managedservice'], {
+				updated: function(properties) {
+					callOrder.push('orion.cm.managedservice');
+				},
+				test: function() {
+					callOrder.push('test.bogus');
+				},
+				getCallOrder: function() {
+					return callOrder;
+				}
+			}, {pid : 'test.pid'});
+			provider.connect();
+		};
+	</script>
+</head>
+<body>
+</body>
+</html>

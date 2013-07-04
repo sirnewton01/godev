@@ -1,0 +1,63 @@
+/* Images */
+
+/* Sprite classes are used pervasively to pick the correct file and align within the image.
+   No additional styling (padding, borders, etc.) should be added here.  
+   Use additional classes in theme.css or layout.css where more treatment is needed. 
+*/
+
+.commandSprite {
+   background: url(../images/core_sprites.png) no-repeat top left;
+   vertical-align: middle;
+   display: inline-block;
+}
+
+.imageSprite {
+   background-image: url(../images/core_sprites.png);
+   display: inline-block;
+   vertical-align: middle;
+}
+
+/* Individual sprites */
+.core-sprite-addcontent{ background-position: 0 0; width: 16px; height: 16px; } 
+.core-sprite-check{ background-position: 0 -18px; width: 16px; height: 16px; } 
+.core-sprite-check_on{ background-position: 0 -36px; width: 16px; height: 16px; } 
+.core-sprite-close{ background-position: 0 -54px; width: 16px; height: 16px; } 
+.core-sprite-closedarrow{ background-position: 0 -72px; width: 16px; height: 16px; } 
+.core-sprite-collapseAll{ background-position: 0 -90px; width: 16px; height: 16px; } 
+.core-sprite-compare-addition{ background-position: 0 -108px; width: 16px; height: 16px; } 
+.core-sprite-compare-removal{ background-position: 0 -126px; width: 16px; height: 16px; } 
+.core-sprite-copy-folder{ background-position: 0 -144px; width: 16px; height: 16px; } 
+.core-sprite-delete{ background-position: 0 -162px; width: 16px; height: 16px; } 
+.core-sprite-edit{ background-position: 0 -180px; width: 16px; height: 16px; } 
+.core-sprite-error{ background-position: 0 -198px; width: 16px; height: 16px; } 
+.core-sprite-expandAll{ background-position: 0 -216px; width: 16px; height: 16px; } 
+.core-sprite-favorite{ background-position: 0 -234px; width: 16px; height: 16px; } 
+.core-sprite-file{ background-position: 0 -252px; width: 16px; height: 16px; } 
+.core-sprite-file_model{ background-position: 0 -270px; width: 16px; height: 16px; } 
+.core-sprite-folder{ background-position: 0 -288px; width: 16px; height: 16px; } 
+.core-sprite-gear{ background-position: 0 -306px; width: 16px; height: 16px; } 
+.core-sprite-go-up{ background-position: 0 -324px; width: 16px; height: 16px; } 
+.core-sprite-hamburger{ background-position: 0 -342px; width: 16px; height: 16px; } 
+.core-sprite-information{ background-position: 0 -360px; width: 16px; height: 16px; } 
+.core-sprite-leftarrow{ background-position: 0 -378px; width: 16px; height: 16px; } 
+.core-sprite-link{ background-position: 0 -396px; width: 16px; height: 16px; } 
+.core-sprite-list{ background-position: 0 -414px; width: 16px; height: 16px; } 
+.core-sprite-menu_twistie{ background-position: 0 -432px; width: 5px; height: 3px; } 
+.core-sprite-move_down{ background-position: 0 -437px; width: 16px; height: 16px; } 
+.core-sprite-move_up{ background-position: 0 -455px; width: 16px; height: 16px; } 
+.core-sprite-none{ background-position: 0 -473px; width: 16px; height: 16px; } 
+.core-sprite-ok{ background-position: 0 -491px; width: 16px; height: 16px; } 
+.core-sprite-openarrow{ background-position: 0 -509px; width: 16px; height: 16px; } 
+.core-sprite-orion-logo{ background-position: 0 -527px; width: 36px; height: 25px; } 
+.core-sprite-outline{ background-position: 0 -554px; width: 16px; height: 16px; } 
+.core-sprite-refresh{ background-position: 0 -572px; width: 16px; height: 16px; } 
+.core-sprite-replaceAll{ background-position: 0 -590px; width: 16px; height: 16px; } 
+.core-sprite-rightarrow{ background-position: 0 -608px; width: 16px; height: 16px; } 
+.core-sprite-sep{ background-position: 0 -626px; width: 1px; height: 16px; } 
+.core-sprite-silhouette{ background-position: 0 -644px; width: 16px; height: 16px; } 
+.core-sprite-start{ background-position: 0 -662px; width: 16px; height: 16px; } 
+.core-sprite-stop{ background-position: 0 -680px; width: 16px; height: 16px; } 
+.core-sprite-stylesheet{ background-position: 0 -698px; width: 16px; height: 16px; } 
+.core-sprite-thumbnail{ background-position: 0 -716px; width: 16px; height: 16px; } 
+.core-sprite-warning{ background-position: 0 -734px; width: 16px; height: 16px; } 
+.core-sprite-wrench{ background-position: 0 -752px; width: 16px; height: 16px; } 

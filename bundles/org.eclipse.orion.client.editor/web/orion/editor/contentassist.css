@@ -1,0 +1,66 @@
+.contentassist {
+	font-size:10pt;
+	font-family: "Consolas", "Monaco", "Vera Mono", "monospace";
+	display: none;
+	background-color: white;
+	position: fixed;
+	top: 100px;
+	left: 100px;
+	border: 1px solid #DDD;
+	z-index:100;
+	cursor: default;
+	overflow: auto;
+	min-width: 70px;
+	min-height: 50px;
+	max-width: 350px;
+	max-height: 150px;
+	white-space: nowrap;
+}
+
+.contentassist:focus {
+	border: 1px solid #666;
+}
+
+.contentassist .proposal-emphasis {
+	font-weight: normal;
+}
+
+.contentassist hr{
+	border: 0;
+    height: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.contentassist .proposal-noemphasis {
+	background-color: aliceblue;
+	font-weight: lighter;
+	color: grey;
+}
+.contentassist .proposal-hr {
+	/* display as horizontal rule */
+	border: 0;
+    height: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+.contentassist .proposal-default {
+	/* nothing */
+}
+
+.contentassist .selected {
+	/* background-color: #a6bfe1; */
+	font-weight:bold;
+	padding-bottom: 3px;
+	background-color: #FEC;
+	font-weight: bold;
+}
+
+
+.contentassist>div {
+	padding: 1px 3px 0 3px;
+}
+
+.contentassist>div:hover {
+	background-color: #EAF2FE;
+}
