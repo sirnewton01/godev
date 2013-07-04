@@ -53,7 +53,7 @@ func init() {
 
 	// In dev mode the web bundles must come from the source in the GOPATH
 	if *devMode {
-		bundlesPath := gopath + "/src/jazz.net/sirnewton/godev/bundles"
+		bundlesPath := gopath + "/src/github.com/sirnewton01/godev/bundles"
 
 		_, err := os.Stat(bundlesPath)
 		if err != nil {
@@ -69,7 +69,7 @@ func init() {
 		bundle_root_dir = bundlesPath
 	} else {
 		// In regular mode the web bundles come from the lib directory in the GOROOT
-		bundlesPath := runtime.GOROOT() + "/lib/jazz.net/sirnewton/godev/bundles"
+		bundlesPath := runtime.GOROOT() + "/lib/github.com/sirnewton01/godev/bundles"
 
 		_, err := os.Stat(bundlesPath)
 		if err != nil {
