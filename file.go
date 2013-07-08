@@ -16,6 +16,7 @@ import (
 
 type FileDetails struct {
 	ETag             string
+	Id               string
 	Name             string
 	Location         string
 	Directory        bool
@@ -151,6 +152,7 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 
 		info := FileDetails{}
 		info.Name = fileinfo.Name()
+		info.Id = fileinfo.Name()
 		info.Location = fileRelPath
 		info.Directory = fileinfo.IsDir()
 		info.LocalTimeStamp = fileinfo.ModTime().Unix() * 1000
@@ -205,6 +207,7 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 
 		info := FileDetails{}
 		info.Name = fileinfo.Name()
+		info.Id = fileinfo.Name()
 		info.Location = "/file" + fileRelPath
 		info.Directory = fileinfo.IsDir()
 		info.ETag = strconv.FormatInt(fileinfo.ModTime().Unix(), 16)
@@ -217,6 +220,7 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		for len(parentPathSegs) > 1 {
 			parentInfo := FileDetails{}
 			parentInfo.Name = parentPathSegs[len(parentPathSegs)-1]
+			parentInfo.Id = parentPathSegs[len(parentPathSegs)-1]
 			parentInfo.Location = "/" + strings.Join(parentPathSegs, "/")
 			parentInfo.ChildrenLocation = parentInfo.Location + "?depth=1"
 			parentInfo.Directory = true
@@ -261,6 +265,7 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 				for idx, fi := range childInfos {
 					childInfo := FileDetails{}
 					childInfo.Name = fi.Name()
+					childInfo.Id = fi.Name()
 					childInfo.Location = "/file" + fileRelPath + "/" + fi.Name()
 					childInfo.Directory = fi.IsDir()
 					childInfo.LocalTimeStamp = fi.ModTime().Unix() * 1000

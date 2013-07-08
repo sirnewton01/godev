@@ -68,6 +68,7 @@ func getWsProjects() ([]Project, []FileDetails) {
 
 		info := FileDetails{}
 		info.Name = fileinfo.Name()
+		info.Id = fileinfo.Name()
 		info.Location = "/file/" + name
 		info.Directory = fileinfo.IsDir()
 		info.LocalTimeStamp = fileinfo.ModTime().Unix() * 1000
@@ -95,6 +96,7 @@ func getWsProjects() ([]Project, []FileDetails) {
 
 		info := FileDetails{}
 		info.Name = "GOROOT"
+		info.Id = "GOROOT"
 		info.Location = "/file/GOROOT"
 		info.Directory = true
 		info.LocalTimeStamp = gorootInfo.ModTime().Unix() * 1000
@@ -181,6 +183,21 @@ func workspaceHandler(writer http.ResponseWriter, req *http.Request, path string
 		return true
 	case req.Method == "PUT" && numPathSegs == 2:
 		ShowError(writer, 400, "Workspace PUT not supported.", nil)
+		return true
+	case req.Method == "DELETE" && numPathSegs == 3 && pathSegs[1] == "project":
+		_, err := os.Stat(gopath+"/src/"+pathSegs[2])
+		if err != nil {
+			ShowError(writer, 400, "Project could not be located", err)
+			return true
+		}
+		
+		err = os.RemoveAll(gopath+"/src/"+pathSegs[2])
+		if err != nil {
+			ShowError(writer, 400, "Project could not be removed", err)
+			return true
+		}
+		
+		ShowJson(writer, 200, "")
 		return true
 	case req.Method == "DELETE" && numPathSegs == 2:
 		ShowError(writer, 400, "Workspace deletion is not supported.", nil)

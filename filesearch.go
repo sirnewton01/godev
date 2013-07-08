@@ -85,7 +85,7 @@ func filesearchHandler(writer http.ResponseWriter, req *http.Request, path strin
 
 			filesDir = runtime.GOROOT() + "/src/pkg"
 			path = ""
-			location = "/file"
+			location = "/file/GOROOT"
 			results = append(results, findNameMatches(filesDir, path, location, nameregex)...)
 		} else {
 			token := filterparts
@@ -97,7 +97,7 @@ func filesearchHandler(writer http.ResponseWriter, req *http.Request, path strin
 
 			filesDir = runtime.GOROOT() + "/src/pkg"
 			path = ""
-			location = "/file"
+			location = "/file/GOROOT"
 			results = append(results, findContentMatches(filesDir, path, location, token)...)
 		}
 

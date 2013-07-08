@@ -279,7 +279,7 @@ func debugHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 		return true
 	case req.Method == "POST" && len(pathSegs) == 3 && pathSegs[1] == "kill":
 		pidStr := pathSegs[2]
-		pid, err := strconv.ParseInt(pidStr, 10, 16)
+		pid, err := strconv.ParseInt(pidStr, 10, 32)
 
 		if err != nil {
 			ShowError(writer, 400, "Bad process id", err)
@@ -292,7 +292,7 @@ func debugHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 		return true
 	case req.Method == "POST" && len(pathSegs) == 3 && pathSegs[1] == "input":
 		pidStr := pathSegs[2]
-		pid, err := strconv.ParseInt(pidStr, 10, 16)
+		pid, err := strconv.ParseInt(pidStr, 10, 32)
 
 		if err != nil {
 			ShowError(writer, 400, "Bad process id", err)
@@ -324,7 +324,7 @@ func debugHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 		return true
 	case req.Method == "GET" && len(pathSegs) == 3 && pathSegs[1] == "pid":
 		pidStr := pathSegs[2]
-		pid, err := strconv.ParseInt(pidStr, 10, 16)
+		pid, err := strconv.ParseInt(pidStr, 10, 32)
 
 		if err != nil {
 			ShowError(writer, 400, "Bad process id", err)
