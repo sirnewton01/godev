@@ -237,6 +237,9 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 					}
 
 					p.Finished = update.finished
+					if (update.finished) {
+						p.process.Wait()
+					}
 
 					// Replace the entry in the array with the updated output
 					processes[idx] = p
