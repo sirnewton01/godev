@@ -35,27 +35,24 @@ func buildHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 			return true
 		}
 
-		var buffer bytes.Buffer
 		cmd := exec.Command("go", "build", pkg)
 		cmd.Dir = pkgpath
-		cmd.Stdout = &buffer
-		err = cmd.Run()
+		buffer, err := cmd.CombinedOutput()
 
-		reader := bytes.NewReader(buffer.Bytes())
+		reader := bytes.NewReader(buffer)
 		bufReader := bufio.NewReader(reader)
 		var currentPkg string
 
 		compileErrors := make([]CompileError, 0, 0)
 
 		for {
-			l, _ := bufReader.ReadSlice('\n')
+			l, _, err := bufReader.ReadLine()
 
-			if len(l) == 0 {
+			if err != nil {
 				break
 			}
 
 			line := string(l)
-			line = strings.Replace(line, "\n", "", 1)
 
 			if strings.HasPrefix(line, "#") {
 				// Package Marker

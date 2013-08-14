@@ -139,16 +139,19 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 				}).then(function(result) {
 					var data = JSON.parse(result.response);
 					
-					if (data.Output.length !== output.innerHTML.length) {
-						output.innerHTML = "";
-						output.innerHTML = data.Output;
-						output.scrollIntoView(false);
-					}
-					
 					if (data.Finished) {
 						output.innerHTML = output.innerHTML + "\r\n[PROCESS FINISHED]";
 					}
 					
+					if (data.Output.length !== output.innerHTML.length) {
+						// Sanitize the tags from the output
+						data.Output = data.Output.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+						
+						output.innerHTML = "";
+						output.innerHTML = data.Output;
+						output.scrollIntoView(false);
+					}
+
 					lastProcessData = data;
 				}, function(error) {
 					window.alert("ERROR GET PROCESS DATA:" + error.responseText);

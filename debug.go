@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"strconv"
 	"time"
+	"sync"
 )
 
 const (
@@ -149,21 +150,22 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 				cmd = exec.Command(gopath+"/bin/"+request.Cmd[0], request.Cmd[1:]...)
 			}
 
-			outpipe, err := cmd.StdoutPipe()
-			errpipe, err := cmd.StderrPipe()
-			inpipe, err := cmd.StdinPipe()
+			id := -1
+			
+			inpipe, _ := cmd.StdinPipe()
+			
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+			wg2 := sync.WaitGroup{}
+			wg2.Add(1)
 
-			// TODO check for errors during pipe opening
-
-			cmd.Start()
-
-			id := cmd.Process.Pid
-
-			process := ProcessData{id, time.Now(), request.Cmd, request.Debug, "", false, cmd, inpipe}
-			processes = append(processes, process)
-			request.ResponseChannel <- id
-
-			reader := func(pipe io.ReadCloser) {
+			reader := func() {
+				pipe, err := cmd.StdoutPipe()
+				cmd.StderrPipe()
+				
+				wg.Done()
+				wg2.Wait()
+				
 				var buffer []byte = make([]byte, 1024, 1024)
 				var n int = -1
 				for err == nil {
@@ -176,20 +178,19 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 				if err != nil && err != io.EOF {
 					fmt.Printf("ERROR: %v\n", err.Error())
 				}
-
-				pipe.Close()
+				
+				processUpdates <- processUpdate{id, "", true}
 			}
 
-			go reader(outpipe)
-			go reader(errpipe)
-
-			// This routine will wait until the command is finished and mark
-			//  the process as completed
-			go func() {
-				cmd.Wait()
-
-				processUpdates <- processUpdate{id, "", true}
-			}()
+			go reader()
+			
+			wg.Wait()
+			cmd.Start()
+			id = cmd.Process.Pid
+			process := ProcessData{id, time.Now(), request.Cmd, request.Debug, "", false, cmd, inpipe}
+			processes = append(processes, process)
+			request.ResponseChannel <- id
+			wg2.Done()
 		case request := <-si:
 			pid := request.Id
 
