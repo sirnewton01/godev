@@ -84,7 +84,43 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 		});
 		
 		var currentPid = -1;
-		var lastProcessData = null;
+		var ws = null;
+		var outputCache = {};
+		
+		var updateOutput = function() {
+			if (currentPid !== -1) {				
+				var pid = currentPid;
+				
+				output.innerHTML = "";
+				
+				var cache = outputCache[""+pid];
+				
+				if (cache) {
+					output.innerHTML = cache;
+					output.scrollIntoView(false);
+				} else {
+					outputCache[""+pid] = "";
+				}
+				
+				var wsUrl = document.URL.replace("http://", "ws://");
+				wsUrl = wsUrl.substring(0, wsUrl.indexOf("/godev")) + "/debug/console/output/" + currentPid;
+				ws = new WebSocket(wsUrl);
+				
+				ws.onmessage = function(evt) {
+					outputCache[""+pid] = outputCache[""+pid] + evt.data;
+					if (pid === currentPid) {
+						output.innerHTML = output.innerHTML + evt.data;
+						output.scrollIntoView(false);
+					}
+				};
+				ws.onclose = function(evt) {
+					output.innerHTML = output.innerHTML + "\r\nPROCESS FINISHED";
+					output.scrollIntoView(false);
+				};
+			} else if (currentPid === -1) {
+				output.innerHTML = "";
+			}
+		};
 		
 		// Update the processes section
 		var updateProcesses = function() {
@@ -109,7 +145,7 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 					// Pick the last process entry as the default
 					if (idx === procs.length-1 && currentPid === -1) {
 						currentPid = procs[idx].Id;
-						lastProcessData = null;
+						updateOutput();
 					}
 					
 					if (procs[idx].Id === currentPid) {
@@ -131,42 +167,8 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 		// Update the processes now
 		updateProcesses();
 		
-		var updateOutput = function() {
-			if (currentPid !== -1 && (lastProcessData === null || !lastProcessData.Finished)) {
-				xhr("GET", "/debug/pid/"+currentPid, {
-					headers: {},
-					timeout: 60000
-				}).then(function(result) {
-					var data = JSON.parse(result.response);
-					
-					if (data.Finished) {
-						output.innerHTML = output.innerHTML + "\r\n[PROCESS FINISHED]";
-					}
-					
-					if (data.Output.length !== output.innerHTML.length) {
-						// Sanitize the tags from the output
-						data.Output = data.Output.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-						
-						output.innerHTML = "";
-						output.innerHTML = data.Output;
-						output.scrollIntoView(false);
-					}
-
-					lastProcessData = data;
-				}, function(error) {
-					window.alert("ERROR GET PROCESS DATA:" + error.responseText);
-				});
-			} else if (currentPid === -1) {
-				output.innerHTML = "";
-			}
-		};
-		
-		// Refresh the output section
-		window.setInterval(updateOutput, 1000);
-		
 		processes.addEventListener("change", function(e) {
 			currentPid = processes.options[processes.selectedIndex].getAttribute("pid");
-			lastProcessData = null;
 			updateOutput();
 		});
 		
@@ -234,7 +236,6 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 				}).then(function(result) {
 					var pid = JSON.parse(result.response);
 					currentPid = pid;
-					lastProcessData = null;
 					updateProcesses();
 					updateOutput();
 				}, function(error) {
@@ -257,7 +258,6 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 				timeout: 60000
 				}).then(function(result) {
 					currentPid = -1;
-					lastProcessData = null;
 					updateProcesses();
 					updateOutput();
 				}, function(error) {

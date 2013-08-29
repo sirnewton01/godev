@@ -5,6 +5,7 @@
 package main
 
 import (
+	"code.google.com/p/go.net/websocket"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"strconv"
 	"time"
 	"sync"
+	"path"
 )
 
 const (
@@ -75,7 +77,7 @@ type ProcessData struct {
 	StartTime time.Time
 	Cmd       []string
 	Debug     bool
-	Output    string
+	output    chan string
 	Finished  bool
 	process   *exec.Cmd
 	stdin     io.Writer
@@ -84,7 +86,6 @@ type ProcessData struct {
 // Internal process update object
 type processUpdate struct {
 	id         int
-	moreOutput string
 	finished   bool
 }
 
@@ -158,6 +159,8 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 			wg.Add(1)
 			wg2 := sync.WaitGroup{}
 			wg2.Add(1)
+			
+			outputChannel := make(chan string)
 
 			reader := func() {
 				pipe, err := cmd.StdoutPipe()
@@ -171,15 +174,16 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 				for err == nil {
 					n, err = pipe.Read(buffer)
 
-					update := processUpdate{id, string(buffer[:n]), false}
-					processUpdates <- update
+					outputChannel <- string(buffer[:n])
 				}
+				
+				close(outputChannel)
 
 				if err != nil && err != io.EOF {
 					fmt.Printf("ERROR: %v\n", err.Error())
 				}
 				
-				processUpdates <- processUpdate{id, "", true}
+				processUpdates <- processUpdate{id, true}
 			}
 
 			go reader()
@@ -187,7 +191,7 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 			wg.Wait()
 			cmd.Start()
 			id = cmd.Process.Pid
-			process := ProcessData{id, time.Now(), request.Cmd, request.Debug, "", false, cmd, inpipe}
+			process := ProcessData{id, time.Now(), request.Cmd, request.Debug, outputChannel, false, cmd, inpipe}
 			processes = append(processes, process)
 			request.ResponseChannel <- id
 			wg2.Done()
@@ -198,7 +202,6 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 				if process.Id == pid {
 					process.stdin.Write(request.data)
 					process.stdin.Write([]byte("\r\n"))
-					process.Output = process.Output + string(request.data) + "\r\n"
 					processes[idx] = process
 					break
 				}
@@ -226,16 +229,6 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 		case update := <-processUpdates:
 			for idx, p := range processes {
 				if p.Id == update.id {
-					updateLength := len(update.moreOutput)
-
-					if len(p.Output)+updateLength < bufferLimit {
-						p.Output = p.Output + update.moreOutput
-					} else if updateLength < bufferLimit {
-						p.Output = p.Output[updateLength:] + update.moreOutput
-					} else {
-						p.Output = update.moreOutput[:bufferLimit]
-					}
-
 					p.Finished = update.finished
 					if (update.finished) {
 						p.process.Wait()
@@ -247,6 +240,39 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 				}
 			}
 		}
+	}
+}
+
+func debugSocket(ws *websocket.Conn) {
+	_, pidStr := path.Split(ws.Request().URL.Path)
+	pid, err := strconv.ParseInt(pidStr, 10, 64)
+	
+	if err != nil {
+		ws.Write([]byte("Process not found or is finished"));
+		ws.Close()
+		return
+	}
+	
+	response := make (chan *ProcessData)	
+	GetProcessData <- &ProcessDataRequest{int(pid), response}
+	procData := <- response
+
+	if procData == nil {
+		ws.Write([]byte("Process not found or is finished"));
+		ws.Close()
+		return
+	}
+
+	for {
+		buffer := <- procData.output
+		
+		if buffer == "" {
+			ws.Write([]byte(""))
+			ws.Close()
+			break
+		}
+		
+		ws.Write([]byte(buffer))
 	}
 }
 

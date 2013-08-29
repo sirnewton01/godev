@@ -5,6 +5,7 @@
 package main
 
 import (
+	"code.google.com/p/go.net/websocket"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -13,7 +14,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"runtime"
 	"strings"
 )
 
@@ -21,12 +21,11 @@ var (
 	bundle_root_dir             = ""
 	gopath                      = ""
 	port                        = flag.String("http", "127.0.0.1:2022", "HTTP port number for the development server. (e.g. '127.0.0.1:2022')")
-	devMode                     = flag.Bool("dev", false, "Put godev into development mode. The web bundles in the GOPATH are used instead of the installed ones.")
+	debug                       = flag.Bool("debug", false, "Put the development server in debug mode with detailed logging.")
 	logger          *log.Logger = nil
 )
 
 func init() {
-	debug := flag.Bool("debug", false, "Put the development server in debug mode with detailed logging.")
 	flag.Parse()
 
 	if *debug {
@@ -51,33 +50,21 @@ func init() {
 
 	gopath = build.Default.GOPATH
 
-	// In dev mode the web bundles must come from the source in the GOPATH
-	if *devMode {
-		bundlesPath := gopath + "/src/github.com/sirnewton01/godev/bundles"
+	// The web bundles must come from the source in the GOPATH
+	bundlesPath := gopath + "/src/github.com/sirnewton01/godev/bundles"
 
-		_, err := os.Stat(bundlesPath)
+	_, err := os.Stat(bundlesPath)
+	if err != nil {
+		// It is possible that the bundles are in the godev directory directly underneath the src
+		bundlesPath = gopath + "/godev/bundles"
+
+		_, err = os.Stat(bundlesPath)
 		if err != nil {
-			// It is possible that the bundles are in the godev directory directly underneath the src
-			bundlesPath = gopath + "/godev/bundles"
-
-			_, err = os.Stat(bundlesPath)
-			if err != nil {
-				log.Fatal("Could not locate godev bundle libraries in the GOPATH")
-			}
+			log.Fatal("Could not locate godev bundle libraries in the GOPATH")
 		}
-
-		bundle_root_dir = bundlesPath
-	} else {
-		// In regular mode the web bundles come from the lib directory in the GOROOT
-		bundlesPath := runtime.GOROOT() + "/lib/github.com/sirnewton01/godev/bundles"
-
-		_, err := os.Stat(bundlesPath)
-		if err != nil {
-			log.Fatal("Could not locate godev bundle libraries in the GOROOT")
-		}
-
-		bundle_root_dir = bundlesPath
 	}
+
+	bundle_root_dir = bundlesPath
 }
 
 const (
@@ -212,6 +199,7 @@ func main() {
 	http.HandleFunc("/go/doc/", wrapHandler(docHandler))
 	http.HandleFunc("/debug", wrapHandler(debugHandler))
 	http.HandleFunc("/debug/", wrapHandler(debugHandler))
+	http.Handle("/debug/console/output/", websocket.Handler(debugSocket))
 	http.HandleFunc("/gitapi", wrapHandler(gitapiHandler))
 	http.HandleFunc("/gitapi/", wrapHandler(gitapiHandler))
 
