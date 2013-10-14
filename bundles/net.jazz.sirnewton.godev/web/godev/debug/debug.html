@@ -25,12 +25,10 @@
 				<div id="outlineContainer" style="height:100%;width:100%;position:relative;">
 					<table cellpadding="3" style="font-size:13px;">
 					<tr><td colspan="2"><label>Executables:</label></td></tr>
-					<tr><td colspan="2">Is your executable missing or out of date?</td></tr>
-					<tr><td colspan="2">Run &quot;go install&quot; in the <a href="/shell/shellPage.html">shell</a>.</td></tr>
-					<tr><td><select id="executables"></select></td>
-						<td><input type="text" placeholder="Type command line arguments" style="width:100%;" id="argInput"/></td>
-					</tr>
-					<tr><td colspan="2"><input type="button" id="execute" value="Execute" style="width:100%;"></input></td></tr>
+					<tr><td colspan="2"><select id="executables"></select></td></tr>
+					<tr><td colspan="2"><input type="text" placeholder="Type command line arguments" style="width:100%;" id="argInput"/></td></tr>
+					<tr><td><input type="button" id="execute" value="Execute" style="width:100%;"></input></td>
+						<td><input type="button" id="debug" value="Debug" style="width:100%;"></input></td>
 					</tr>
 					<tr><td colspan="2"><label>Running Processes:</label></td></tr>
 					<tr><td colspan="2"><select id="processes"></select></td></tr>

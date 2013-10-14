@@ -78,26 +78,28 @@ func filesearchHandler(writer http.ResponseWriter, req *http.Request, path strin
 				return true
 			}
 
-			filesDir := gopath + "/src"
-			path := ""
-			location := "/file"
-			results = append(results, findNameMatches(filesDir, path, location, nameregex)...)
+			for _,srcDir := range(srcDirs) {
+				path := ""
+				location := "/file"
+				results = append(results, findNameMatches(srcDir, path, location, nameregex)...)
+			}
 
-			filesDir = runtime.GOROOT() + "/src/pkg"
+			filesDir := runtime.GOROOT() + "/src/pkg"
 			path = ""
-			location = "/file/GOROOT"
+			location := "/file/GOROOT"
 			results = append(results, findNameMatches(filesDir, path, location, nameregex)...)
 		} else {
 			token := filterparts
 
-			filesDir := gopath + "/src"
-			path := ""
-			location := "/file"
-			results = append(results, findContentMatches(filesDir, path, location, token)...)
+			for _,srcDir := range(srcDirs) {
+				path := ""
+				location := "/file"
+				results = append(results, findContentMatches(srcDir, path, location, token)...)
+			}
 
-			filesDir = runtime.GOROOT() + "/src/pkg"
+			filesDir := runtime.GOROOT() + "/src/pkg"
 			path = ""
-			location = "/file/GOROOT"
+			location := "/file/GOROOT"
 			results = append(results, findContentMatches(filesDir, path, location, token)...)
 		}
 

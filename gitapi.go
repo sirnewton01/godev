@@ -4,7 +4,7 @@
 
 package main
 
-import (
+/*import (
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -484,3 +484,4 @@ func gitapiHandler(writer http.ResponseWriter, req *http.Request, path string, p
 
 	return false
 }
+*/

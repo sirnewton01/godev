@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>orion-codemirror plugin</title>
+	<style type="text/css">
+		ul.modelist {
+			list-style-type: none;
+			column-count: 3;
+			-moz-column-count: 3;
+			-webkit-column-count: 3;
+			width: 40em;
+		}
+		ol>li { margin-bottom: 1em; }
+		.url {
+			width: 60em;
+			font-family: monospace;
+			background: #ddd;
+			padding: 15px;
+			white-space: nowrap;
+			overflow-x: scroll;
+			/*overflow-y: hidden;*/
+			overflow: '-moz-scrollbars-horizontal';
+		}
+	</style>
+	<script src="../requirejs/require.js"></script>
+	<script>
+		/*global requirejs require*/
+		require({
+			baseUrl: '..',
+			paths: {
+				cm: 'codemirror2-compressed',
+				'orion-cm': 'orioncodemirror',
+				i18n: 'requirejs/i18n'
+			}
+		});
+		require(['codeMirrorPlugin.js']);
+	</script>
+</head>
+<body>
+<h1>orion-codemirror</h1>
+<p>This is a plugin for Orion that provides syntax highlighting using <a href="https://github.com/marijnh/CodeMirror">CodeMirror</a> 
+<a href="http://codemirror.net/manual.html#modeapi">modes</a>. See below for installation instructions.</p>
+
+<h2>Requirements</h2>
+<ul>
+	<li><a href="http://download.eclipse.org/orion/">Orion</a> version 4.0M1, or lower.</li>
+</ul>
+
+<h2>Installation</h2>
+<form>
+	<ol>
+		<li>Copy the following URL:<br>
+			<textarea id="url" class="url" type="text" onclick="this.focus(); this.select();" rows="1" wrap="off"></textarea>
+		</li>
+		<li>Log in to your Orion environment, open the user menu, and click the "Settings" link.</li>
+		<li>Select the "Plugins" category, click "Install", paste the URL into the field, and click "Submit".</li>
+	</ol>
+</form>
+
+<h2>Usage</h2>
+<ol>
+  <li>In Orion, create a new file with an extension corresponding to one of the modes listed below. (For example, <code>test.php</code> is associated with the php mode). Click the file.</li>
+  <li>An editor will open. Type some (valid) code in the editor, and it will be syntax-colored.</li>
+</ol>
+
+<h2>Supported Modes</h2>
+<div class="cols">
+        <ul id="modelist" class="modelist"></ul>
+</div>
+</body>
+</html>

@@ -8,10 +8,11 @@ import (
 	"bufio"
 	"bytes"
 	"net/http"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"io/ioutil"
+	"os"
 )
 
 type CompileError struct {
@@ -20,74 +21,83 @@ type CompileError struct {
 	Msg      string
 }
 
+func parseBuildOutput(cmd *exec.Cmd) (compileErrors []CompileError) {
+	buffer, _ := cmd.CombinedOutput()
+
+	reader := bytes.NewReader(buffer)
+	bufReader := bufio.NewReader(reader)
+	var currentPkg string
+
+	for {
+		l, _, err := bufReader.ReadLine()
+
+		if err != nil {
+			break
+		}
+
+		line := string(l)
+
+		if strings.HasPrefix(line, "#") {
+			// Package Marker
+			currentPkg = strings.Replace(line, "# ", "", 1)
+		} else if strings.Contains(line, ":") {
+			// Compile Error
+			pieces := strings.Split(line, ":")
+			file := pieces[0]
+
+			pkgLoc := strings.Index(file, currentPkg)
+
+			if pkgLoc != -1 {
+				file = "/file/" + currentPkg + file[pkgLoc + len(currentPkg):]
+			}
+
+			l := pieces[1]
+			lineNum, err := strconv.ParseInt(l, 10, 64)
+
+			if err != nil {
+				continue
+			}
+
+			msg := strings.Replace(line, pieces[0]+":"+pieces[1]+":", "", 1)
+			error := CompileError{Location: file, Line: lineNum, Msg: msg}
+			compileErrors = append(compileErrors, error)
+		}
+	}
+	
+	return compileErrors
+}
+
 func buildHandler(writer http.ResponseWriter, req *http.Request, path string, pathSegs []string) bool {
 	switch {
 	case req.Method == "GET":
 		qValues := req.URL.Query()
 		pkg := qValues.Get("pkg")
-		clean := qValues.Get("clean")
 		install := qValues.Get("install")
 
-		pkgpath := gopath + "/src/" + pkg
-		_, err := os.Stat(pkgpath)
+		tmpFile, err := ioutil.TempFile("", "godev-build-temp")
 		if err != nil {
-			ShowError(writer, 400, "Error opening package directory", err)
+			ShowError(writer, 500, "Unable to create temporary file for build", err)
 			return true
 		}
-
-		cmd := exec.Command("go", "build", pkg)
-		cmd.Dir = pkgpath
-		buffer, err := cmd.CombinedOutput()
-
-		reader := bytes.NewReader(buffer)
-		bufReader := bufio.NewReader(reader)
-		var currentPkg string
-
-		compileErrors := make([]CompileError, 0, 0)
-
-		for {
-			l, _, err := bufReader.ReadLine()
-
-			if err != nil {
-				break
-			}
-
-			line := string(l)
-
-			if strings.HasPrefix(line, "#") {
-				// Package Marker
-				currentPkg = strings.Replace(line, "# ", "", 1)
-			} else if strings.Contains(line, ":") {
-				// Compile Error
-				pieces := strings.Split(line, ":")
-				file := pieces[0]
-
-				if strings.HasPrefix(file, "./") {
-					file = strings.Replace(file, "./", "", 1)
-				}
-
-				l := pieces[1]
-				lineNum, err := strconv.ParseInt(l, 10, 64)
-
-				if err != nil {
-					continue
-				}
-
-				msg := strings.Replace(line, pieces[0]+":"+pieces[1]+":", "", 1)
-				error := CompileError{Location: "/file/" + currentPkg + "/" + file, Line: lineNum, Msg: msg}
-				compileErrors = append(compileErrors, error)
-			}
-		}
-
-		if clean == "true" {
-			cmd := exec.Command("go", "clean", pkg)
-			cmd.Dir = pkgpath
-			cmd.Run()
-		}
+		
+		// Compile the regular parts of the package
+		tmpFileName := tmpFile.Name()
+		cmd := exec.Command("go", "build", "-o", tmpFileName, pkg)
+		compileErrors := parseBuildOutput(cmd)
+		os.Remove(tmpFileName)
+		
+		// Compile the tests too
+		// Do this in a temporary directory to avoid collisions.
+		// Too bad "go build" doesn't have a "-t" parameters to include the tests.
+		// Too bad that "go test -c" doesn't handle collisions, while "go test" does.
+		os.Mkdir(tmpFileName, os.ModeDir | 0700)
+		cmd = exec.Command("go", "test", "-c", pkg)
+		cmd.Dir = tmpFileName
+		compileErrors = append(compileErrors, parseBuildOutput(cmd)...)
+		os.Remove(tmpFileName)
 
 		if install == "true" && len(compileErrors) == 0 {
 			cmd := exec.Command("go", "install", pkg)
-			cmd.Dir = pkgpath
 			cmd.Run()
 		}
 

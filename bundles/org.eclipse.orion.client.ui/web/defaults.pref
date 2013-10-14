@@ -11,7 +11,7 @@
 		"plugins/esprima/esprimaJsContentAssistPlugin.html":true,
 		"shell/plugins/shellPagePlugin.html":true,
 		"search/plugins/searchPagePlugin.html":true,
-		"http://mamacdon.github.io/orion-codemirror/codeMirrorPlugin.html":true,
+		"orion-codemirror/codeMirrorPlugin.html":true,
 		"godev/go-core.html":true
 	}
 }

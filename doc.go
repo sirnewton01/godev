@@ -26,7 +26,6 @@ func docHandler(writer http.ResponseWriter, req *http.Request, path string, path
 		} else {
 			cmd = exec.Command("godoc", pkg)
 		}
-		cmd.Dir = gopath
 		cmd.Stdout = &buffer
 		cmd.Run()
 

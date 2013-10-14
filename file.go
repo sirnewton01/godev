@@ -44,26 +44,28 @@ type GitMeta struct {
 func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pathSegs []string) bool {
 	switch {
 	case req.Method == "POST":
-		filesDir := gopath + "/src"
-
-		_, err := os.Stat(filesDir)
-		if err != nil {
-			ShowError(writer, 400, "There is no file area", err)
-			return true
-		}
-
 		fileRelPath := "/" + strings.Join(pathSegs[1:], "/")
-		filePath := filesDir + fileRelPath
-
-		_, err = os.Stat(filePath)
-		if err != nil {
-			ShowError(writer, 400, "Parent doesn't exist. The entry could be in the GOROOT and not on the GOPATH.", err)
+		filePath := ""
+		
+		// Find a match in reverse GOPATH order
+		for _,srcDir := range(srcDirs) {
+			p := srcDir + fileRelPath
+	
+			_, err := os.Stat(p)
+			if err == nil {
+				filePath = p
+				break
+			}
+		}
+		
+		if filePath == "" {
+			ShowError(writer, 400, "Parent doesn't exist. The entry could be in the GOROOT and not on the GOPATH.", nil)
 			return true
 		}
 
 		details := make(map[string]string)
 		dec := json.NewDecoder(req.Body)
-		err = dec.Decode(&details)
+		err := dec.Decode(&details)
 
 		if err != nil {
 			ShowError(writer, 400, "Invalid input", err)
@@ -89,24 +91,25 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		}
 		return true
 	case req.Method == "DELETE":
-		filesDir := gopath + "/src"
-
-		_, err := os.Stat(filesDir)
-		if err != nil {
-			writer.WriteHeader(204)
-			return true
-		}
-
 		fileRelPath := "/" + strings.Join(pathSegs[1:], "/")
-		filePath := filesDir + fileRelPath
-
-		_, err = os.Stat(filePath)
-		if err != nil {
+		filePath := ""
+		
+		for _,srcDir := range(srcDirs) {
+			p := srcDir + fileRelPath
+			_,err := os.Stat(p)
+			
+			if err == nil {
+				filePath = p
+				break
+			}
+		}
+		
+		if filePath == "" {
 			writer.WriteHeader(204)
 			return true
 		}
 
-		err = os.RemoveAll(filePath)
+		err := os.RemoveAll(filePath)
 		if err != nil {
 			ShowError(writer, 500, "Unable to remove file", err)
 			return true
@@ -114,19 +117,20 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		writer.WriteHeader(204)
 		return true
 	case req.Method == "PUT":
-		filesDir := gopath + "/src"
-
-		_, err := os.Stat(filesDir)
-		if err != nil {
-			writer.WriteHeader(404)
-			return true
-		}
-
 		fileRelPath := "/" + strings.Join(pathSegs[1:], "/")
-		filePath := filesDir + fileRelPath
-
-		_, err = os.Stat(filePath)
-		if err != nil {
+		filePath := ""
+		
+		for _,srcDir := range(srcDirs) {
+			p := srcDir + fileRelPath
+			
+			_,err := os.Stat(p)
+			if err == nil {
+				filePath = p
+				break
+			}
+		}
+		
+		if filePath == "" {
 			writer.WriteHeader(404)
 			return true
 		}
@@ -166,16 +170,25 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		ShowJson(writer, 200, info)
 		return true
 	case req.Method == "GET":
-		filesDir := gopath + "/src"
-
 		fileRelPath := "/" + strings.Join(pathSegs[1:], "/")
-		filePath := filesDir + fileRelPath
+		filePath := ""
+		var err error
+		var fileinfo os.FileInfo
+		for _,srcDir := range(srcDirs) {
+			p := srcDir + fileRelPath
+			fileinfo,err = os.Stat(p)
+			
+			if err == nil {
+				filePath = p
+				break
+			}
+		}
+		
 		isgoroot := false
 
-		fileinfo, err := os.Stat(filePath)
-		if err != nil && len(pathSegs) >= 2 && pathSegs[1] == "GOROOT" {
+		if filePath == "" && len(pathSegs) >= 2 && pathSegs[1] == "GOROOT" {
 			// Try again with the GOROOT
-			filesDir = runtime.GOROOT() + "/src/pkg"
+			filesDir := runtime.GOROOT() + "/src/pkg"
 			fileRelPath := "/" + strings.Join(pathSegs[2:], "/")
 			filePath = filesDir + fileRelPath
 			isgoroot = true
@@ -186,7 +199,7 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 				writer.WriteHeader(404)
 				return true
 			}
-		} else if err != nil {
+		} else if filePath == "" {
 			writer.WriteHeader(404)
 			return true
 		}

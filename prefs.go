@@ -9,12 +9,16 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"path/filepath"
+	"go/build"
 )
 
 func prefsHandler(writer http.ResponseWriter, req *http.Request, path string, pathSegs []string) bool {
 	switch {
 	case req.Method == "PUT":
-		prefFile := gopath + "/prefs.txt"
+		gopaths := filepath.SplitList(build.Default.GOPATH)
+		prefFile := gopaths[len(gopaths)-1] + "/prefs.txt"
+		
 		var prefs map[string]map[string]string
 
 		_, err := os.Stat(prefFile)
@@ -96,7 +100,9 @@ func prefsHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 		writer.WriteHeader(204)
 		return true
 	case req.Method == "DELETE":
-		prefFile := gopath + "/prefs.txt"
+		gopaths := filepath.SplitList(build.Default.GOPATH)
+		prefFile := gopaths[len(gopaths)-1] + "/prefs.txt"
+		
 		var prefs map[string]map[string]string
 
 		_, err := os.Stat(prefFile)

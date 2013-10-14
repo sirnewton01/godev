@@ -25,6 +25,7 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 		var processes = document.getElementById("processes");
 		var output = document.getElementById("outputArea");
 		var executeButton = document.getElementById("execute");
+		var debugButton = document.getElementById("debug");
 		var argumentsInput = document.getElementById("argInput");
 		var killButton = document.getElementById("killButton");
 		var cmdInput = document.getElementById("cmdInput");
@@ -56,7 +57,7 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 		updateFormFromHash();
 		
 		// TODO Refresh button in case a new executable shows up
-		xhr("GET", "/debug/executables", {
+		xhr("GET", "/debug/commands", {
 			headers: {},
 			timeout: 60000
 		}).then(function(result) {
@@ -103,13 +104,20 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 				}
 				
 				var wsUrl = document.URL.replace("http://", "ws://");
+				wsUrl = wsUrl.replace("https://", "wss://");
 				wsUrl = wsUrl.substring(0, wsUrl.indexOf("/godev")) + "/debug/console/output/" + currentPid;
 				ws = new WebSocket(wsUrl);
 				
 				ws.onmessage = function(evt) {
 					outputCache[""+pid] = outputCache[""+pid] + evt.data;
 					if (pid === currentPid) {
-						output.innerHTML = output.innerHTML + evt.data;
+						var textToAdd = evt.data;
+						
+						// Turn any http/https URL's into hyperlinks
+						textToAdd = textToAdd.replace(/http:\/\/(\S+)/g,"<a href='http://$1' target='_blank'>http://$1</a>");
+						textToAdd = textToAdd.replace(/https:\/\/(\S+)/g,"<a href='https://$1' target='_blank'>https://$1</a>");
+
+						output.innerHTML = output.innerHTML + textToAdd;
 						output.scrollIntoView(false);
 					}
 				};
@@ -201,7 +209,7 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 			}
 		});
 		
-		var executeFunc = function(e) {
+		var executeFunc = function(e, debug) {
 			if (executables.selectedIndex < 0) {
 				return;
 			}
@@ -226,7 +234,11 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 				arguments.push(inputSplit[idx]);
 			}
 			
-			var request = { "Debug": false};
+			var request = {};
+			if (debug) {
+				request.Debug = true;
+			}
+			
 			request.Cmd = arguments;  
 
 			xhr("POST", "/debug", {
@@ -251,6 +263,18 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 		
 		// Execute button to launch the process
 		executeButton.addEventListener("click", executeFunc);
+		
+		// Debug button to start up a debugging session
+		debugButton.addEventListener("click", function(e) {
+			xhr("GET", "/debug/debugSupport", {
+				headers: {},
+				timeout: 60000
+			}).then(function(result) {
+				executeFunc(e, true);
+			}, function(error) {
+				window.alert("Debug support is not available because the godbg tool is not installed or is not on the system path. Fetch it by running 'go get github.com/sirnewton01/godbg.'");
+			});
+		});
 		
 		clearButton.addEventListener("click", function(e) {
 			xhr("POST", "/debug/clear", {

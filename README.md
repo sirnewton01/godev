@@ -32,9 +32,6 @@ Areas explored:
 
 New areas to explore:
 
-* Debug
-    + Use the gdb/MI interface to present an interactive debugging web UI
-    + [http://sourceware.org/gdb/onlinedocs/gdb/GDB_002fMI.html]([http://sourceware.org/gdb/onlinedocs/gdb/GDB_002fMI.html)
 * Git Integration
     + Manage push/pull/commit/add
 * RTC SCM Integration
@@ -75,10 +72,36 @@ Get the source code from the latest release by running go get: "go get github.co
 
 Compile and install godev in your GOPATH by running go install: "go install github.com/sirnewton01/godev"
 
-Run godev from the GOPATH/bin directory: "$GOPATH/bin/godev -dev"
+Run godev from the GOPATH/bin directory: "$GOPATH/bin/godev"
 
-Open up your web browser and navigate to http://127.0.0.1:2022 Note that unless you launch the server with the "-http" parameter it will be accessible only through your local machine using the "127.0.0.1" address. You can begin a new godev project using the "New -> Folder" menu near the top of the screen.
+Open up your web browser and navigate to http://127.0.0.1:2022 Note that godev is only accessible from your local machine using the "127.0.0.1" address unless you set up Remote Access (more details below). You can begin a new godev project using the "New -> Folder" menu near the top of the screen.
 
 If you have ideas for enhancements or find defects please Raise a Task on JazzHub (account required): [https://hub.jazz.net/ccm01/web/projects/sirnewton%20%7C%20godev#action=com.ibm.team.workitem.newWorkItem&type=task&ts=13725284879510](https://hub.jazz.net/ccm01/web/projects/sirnewton%20%7C%20godev#action=com.ibm.team.workitem.newWorkItem&type=task&ts=13725284879510)
 
 Happy Go hacking! 
+
+# Remote Access
+
+Godev has remote access capabilities using your web browser and http. First, some setup is required to specify the fully qualified domain name of your system and establish a secure connection.
+
+## Generating SSL/TLS keys
+
+Godev uses HTTP over SSL/TLS, otherwise known as https, to encrypt information sent from the remote system and your local web browser. In order to set up the encryption both a certificate and encryption key is needed to establish the encrypted connection. You can use a tool like openssl or use a Go script included in every Go install to generate it.
+
+To run the Go script to generate your certificates you can run the following command (replace / with \ on Windows, myhost.example.com with your fully qualified domain name):
+
+$ go run /path/to/go/install/src/pkg/crypto/tls/generate _ cert.go -ca=true -duration=8760h0m0s -host=myhost.example.com
+
+It is important to secure the certificates and keys with filesystem permissions so that others canot use them to intercept your communications.
+
+$ chmod go-rwx cert.pem key.pem
+
+## Setting Environment Variables
+
+Your fully qualified domain name, certificate file and key file are provided to gdbg using the following environment variables:
+
+$ export GOHOST=myhost.example.com
+$ export GOCERTFILE=/path/to/my/cert.pem
+$ export GOKEYFILE=/path/to/my/key.pem
+
+These variables can be set in the same place you set your GOPATH and PATH variables so that they are set automatically every time you run the tool.

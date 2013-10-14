@@ -16,6 +16,9 @@ import (
 	"time"
 	"sync"
 	"path"
+	"go/build"
+	"path/filepath"
+	"runtime"
 )
 
 const (
@@ -53,6 +56,7 @@ type ProcessDataRequest struct {
 
 // Request object to start a new process managed by the system
 type NewProcessRequest struct {
+	// TODO Separate out package from arguments
 	Cmd             []string
 	Debug           bool
 	ResponseChannel chan int
@@ -75,6 +79,7 @@ type ClearRequest struct {
 type ProcessData struct {
 	Id        int
 	StartTime time.Time
+	// TODO Separate out package from arguments
 	Cmd       []string
 	Debug     bool
 	output    chan string
@@ -124,7 +129,10 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 			}, len(processes), len(processes))
 			for idx, process := range processes {
 				processIds[idx].Id = process.Id
-				processIds[idx].Label = process.Cmd[0] +
+				
+				_,cmdName := filepath.Split(process.Cmd[0])
+				
+				processIds[idx].Label = cmdName +
 					" <" + process.StartTime.Format(time.UnixDate) +
 					"> (" + strconv.FormatInt(int64(process.Id), 10) + ")"
 			}
@@ -143,13 +151,8 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 			if len(processes) > processLimit {
 				request.ResponseChannel <- -1
 			}
-
-			var cmd *exec.Cmd
-			if request.Debug {
-				cmd = exec.Command("gdb", request.Cmd[0])
-			} else {
-				cmd = exec.Command(gopath+"/bin/"+request.Cmd[0], request.Cmd[1:]...)
-			}
+			
+			cmd := exec.Command(request.Cmd[0], request.Cmd[1:]...)			
 
 			id := -1
 			
@@ -286,9 +289,52 @@ func debugHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 		if err != nil {
 			ShowError(writer, 400, "Decoder error", err)
 			return true
-		}
+		}	
 
-		// TODO Make sure that the Cmd doesn't have any '/', '..' in it
+		rungodbg := false
+		
+		if request.Debug {
+			godbgtest := exec.Command("godbg")
+			err := godbgtest.Run()
+			if err == nil {
+				rungodbg = true
+			}
+		}
+		
+		// build or install the command to make sure it can be compiled
+		//  and is up-to-date. Godbg will do its own installation afterwards
+		//  but this is a good check here.
+		installCmd := exec.Command("go", "install", request.Cmd[0])
+		err = installCmd.Run()
+		if err != nil {
+			ShowError(writer, 400, "Error installing command.", err)
+			return true
+		}
+		
+		if !rungodbg {
+			commandName := filepath.Base(request.Cmd[0])
+			gopaths := filepath.SplitList(build.Default.GOPATH)
+			foundCommand := false
+			
+			for _,gopath := range(gopaths) {
+				_,err := os.Stat(gopath + "/bin/" + commandName)
+				if err == nil {
+					request.Cmd[0] = gopath + "/bin/" + commandName
+					foundCommand = true
+					break
+				}
+			}
+			
+			if !foundCommand {
+				ShowError(writer, 400, "Command not found in any GOPATH", nil)
+				return true
+			}
+		} else {
+			newCmd := []string{"godbg", "-openBrowser=false"}
+			newCmd = append(newCmd, request.Cmd...)
+			request.Cmd = newCmd
+		}
+		
 		request.ResponseChannel = make(chan int, 1)
 		NewProcess <- &request
 		pid := <-request.ResponseChannel
@@ -369,20 +415,64 @@ func debugHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 
 		ShowJson(writer, 200, processData)
 		return true
-	case req.Method == "GET" && len(pathSegs) == 2 && pathSegs[1] == "executables":
-		binDir, err := os.Open(gopath + "/bin")
+	// TODO deprecate this
+//	case req.Method == "GET" && len(pathSegs) == 2 && pathSegs[1] == "executables":
+//		executables := make (map[string]string)
+//
+//		for _,path := range (filepath.SplitList(build.Default.GOPATH)) {
+//			binDir, err := os.Open(path + "/bin")
+//			if err == nil {
+//				names, err := binDir.Readdirnames(-1)
+//				if err == nil {
+//					for _,name := range(names) {
+//						executables[name] = "1"
+//					}
+//				}
+//			}
+//		}
+//		
+//		retVal := []string{}
+//		
+//		for executable,_ := range(executables) {
+//			retVal = append(retVal, executable)
+//		}
+//
+//		ShowJson(writer, 200, retVal)
+//		return true
+	case req.Method == "GET" && len(pathSegs) == 2 && pathSegs[1] == "commands":
+		commands := []string{}
+		
+		srcDirs := build.Default.SrcDirs()
+		
+		for _,srcDir := range(srcDirs) {
+			// Skip stuff that is in the GOROOT
+			if filepath.HasPrefix(srcDir, runtime.GOROOT()) {
+				continue
+			}
+			
+			filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+				if info.IsDir() {
+					pkg, err := build.Default.ImportDir(path, 0)
+					
+					if err == nil && pkg.IsCommand() {
+						commands = append(commands, pkg.ImportPath)
+					}
+				}
+				return nil
+			})
+		}
+		
+		ShowJson(writer, 200, commands)
+		return true
+	case req.Method == "GET" && len(pathSegs) == 2 && pathSegs[1] == "debugSupport":
+		godbgtest := exec.Command("godbg")
+		err := godbgtest.Run()
 		if err != nil {
-			ShowError(writer, 500, "No executables available", err)
+			ShowError(writer, 404, "godbg command could not be found on the system path. Install using 'go get github.com/sirnewton01/godbg', install it and add the binary to the path for debugging support.", err)
 			return true
 		}
-
-		executables, err := binDir.Readdirnames(-1)
-		if err != nil {
-			ShowError(writer, 500, "No executables available", err)
-			return true
-		}
-
-		ShowJson(writer, 200, executables)
+		
+		ShowJson(writer, 200, []string{})
 		return true
 	}
 

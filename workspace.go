@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"go/build"
+	"path/filepath"
 )
 
 type Project struct {
@@ -38,52 +40,67 @@ type WorkspacesList struct {
 }
 
 func getWsProjects() ([]Project, []FileDetails) {
-	filesDir := gopath + "/src"
-
-	_, err := os.Stat(filesDir)
-	if err != nil {
-		logger.Printf("src directory doesn't exist in gopath at %v", filesDir)
-		return []Project{}, []FileDetails{}
-	}
-
-	dir, err := os.Open(filesDir)
-	if err != nil {
-		logger.Printf("Unable to open src directory in gopath at %v", filesDir)
-		return []Project{}, []FileDetails{}
-	}
-	names, err := dir.Readdirnames(-1)
 	projects := make([]Project, 0, 0)
 	children := make([]FileDetails, 0, 0)
-	dir.Close()
-	for _, name := range names {
-		if strings.HasPrefix(name, ".") {
+	
+	nameMap := make(map[string]string)
+	
+	for _,srcDir := range(srcDirs) {
+		if strings.HasPrefix(srcDir, runtime.GOROOT()) {
 			continue
 		}
-		fileinfo, err := os.Stat(filesDir + "/" + name)
+	
+		filesDir := srcDir
+	
+		_, err := os.Stat(filesDir)
 		if err != nil {
+			logger.Printf("src directory doesn't exist in gopath at %v", filesDir)
 			return []Project{}, []FileDetails{}
 		}
-		projectInfo := Project{Id: name, Location: "/workspace/project/" + name, ContentLocation: "/file/" + name}
-		projects = append(projects, projectInfo)
-
-		info := FileDetails{}
-		info.Name = fileinfo.Name()
-		info.Id = fileinfo.Name()
-		info.Location = "/file/" + name
-		info.Directory = fileinfo.IsDir()
-		info.LocalTimeStamp = fileinfo.ModTime().Unix() * 1000
-		info.ETag = strconv.FormatInt(fileinfo.ModTime().Unix(), 16)
-		info.Parents = []FileDetails{} // TODO Calculate parent and put the object in here
-		info.Attributes = make(map[string]bool)
-		info.Attributes["ReadOnly"] = false
-		executable := false
-		mode := fileinfo.Mode()
-		if (mode&os.ModePerm)&0111 != 0 {
-			executable = true
+	
+		dir, err := os.Open(filesDir)
+		if err != nil {
+			logger.Printf("Unable to open src directory in gopath at %v", filesDir)
+			return []Project{}, []FileDetails{}
 		}
-		info.Attributes["Executable"] = executable
-		info.ChildrenLocation = "/file/" + name + "?depth=1"
-		children = append(children, info)
+		names, err := dir.Readdirnames(-1)
+	
+		dir.Close()
+		for _, name := range names {
+			if strings.HasPrefix(name, ".") {
+				continue
+			}
+			if nameMap[name] == "1" {
+				continue
+			}
+			nameMap[name] = "1"
+			
+			fileinfo, err := os.Stat(filesDir + "/" + name)
+			if err != nil {
+				return []Project{}, []FileDetails{}
+			}
+			projectInfo := Project{Id: name, Location: "/workspace/project/" + name, ContentLocation: "/file/" + name}
+			projects = append(projects, projectInfo)
+	
+			info := FileDetails{}
+			info.Name = fileinfo.Name()
+			info.Id = fileinfo.Name()
+			info.Location = "/file/" + name
+			info.Directory = fileinfo.IsDir()
+			info.LocalTimeStamp = fileinfo.ModTime().Unix() * 1000
+			info.ETag = strconv.FormatInt(fileinfo.ModTime().Unix(), 16)
+			info.Parents = []FileDetails{} // TODO Calculate parent and put the object in here
+			info.Attributes = make(map[string]bool)
+			info.Attributes["ReadOnly"] = false
+			executable := false
+			mode := fileinfo.Mode()
+			if (mode&os.ModePerm)&0111 != 0 {
+				executable = true
+			}
+			info.Attributes["Executable"] = executable
+			info.ChildrenLocation = "/file/" + name + "?depth=1"
+			children = append(children, info)
+		}
 	}
 
 	// Create a virtual project that represent the source code present at the GOROOT
@@ -122,8 +139,6 @@ func workspaceHandler(writer http.ResponseWriter, req *http.Request, path string
 
 	switch {
 	case req.Method == "POST" && numPathSegs == 2:
-		filesDir := gopath + "/src"
-
 		if !strings.HasPrefix(req.Header.Get("Content-Type"), "application/json") {
 			ShowError(writer, 400, "No project name provided", nil)
 			return true
@@ -144,6 +159,10 @@ func workspaceHandler(writer http.ResponseWriter, req *http.Request, path string
 		}
 
 		//workspaceId := pathSegs[1]
+		
+		// New top-level folders (ie projects) go at the end of the GOPATH
+		gopaths := filepath.SplitList(build.Default.GOPATH)		
+		filesDir := gopaths[len(gopaths)-1] + "/src"
 
 		projectPath := filesDir + "/" + projectName
 		os.Mkdir(filesDir, 0700)
@@ -185,19 +204,21 @@ func workspaceHandler(writer http.ResponseWriter, req *http.Request, path string
 		ShowError(writer, 400, "Workspace PUT not supported.", nil)
 		return true
 	case req.Method == "DELETE" && numPathSegs == 3 && pathSegs[1] == "project":
-		_, err := os.Stat(gopath+"/src/"+pathSegs[2])
-		if err != nil {
-			ShowError(writer, 400, "Project could not be located", err)
-			return true
+		for _,srcDir := range(srcDirs) {
+			_, err := os.Stat(srcDir+pathSegs[2])
+			if err == nil {
+				err = os.RemoveAll(srcDir+pathSegs[2])
+				if err != nil {
+					ShowError(writer, 400, "Project could not be removed", err)
+					return true
+				}
+				
+				ShowJson(writer, 200, "")
+				return true
+			}
 		}
 		
-		err = os.RemoveAll(gopath+"/src/"+pathSegs[2])
-		if err != nil {
-			ShowError(writer, 400, "Project could not be removed", err)
-			return true
-		}
-		
-		ShowJson(writer, 200, "")
+		ShowError(writer, 200, "Project could not be found. It was not removed.", nil)
 		return true
 	case req.Method == "DELETE" && numPathSegs == 2:
 		ShowError(writer, 400, "Workspace deletion is not supported.", nil)
