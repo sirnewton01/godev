@@ -167,7 +167,7 @@ exports.CompareView = (function() {
 		 * <p>
 		 * If 0 is returned on the chnageNumber, it means the whole diff block is highlighted.
 		 * </p>
-		 * @returns the 1-based {blockNumber, changeNumber} current diff location.
+		 * @returns {Object} the 1-based {blockNumber, changeNumber} current diff location.
 		 */
 		getCurrentDiffPos: function(){	
 			return this._diffNavigator.getCurrentPosition();

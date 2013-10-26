@@ -225,7 +225,7 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 			 * the operation completes.
 			 * @param deferred {orion.Deferred} Deferred to track
 			 * @param message {String} Message to display
-			 * @returns
+			 * @returns {orion.Promise}
 			 */
 			showWhile: function(deferred, message){
 				if(message) {

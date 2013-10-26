@@ -20,12 +20,21 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 	 * @name orion.editor.Change
 	 * @private
 	 */
-	function Change(offset, text, previousText) {
+	function Change(offset, text, previousText, type) {
 		this.offset = offset;
 		this.text = text;
 		this.previousText = previousText;
+		this.type = type;
 	}
 	Change.prototype = {
+		/** @ignore */
+		getRedoChanges: function() {
+			return [{start: this.offset, end: this.offset + this.previousText.length, text: this.text}];
+		},
+		/** @ignore */
+		getUndoChanges: function() {
+			return [{start: this.offset, end: this.offset + this.text.length, text: this.previousText}];
+		},
 		/** @ignore */
 		undo: function (view, select) {
 			this._doUndoRedo(this.offset, this.previousText, this.text, view, select);
@@ -35,6 +44,22 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		redo: function (view, select) {
 			this._doUndoRedo(this.offset, this.text, this.previousText, view, select);
 			return true;
+		},
+		merge: function(start, text, previousText, type, end) {
+			if (type === this.type) {
+				if (type === 1 && start === this.offset + this.text.length) {
+					this.text += text;
+					return true;
+				} else if (type === -1 && end === this.offset) {
+					this.offset = start;
+					this.previousText = previousText + this.previousText;
+					return true;
+				} else if (type === -1 && start === this.offset) {
+					this.previousText = this.previousText + previousText;
+					return true;
+				}
+			}
+			return false;
 		},
 		_doUndoRedo: function(offset, text, previousText, view, select) {
 			var model = view.getModel();
@@ -81,6 +106,22 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		this.changes = [];
 	}
 	CompoundChange.prototype = {
+		/** @ignore */
+		getRedoChanges: function() {
+			var changes = [];
+			for (var i=0; i<this.changes.length; i++) {
+				changes = changes.concat(this.changes[i].getRedoChanges());
+			}
+			return changes;
+		},
+		/** @ignore */
+		getUndoChanges: function() {
+			var changes = [];
+			for (var i=this.changes.length - 1; i >= 0; i--) {
+				changes = changes.concat(this.changes[i].getUndoChanges());
+			}
+			return changes;
+		},
 		/** @ignore */
 		add: function (change) {
 			this.changes.push(change);
@@ -137,6 +178,13 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 				owner.redo();
 			}
 			return this.changes.length > 0;
+		},
+		merge: function(start, text, previousText, type, end) {
+			var length = this.changes.length;
+			if (length > 0) {
+				return this.changes[length - 1].merge(start, text, previousText, type, end);
+			}
+			return false;
 		},
 		/** @ignore */
 		start: function (view) {
@@ -201,7 +249,6 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 				if (this.stack.length > this.size) {
 					this.stack.shift();
 					this.index--;
-					this.cleanIndex--;
 				}
 			}
 		},
@@ -212,12 +259,14 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		 * This function is typically called when the content of view associated with the stack is saved.
 		 * </p>
 		 *
-		 * @see #isClean
+		 * @see orion.editor.UndoStack#isClean
 		 */
 		markClean: function() {
-			this.endCompoundChange();
 			this._commitUndo();
-			this.cleanIndex = this.index;
+			this.cleanChange = this.stack[this.index - 1];
+			if (this.cleanChange) {
+				this.cleanChange.type = 2;
+			}
 		},
 		/**
 		 * Returns true if current state of stack is the same
@@ -234,37 +283,37 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		 *
 		 * @return {Boolean} returns if the state is the same as the state when markClean() was called.
 		 *
-		 * @see #markClean
+		 * @see orion.editor.UndoStack#markClean
 		 */
 		isClean: function() {
-			return this.cleanIndex === this.getSize().undo;
+			return this.cleanChange === this.stack[this.index - 1];
 		},
 		/**
 		 * Returns true if there is at least one change to undo.
 		 *
 		 * @return {Boolean} returns true if there is at least one change to undo.
 		 *
-		 * @see #canRedo
-		 * @see #undo
+		 * @see orion.editor.UndoStack#canRedo
+		 * @see orion.editor.UndoStack#undo
 		 */
 		canUndo: function() {
-			return this.getSize().undo > 0;
+			return this.index > 0;
 		},
 		/**
 		 * Returns true if there is at least one change to redo.
 		 *
 		 * @return {Boolean} returns true if there is at least one change to redo.
 		 *
-		 * @see #canUndo
-		 * @see #redo
+		 * @see orion.editor.UndoStack#canUndo
+		 * @see orion.editor.UndoStack#redo
 		 */
 		canRedo: function() {
-			return this.getSize().redo > 0;
+			return (this.stack.length - this.index) > 0;
 		},
 		/**
 		 * Finishes a compound change.
 		 *
-		 * @see #startCompoundChange
+		 * @see orion.editor.UndoStack#startCompoundChange
 		 */
 		endCompoundChange: function() {
 			if (this.compoundChange) {
@@ -278,24 +327,68 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		 * @return {object} a object where object.undo is the number of changes that can be un-done, 
 		 *  and object.redo is the number of changes that can be re-done.
 		 *
-		 * @see #canUndo
-		 * @see #canRedo
+		 * @see orion.editor.UndoStack#canUndo
+		 * @see orion.editor.UndoStack#canRedo
 		 */
 		getSize: function() {
-			var index = this.index;
-			var length = this.stack.length;
-			if (this._undoStart !== undefined) {
-				index++;
+			return {
+				undo: this.index,
+				redo: this.stack.length - this.index
+			};
+		},
+		/**
+		 * @class This object represents a text change.
+		 * <p>
+		 * <b>See:</b><br/>
+		 * {@link orion.editor.UndoStack}<br/>
+		 * {@link orion.editor.UndoStack#getUndoChanges}<br/>
+		 * {@link orion.editor.UndoStack#getRedoChanges}<br/>
+		 * </p>
+		 * @name orion.editor.TextChange
+		 * 
+		 * @property {Number} start The start offset in the model of the range to be replaced.
+		 * @property {Number} end The end offset in the model of the range to be replaced
+		 * @property {String} text the text to be inserted
+		 */
+		/**
+		 * Returns the redo changes.
+		 *
+		 * @return {orion.editor.TextChange[]} an array of TextChanges that are returned in the order
+		 * that they occurred (most recent change last).
+		 *
+		 * @see orion.editor.UndoStack#getUndoChanges
+		 */
+		getRedoChanges: function() {
+			this._commitUndo();
+			var changes = [];
+			for (var i=this.index; i<this.stack.length; i++) {
+				changes = changes.concat(this.stack[i].getRedoChanges());
 			}
-			return {undo: index, redo: (length - index)};
+			return changes;
+		},
+		/**
+		 * Returns the undo changes.
+		 *
+		 * @return {orion.editor.TextChange[]} an array of TextChanges that are returned in the reverse order
+		 * that they occurred (most recent change first).
+		 *
+		 * @see orion.editor.UndoStack#getRedoChanges
+		 */
+		getUndoChanges: function() {
+			this._commitUndo();
+			var changes = [];
+			for (var i=this.index; i >= 0; i--) {
+				changes = changes.concat(this.stack[i].getUndoChanges());
+			}
+			return changes;
 		},
 		/**
 		 * Undo the last change in the stack.
 		 *
 		 * @return {Boolean} returns true if a change was un-done.
 		 *
-		 * @see #redo
-		 * @see #canUndo
+		 * @see orion.editor.UndoStack#redo
+		 * @see orion.editor.UndoStack#canUndo
 		 */
 		undo: function() {
 			this._commitUndo();
@@ -315,8 +408,8 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		 *
 		 * @return {Boolean} returns true if a change was re-done.
 		 *
-		 * @see #undo
-		 * @see #canRedo
+		 * @see orion.editor.UndoStack#undo
+		 * @see orion.editor.UndoStack#canRedo
 		 */
 		redo: function() {
 			this._commitUndo();
@@ -335,11 +428,9 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		 * Reset the stack to its original state. All changes in the stack are thrown away.
 		 */
 		reset: function() {
-			this.index = this.cleanIndex = 0;
+			this.index = 0;
+			this.cleanChange = undefined;
 			this.stack = [];
-			this._undoStart = undefined;
-			this._undoText = "";
-			this._undoType = 0;
 			this._ignoreUndo = false;
 			this._compoundChange = undefined;
 		},
@@ -355,7 +446,7 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		 *		 
 		 * @return the compound change
 		 *
-		 * @see #endCompoundChange
+		 * @see orion.editor.UndoStack#endCompoundChange
 		 */
 		startCompoundChange: function(owner) {
 			this._commitUndo();
@@ -366,16 +457,6 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 			return this.compoundChange;
 		},
 		_commitUndo: function () {
-			if (this._undoStart !== undefined) {
-				if (this._undoType === -1) {
-					this.add(new Change(this._undoStart, "", this._undoText));
-				} else {
-					this.add(new Change(this._undoStart, this._undoText, ""));
-				}
-				this._undoStart = undefined;
-				this._undoText = "";
-				this._undoType = 0;
-			}
 			this.endCompoundChange();
 		},
 		_onDestroy: function(evt) {
@@ -383,40 +464,29 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 			this.view.removeEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
 		},
 		_onChanging: function(e) {
-			var newText = e.text;
-			var start = e.start;
-			var removedCharCount = e.removedCharCount;
-			var addedCharCount = e.addedCharCount;
 			if (this._ignoreUndo) {
 				return;
 			}
-			if (this._undoStart !== undefined && 
-				!((addedCharCount === 1 && removedCharCount === 0 && this._undoType === 1 && start === this._undoStart + this._undoText.length) ||
-					(addedCharCount === 0 && removedCharCount === 1 && this._undoType === -1 && (((start + 1) === this._undoStart) || (start === this._undoStart)))))
-			{
-				this._commitUndo();
+			var text = e.text;
+			var start = e.start;
+			var addedCharCount = e.addedCharCount;
+			var removedCharCount = e.removedCharCount;
+			var end = start + removedCharCount;
+			var type = 0;
+			if (addedCharCount === 0 && removedCharCount === 1) {
+				type = -1;
+			} else if (addedCharCount === 1 && removedCharCount === 0) {
+				type = 1;
 			}
-			if (!this.compoundChange) {
-				if (addedCharCount === 1 && removedCharCount === 0) {
-					if (this._undoStart === undefined) {
-						this._undoStart = start;
-					}
-					this._undoText = this._undoText + newText;
-					this._undoType = 1;
-					return;
-				} else if (addedCharCount === 0 && removedCharCount === 1) {
-					var deleting = this._undoText.length > 0 && this._undoStart === start;
-					this._undoStart = start;
-					this._undoType = -1;
-					if (deleting) {
-						this._undoText = this._undoText + this.model.getText(start, start + removedCharCount);
-					} else {
-						this._undoText = this.model.getText(start, start + removedCharCount) + this._undoText;
-					}
+			var length = this.stack.length;
+			var previousText = this.model.getText(start, end);
+			if (length > 0 && this.index === length) {
+				var change = this.stack[length - 1];
+				if (change.merge(start, text, previousText, type, end)) {
 					return;
 				}
 			}
-			this.add(new Change(start, newText, this.model.getText(start, start + removedCharCount)));
+			this.add(new Change(start, text, previousText, type));
 		}
 	};
 	

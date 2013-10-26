@@ -20,7 +20,7 @@ define(['orion/bootstrap', 'orion/status', 'orion/progress', 'orion/operationsCl
 		var commandRegistry = new mCommandRegistry.CommandRegistry({ });
 		// File operations
 		var fileClient = new mFileClient.FileClient(serviceRegistry);
-		new mContentTypes.ContentTypeService(serviceRegistry);
+		new mContentTypes.ContentTypeRegistry(serviceRegistry);
 		var searcher = new mSearchClient.Searcher({
 			serviceRegistry: serviceRegistry, commandService: commandRegistry, fileService: fileClient
 		});

@@ -10,11 +10,40 @@
  ******************************************************************************/
 /*global define*/
 define([], function() {
+	function mixin(target/*, source..*/) {
+		for (var j = 1; j < arguments.length; j++) {
+			var source = arguments[j];
+			for (var key in source) {
+				if (Object.prototype.hasOwnProperty.call(source, key)) {
+					target[key] = source[key];
+				}
+			}
+		}
+		return target;
+	}
+
 	/**
 	 * @name orion.objects
 	 * @class Object-oriented helpers.
 	 */
 	return {
+		/**
+		 * Creates a shallow clone of the given <code>object</code>.
+		 * @name orion.objects.clone
+		 * @function
+		 * @static
+		 * @param {Object|Array} object The object to clone. Must be a "normal" Object or Array. Other built-ins,
+		 * host objects, primitives, etc, will not work.
+		 * @returns {Object|Array} A clone of <code>object</code>.
+		 */
+		clone: function(object) {
+			if (Array.isArray(object)) {
+				return Array.prototype.slice.call(object);
+			}
+			var clone = Object.create(Object.getPrototypeOf(object));
+			mixin(clone, object);
+			return clone;
+		},
 		/**
 		 * Mixes all <code>source</code>'s own enumerable properties into <code>target</code>. Multiple source objects
 		 * can be passed as varags.
@@ -24,14 +53,18 @@ define([], function() {
 		 * @param {Object} target
 		 * @param {Object} source
 		 */
-		mixin: function(target/**, source..*/) {
-			Array.prototype.slice.call(arguments, 1).forEach(function(source) {
-				var keys = Object.keys(source);
-				for (var i=0; i < keys.length; i++) {
-					var key = keys[i];
-					target[key] = source[key];
-				}
-			});
+		mixin: mixin,
+		/**
+		 * Wraps an object into an Array if necessary.
+		 * @name orion.objects.toArray
+		 * @function
+		 * @static
+		 * @param {Object} obj An object.
+		 * @returns {Array} Returns <code>obj</code> unchanged, if <code>obj</code> is an Array. Otherwise returns a 1-element Array
+		 * whose sole element is <code>obj</code>.
+		 */
+		toArray: function(o) {
+			return Array.isArray(o) ? o : [o];
 		}
 	};
 });

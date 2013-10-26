@@ -527,6 +527,11 @@ exports.ExplorerRenderer = (function() {
 		},
 		
 		_restoreSelections: function(prefPath) {
+			var navDict = this.explorer.getNavDict();
+			var navHandler = this.explorer.getNavHandler();
+			if (!navHandler || !navDict || navHandler.getSelectionPolicy() === "cursorOnly") { //$NON-NLS-0$
+				return;
+			}
 			var selections = window.sessionStorage[prefPath+"selection"]; //$NON-NLS-0$
 			if (typeof selections === "string") { //$NON-NLS-0$
 				if (selections.length > 0) {
@@ -536,10 +541,10 @@ exports.ExplorerRenderer = (function() {
 				}
 			}
 			var i;
-			if (selections && this.explorer.getNavDict()) {
+			if (selections) {
 				var selectedItems = [];
 				for (i=0; i<selections.length; i++) {
-					var wrapper = this.explorer.getNavDict().getValue(selections[i]);
+					var wrapper = navDict.getValue(selections[i]);
 					if(wrapper && wrapper.rowDomNode && wrapper.model){
 						selectedItems.push(wrapper.model);
 						if(this._highlightSelection){

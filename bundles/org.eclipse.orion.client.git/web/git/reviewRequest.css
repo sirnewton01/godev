@@ -10,14 +10,6 @@
 
 @import "../css/theme.css";
 
-.lightTreeTableRow {
-	border-bottom: 1px solid #e6e6e6;
-}
-
-.darkTreeTableRow {
-	border-bottom: 1px solid #e6e6e6;
-}
-
 .lightTreeTableRow{
 	overflow: hidden;
 }

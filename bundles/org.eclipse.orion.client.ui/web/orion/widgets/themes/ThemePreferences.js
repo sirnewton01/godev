@@ -30,14 +30,14 @@ define([], function() {
 				styles = themeData.getStyles();
 				prefs.put(themeInfo.styleset, JSON.stringify(styles)); 
 			}
-			var selected = prefs.get('selected');
+			var selected = prefs.get('selected'); //$NON-NLS-0$
 			if (selected) {
 				selected = JSON.parse(selected);
 			}
 			if (!selected || selected[themeInfo.selectedKey] === undefined) {
 				selected = selected || {}; 
 				selected[themeInfo.selectedKey] = themeInfo.defaultTheme;
-				prefs.put('selected', JSON.stringify(selected));
+				prefs.put('selected', JSON.stringify(selected)); //$NON-NLS-0$
 			}
 		},
 		apply: function() {
@@ -48,7 +48,7 @@ define([], function() {
 			var themeInfo = themeData.getThemeStorageInfo();
 			this._preferences.getPreferences(themeInfo.storage, 2).then(function(prefs) {
 				this._initialize(themeInfo, themeData, prefs);
-				var selected = JSON.parse(prefs.get('selected'));
+				var selected = JSON.parse(prefs.get('selected')); //$NON-NLS-0$
 				var styles = JSON.parse(prefs.get(themeInfo.styleset)), style;
 				if (styles) {	
 					for (var i = 0; i < styles.length; i++ ){
@@ -69,12 +69,12 @@ define([], function() {
 			var themeInfo = themeData.getThemeStorageInfo();
 			this._preferences.getPreferences(themeInfo.storage, 2).then(function(prefs) {
 				this._initialize(themeInfo, themeData, prefs);
-				var selected = JSON.parse(prefs.get('selected'));
+				var selected = JSON.parse(prefs.get('selected')); //$NON-NLS-0$
 				if (!name) {
 					name = selected[themeInfo.selectedKey];
 				}
 				selected[themeInfo.selectedKey] = name;
-				prefs.put('selected', JSON.stringify(selected));
+				prefs.put('selected', JSON.stringify(selected)); //$NON-NLS-0$
 				if (styles) {
 					prefs.put(themeInfo.styleset, JSON.stringify(styles)); 
 				} else {
@@ -93,7 +93,7 @@ define([], function() {
 			var themeInfo = themeData.getThemeStorageInfo();
 			this._preferences.getPreferences(themeInfo.storage, 2).then(function(prefs) {
 				this._initialize(themeInfo, themeData, prefs);
-				var selected = JSON.parse(prefs.get('selected'));
+				var selected = JSON.parse(prefs.get('selected')); //$NON-NLS-0$
 				var styles = JSON.parse(prefs.get(themeInfo.styleset)), style;
 				if (styles) {	
 					for( var s = 0; s < styles.length; s++ ){

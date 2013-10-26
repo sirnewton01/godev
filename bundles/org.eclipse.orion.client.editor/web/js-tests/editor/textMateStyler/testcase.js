@@ -130,7 +130,7 @@ define(["orion/assert", "../mockTextView.js", "orion/editor/textMateStyler", "te
 //	/**
 //	 * Fails if the {@link orion.editor.StyleRange[]} ranges returned by running the styler on the line number
 //	 * <tt>lineIndex</tt> do not exactly match the expected result given in <tt>scopeRegions</tt>.
-//	 * @see #assertDisplayedLineScope
+//	 * @see assertDisplayedLineScope
 //	 */
 //	function assertLineScopeByOnLineStyle(view, styler, lineIndex, scopeRegions) {
 //		var lineText = view.getModel().getLine(lineIndex);

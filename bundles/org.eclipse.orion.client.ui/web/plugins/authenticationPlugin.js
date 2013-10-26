@@ -41,6 +41,9 @@ define(["orion/xhr", "orion/plugin", "domReady!"], function(xhr, PluginProvider)
 				return loginData;
 			}, function(error) {
 				loginData = null;
+				if (error instanceof Error && error.name === "Cancel") {
+					return "_cancel";
+				} 
 				return error.response ? JSON.parse(error.response) : null;
 			});
 			return loginData;

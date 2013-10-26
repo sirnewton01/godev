@@ -257,10 +257,20 @@ orion.CompareCurveRuler =  (function() {
 			}
 			var currentDiff = this._diffNavigator.iterator.cursor();
 			if(currentDiff){
+				var shouldCopy;
+				if(currentDiff.type === "word") {  //$NON-NLS-0$}
+					shouldCopy = (!currentDiff.copied && !currentDiff.parent.copied);
+				} else {
+					shouldCopy = !currentDiff.copied;
+				}
+				if(!shouldCopy) {
+					return;
+				}
 				var textToCopy = left ? this._rightTextView.getText(currentDiff.oldA.start , currentDiff.oldA.end) : this._leftTextView.getText(currentDiff.newA.start , currentDiff.newA.end);
 				var rangeToPaste = left ? currentDiff.newA :  currentDiff.oldA;
 				var viewToPaste = left ? this._leftTextView : this._rightTextView;
 				viewToPaste.setText(textToCopy , rangeToPaste.start , rangeToPaste.end);
+				currentDiff.copied = true;
 			}
 		},
 	

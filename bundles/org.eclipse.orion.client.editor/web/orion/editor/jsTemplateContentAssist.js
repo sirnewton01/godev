@@ -156,6 +156,11 @@ define("orion/editor/jsTemplateContentAssist", [ //$NON-NLS-0$
 			template: "function ${name} (${parameter}) {\n\t${cursor}\n}" //$NON-NLS-0$
 		},
 		{
+			prefix: "nls", //$NON-NLS-0$
+			description: "string - non NLS",
+			template: "${cursor} //$NON-NLS-${0}$" //$NON-NLS-0$
+		},
+		{
 			prefix: "log", //$NON-NLS-0$
 			description: "log - console log",
 			template: "console.log(${object});" //$NON-NLS-0$
@@ -181,7 +186,7 @@ define("orion/editor/jsTemplateContentAssist", [ //$NON-NLS-0$
 	 */
 	JSTemplateContentAssistProvider.prototype.isValid = function(prefix, buffer, offset, context) {
 		var previousChar = findPreviousChar(buffer, offset-prefix.length-1);
-		return uninterestingChars.indexOf(previousChar) === -1;
+		return !previousChar || uninterestingChars.indexOf(previousChar) === -1;
 	};
 
 	return {

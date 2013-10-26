@@ -176,7 +176,7 @@ define(['i18n!orion/content/nls/messages', 'require', 'orion/webui/littlelib', '
 							saveFileContents(fileClient, fileMetadata, {sourceLocation: data.sourceLocation}, function() {
 								if (window.confirm(messages["Content has been saved.  Click OK to go to the navigator, Cancel to keep editing."])) {
 									// go to the navigator
-									window.location.href = orionHome + "/navigate/table.html#" + fileMetadata.Parents[0].ChildrenLocation; //$NON-NLS-0$
+									window.location.href = orionHome + "/edit/edit.html#" + fileMetadata.Parents[0].ChildrenLocation; //$NON-NLS-0$
 								} else {
 									loadContent();
 								}

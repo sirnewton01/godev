@@ -22,7 +22,7 @@ define(['i18n!git/nls/gitmessages', 'orion/compare/compareCommands', 'orion/comp
 	var conflictPatterns = [["Both", "Modified", "Added", "Changed", "Missing"], ["RemoteDelete", "Untracked", "Removed"], ["LocalDelete", "Modified", "Added", "Missing"]]; //$NON-NLS-11$ //$NON-NLS-10$ //$NON-NLS-9$ //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 	var conflictType = "Conflicting"; //$NON-NLS-0$
 	
-	var statusUILocation = "git/git-status2.html"; //$NON-NLS-0$
+	var statusUILocation = "git/git-status.html"; //$NON-NLS-0$
 	
 	function isStaged(change) {
 		for (var i = 0; i < interestedStagedGroup.length; i++) {

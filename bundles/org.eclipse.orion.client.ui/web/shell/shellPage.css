@@ -18,8 +18,8 @@ html,body {
   font-size: 10pt;
 }
 
-.gcli-row-out > p, .gcli-row-out > div > span {
-	white-space: pre;
+.gcli-row-out > p, .gcli-row-out > div > span, .string-result-output {
+	white-space: pre-wrap;
 }
 
 .modelDecorationSprite { 

@@ -39,7 +39,8 @@
 /*jslint bitwise:true plusplus:true */
 /*global esprima:true, exports:true,
 throwError: true, createLiteral: true, generateStatement: true,
-parseAssignmentExpression: true, parseBlock: true, parseExpression: true,
+parseAssignmentExpression: true, parseBlock: true, 
+expectCloseBracketWrapThrow: true, parseExpression: true,
 parseFunctionDeclaration: true, parseFunctionExpression: true,
 parseFunctionSourceElements: true, parseVariableIdentifier: true,
 parseLeftHandSideExpression: true,
@@ -1600,6 +1601,20 @@ parseStatement: true, parseSourceElement: true */
         return throwUnexpected(lex());
     }
 
+    /**
+     * add the error if not already reported.
+     */
+    function pushError(error) {
+        var len = extra.errors.length;
+        for (var e=0; e < len; e++) {
+            var existingError = extra.errors[e];
+            if (existingError.index === error.index && existingError.message === error.message) {
+                return; // do not add duplicate
+            }
+        }
+        extra.errors.push(error);
+    }
+
     // 11.2 Left-Hand-Side Expressions
 
     function parseArguments() {
@@ -1613,11 +1628,30 @@ parseStatement: true, parseSourceElement: true */
                 if (match(')')) {
                     break;
                 }
-                expect(',');
+                try {
+                    expect(',');
+                } catch (e) {
+                    if (extra.errors) {
+                        // pretend the argument list is done
+                        pushError(e);
+                        break;
+                    } else {
+                        throw e;
+                    }
+                }
             }
         }
 
-        expect(')');
+		try {
+            expect(')');
+        } catch (e) {
+            if (extra.errors) {   
+                // soldier on...
+                pushError(e);
+            } else {
+                throw e;
+            }
+        }
 
         return args;
     }
@@ -2165,7 +2199,8 @@ parseStatement: true, parseSourceElement: true */
 
         block = parseStatementList();
 
-        expect('}');
+        //expect('}');
+        expectCloseBracketWrapThrow();
 
         return {
             type: Syntax.BlockStatement,
@@ -2285,31 +2320,13 @@ parseStatement: true, parseSourceElement: true */
         };
     }
     
-    /**
-     * add the error if not already reported.
-     */
-    function pushError(error) {
-        var len = extra.errors.length;
-        for (var e=0; e < len; e++) {
-            var existingError = extra.errors[e];
-            if (existingError.index === error.index && existingError.message === error.message) {
-                return; // do not add duplicate
-            }
-        }
-        extra.errors.push(error);
-    }
-
-    // 12.5 If statement
-
-    function parseIfStatement() {
-        var test, consequent, alternate;
-
-        expectKeyword('if');
-
-        expect('(');
-
-        test = parseExpression();
-
+	/**
+	 * for statements like if, while, for, etc.
+	 * Check for the ')' on the condition.  If
+	 * it is not present, catch the error, and backtrack
+	 * if we see a '{' instead (to continue parsing the block)
+	 */
+	function expectConditionCloseParenWrapThrow() {
         // needs generalizing to a 'expect A but don't consume if you hit B or C'
         try {
             expect(')');
@@ -2321,8 +2338,8 @@ parseStatement: true, parseSourceElement: true */
 	            if (source[e.index] === '{') {
 	              index=e.index;
 	              buffer=null;
-	            // activating this block will mean the following statement is parsed as a consequent.
-	            // without it the statement is considered not at all part of the if at all
+	            // activating this block will mean the following statement is parsed as a consequent / body.
+	            // without it the statement is considered not at all part of the enclosing statement at all
 	//            } else {
 	//              rewind();
 	            }
@@ -2331,6 +2348,20 @@ parseStatement: true, parseSourceElement: true */
             }
         }
 
+	}
+    // 12.5 If statement
+
+    function parseIfStatement() {
+        var test, consequent, alternate;
+
+        expectKeyword('if');
+
+        expect('(');
+
+		test = parseExpression();
+
+		expectConditionCloseParenWrapThrow();
+		
         consequent = parseStatement();
         // required because of the check in wrapTracking that returns nothing if node is undefined
         if (!consequent) {
@@ -2394,8 +2425,8 @@ parseStatement: true, parseSourceElement: true */
 
         test = parseExpression();
 
-        expect(')');
-
+		expectConditionCloseParenWrapThrow();
+		
         oldInIteration = state.inIteration;
         state.inIteration = true;
 
@@ -2477,8 +2508,9 @@ parseStatement: true, parseSourceElement: true */
             }
         }
 
-        expect(')');
-
+//        expect(')');
+		expectConditionCloseParenWrapThrow();
+		
         oldInIteration = state.inIteration;
         state.inIteration = true;
 
@@ -2936,6 +2968,21 @@ parseStatement: true, parseSourceElement: true */
     }
 
     // 13 Function Definition
+	function expectCloseBracketWrapThrow() {
+		if (extra.errors) {
+			// continue parsing even with missing close
+			// brace.  This gives a better AST for the
+			// block, as information about
+			// the parsed statements remain
+			try {
+				expect('}');
+			} catch (e) {
+				pushError(e);
+	        }
+		} else {
+			expect('}');
+		}
+	}
 
     function parseFunctionSourceElements() {
         var sourceElement, sourceElements = [], token, directive, firstRestricted,
@@ -2989,7 +3036,7 @@ parseStatement: true, parseSourceElement: true */
             sourceElements.push(sourceElement);
         }
 
-        expect('}');
+		expectCloseBracketWrapThrow();
 
         state.labelSet = oldLabelSet;
         state.inIteration = oldInIteration;

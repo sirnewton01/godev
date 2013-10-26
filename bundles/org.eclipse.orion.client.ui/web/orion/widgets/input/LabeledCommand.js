@@ -19,10 +19,8 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 	}
 	objects.mixin(LabeledCommand.prototype, {
 		templateString: '' +  //$NON-NLS-0$
-			'<label>' + //$NON-NLS-0$
-				'<span class="setting-repository-label"></span>' + //$NON-NLS-0$
-				'<span class="setting-command"></span>' + //$NON-NLS-0$
-			'</label>', //$NON-NLS-0$
+			'<span class="setting-repository-label"></span>' + //$NON-NLS-0$
+			'<span class="setting-command"></span>', //$NON-NLS-0$
 
 		show: function() {
 			this.node.innerHTML = this.templateString;

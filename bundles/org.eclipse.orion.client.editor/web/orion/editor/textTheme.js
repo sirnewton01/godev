@@ -55,7 +55,7 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 		/**
 		 * Returns the theme className.
 		 *
-		 * @see #setThemeClass
+		 * @see orion.editor.TextTheme#setThemeClass
 		 */
 		getThemeClass: function() {
 			return this._themeClass;
@@ -87,8 +87,8 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 		 * @param {String} className the new theme className.
 		 * @param {String|orion.editor.ThemeStyleSheet} styleSheet the CSS stylesheet for the new theme className.
 		 *
-		 * @see #getThemeClass
-		 * @see #onThemeChanged
+		 * @see orion.editor.TextTheme#getThemeClass
+		 * @see orion.editor.TextTheme#onThemeChanged
 		 */
 		 setThemeClass: function(className, styleSheet) {
 			var self = this;

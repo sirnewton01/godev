@@ -4,18 +4,14 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<title>Orion NPM plugin</title>
 
-	<script type="text/javascript" src="../orion/plugin.js"></script>
 	<script src="../requirejs/require.js"></script>
 	<script type="text/javascript">
 	/*global require*/
 		require({
-		  baseUrl: '..',
-		  packages: [],
-		  paths: {
-			i18n: 'requirejs/i18n',
-			domReady: 'requirejs/domReady'
-		  }
+			baseUrl: '..',
+			packages: []
 		});
+
 		require(['npmPlugin.js']);
 	</script>
 </head>

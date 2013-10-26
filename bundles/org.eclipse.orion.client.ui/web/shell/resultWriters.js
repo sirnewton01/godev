@@ -13,7 +13,7 @@
 /*global define*/
 /*jslint browser:true*/
 
-define(['orion/Deferred', 'orion/urlUtils'], function(Deferred, mUrlUtils) {
+define(["orion/Deferred", "orion/urlUtils", "marked/marked"], function(Deferred, mUrlUtils, marked) {
 
 	var orion = {};
 	orion.shellPage = {};
@@ -56,20 +56,13 @@ define(['orion/Deferred', 'orion/urlUtils'], function(Deferred, mUrlUtils) {
 		function FileStringWriter(destination, shellPageFileService) {
 			this.destination = destination;
 			this.shellPageFileService = shellPageFileService;
-			this.value = "";
 		}
 		FileStringWriter.prototype = {
-			appendNewline: function() {
-				this.value += "\n"; //$NON-NLS-0$
-			},
-			appendText: function(text) {
-				this.value += text;
-			},
-			write: function() {
+			write: function(string) {
 				var promise = new Deferred();
 				this.shellPageFileService.ensureFile(null, this.destination).then(
 					function(file) {
-						this.shellPageFileService.write(file, this.value).then(
+						this.shellPageFileService.write(file, string).then(
 							function() {
 								promise.resolve();
 							},
@@ -111,31 +104,34 @@ define(['orion/Deferred', 'orion/urlUtils'], function(Deferred, mUrlUtils) {
 	}());
 
 	orion.shellPage.ShellStringWriter = (function() {
-		function ShellStringWriter(rootElement) {
+		function ShellStringWriter(rootElement, processMarkdown) {
 			this.rootElement = rootElement;
-			this.tempRoot = document.createElement("div"); //$NON-NLS-0$
+			this.processMarkdown = processMarkdown;
 		}
 		ShellStringWriter.prototype = {
-			appendNewline: function() {
-				var node = document.createElement("br"); //$NON-NLS-0$
-				this.tempRoot.appendChild(node);
-			},
-			appendText: function(text) {
-				var node = document.createElement("span"); //$NON-NLS-0$
-				var segments = mUrlUtils.detectValidURL(text);
-				if (segments) {
-					mUrlUtils.processURLSegments(node, segments);				
+			write: function(string) {
+				var element = document.createElement("div"); //$NON-NLS-0$
+				if (this.processMarkdown) {
+					element.innerHTML = marked(string, {sanitize: true, breaks: true});
 				} else {
-					node.textContent = text;
+					/*
+					 * TODO: Currently detecting URLs in non-markdown strings in order to preserve
+					 * previous behavior.  Should stop doing this and prescribe using markdown strings
+					 * instead?
+					 */
+					this.rootElement.className += " string-result-output"; //$NON-NLS-0$
+					var segments = mUrlUtils.detectValidURL(string);
+					if (segments) {
+						mUrlUtils.processURLSegments(element, segments);				
+					} else {
+						element.textContent = string;
+					}
 				}
-				this.tempRoot.appendChild(node);
-			},
-			write: function() {
-				var promise = new Deferred();
-				var children = this.tempRoot.childNodes;
+				var children = element.childNodes;
 				while (children.length > 0) {
 					this.rootElement.appendChild(children[0]);
 				}
+				var promise = new Deferred();
 				promise.resolve();
 				return promise;
 			}

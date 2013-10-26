@@ -38,11 +38,15 @@ function(mSetup, mTestPerformance, util) {
 	var bReadOnly = document.getElementById('readOnly'); //$NON-NLS-0$
 	var bFullSel = document.getElementById('fullSelection'); //$NON-NLS-0$
 	var bWrap = document.getElementById('wrap'); //$NON-NLS-0$
+	var bMarginRuler = document.getElementById('marginRuler'); //$NON-NLS-0$
+	var sMarginOffset = document.getElementById('marginOffset'); //$NON-NLS-0$
+	var sWrapOffset = document.getElementById('wrapOffset'); //$NON-NLS-0$
 	var bExpandTab = document.getElementById('expandTab'); //$NON-NLS-0$
 	var bAutoSet = document.getElementById('autoSetOptions'); //$NON-NLS-0$
 	var table = document.getElementById('table'); //$NON-NLS-0$
 	
 	var keyBindings = "";
+	var showMarginRuler = false;
 
 	function resize() {
 		var height = document.documentElement.clientHeight;
@@ -91,6 +95,9 @@ function(mSetup, mTestPerformance, util) {
 			scrollAnimation: parseInt(sScrollAnimation.value, 10),
 			wrapMode: bWrap.checked,
 			keyBindings: (keyBindings = sBindings.value),
+			showMarginRuler: (showMarginRuler = bMarginRuler.checked),
+			marginOffset: parseInt(sMarginOffset.value, 10),
+			wrapOffset: parseInt(sWrapOffset.value, 10),
 			themeClass: sTheme.value
 		};
 	}
@@ -101,6 +108,9 @@ function(mSetup, mTestPerformance, util) {
 		bReadOnly.checked = options.readonly;
 		bFullSel.checked = options.fullSelection;
 		bWrap.checked = options.wrapMode;
+		bMarginRuler.checked = showMarginRuler;
+		sWrapOffset.value = options.wrapOffset;
+		sMarginOffset.value = options.marginOffset;
 		bExpandTab.checked = options.expandTab;
 		sTabSize.value = options.tabSize;
 		sScrollAnimation.value = options.scrollAnimation;
@@ -187,6 +197,9 @@ function(mSetup, mTestPerformance, util) {
 	sScrollAnimation.onchange = checkSetOptions;
 	bFullSel.onchange = checkSetOptions;
 	bWrap.onchange = checkSetOptions;
+	bMarginRuler.onchange = checkSetOptions;
+	sMarginOffset.onchange = checkSetOptions;
+	sWrapOffset.onchange = checkSetOptions;
 	bExpandTab.onchange = checkSetOptions;
 	bAutoSet.onchange = updateSetOptionsButton;
 	
@@ -196,27 +209,34 @@ function(mSetup, mTestPerformance, util) {
 
 	/* Adding testing actions */
 	var tests = {};
-	function test() {
-		log("test"); //$NON-NLS-0$
-	}
-	tests.test = test;
-	
 	function runTest() {
 		tests[sTest.value]();
 	}
 	bTest.onclick = runTest;
-	var option = util.createElement(document, "option"); //$NON-NLS-0$
-	option.setAttribute("value", "test"); //$NON-NLS-1$ //$NON-NLS-0$
-	option.appendChild(document.createTextNode("Test")); //$NON-NLS-0$
-	sTest.appendChild(option);
+	
+	function test() {
+		log("test"); //$NON-NLS-0$
+	}
+	tests.testTest = test;
+	function destroyTest() {
+		mSetup.destroyView();
+	}
+	tests.testDestroyTest = destroyTest;
+	
 	var prefix = "test"; //$NON-NLS-0$
-	for (var property in mTestPerformance) {
+	var property, option;
+	for (property in mTestPerformance) {
 		if (property.indexOf(prefix) === 0) {
+			tests[property] = mTestPerformance[property];
+		}
+	}
+	for (property in tests) {
+		if (tests.hasOwnProperty(property)) {
 			option = util.createElement(document, "option"); //$NON-NLS-0$
 			option.setAttribute("value", property); //$NON-NLS-0$
-			option.appendChild(document.createTextNode(property.substring(prefix.length	)));
+			option.appendChild(document.createTextNode(property.substring(prefix.length)));
 			sTest.appendChild(option);
-			tests[property] = mTestPerformance[property];
+			tests[property] = tests[property];
 		}
 	}
 	

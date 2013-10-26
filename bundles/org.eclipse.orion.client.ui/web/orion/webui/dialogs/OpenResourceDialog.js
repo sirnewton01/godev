@@ -36,7 +36,6 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 			'<div><label id="fileNameMessage" for="fileName">${Type the name of a file to open (? = any character, * = any string):}</label></div>' + //$NON-NLS-0$
 			'<div><input id="fileName" type="text" class="setting-control" style="width:90%;"/></div>' + //$NON-NLS-0$
 			'<div id="progress" style="padding: 2px 0 0; width: 100%;"><img src="'+ require.toUrl("../../../images/progress_running.gif") + '" class="progressPane_running_dialog" id="crawlingProgress"></img></div>' +  //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-			'<div id="favresults" style="max-height:400px; height:auto; overflow-y:auto;"></div>' + //$NON-NLS-0$
 			'<div id="results" style="max-height:400px; height:auto; overflow-y:auto;" aria-live="off"></div>' + //$NON-NLS-0$
 			'<div id="statusbar"></div>' + //$NON-NLS-0$
 		'</div>'; //$NON-NLS-0$
@@ -48,7 +47,7 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 		this._searcher = options.searcher;
 		this._progress = options.progress;
 		this._onHide = options.onHide;
-		this._contentTypeService = new mContentTypes.ContentTypeService(this._searcher.registry);
+		this._contentTypeService = new mContentTypes.ContentTypeRegistry(this._searcher.registry);
 		if (!this._searcher) {
 			throw new Error("Missing required argument: searcher"); //$NON-NLS-0$
 		}	
@@ -70,10 +69,6 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 		this._searchRenderer = options.searchRenderer;
 		if (!this._searchRenderer || typeof(this._searchRenderer.makeRenderFunction) !== "function") { //$NON-NLS-0$
 			throw new Error(messages['Missing required argument: searchRenderer']);
-		}
-		this._favService = options.favoriteService;
-		if (!this._favService) {
-			throw new Error(messages['Missing required argument: favService']);
 		}
 		this._initialize();
 	};
@@ -100,7 +95,7 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 			}
 		}, false);
 		parent.addEventListener("keydown", function(evt) { //$NON-NLS-0$
-			var favlinks, links, searchFieldNode, currentFocus, favCurrentSelectionIndex, currentSelectionIndex;
+			var links, searchFieldNode, currentFocus, currentSelectionIndex, ele;
 			var incrementFocus = function(currList, index, nextEntry) {
 				if (index < currList.length - 1) {
 					return currList[index+1];
@@ -118,34 +113,34 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 			
 			if (evt.keyCode === lib.KEY.DOWN || evt.keyCode === lib.KEY.UP) {
 				links = lib.$$array("a", self.$results); //$NON-NLS-0$
-				favlinks = lib.$$array("a", self.$favresults); //$NON-NLS-0$
 				currentFocus = document.activeElement;
 				currentSelectionIndex = links.indexOf(currentFocus);
-				favCurrentSelectionIndex = favlinks.indexOf(currentFocus);
 				if (evt.keyCode === lib.KEY.DOWN) {
-					if (favCurrentSelectionIndex >= 0) {
-						incrementFocus(favlinks, favCurrentSelectionIndex, links.length > 0 ? links[0] : favlinks[0]).focus();
-					} else if (currentSelectionIndex >= 0) {
-						incrementFocus(links, currentSelectionIndex, favlinks.length > 0 ? favlinks[0] : links[0]).focus();
-					} else if (links.length > 0 || favlinks.length > 0) {
+					if (currentSelectionIndex >= 0) {
+						currentFocus.classList.remove("treeIterationCursor");
+						ele = incrementFocus(links, currentSelectionIndex, links[0]);
+						ele.focus();
+						ele.classList.add("treeIterationCursor");
+					} else if (links.length > 0) {
 						// coming from the searchFieldNode
-						incrementFocus(favlinks, -1, links[0]).focus();
+						ele = incrementFocus(links, -1, links[0]);
+						ele.focus();
+						ele.classList.add("treeIterationCursor");
 					}   
 				} else {
-					if (favCurrentSelectionIndex >= 0) {
+					if (currentSelectionIndex >= 0) {
 						// jump to searchFieldNode if index === 0
+						currentFocus.classList.remove("treeIterationCursor");
 						searchFieldNode = self.$fileName;
-						decrementFocus(favlinks, favCurrentSelectionIndex, searchFieldNode).focus();
-					} else if (currentSelectionIndex >= 0) {
-						// jump to searchFieldNode if index === 0 and favlinks is empty
-						searchFieldNode = self.$fileName;
-						decrementFocus(links, currentSelectionIndex, favlinks.length > 0 ? favlinks[favlinks.length-1] : searchFieldNode).focus();
+						ele = decrementFocus(links, currentSelectionIndex, searchFieldNode);
+						ele.focus();
+						if(currentSelectionIndex > 0) {
+							ele.classList.add("treeIterationCursor");
+						}
 					} else if (links.length > 0) {
 						// coming from the searchFieldNode go to end of list
 						links[links.length-1].focus();
-					} else if (favlinks.length > 0) {
-						// coming from the searchFieldNode go to end of list
-						favlinks[favlinks.length-1].focus();
+						links[links.length-1].classList.add("treeIterationCursor");
 					}
 				}
 				lib.stop(evt);
@@ -155,7 +150,6 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 			// WebKit focuses <body> after link is clicked; override that
 			e.target.focus();
 		}, false);
-		this.populateFavorites();
 		setTimeout(function() {
 			if(self._forceUseCrawler || !self._fileService.getService(self._searcher.getSearchLocation())["search"]){//$NON-NLS-0$
 				var searchLoc = self._searchOnRoot ? self._searcher.getSearchRootLocation() : self._searcher.getChildrenLocation();
@@ -178,62 +172,6 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 			this.$fileName.value = this._initialText;
 			this.doSearch();
 		}
-	};
-
-	/** @private kick off initial population of favorites */
-	OpenResourceDialog.prototype.populateFavorites = function() {
-		var div = document.createElement("div"); //$NON-NLS-0$
-		div.appendChild(document.createTextNode(messages['Populating favorites&#x2026;']));
-		lib.empty(this.$favresults);
-		this.$favresults.appendChild(div);
-		
-		// initially, show all favorites
-		var self = this;
-		if(this._progress){
-			this._progress.progress(this._favService.getFavorites(), "Getting favorites").then(self.showFavorites());
-		} else {
-			this._favService.getFavorites().then(self.showFavorites());
-		}
-		// need to add the listener since favorites may not 
-		// have been initialized after first getting the favorites
-		this._favService.addEventListener("favoritesChanged", self.showFavorites()); //$NON-NLS-0$
-	};
-
-	/** 
-	 * @private 
-	 * render the favorites that we have found, if any.
-	 * this function wraps another function that does the actual work
-	 * we need this so we can have access to the proper scope.
-	 */
-	OpenResourceDialog.prototype.showFavorites = function() {
-		var that = this;
-		return function(event) {
-			var favs = event;
-			if (favs.navigator) {
-				favs = favs.navigator;
-			}
-			var renderFunction = that._searchRenderer.makeRenderFunction(that._contentTypeService, that.$favresults, false, 
-					that.decorateResult.bind(that), that.showFavoritesImage);
-			renderFunction(favs);
-			if (favs && favs.length > 0) {
-				var linebreak = document.createElement( 'div' );
-				linebreak.style.borderBottom = '1px dashed #BBBBBB';
-				linebreak.style.padding = '5px';
-				that.$favresults.appendChild(linebreak); //$NON-NLS-0$
-			}
-		};
-	};
-
-	/** @private */
-	OpenResourceDialog.prototype.showFavoritesImage = function(col) {
-		var image = new Image();
-		image.classList.add("modelDecorationSprite"); //$NON-NLS-0$
-		image.classList.add("core-sprite-favorite"); //$NON-NLS-0$
-		// without an image, chrome will draw a border  (?)
-		image.src = require.toUrl("images/none.png"); //$NON-NLS-0$
-		image.title = messages['Favorite'];
-		col.appendChild(image);
-		image.style.verticalAlign = "middle"; //$NON-NLS-0$
 	};
 
 	/** @private */

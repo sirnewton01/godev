@@ -58,7 +58,7 @@ define(['require', 'orion/URITemplate', 'orion/URL-shim', 'orion/serviceTracker'
 						project: project,
 						OrionHome: OrionHome,
 						templates: {
-							navigate: (OrionHome + '/navigate/table.html#{Location}?depth=1'),
+							navigate: (OrionHome + '/edit/edit.html#{Location}?depth=1'),
 							edit: (OrionHome + '/edit/edit.html#{,Location,params*}'),
 							shell: (OrionHome + '/shell/shellPage.html#{Location}')
 						}
@@ -68,7 +68,7 @@ define(['require', 'orion/URITemplate', 'orion/URL-shim', 'orion/serviceTracker'
 					responseParam = {
 						type: 'failure', //$NON-NLS-0$
 						templates: {
-							navigate: (OrionHome + '/navigate/table.html')
+							navigate: (OrionHome + '/edit/edit.html')
 						}
 					};
 				}

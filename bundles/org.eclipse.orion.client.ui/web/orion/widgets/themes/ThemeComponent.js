@@ -51,7 +51,7 @@ define([],
 						this.context.beginPath();
 						this.context.font = this.font;
 					    this.context.fillStyle = this.fill;
-					    this.context.fillText(this.text, this.x, this.y );
+					    this.context.fillText(this.text, this.x + 0.5, this.y + 0.5 );
 					    this.context.closePath();
 						break;
 					
@@ -59,8 +59,8 @@ define([],
 			
 						this.context.beginPath();
 						this.context.strokeStyle = this.stroke;
-						this.context.moveTo( this.x, this.y );
-						this.context.lineTo( this.x2, this.y2 );
+						this.context.moveTo( this.x + 0.5, this.y + 0.5 );
+						this.context.lineTo( this.x2 + 0.5, this.y2 + 0.5 );
 						this.context.lineWidth = this.width;
 						this.context.stroke();
 						this.context.closePath();
@@ -70,7 +70,7 @@ define([],
 						this.context.beginPath();
 						this.context.strokeStyle = this.stroke;
 						if( this.fill ){ this.context.fillStyle = this.fill; }
-						this.context.rect( this.x, this.y, this.width, this.height );
+						this.context.rect( this.x + 0.5, this.y + 0.5, this.width, this.height );
 						if( this.fill ){ this.context.fill(); }  
 						if( this.stroke ){ this.context.stroke(); }
 						this.context.closePath();
@@ -98,10 +98,10 @@ define([],
 						
 					case 'TRIANGLE':
 						this.context.beginPath();
-						this.context.moveTo( this.x, this.y );
-						this.context.lineTo( this.x2, this.y2 );
-						this.context.lineTo( this.x3, this.y3 );
-						this.context.lineTo( this.x, this.y );
+						this.context.moveTo( this.x + 0.5, this.y + 0.5 );
+						this.context.lineTo( this.x2 + 0.5, this.y2 + 0.5 );
+						this.context.lineTo( this.x3 + 0.5, this.y3 + 0.5 );
+						this.context.lineTo( this.x + 0.5, this.y + 0.5 );
 						this.context.fillStyle = this.fill;
 						this.context.fill();
 						this.context.closePath();
@@ -110,7 +110,7 @@ define([],
 					case 'ELLIPSE':	
 					
 						this.context.beginPath();
-						this.context.arc( this.x, this.y, this.radius, this.startangle, this.endangle, this.direction );
+						this.context.arc( this.x + 0.5, this.y + 0.5, this.radius, this.startangle, this.endangle, this.direction );
 						this.context.fillStyle = this.fill;
 						this.context.fill();
 						this.context.closePath();
@@ -251,7 +251,7 @@ Component.prototype.render = render;
 
 			var padding = 6;
 			
-			var originy = ( this.y-padding + (this.height + (2*padding) )/2 );
+			var originy = Math.floor( this.y-padding + (this.height + (2*padding) )/2 );
 			
 			switch( this.type ){
 				case 'RECTANGLE':
@@ -267,10 +267,10 @@ Component.prototype.render = render;
 			var originx = this.x-padding + ( this.width + (2*padding) ) * 0.5;
 			
 			this.context.beginPath();
-			this.context.moveTo( originx, originy );
-			this.context.lineTo( width + 30, originy );
-			this.context.lineTo( width + 30, top + 7 );
-			this.context.lineTo( width + 45, top + 7 );
+			this.context.moveTo( originx + 0.5, originy + 0.5 );
+			this.context.lineTo( width + 30 + 0.5, originy + 0.5 );
+			this.context.lineTo( width + 30 + 0.5, top + 7 + 0.5 );
+			this.context.lineTo( width + 45 + 0.5, top + 7 + 0.5 );
 			this.context.strokeStyle = '#cc0000';
 			this.context.lineWidth = 1;
 			this.context.stroke();

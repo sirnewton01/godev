@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+ Sample that shows how to use the edit.js file to create an editor.  For a complete list
+ of editor configuration options, see orion.editor#edit.
+-->
+<html>
+<head>
+<title>Orion Editor Sample</title>
+<link rel="stylesheet" type="text/css" href="../../../orion/editor/themes/default.css"/>
+<style>
+#editor {
+	border: 1px solid teal;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 200px;
+	margin: 20px;
+}
+
+.textview {
+	min-height: 0;
+}
+
+pre {
+	margin: 0px;
+}
+</style>
+<!-- Note if running this standalone you will need to copy requirejs from bundles/org.eclipse.orion.client.core/web/ -->
+<script src="../../requirejs/require.js"></script>
+<script>
+	/*globals require*/
+	require({
+		baseUrl: '../..',
+		paths: {
+			i18n: 'requirejs/i18n'
+		}
+	});
+	require(["orion/editor/edit"], function(edit) {
+		edit({});
+	});
+</script>
+</head>
+<body spellcheck="false">
+<div
+	id="editor" classname="single"
+	data-editor-lang="js"
+	data-editor-single-mode="true"
+	data-editor-show-annotation-ruler="false"
+	data-editor-show-lines-ruler="false"
+	data-editor-show-folding-ruler="false"
+	data-editor-show-overview-ruler="false"
+>var a = 'hi there!'; window.console.log(a);</div>
+</body>
+</html>

@@ -5,7 +5,7 @@
  *          (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse
  *          Distribution License v1.0
  *          (http://www.eclipse.org/org/documents/edl-v10.html).
- * 
+ *
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 /*global define document window Image*/
@@ -14,7 +14,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 		'orion/webui/tooltip'],
 		function(require, messages, mExplorer, mSelection, mSection, PageUtil, lib, i18nUtil, mGlobalCommands, mGitUtil, mGitCommands,
 				Deferred, mCommitTooltip, Tooltip) {
-				
+
 	var exports = {};
 	var conflictTypeStr = "Conflicting"; //$NON-NLS-0$
 
@@ -42,8 +42,8 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 				"Conflicting" : { imageClass: "gitImageSprite git-sprite-conflict-file", tooltip: messages['Conflicting'] } //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			};
 		}
-		
-		GitStatusModel.prototype = { 
+
+		GitStatusModel.prototype = {
 			destroy: function() {},
 
 			interestedCategory: function() {},
@@ -121,19 +121,19 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 			getClass: function(type) {
 				return this.statusTypeMap[type].imageClass;
 			},
-			
+
 			getTooltip: function(type) {
 				return this.statusTypeMap[type].tooltip;
 			}
 		};
-		
+
 		return GitStatusModel;
 	}());
 
 	exports.GitStatusExplorer = (function() {
 		/**
 		 * Creates a new Git status explorer.
-		 * 
+		 *
 		 * @class Git status explorer
 		 * @name orion.git.GitStatusExplorer
 		 * @param registry
@@ -167,7 +167,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 				var resp = JSON.parse(error.responseText);
 				display.Message = resp.DetailedMessage ? resp.DetailedMessage : resp.Message;
 			} catch (Exception) {
-				display.Message = error.message;
+				display.Message = error.DetailedMessage || error.Message || error.message;
 			}
 			this.registry.getService("orion.page.message").setProgressResult(display); //$NON-NLS-0$
 
@@ -253,7 +253,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 			item.Parents[0].Location = repository.Location;
 			item.Parents[0].ChildrenLocation = repository.Location;
 			item.Parents[1] = {};
-			item.Parents[1].Name = "Repositories"; //$NON-NLS-0$
+			item.Parents[1].Name = messages.Repo;
 
 			mGlobalCommands.setPageTarget({
 				task : messages["Status"],
@@ -331,7 +331,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 
 			this.commandService.registerCommandContribution(unstagedSection.selectionNode.id, "eclipse.orion.git.showPatchCommand", 100); //$NON-NLS-0$
 			this.commandService.registerCommandContribution(unstagedSection.selectionNode.id, "eclipse.orion.git.stageCommand", 200); //$NON-NLS-0$
-			this.commandService.registerCommandContribution(unstagedSection.selectionNode.id, "eclipse.orion.git.checkoutCommand", 300); //$NON-NLS-0$	
+			this.commandService.registerCommandContribution(unstagedSection.selectionNode.id, "eclipse.orion.git.checkoutCommand", 300); //$NON-NLS-0$
 
 			if (!this.unstagedOnce) {
 				if (!this.unstagedSelection) {
@@ -351,17 +351,17 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 			}
 
 			this.commandService.registerCommandContribution("DefaultActionWrapper", "eclipse.orion.git.stageCommand", 100); //$NON-NLS-1$ //$NON-NLS-0$
-			
+
 			var UnstagedModel = (function() {
 				function UnstagedModel() {}
 
 				UnstagedModel.prototype = {
 					destroy : function() {},
-					
+
 					getRoot : function(onItem) {
 						onItem(unstagedSortedChanges);
 					},
-					
+
 					getChildren : function(parentItem, onComplete) {
 						if (parentItem instanceof Array && parentItem.length > 0) {
 							onComplete(parentItem);
@@ -380,7 +380,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 							onComplete([]);
 						}
 					},
-					
+
 					getId : function(/* item */item) {
 						if (item instanceof Array && item.length > 0) {
 							return "unstagedRoot"; //$NON-NLS-0$
@@ -413,20 +413,20 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 								var div = document.createElement("div"); //$NON-NLS-0$
 								div.className = "sectionTableItem"; //$NON-NLS-0$
 								td.appendChild(div);
-	
+
 								this.getExpandImage(tableRow, div);
-	
+
 								var navGridHolder = this.explorer.getNavDict() ? this.explorer.getNavDict().getGridNavHolder(item, true) : null;
-	
+
 								var diffActionWrapper = document.createElement("span"); //$NON-NLS-0$
 								diffActionWrapper.id = "unstaged" + item.name + "DiffActionWrapper"; //$NON-NLS-0$
 								diffActionWrapper.className = "sectionExplorerActions"; //$NON-NLS-0$
 								div.appendChild(diffActionWrapper);
-	
+
 								that.commandService.destroy(diffActionWrapper);
 								that.commandService.renderCommands(
 											"DefaultActionWrapper", diffActionWrapper, item, that, "tool", null, navGridHolder); //$NON-NLS-1$ //$NON-NLS-0$
-	
+
 								var icon = document.createElement("span"); //$NON-NLS-0$
 								icon.className = that._model.getClass(item.type);
 								icon.commandTooltip = new Tooltip.Tooltip({
@@ -435,48 +435,48 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 									position: ["above", "below", "right", "left"] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 								});
 								div.appendChild(icon);
-								
+
 								var itemLabel = document.createElement("span"); //$NON-NLS-0$
 								itemLabel.textContent = item.name;
 								div.appendChild(itemLabel);
-	
+
 								return td;
 							} else {
 								// render the compare widget
 								var td = document.createElement("td"); //$NON-NLS-0$
 								td.colSpan = 2;
-	
+
 								var div = document.createElement("div"); //$NON-NLS-0$
 								div.className = "sectionTableItem"; //$NON-NLS-0$
 								td.appendChild(div);
-	
+
 								var compareWidgetActionWrapper = document.createElement("div"); //$NON-NLS-0$
 								compareWidgetActionWrapper.className = "sectionExplorerActions"; //$NON-NLS-0$
 								compareWidgetActionWrapper.id = "unstaged" + item.parent.name + "CompareWidgetActionWrapper"; //$NON-NLS-1$ //$NON-NLS-0$
 								div.appendChild(compareWidgetActionWrapper);
-	
+
 								var diffContainer = document.createElement("div"); //$NON-NLS-0$
 								diffContainer.id = "diffArea_" + item.diffUri; //$NON-NLS-0$
 								diffContainer.style.height = "420px"; //$NON-NLS-0$
 								diffContainer.style.border = "1px solid lightgray"; //$NON-NLS-0$
 								diffContainer.style.overflow = "hidden"; //$NON-NLS-0$
 								div.appendChild(diffContainer);
-	
+
 								var navGridHolder = this.explorer.getNavDict() ? this.explorer.getNavDict().getGridNavHolder(item, true) : null;
 								mGitUtil.createCompareWidget(
 									that.registry,
-									that.commandService, 
-									item.diffUri, 
-									isConflict(item.parent.type), 
+									that.commandService,
+									item.diffUri,
+									isConflict(item.parent.type),
 									diffContainer,
-									compareWidgetActionWrapper.id, 
+									compareWidgetActionWrapper.id,
 									true, //editableInComparePage
 									{navGridHolder: navGridHolder} //gridRenderer
 								);
-	
+
 								return td;
 							}
-	
+
 							break;
 					}
 				};
@@ -528,7 +528,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 			var that = this;
 			var stagedSortedChanges = this._sortBlock(this._model.interestedStagedGroup);
 			var tableNode = lib.node('table'); //$NON-NLS-0$
-			var stagedSection = new mSection.Section(tableNode, { 
+			var stagedSection = new mSection.Section(tableNode, {
 				id : "stagedSection", //$NON-NLS-0$
 				title : stagedSortedChanges.length > 0 ? messages['Staged'] : messages["No Staged Changes"],
 				content : '<div id="stagedNode"></div>', //$NON-NLS-0$
@@ -569,13 +569,13 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 			var StagedModel = (function() {
 				function StagedModel() {}
 
-				StagedModel.prototype = { 
+				StagedModel.prototype = {
 					destroy : function() {},
-					
+
 					getRoot : function(onItem) {
 						onItem(stagedSortedChanges);
 					},
-					
+
 					getChildren : function(parentItem, onComplete) {
 						if (parentItem instanceof Array && parentItem.length > 0) {
 							onComplete(parentItem);
@@ -594,7 +594,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 							onComplete([]);
 						}
 					},
-					
+
 					getId : function(/* item */item) {
 						if (item instanceof Array && item.length > 0) {
 							return "stagedRoot"; //$NON-NLS-0$
@@ -649,7 +649,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 									position: ["above", "below", "right", "left"] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 								});
 								div.appendChild(icon);
-								
+
 								var itemLabel = document.createElement("span"); //$NON-NLS-0$
 								itemLabel.textContent = item.name;
 								div.appendChild(itemLabel);
@@ -680,11 +680,11 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 								var hasConflict = isConflict(item.parent.type);
 								mGitUtil.createCompareWidget(
 									that.registry,
-									that.commandService, 
-									item.diffUri, 
-									isConflict(item.parent.type), 
+									that.commandService,
+									item.diffUri,
+									isConflict(item.parent.type),
 									diffContainer,
-									compareWidgetActionWrapper.id, 
+									compareWidgetActionWrapper.id,
 									false, //editableInComparePage
 									{navGridHolder: navGridHolder} //gridRenderer
 								);
@@ -695,7 +695,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 							break;
 					}
 				};
-				
+
 				return StagedRenderer;
 			}());
 
@@ -741,7 +741,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 		GitStatusExplorer.prototype.displayCommits = function(repository) {
 			var that = this;
 			var tableNode = lib.node('table'); //$NON-NLS-0$
-			var titleWrapper = new mSection.Section(tableNode, { 
+			var titleWrapper = new mSection.Section(tableNode, {
 				id : "commitSection", //$NON-NLS-0$
 				title : messages['Commits'],
 				content : '<div id="commitNode" class="mainPadding"></div>', //$NON-NLS-0$
@@ -764,7 +764,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 								break;
 							}
 						}
-						
+
 						if (!currentBranch){
 							progress.done();
 							return;
@@ -783,7 +783,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 								"ViewAllLabel" : messages['See Full Log'],
 								"ViewAllTooltip" : messages["See the full log"]
 							}, that, "button"); //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-						
+
 						if (tracksRemoteBranch) {
 							that.commandService.registerCommandContribution(titleWrapper.actionsNode.id, "eclipse.orion.git.fetch", 100); //$NON-NLS-0$
 							that.commandService.registerCommandContribution(titleWrapper.actionsNode.id, "eclipse.orion.git.merge", 100); //$NON-NLS-0$
@@ -852,18 +852,19 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 									for (var i = 0; i < resp.Children.length; i++) {
 										that.renderCommit(resp.Children[i], true, i);
 									}
-		
+
 									if (resp.Children.length === 0) {
 										that.renderNoCommit();
 									}
-		
+
 									progress.done();
 								}, function(error) {
 									progress.done(error);
 								}
 							);
 						}
-					});
+					},
+					that.handleError.bind(that));
 		};
 
 		GitStatusExplorer.prototype.renderNoCommit = function() {
@@ -874,7 +875,6 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 			commitNode.appendChild(sectionItem);
 
 			var detailsView = document.createElement("div"); //$NON-NLS-0$
-			detailsView.className = "stretch"; //$NON-NLS-0$
 			sectionItem.appendChild(detailsView);
 
 			var title = document.createElement("div"); //$NON-NLS-0$

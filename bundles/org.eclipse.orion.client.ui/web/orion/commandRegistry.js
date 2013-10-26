@@ -11,9 +11,19 @@
 /*jslint sub:true*/
  /*global define document window Image */
  
-define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/webui/littlelib', 'orion/webui/dropdown', 
-	'text!orion/webui/dropdowntriggerbutton.html', 'text!orion/webui/submenutriggerbutton.html', 'text!orion/webui/checkedmenuitem.html', 'orion/webui/tooltip', 'orion/explorers/navigationUtils'], 
-	function(require, Commands, UIUtil, PageUtil, lib, mDropdown, DropdownButtonFragment, SubMenuButtonFragment, CheckedMenuItemFragment, mTooltip, mNavUtils) {
+define([
+	'require',
+	'orion/commands',
+	'orion/explorers/navigationUtils',
+	'orion/PageUtil',
+	'orion/uiUtils',
+	'orion/webui/littlelib',
+	'orion/webui/dropdown',
+	'orion/webui/tooltip',
+	'text!orion/webui/checkedmenuitem.html',
+	'text!orion/webui/dropdowntriggerbutton.html',
+	'text!orion/webui/submenutriggerbutton.html'
+], function(require, Commands, mNavUtils, PageUtil, UIUtil, lib, mDropdown, mTooltip, CheckedMenuItemFragment, DropdownButtonFragment, SubMenuButtonFragment) {
 
 	/**
 	 * Constructs a new command registry with the given options.
@@ -342,41 +352,22 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 			var scopes = {};
 			var bindingString, binding;
 			// see commands.js _processKey
-			function executeBinding(activeBinding) {
-				var invocation = activeBinding.invocation;
-				if (invocation) {
-					var command = activeBinding.command;
-					if (command.hrefCallback) {
-						var href = command.hrefCallback.call(invocation.handler || window, invocation);
-						if (href.then){
-							href.then(function(l){
-								window.open(l);
-							});
-						} else {
-							// We assume window open since there's no link gesture to tell us what to do.
-							window.open(href);
-						}
-						return;
-					} else if (command.onClick || command.callback) {
-						(command.onClick || command.callback).call(invocation.handler || window, invocation);
-						return;
-					}
-				}
-			}
 			function execute(activeBinding) {
 				return function() {
-					executeBinding(activeBinding);
+					Commands.executeBinding(activeBinding);
 				};
 			}
 			var bindings = [];
 			for (var aBinding in this._activeBindings) {
 				binding = this._activeBindings[aBinding];
-				if (binding && binding.keyBinding && binding.command) {
+				if (binding && binding.keyBinding && binding.command && (binding.command.name || binding.command.tooltip)) {
 					bindings.push(binding);
 				}
 			}
 			bindings.sort(function (a, b) {
-				return a.command.name.localeCompare(b.command.name);
+				var ta = a.command.name || a.command.tooltip;
+				var tb = b.command.name || b.command.tooltip;
+				return ta.localeCompare(tb);
 			});
 			for (var i=0; i<bindings.length; i++) {
 				binding = bindings[i];
@@ -388,7 +379,7 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 					scopes[binding.keyBinding.scopeName].push(binding);
 				} else {
 					bindingString = UIUtil.getUserKeyString(binding.keyBinding);
-					keyAssist.createItem(bindingString, binding.command.name, execute(binding));
+					keyAssist.createItem(bindingString, binding.command.name || binding.command.tooltip, execute(binding));
 				}
 			}
 			for (var scopedBinding in scopes) {
@@ -396,7 +387,7 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 					keyAssist.createHeader(scopedBinding);
 					scopes[scopedBinding].forEach(function(binding) {
 						bindingString = UIUtil.getUserKeyString(binding.keyBinding);
-						keyAssist.createItem(bindingString, binding.command.name, execute(binding));
+						keyAssist.createItem(bindingString, binding.command.name || binding.command.tooltip, execute(binding));
 					});
 				}	
 			}
@@ -406,7 +397,7 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 		 * Add a command to the command registry.  Nothing will be shown in the UI
 		 * until this command is referenced in a contribution.
 		 * @param {orion.commands.Command} command The command being added.
-		 * @see #registerCommandContribution
+		 * @see registerCommandContribution
 		 */
 		addCommand: function(command) {
 			this._commandList[command.id] = command;
@@ -438,8 +429,9 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 		 * @param {String} [imageClass] CSS class of an image to use for this group.
 		 * @param {String} [tooltip] Tooltip to show on this group. If not provided, and the group uses an <code>imageClass</code>,
 		 * the <code>title</code> will be used as the tooltip.
+		 * @param {String} [selectionClass] CSS class to be appended when the command button is selected. Optional.
 		 */	
-		addCommandGroup: function(scopeId, groupId, position, title, parentPath, emptyGroupMessage, imageClass, tooltip) {
+		addCommandGroup: function(scopeId, groupId, position, title, parentPath, emptyGroupMessage, imageClass, tooltip, selectionClass) {
 			if (!this._contributionsByScopeId[scopeId]) {
 				this._contributionsByScopeId[scopeId] = {};
 			}
@@ -461,6 +453,9 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 				if (tooltip) {
 					parentTable[groupId].tooltip = tooltip;
 				}
+				if (selectionClass) {
+					parentTable[groupId].selectionClass = selectionClass;
+				}
 
 				parentTable[groupId].emptyGroupMessage = emptyGroupMessage;
 			} else {
@@ -470,6 +465,7 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 										emptyGroupMessage: emptyGroupMessage,
 										imageClass: imageClass,
 										tooltip: tooltip,
+										selectionClass: selectionClass,
 										children: {}};
 				parentTable.sortedContributions = null;
 			}
@@ -555,7 +551,7 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 		},
 
 		/**
-		 * @param {"key"|"url"} type
+		 * @param {String} type One of <code>"key"</code>, <code>"url"</code>.
 		 */
 		_addBinding: function(command, type, binding, bindingOnly) {
 			if (!command.id) {
@@ -570,7 +566,7 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 
 		/**
 		 * Remembers a key or url binding that has not yet been resolved to a command.
-		 *  @param {"key"|"url"} type
+		 * @param {String} type One of <code>"key"</code>, <code>"url"</code>.
 		 */
 		_addPendingBinding: function(commandId, type, binding, bindingOnly) {
 			this._pendingBindings[commandId] = this._pendingBindings[commandId] || [];
@@ -688,7 +684,7 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 				sortedByPosition = [];
 				var pushedItem = false;
 				for (var key in contributions) {
-				    if (!contributions.hasOwnProperty || contributions.hasOwnProperty(key)) {
+					if (Object.prototype.hasOwnProperty.call(contributions, key)) {
 						var item = contributions[key];
 						if (item && typeof(item.position) === "number") { //$NON-NLS-0$
 							item.id = key;
@@ -727,7 +723,7 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 							// to be redone. The down side to always adding the menu button is that we may find out we didn't
 							// need it after all, which could cause layout to change.
 
-							created = self._createDropdownMenu(parent, contribution.title, null /*nested*/, null /*populateFunc*/, contribution.imageClass, contribution.tooltip);
+							created = self._createDropdownMenu(parent, contribution.title, null /*nested*/, null /*populateFunc*/, contribution.imageClass, contribution.tooltip, contribution.selectionClass);
 							if(domNodeWrapperList){
 								mNavUtils.generateNavGrid(domNodeWrapperList, created.menuButton);
 							}
@@ -866,7 +862,7 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 							var populateFunction = function(menu) {
 								command.populateChoicesMenu(menu, items, handler, userData, self);
 							};
-							self._createDropdownMenu(menuParent, command.name, nested, populateFunction.bind(command), command.imageClass, command.tooltip || command.title);
+							self._createDropdownMenu(menuParent, command.name, nested, populateFunction.bind(command), command.imageClass, command.tooltip || command.title, command.selectionClass);
 						} else {
 							// Rendering atomic commands as buttons or menus
 							invocation.handler = invocation.handler || this;
@@ -893,7 +889,7 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 		/*
 		 * private.  Parent must exist in the DOM.
 		 */
-		_createDropdownMenu: function(parent, name, nested, populateFunction, icon, tooltip) {
+		_createDropdownMenu: function(parent, name, nested, populateFunction, icon, tooltip, selectionClass) {
 			parent = lib.node(parent);
 			// We create dropdowns asynchronously so it's possible that the parent has been removed from the document 
 			// by the time we are called.  If so, don't bother building a submenu for an orphaned menu.
@@ -926,7 +922,7 @@ define(['require', 'orion/commands', 'orion/uiUtils', 'orion/PageUtil', 'orion/w
 					tooltip = tooltip || name; // No text and no tooltip => fallback to name
 				}
 				tooltip = icon ? (tooltip || name) : tooltip;
-				var created = Commands.createDropdownMenu(menuParent, name, populateFunction, buttonCss, icon);
+				var created = Commands.createDropdownMenu(menuParent, name, populateFunction, buttonCss, icon, false, selectionClass);
 				menuButton = created.menuButton;
 				newMenu = created.menu;
 				if (tooltip) {

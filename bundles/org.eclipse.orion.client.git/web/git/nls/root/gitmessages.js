@@ -1,11 +1,11 @@
 /*******************************************************************************
  * @license
  * Copyright (c) 2012, 2013 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
+ *
  ******************************************************************************/
  /*global define*/
 
@@ -19,6 +19,7 @@ define({
 	"View the working directory version of the file": "View the working directory version of the file",
 	"Loading...": "Loading...",
 	"Repositories": "Git Repositories",
+	"Repo": "Repositories",
 	"0 on 1 - Git": "${0} on ${1} - Git",
 	"Git": "Git",
 	"Show in eclipse.org": "Show in eclipse.org",
@@ -167,6 +168,8 @@ define({
 	"Staged addition": "Staged addition",
 	" (Rebase in Progress)": " (Rebase in Progress)",
 	"Status": "Status",
+	"Log (0)": "Log (${0})",
+	"Log (0) - 1": "Log (${0}) - ${1}",
 	"Status for ${0} - Git ": "Status for ${0} - Git ",
 	"No Unstaged Changes": "No Unstaged Changes",
 	"No Staged Changes": "No Staged Changes",
@@ -207,7 +210,6 @@ define({
 	"Search": "Search",
 	"Searching...": "Searching...",
 	"Looking for the commit": "Looking for the commit",
-	" authored by ${0} (${1})) on ${2}": " authored by ${0} (${1})) on ${2}",
 	"New Branch:": "New Branch:",
 	"OK": "OK",
 	" [New branch]": " [New branch]",
@@ -289,8 +291,7 @@ define({
 	"Show next page of git tags" : "Show next page of git tags",
 	"Push from your local branch into the selected remote branch": "Push from your local branch into the selected remote branch",
 	"Reset your active branch to the state of the selected branch. Discard all staged and unstaged changes.": "Reset your active branch to the state of the selected branch. Discard all staged and unstaged changes.",
-	"The content of your active branch will be replaced with ": "The content of your active branch will be replaced with ",
-	"All unstaged and staged changes will be discarded and cannot be recovered. Are you sure?": "All unstaged and staged changes will be discarded and cannot be recovered. Are you sure?",
+	"GitResetIndexConfirm": "The content of your active branch will be replaced with ${0}. All unstaged and staged changes will be discarded and cannot be recovered. Are you sure?",
 	"Resetting index...": "Resetting index...",
 	"Name:": "Name:",
 	"Tag": "Tag",
@@ -383,6 +384,12 @@ define({
 	"Contribution Review Request for ${0} on ${1}" : "Contribution Review Request for ${0} on ${1}",
 	"Failing paths: ${0}": "Failing paths: ${0}",
 	"Problem while performing the action": "Problem while performing the action",
-	"Clone Git Repository": "Clone Git Repository",
-	"Go to the Orion repositories page to provide a git repository URL. Once the repository is created, it will appear in the Navigator.": "Go to the Orion repositories page to provide a git repository URL. Once the repository is created, it will appear in the Navigator."
+	"Go to the Orion repositories page to provide a git repository URL. Once the repository is created, it will appear in the Navigator.": "Go to the Orion repositories page to provide a git repository URL. Once the repository is created, it will appear in the Navigator.",
+	"URL:": "URL:",
+	"File:": "File:",
+	"Submit": "Submit",
+	"git url:": "git url: ",
+	"Revert": "Revert",
+	"Revert changes introduced by the commit into your active branch": "Revert changes introduced by the commit into your active branch",
+	". Could not revert into active branch": ". Could not revert into active branch"
 });

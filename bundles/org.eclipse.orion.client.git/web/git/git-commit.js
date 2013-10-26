@@ -38,7 +38,7 @@ define(['i18n!git/nls/gitmessages', 'require', 'orion/bootstrap', 'orion/status'
 			var linkService = new mLinks.TextLinkService({serviceRegistry: serviceRegistry});
 			var gitClient = new mGitClient.GitService(serviceRegistry);
 			var fileClient = new mFileClient.FileClient(serviceRegistry);
-			var contentTypeService = new mContentTypes.ContentTypeService(serviceRegistry);
+			var contentTypeService = new mContentTypes.ContentTypeRegistry(serviceRegistry);
 			var searcher = new mSearchClient.Searcher({
 				serviceRegistry: serviceRegistry,
 				commandService: commandRegistry,
@@ -57,7 +57,8 @@ define(['i18n!git/nls/gitmessages', 'require', 'orion/bootstrap', 'orion/status'
 			// the groups
 			commandRegistry.addCommandGroup("pageActions", "eclipse.gitGroup", 100); //$NON-NLS-1$ //$NON-NLS-0$
 			commandRegistry.registerCommandContribution("pageActions", "eclipse.orion.git.cherryPick", 100, "eclipse.gitGroup"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-			commandRegistry.registerCommandContribution("pageActions", "eclipse.orion.git.askForReviewCommand", 101, "eclipse.gitGroup"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			commandRegistry.registerCommandContribution("pageActions", "eclipse.orion.git.revert", 101, "eclipse.gitGroup"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			commandRegistry.registerCommandContribution("pageActions", "eclipse.orion.git.askForReviewCommand", 102, "eclipse.gitGroup"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			commandRegistry.registerCommandContribution(
 				"pageActions", "eclipse.orion.git.openCommitCommand", 102, "eclipse.gitGroup", true, new KeyBinding.KeyBinding('h', true, true)); //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 

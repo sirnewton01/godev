@@ -78,7 +78,7 @@ func filesearchHandler(writer http.ResponseWriter, req *http.Request, path strin
 				return true
 			}
 
-			for _,srcDir := range(srcDirs) {
+			for _, srcDir := range srcDirs {
 				path := ""
 				location := "/file"
 				results = append(results, findNameMatches(srcDir, path, location, nameregex)...)
@@ -91,7 +91,7 @@ func filesearchHandler(writer http.ResponseWriter, req *http.Request, path strin
 		} else {
 			token := filterparts
 
-			for _,srcDir := range(srcDirs) {
+			for _, srcDir := range srcDirs {
 				path := ""
 				location := "/file"
 				results = append(results, findContentMatches(srcDir, path, location, token)...)

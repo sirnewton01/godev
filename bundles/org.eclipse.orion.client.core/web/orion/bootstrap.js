@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define document window eclipse orion serviceRegistry:true widgets alert console localStorage*/
+/*global define document window eclipse orion serviceRegistry:true widgets alert console localStorage setTimeout*/
 /*browser:true*/
 
 define(['require', 'orion/Deferred', 'orion/serviceregistry', 'orion/preferences', 'orion/pluginregistry', 'orion/config'], function(require, Deferred, mServiceregistry, mPreferences, mPluginRegistry, mConfig) {
@@ -64,7 +64,9 @@ define(['require', 'orion/Deferred', 'orion/serviceregistry', 'orion/preferences
 					var authPromise = auth.getUser().then(function(user) {
 						if (!user) {
 							return auth.getAuthForm(window.location.href).then(function(formURL) {
-								window.location = formURL;
+								setTimeout(function() {
+									window.location = formURL;
+								}, 0);
 							});
 						} else {
 							localStorage.setItem("lastLogin", new Date().getTime()); //$NON-NLS-0$

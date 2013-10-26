@@ -16,14 +16,18 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 	'orion/editor/textView', //$NON-NLS-0$
 	'orion/editor/textModel', //$NON-NLS-0$
 	'orion/editor/projectionTextModel', //$NON-NLS-0$
+	'orion/editor/util', //$NON-NLS-0$
 	'orion/util' //$NON-NLS-0$
-], function(messages, mTextView, mTextModel, mProjectionTextModel, util) {
+], function(messages, mTextView, mTextModel, mProjectionTextModel, textUtil, util) {
 
 	/** @private */
 	function Tooltip (view) {
 		this._view = view;
+		this._fadeDelay = 500;
+		this._hideDelay = 200;
+		this._showDelay = 500;
+		this._autoHideDelay = 5000;
 		this._create(view.getOptions("parent").ownerDocument); //$NON-NLS-0$
-		view.addEventListener("Destroy", this, this.destroy); //$NON-NLS-0$
 	}
 	Tooltip.getTooltip = function(view) {
 		if (!view._tooltip) {
@@ -35,13 +39,50 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 		_create: function(document) {
 			if (this._tooltipDiv) { return; }
 			var tooltipDiv = this._tooltipDiv = util.createElement(document, "div"); //$NON-NLS-0$
+			tooltipDiv.tabIndex = 0;
 			tooltipDiv.className = "textviewTooltip"; //$NON-NLS-0$
 			tooltipDiv.setAttribute("aria-live", "assertive"); //$NON-NLS-1$ //$NON-NLS-0$
 			tooltipDiv.setAttribute("aria-atomic", "true"); //$NON-NLS-1$ //$NON-NLS-0$
 			var tooltipContents = this._tooltipContents = util.createElement(document, "div"); //$NON-NLS-0$
 			tooltipDiv.appendChild(tooltipContents);
 			document.body.appendChild(tooltipDiv);
-			this.hide();
+			var self = this;
+			textUtil.addEventListener(tooltipDiv, "mouseover", function(event) { //$NON-NLS-0$
+				if (!self._hideDelay) { return; }
+				var window = self._getWindow();
+				if (self._delayedHideTimeout) {
+					window.clearTimeout(self._delayedHideTimeout);
+					self._delayedHideTimeout = null;
+				}
+				
+				if (self._hideTimeout) {
+					window.clearTimeout(self._hideTimeout);
+					self._hideTimeout = null;
+				}
+				self._nextTarget = null;
+			}, false);
+			textUtil.addEventListener(tooltipDiv, "mouseout", function(event) { //$NON-NLS-0$
+				var relatedTarget = event.relatedTarget || event.toElement;
+				if (relatedTarget === tooltipDiv || self._hasFocus()) { return; }
+				if (relatedTarget) {
+					if (textUtil.contains(tooltipDiv, relatedTarget)) { return; }
+				}
+				self._hide();
+			}, false);
+			textUtil.addEventListener(tooltipDiv, "keydown", function(event) { //$NON-NLS-0$
+				if (event.keyCode === 27) {
+					self._hide();
+				}
+			}, false);
+			textUtil.addEventListener(document, "mousedown", this._mouseDownHandler = function(event) { //$NON-NLS-0$
+				if (!self.isVisible()) { return; }
+				if (textUtil.contains(tooltipDiv, event.target || event.srcElement)) { return; }
+				self._hide();
+			}, true);
+			this._view.addEventListener("Destroy", function() { //$NON-NLS-0$
+				self.destroy();
+			});
+			this._hide();
 		},
 		_getWindow: function() {
 			var document = this._tooltipDiv.ownerDocument;
@@ -49,12 +90,46 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 		},
 		destroy: function() {
 			if (!this._tooltipDiv) { return; }
-			this.hide();
+			this._hide();
 			var parent = this._tooltipDiv.parentNode;
 			if (parent) { parent.removeChild(this._tooltipDiv); }
+			var document = this._tooltipDiv.ownerDocument;
+			textUtil.removeEventListener(document, "mousedown", this._mouseDownHandler, true); //$NON-NLS-0$
 			this._tooltipDiv = null;
 		},
-		hide: function() {
+		_hasFocus: function() {
+			var tooltipDiv = this._tooltipDiv;
+			if (!tooltipDiv) { return false; }
+			var document = tooltipDiv.ownerDocument;
+			return textUtil.contains(tooltipDiv, document.activeElement);
+		},
+		hide: function(hideDelay) {
+			if (hideDelay === undefined) {
+				hideDelay = this._hideDelay;
+			}
+			var window = this._getWindow();
+			if (this._delayedHideTimeout) {
+				window.clearTimeout(this._delayedHideTimeout);
+				this._delayedHideTimeout = null;
+			}
+			var self = this;
+			if (!hideDelay) {
+				self._hide();
+				self.setTarget(self._nextTarget, 0);
+			} else {
+				self._delayedHideTimeout = window.setTimeout(function() {
+					self._delayedHideTimeout = null;
+					self._hide();
+					self.setTarget(self._nextTarget, 0);
+				}, hideDelay);
+			}
+		},
+		_hide: function() {
+			var tooltipDiv = this._tooltipDiv;
+			if (!tooltipDiv) { return; }
+			if (this._hasFocus()) {
+				this._view.focus();
+			}
 			if (this._contentsView) {
 				this._contentsView.destroy();
 				this._contentsView = null;
@@ -62,13 +137,15 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 			if (this._tooltipContents) {
 				this._tooltipContents.innerHTML = "";
 			}
-			if (this._tooltipDiv) {
-				this._tooltipDiv.style.visibility = "hidden"; //$NON-NLS-0$
-			}
+			tooltipDiv.style.visibility = "hidden"; //$NON-NLS-0$
 			var window = this._getWindow();
 			if (this._showTimeout) {
 				window.clearTimeout(this._showTimeout);
 				this._showTimeout = null;
+			}
+			if (this._delayedHideTimeout) {
+				window.clearTimeout(this._delayedHideTimeout);
+				this._delayedHideTimeout = null;
 			}
 			if (this._hideTimeout) {
 				window.clearTimeout(this._hideTimeout);
@@ -82,20 +159,29 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 		isVisible: function() {
 			return this._tooltipDiv && this._tooltipDiv.style.visibility === "visible"; //$NON-NLS-0$
 		},
-		setTarget: function(target, delay) {
-			if (this.target === target) { return; }
-			this._target = target;
-			this.hide();
-			if (target) {
-				var self = this;
-				if(delay === 0) {
-					self.show(true);
-				}
-				else {
-				var window = this._getWindow();
-					self._showTimeout = window.setTimeout(function() {
+		setTarget: function(target, delay, hideDelay) {
+			var visible = this.isVisible();
+			if (visible) {
+				if (this._hasFocus()) { return; }
+				this._nextTarget = target;
+				this.hide(hideDelay);
+			} else {
+				this._target = target;
+				if (target) {
+					var self = this;
+					var window = self._getWindow();
+					if (self._showTimeout) {
+						window.clearTimeout(self._showTimeout);
+						self._showTimeout = null;
+					}
+					if (delay === 0) {
 						self.show(true);
-					}, delay ? delay : 500);
+					} else {
+						self._showTimeout = window.setTimeout(function() {
+							self._showTimeout = null;
+							self.show(true);
+						}, delay ? delay : self._showDelay);
+					}
 				}
 			}
 		},
@@ -119,7 +205,7 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 				var options = view.getOptions();
 				options.wrapMode = false;
 				options.parent = tooltipContents;
-				var tooltipTheme = "tooltip"; //$NON-NLS-0$
+				var tooltipTheme = "tooltipTheme"; //$NON-NLS-0$
 				var theme = options.themeClass;
 				if (theme) {
 					theme = theme.replace(tooltipTheme, "");
@@ -130,8 +216,6 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 				}
 				options.themeClass = theme;
 				var contentsView = this._contentsView = new mTextView.TextView(options);
-				//TODO this is need to avoid Firefox from getting focus
-				contentsView._clientDiv.contentEditable = false;
 				//TODO need to find a better way of sharing the styler for multiple views
 				var listener = {
 					onLineStyle: function(e) {
@@ -170,6 +254,7 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 				var self = this;
 				var window = this._getWindow();
 				self._hideTimeout = window.setTimeout(function() {
+					self._hideTimeout = null;
 					var opacity = parseFloat(self._getNodeStyle(tooltipDiv, "opacity", "1")); //$NON-NLS-1$ //$NON-NLS-0$
 					self._fadeTimeout = window.setInterval(function() {
 						if (tooltipDiv.style.visibility === "visible" && opacity > 0) { //$NON-NLS-0$
@@ -177,16 +262,29 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 							tooltipDiv.style.opacity = opacity;
 							return;
 						}
-						self.hide();
-					}, 50);
-				}, 5000);
+						self._hide();
+					}, self._fadeDelay / 10);
+				}, self._autoHideDelay);
 			}
 		},
 		_getAnnotationContents: function(annotations) {
+			var annotation;
+			var newAnnotations = [];
+			for (var j = 0; j < annotations.length; j++) {
+				annotation = annotations[j];
+				if (annotation.title !== "" && !annotation.groupAnnotation) { 
+					newAnnotations.push(annotation); 
+				}
+			}
+			annotations = newAnnotations;
 			if (annotations.length === 0) {
 				return null;
 			}
-			var model = this._view.getModel(), annotation;
+			var self = this;
+			var html;
+			var document = this._tooltipDiv.ownerDocument;
+			var view = this._view;
+			var model = view.getModel();
 			var baseModel = model.getBaseModel ? model.getBaseModel() : model;
 			function getText(start, end) {
 				var textStart = baseModel.getLineStart(baseModel.getLineAtOffset(start));
@@ -195,22 +293,48 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 			}
 			function getAnnotationHTML(annotation) {
 				var title = annotation.title;
-				if (title === "") { return null; }
-				var result = "<div>"; //$NON-NLS-0$
+				var result = util.createElement(document, "div"); //$NON-NLS-0$
+				result.className = "tooltipRow"; //$NON-NLS-0$
 				if (annotation.html) {
-					result += annotation.html + "&nbsp;"; //$NON-NLS-0$
+					result.innerHTML = annotation.html;
+					if (result.lastChild) {
+						textUtil.addEventListener(result.lastChild, "click", function(event) { //$NON-NLS-0$
+							var start = annotation.start, end = annotation.end;
+							if (model.getBaseModel) {
+								start = model.mapOffset(start, true);
+								end = model.mapOffset(end, true);
+							}
+							view.setSelection(start, end, 1 / 3, function() { self._hide(); });
+						}, false);
+					}
+					result.appendChild(document.createTextNode("\u00A0")); //$NON-NLS-0$
 				}
 				if (!title) {
 					title = getText(annotation.start, annotation.end);
 				}
-				title = title.replace(/</g, "&lt;").replace(/>/g, "&gt;"); //$NON-NLS-1$ //$NON-NLS-0$
-				result += "<span style='vertical-align:middle;'>" + title + "</span><div>"; //$NON-NLS-1$ //$NON-NLS-0$
+				if (typeof title === "function") { //$NON-NLS-0$
+					title = annotation.title();
+				}
+				if (typeof title === "string") { //$NON-NLS-0$
+					var span = util.createElement(document, "span"); //$NON-NLS-0$
+//					span.className = "tooltipTitle"; //$NON-NLS-0$
+					span.appendChild(document.createTextNode(title));
+					title = span;
+				}
+				result.appendChild(title);
 				return result;
 			}
 			if (annotations.length === 1) {
 				annotation = annotations[0];
 				if (annotation.title !== undefined) {
-					return getAnnotationHTML(annotation);
+					html = getAnnotationHTML(annotation);
+					if (html.firstChild) {
+						var className = html.firstChild.className;
+						if (className) { className += " "; } //$NON-NLS-0$
+						className += "single"; //$NON-NLS-0$
+						html.firstChild.className = className;
+					}
+					return html;
 				} else {
 					var newModel = new mProjectionTextModel.ProjectionTextModel(baseModel);
 					var lineStart = baseModel.getLineStart(baseModel.getLineAtOffset(annotation.start));
@@ -224,12 +348,15 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 					return newModel;
 				}
 			} else {
-				var tooltipHTML = "<div><em>" + messages.multipleAnnotations + "</em></div>"; //$NON-NLS-1$ //$NON-NLS-0$
+				var tooltipHTML = util.createElement(document, "div"); //$NON-NLS-0$
+				var em = util.createElement(document, "em"); //$NON-NLS-0$
+				em.appendChild(document.createTextNode(messages.multipleAnnotations));
+				tooltipHTML.appendChild(em);
 				for (var i = 0; i < annotations.length; i++) {
 					annotation = annotations[i];
-					var html = getAnnotationHTML(annotation);
+					html = getAnnotationHTML(annotation);
 					if (html) {
-						tooltipHTML += html;
+						tooltipHTML.appendChild(html);
 					}
 				}
 				return tooltipHTML;

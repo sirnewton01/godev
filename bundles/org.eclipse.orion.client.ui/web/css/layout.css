@@ -30,7 +30,7 @@ hard-coded numbers elsewhere.
 	padding-left:10px;
 	font-size:0.9em;
 	font-weight:bold;
-	background:linear-gradient( rgba(242, 242, 242, 0.9), rgba(222, 222, 222, 0.9)) 28px;
+	/* background:linear-gradient( rgba(242, 242, 242, 0.9), rgba(222, 222, 222, 0.9)) 28px;*/
 }
 
 /* $ToolbarHeight */
@@ -38,6 +38,12 @@ hard-coded numbers elsewhere.
 	height: 34px;
 }
 
+/*
+ * Filesystem switcher toolbar.
+ */
+.fsToolbarLayout {
+	height: 30px; /* $FSToolbarHeight */
+}
 
 /* Banner Layout Classes */
 
@@ -112,8 +118,8 @@ hard-coded numbers elsewhere.
 	clear: both;
 	overflow: hidden;
     position: absolute;
-    top: 36px;
-	bottom: 33px; /* $FooterHeight + footer border (1px) */
+    top: 37px;
+	bottom: 40px; /* $FooterHeight + footer border (1px) */
     left: 0;
     width: 100%;
 	/*margin-bottom: 29px;*/
@@ -133,13 +139,13 @@ hard-coded numbers elsewhere.
 	z-index: 50;
 	right: 0;
 	left: 0;
-	height: 32px; /* It has to be this */
-	background:linear-gradient( rgba(242, 242, 242, 0.9), rgba(222, 222, 222, 0.9)) 32px;
+	height: 36px; /* It has to be this */
+	background:#ededed;
 }
 
 .footerBlock {
 	float: left;
-	margin: 4px;
+	margin: 8px;
 	color: #7F7F7F;
 	font-weight: bold;
 	float: left;
@@ -152,6 +158,9 @@ hard-coded numbers elsewhere.
 
 .footerRightBlock ul {
 	margin: 0;
+	margin-top:4px;
+	font-size: .9em;
+	margin-right: 4px;
 }
 
 .footerRightBlock li {
@@ -159,8 +168,8 @@ hard-coded numbers elsewhere.
 }
 
 .footerRightBlock li:after {
-	content: ' |';
-	padding: 0 5px;
+	content: ' ';
+	padding: 0 8px;
 }
 
 .footerRightBlock li:last-child:after {
@@ -218,6 +227,15 @@ hard-coded numbers elsewhere.
     overflow: auto;
 }
 
+.sidePanelVerticalLayoutAnimation {
+	-webkit-transition: height 0.5s ease;
+	-moz-transition: height 0.5s ease;
+	-o-transition: height 0.5s ease;
+	transition: height 0.5s ease;
+	z-index: 50;
+    overflow: auto;
+}
+
 .sidePanelMargins {
 	margin-left: 8px;
 	margin-top: 2px;
@@ -229,15 +247,21 @@ hard-coded numbers elsewhere.
 	display: block;
 	position: absolute;
 	right: 0;
-	width: 66%;
 	height: 100%;
 }
 
 .mainPanelLayoutAnimation {
-	-webkit-transition: width 0.5s ease;
-	-moz-transition: width 0.5s ease;
-	-o-transition: width 0.5s ease;
-	transition: width 0.5s ease;
+	-webkit-transition: left 0.5s ease;
+	-moz-transition: left 0.5s ease;
+	-o-transition: left 0.5s ease;
+	transition: left 0.5s ease;
+}
+
+.mainPanelVerticalLayoutAnimation {
+	-webkit-transition: top 0.5s ease;
+	-moz-transition: top 0.5s ease;
+	-o-transition: top 0.5s ease;
+	transition: top 0.5s ease;
 }
 
 .fixedToolbarHolder {
@@ -246,15 +270,24 @@ hard-coded numbers elsewhere.
 	top: 0;
 	height: 100%;
 	width: 100%;
-	min-width: 250px;
+	min-width:140px;
+
 }
 
-.toolbarTarget {
+.toolbarTarget, .miniNavToolbarTarget {
 	position: absolute;
-	top: 37px;  /* $ToolbarHeight + 1 */
+	top: 36px;  /* $ToolbarHeight + 2 */
  	width: 100%;
  	bottom: 0;
  	overflow-y: auto;
+}
+
+/* Positions the main panel of the LHS navigator below the filesystem switcher toolbar. */
+.miniNavToolbarTarget {
+	/* $ToolbarHeight + 2 + $FSToolbarHeight + $FSToolbarPadding
+	 = 34px + 2px + 30px + 4px
+	*/
+	top: 70px; 
 }
 
 .hasSplit {
@@ -269,6 +302,7 @@ hard-coded numbers elsewhere.
 	width: 4px;
 	margin-right: 3px;
 	cursor: e-resize;
+	overflow: hidden;
 	visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
 }
 
@@ -277,9 +311,10 @@ hard-coded numbers elsewhere.
 	top: 33%;  /* override this value if you want a different proportion of the two split panes */
 	width: 100%;
 	z-index: 50;
-	height: 3px;
+	height: 4px;
 	margin-bottom: 3px;
 	cursor: n-resize;
+	overflow: hidden;
 	visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
 }
 
@@ -291,16 +326,27 @@ hard-coded numbers elsewhere.
 	cursor: pointer;
 }
 
-splitVerticalThumbLayout {
+.splitVerticalThumbLayout {
 	position: relative;
 	top: 0;
 	width: 2em;
+	height: 4px;
 	left: 49%;
 	cursor: pointer;
 }
 
 .splitLayoutAnimation {
-	background: transparent !important;
+	-webkit-transition: left 0.5s ease;
+	-moz-transition: left 0.5s ease;
+	-o-transition: left 0.5s ease;
+	transition: left 0.5s ease;
+}
+
+.splitVerticalLayoutAnimation {
+	-webkit-transition: top 0.5s ease;
+	-moz-transition: top 0.5s ease;
+	-o-transition: top 0.5s ease;
+	transition: top 0.5s ease;
 }
 
 .panelTracking {

@@ -1,10 +1,10 @@
 /*******************************************************************************
  * @license
  * Copyright (c) 2013 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
@@ -20,6 +20,8 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 	'orion/util' //$NON-NLS-0$
 ], function(messages, mKeyBinding, mAnnotations, mTooltip, mFind, util) {
 
+	var AT = mAnnotations.AnnotationType;
+
 	var exports = {};
 
 	/**
@@ -33,10 +35,11 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		this._lastEditLocation = null;
 		this.init();
 	}
+
 	TextActions.prototype = {
 		init: function() {
 			var textView = this.editor.getTextView();
-			
+
 			this._lastEditListener = {
 				onModelChanged: function(e) {
 					if (this.editor.isDirty()) {
@@ -45,7 +48,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				}.bind(this)
 			};
 			textView.addEventListener("ModelChanged", this._lastEditListener.onModelChanged); //$NON-NLS-0$
-			
+
 			textView.setAction("undo", function() { //$NON-NLS-0$
 				if (this.undoStack) {
 					this.undoStack.undo();
@@ -53,7 +56,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				}
 				return false;
 			}.bind(this), {name: messages.undo});
-			
+
 			textView.setAction("redo", function() { //$NON-NLS-0$
 				if (this.undoStack) {
 					this.undoStack.redo();
@@ -61,7 +64,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				}
 				return false;
 			}.bind(this), {name: messages.redo});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("f", true), "find"); //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("find", function() { //$NON-NLS-0$
 				if (this._find) {
@@ -72,7 +75,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 					}
 				}
 			}.bind(this), {name: messages.find});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("k", true), "findNext"); //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("findNext", function(options) { //$NON-NLS-0$
 				if (this._find){
@@ -81,7 +84,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				}
 				return false;
 			}.bind(this), {name: messages.findNext});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("k", true, true), "findPrevious"); //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("findPrevious", function(options) { //$NON-NLS-0$
 				if (this._find){
@@ -90,7 +93,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				}
 				return false;
 			}.bind(this), {name: messages.findPrevious});
-	
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("j", true), "incrementalFind"); //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("incrementalFind", function() { //$NON-NLS-0$
 				if (this._incrementalFind) {
@@ -110,71 +113,71 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			textView.setAction("tab", function() { //$NON-NLS-0$
 				return this.indentLines();
 			}.bind(this));
-	
+
 			textView.setAction("shiftTab", function() { //$NON-NLS-0$
 				return this.unindentLines();
 			}.bind(this), {name: messages.unindentLines});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(38, false, false, true), "moveLinesUp"); //$NON-NLS-0$
 			textView.setAction("moveLinesUp", function() { //$NON-NLS-0$
 				return this.moveLinesUp();
 			}.bind(this), {name: messages.moveLinesUp});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(40, false, false, true), "moveLinesDown"); //$NON-NLS-0$
 			textView.setAction("moveLinesDown", function() { //$NON-NLS-0$
 				return this.moveLinesDown();
 			}.bind(this), {name: messages.moveLinesDown});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(38, true, false, true), "copyLinesUp"); //$NON-NLS-0$
 			textView.setAction("copyLinesUp", function() { //$NON-NLS-0$
 				return this.copyLinesUp();
 			}.bind(this), {name: messages.copyLinesUp});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(40, true, false, true), "copyLinesDown"); //$NON-NLS-0$
 			textView.setAction("copyLinesDown", function() { //$NON-NLS-0$
 				return this.copyLinesDown();
 			}.bind(this), {name: messages.copyLinesDown});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding('d', true, false, false), "deleteLines"); //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("deleteLines", function(data) { //$NON-NLS-0$
 				return this.deleteLines(data);
 			}.bind(this), {name: messages.deleteLines});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("l", !util.isMac, false, false, util.isMac), "gotoLine"); //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("gotoLine", function() { //$NON-NLS-0$
 				return this.gotoLine();
 			}.bind(this), {name: messages.gotoLine});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(190, true), "nextAnnotation"); //$NON-NLS-0$
 			textView.setAction("nextAnnotation", function() { //$NON-NLS-0$
 				return this.nextAnnotation(true);
 			}.bind(this), {name: messages.nextAnnotation});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(188, true), "previousAnnotation"); //$NON-NLS-0$
 			textView.setAction("previousAnnotation", function() { //$NON-NLS-0$
 				return this.nextAnnotation(false);
 			}.bind(this), {name: messages.prevAnnotation});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("e", true, false, true, false), "expand"); //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("expand", function() { //$NON-NLS-0$
 				return this.expandAnnotation(true);
 			}.bind(this), {name: messages.expand});
-	
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("c", true, false, true, false), "collapse"); //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("collapse", function() { //$NON-NLS-0$
 				return this.expandAnnotation(false);
 			}.bind(this), {name: messages.collapse});
-	
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("e", true, true, true, false), "expandAll"); //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("expandAll", function() { //$NON-NLS-0$
 				return this.expandAnnotations(true);
 			}.bind(this), {name: messages.expandAll});
-	
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("c", true, true, true, false), "collapseAll"); //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("collapseAll", function() { //$NON-NLS-0$
 				return this.expandAnnotations(false);
 			}.bind(this), {name: messages.collapseAll});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("q", !util.isMac, false, false, util.isMac), "lastEdit"); //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("lastEdit", function() { //$NON-NLS-0$
 				return this.gotoLastEdit();
@@ -408,7 +411,9 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		nextAnnotation: function (forward) {
 			var editor = this.editor;
 			var annotationModel = editor.getAnnotationModel();
-			if(!annotationModel) { return true; }
+			if (!annotationModel) { return true; }
+			var list = editor.getOverviewRuler() || editor.getAnnotationStyler();
+			if (!list) { return true; }
 			var model = editor.getModel();
 			var currentOffset = editor.getCaretOffset();
 			var annotations = annotationModel.getAnnotations(forward ? currentOffset : 0, forward ? model.getCharCount() : currentOffset);
@@ -420,14 +425,13 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				} else {
 					if (annotation.start >= currentOffset) { continue; }
 				}
-				switch (annotation.type) {
-					case mAnnotations.AnnotationType.ANNOTATION_ERROR:
-					case mAnnotations.AnnotationType.ANNOTATION_WARNING:
-					case mAnnotations.AnnotationType.ANNOTATION_TASK:
-					case mAnnotations.AnnotationType.ANNOTATION_BOOKMARK:
-						break;
-					default:
-						continue;
+				if (
+					annotation.lineStyle ||
+					annotation.type === AT.ANNOTATION_MATCHING_BRACKET ||
+					annotation.type === AT.ANNOTATION_CURRENT_BRACKET ||
+					!list.isAnnotationTypeVisible(annotation.type)
+				) {
+					continue;
 				}
 				foundAnnotation = annotation;
 				if (forward) {
@@ -446,7 +450,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 					tooltip.setTarget({
 						getTooltipInfo: function() {
 							var tooltipCoords = view.convert({
-								x: view.getLocationAtOffset(foundAnnotation.start).x, 
+								x: view.getLocationAtOffset(foundAnnotation.start).x,
 								y: view.getLocationAtOffset(model.getLineStart(nextLine)).y
 							}, "document", "page"); //$NON-NLS-1$ //$NON-NLS-0$
 							return {
@@ -503,7 +507,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			if (this.undoStack) {
 				this.undoStack.startCompoundChange();
 			}
-		}, 
+		},
 		endUndo: function() {
 			if (this.undoStack) {
 				this.undoStack.endCompoundChange();
@@ -511,7 +515,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		}
 	};
 	exports.TextActions = TextActions;
-	
+
 	/**
 	 * @param {orion.editor.Editor} editor
 	 * @param {orion.editor.UndoStack} undoStack
@@ -531,14 +535,19 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 	SourceCodeActions.prototype = {
 		init: function() {
 			var textView = this.editor.getTextView();
-		
+
 			textView.setAction("lineStart", function() { //$NON-NLS-0$
 				return this.lineStart();
 			}.bind(this));
-			
+
 			textView.setAction("enter", function() { //$NON-NLS-0$
 				return this.autoIndent();
 			}.bind(this));
+
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("t", true, false, true), "trimTrailingWhitespaces"); //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("trimTrailingWhitespaces", function() { //$NON-NLS-0$
+				return this.trimTrailingWhitespaces();
+			}.bind(this), {name: messages.trimTrailingWhitespaces});
 
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(191, true), "toggleLineComment"); //$NON-NLS-0$
 			textView.setAction("toggleLineComment", function() { //$NON-NLS-0$
@@ -549,11 +558,71 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			textView.setAction("addBlockComment", function() { //$NON-NLS-0$
 				return this.addBlockComment();
 			}.bind(this), {name: messages.addBlockComment});
-			
+
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(220, true, !util.isMac, false, util.isMac), "removeBlockComment"); //$NON-NLS-0$
 			textView.setAction("removeBlockComment", function() { //$NON-NLS-0$
 				return this.removeBlockComment();
 			}.bind(this), {name: messages.removeBlockComment});
+
+			// Autocomplete square brackets []
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("[", false, false, false, false, "keypress"), "autoPairSquareBracket"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("autoPairSquareBracket", function() { //$NON-NLS-0$
+				return this.autoPairBrackets("[", "]"); //$NON-NLS-1$ //$NON-NLS-0$
+			}.bind(this));
+
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(']', false, false, false, false, "keypress"), "skipClosingSquareBracket"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("skipClosingSquareBracket", function() { //$NON-NLS-0$
+				return this.skipClosingBracket(']'); //$NON-NLS-0$
+			}.bind(this));
+
+			// Autocomplete angle brackets <>
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("<", false, false, false, false, "keypress"), "autoPairAngleBracket"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("autoPairAngleBracket", function() { //$NON-NLS-0$
+				return this.autoPairBrackets("<", ">"); //$NON-NLS-1$ //$NON-NLS-0$
+			}.bind(this));
+
+			textView.setKeyBinding(new mKeyBinding.KeyBinding('>', false, false, false, false, "keypress"), "skipClosingAngleBracket"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("skipClosingAngleBracket", function() { //$NON-NLS-0$
+				return this.skipClosingBracket('>'); //$NON-NLS-0$
+			}.bind(this));
+
+			// Autocomplete parentheses ()
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("(", false, false, false, false, "keypress"), "autoPairParentheses"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("autoPairParentheses", function() { //$NON-NLS-0$
+				return this.autoPairBrackets("(", ")"); //$NON-NLS-1$ //$NON-NLS-0$
+			}.bind(this));
+
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(')', false, false, false, false, "keypress"), "skipClosingParenthesis"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("skipClosingParenthesis", function() { //$NON-NLS-0$
+				return this.skipClosingBracket(")"); //$NON-NLS-0$
+			}.bind(this));
+
+			// Autocomplete braces {}
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("{", false, false, false, false, "keypress"), "autoPairBraces"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("autoPairBraces", function() { //$NON-NLS-0$
+				return this.autoPairBrackets("{", "}"); //$NON-NLS-1$ //$NON-NLS-0$
+			}.bind(this));
+
+			textView.setKeyBinding(new mKeyBinding.KeyBinding('}', false, false, false, false, "keypress"), "skipClosingBrace"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("skipClosingBrace", function() { //$NON-NLS-0$
+				return this.skipClosingBracket("}"); //$NON-NLS-0$
+			}.bind(this));
+
+			// Autocomplete single quotations
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("'", false, false, false, false, "keypress"), "autoPairSingleQuotation"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("autoPairSingleQuotation", function() { //$NON-NLS-0$
+				return this.autoPairQuotations("'"); //$NON-NLS-1$ //$NON-NLS-0$
+			}.bind(this));
+
+			// Autocomplete double quotations
+			textView.setKeyBinding(new mKeyBinding.KeyBinding('"', false, false, false, false, "keypress"), "autoPairDblQuotation"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("autoPairDblQuotation", function() { //$NON-NLS-0$
+				return this.autoPairQuotations('"'); //$NON-NLS-1$ //$NON-NLS-0$
+			}.bind(this));
+
+			textView.setAction("deletePrevious", function() { //$NON-NLS-0$
+				return this.deletePrevious();
+			}.bind(this));
 		},
 		autoIndent: function() {
 			var editor = this.editor;
@@ -563,14 +632,110 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			if (selection.start === selection.end) {
 				var model = editor.getModel();
 				var lineIndex = model.getLineAtOffset(selection.start);
-				var lineText = model.getLine(lineIndex, true);
+				var lineText = model.getLine(lineIndex, false);
 				var lineStart = model.getLineStart(lineIndex);
-				var index = 0, end = selection.start - lineStart, c;
-				while (index < end && ((c = lineText.charCodeAt(index)) === 32 || c === 9)) { index++; }
-				if (index > 0) {
+				var index = 0;
+				var lineOffset = selection.start - lineStart;
+				var c;
+				while (index < lineOffset && ((c = lineText.charCodeAt(index)) === 32 || c === 9)) { index++; }
+				var prefix = lineText.substring(0, index);
+				var options = textView.getOptions("tabSize", "expandTab"); //$NON-NLS-1$ //$NON-NLS-0$
+				var tab = options.expandTab ? new Array(options.tabSize + 1).join(" ") : "\t"; //$NON-NLS-1$ //$NON-NLS-0$
+				var lineDelimiter = model.getLineDelimiter();
+				var matchCommentStart = /^[\s]*\/\*[\*]*[\s]*$/;
+				var matchCommentDelimiter = /^[\s]*\*/;
+				var matchCommentEnd = /\*\/[\s]*$/;
+				var lineTextBeforeCaret = lineText.substring(0, lineOffset);
+				var lineTextAfterCaret = lineText.substring(lineOffset);
+				var text;
+				// If the character before the caret is an opening brace, smart indent the next line.
+				var prevCharIdx;
+				if (this.smartIndentation && lineText.charCodeAt(prevCharIdx = lineTextBeforeCaret.trimRight().length - 1) === 123) {
+					// Remove any extra whitespace
+					var whitespaceBeforeCaret = lineOffset - prevCharIdx - 1;
+					var whitespaceAfterCaret = lineTextAfterCaret.length - lineTextAfterCaret.trimLeft().length;
+
+					text = lineText.charCodeAt(lineOffset + whitespaceAfterCaret) === 125 ?
+						   lineDelimiter + prefix + tab + lineDelimiter + prefix :
+						   lineDelimiter + prefix + tab;
+
+					editor.setText(text, selection.start - whitespaceBeforeCaret, selection.end + whitespaceAfterCaret);
+					editor.setCaretOffset(selection.start + lineDelimiter.length + prefix.length + tab.length - whitespaceBeforeCaret);
+					return true;
+				// Proceed with autocompleting multi-line comment if the text before the caret matches
+				// the start or comment delimiter (*) of a multi-line comment
+				} else if (this.autoCompleteComments && !matchCommentEnd.test(lineTextBeforeCaret) &&
+							(matchCommentStart.test(lineTextBeforeCaret) || matchCommentDelimiter.test(lineTextBeforeCaret))) {
+					var caretOffset;
+
+					/**
+					 * Matches the start of a multi-line comment. Autocomplete the multi-line block comment,
+					 * moving any text after the caret into the block comment and setting the caret to be
+					 * after the comment delimiter.
+					 */
+					var match = matchCommentStart.exec(lineTextBeforeCaret);
+					if (match) {
+						text = lineDelimiter + prefix + " * "; //$NON-NLS-0$
+						// Text added into the comment block are trimmed of all preceding and trailing whitespaces.
+						// If the text after the caret contains the ending of a block comment, exclude the ending.
+						if (matchCommentEnd.test(lineTextAfterCaret)) {
+							text += lineTextAfterCaret.substring(0, lineTextAfterCaret.length - 2).trim();
+						} else {
+							text += lineTextAfterCaret.trim();
+						}
+						// Add the closing to the multi-line block comment if the next line is not a
+						// comment delimiter.
+						if ((model.getLineCount() === lineIndex + 1) ||
+							!matchCommentDelimiter.test(model.getLine(lineIndex + 1))) {
+							text += lineDelimiter + prefix + " */"; //$NON-NLS-0$
+						}
+						editor.setText(text, selection.start, selection.end + lineTextAfterCaret.length);
+						editor.setCaretOffset(selection.start + lineDelimiter.length + prefix.length + 3);
+						return true;
+					}
+
+					/**
+					 * Matches a comment delimiter (*) as the start of the line, and traverses up the lines to confirm if
+					 * it is a multi-line comment by matching the start of a block comment. If so, continue the
+					 * multi-line comment in the next line. Any text that follows after the caret is moved to the newly
+					 * added comment delimiter.
+					 */
+					match = matchCommentDelimiter.exec(lineTextBeforeCaret);
+					if (match) {
+						for (var i = lineIndex - 1; i >= 0; i--) {
+							var prevLine = model.getLine(i, false);
+							if (matchCommentStart.test(prevLine)) {
+								/**
+								 * If the text after the caret matches the end of a comment block or the character in front of the
+								 * caret is a forward slash, continue the block comment with the caret and text after the caret on
+								 * the next line directly in front of the star (*).
+								 */
+								if (matchCommentEnd.test(lineTextAfterCaret) || lineText.charCodeAt(lineOffset) === 47) {
+									text = lineDelimiter + prefix + "*" + lineTextAfterCaret; //$NON-NLS-0$
+									caretOffset = selection.start + lineDelimiter.length + prefix.length + 1;
+								} else {
+									text = lineDelimiter + prefix + "* " + lineTextAfterCaret; //$NON-NLS-0$
+									caretOffset = selection.start + lineDelimiter.length + prefix.length + 2;
+								}
+								editor.setText(text, selection.start, selection.end + lineTextAfterCaret.length);
+								editor.setCaretOffset(caretOffset);
+								return true;
+							} else if (!matchCommentDelimiter.test(prevLine)) {
+								return false;
+							}
+						}
+					}
+
+					return false;
+				} else if (matchCommentEnd.test(lineTextBeforeCaret)) {
+					// Matches the end of a block comment. Fix the indentation for the following line.
+					text = lineText.substring(selection.start) + lineDelimiter + prefix.substring(0, prefix.length - 1);
+					editor.setText(text, selection.start, selection.end);
+					editor.setCaretOffset(selection.start + text.length);
+					return true;
+				} else if (index > 0) {
 					//TODO still wrong when typing inside folding
-					var prefix = lineText.substring(0, index);
-					index = end;
+					index = lineOffset;
 					while (index < lineText.length && ((c = lineText.charCodeAt(index++)) === 32 || c === 9)) { selection.end++; }
 					editor.setText(model.getLineDelimiter() + prefix, selection.start, selection.end);
 					return true;
@@ -585,21 +750,97 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			var model = editor.getModel();
 			var selection = editor.getSelection();
 			var open = "/*", close = "*/", commentTags = new RegExp("/\\*" + "|" + "\\*/", "g"); //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-			
+
 			var result = this._findEnclosingComment(model, selection.start, selection.end);
 			if (result.commentStart !== undefined && result.commentEnd !== undefined) {
 				return true; // Already in a comment
 			}
-			
+
 			var text = model.getText(selection.start, selection.end);
 			if (text.length === 0) { return true; }
-			
+
 			var oldLength = text.length;
 			text = text.replace(commentTags, "");
 			var newLength = text.length;
-			
+
 			editor.setText(open + text + close, selection.start, selection.end);
 			editor.setSelection(selection.start + open.length, selection.end + open.length + (newLength-oldLength));
+			return true;
+		},
+		/**
+		 * Called on an opening bracket keypress.
+		 * Automatically inserts the specified opening and closing brackets around the caret or selected text.
+		 */
+		autoPairBrackets: function(openBracket, closeBracket) {
+			if (openBracket === "[" && !this.autoPairSquareBrackets) {
+				return false;
+			} else if (openBracket === "{" && !this.autoPairBraces) {
+				return false;
+			} else if (openBracket === "(" && !this.autoPairParentheses) {
+				return false;
+			} else if (openBracket === "<" && !this.autoPairAngleBrackets) {
+				return false;
+			}
+
+			var editor = this.editor;
+			var textView = editor.getTextView();
+			if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			var selection = editor.getSelection();
+			var model = editor.getModel();
+			var currentOffset = editor.getCaretOffset();
+			var nextChar = (currentOffset === model.getCharCount()) ? "" : model.getText(selection.start, selection.start + 1).trim(); //$NON-NLS-0$
+			var isClosingBracket = new RegExp("^$|[)}\\]>]"); //$NON-NLS-0$ // matches any empty string and closing bracket
+
+			if (selection.start === selection.end && isClosingBracket.test(nextChar)) { //$NON-NLS-0$
+				// No selection and subsequent character is not a closing bracket - wrap the caret with the opening and closing brackets,
+				// and maintain the caret position inbetween the brackets
+				editor.setText(openBracket + closeBracket, selection.start, selection.start);
+				editor.setCaretOffset(selection.start + 1);
+				return true;
+			} else if (selection.start !== selection.end) {
+				// Wrap the selected text with the specified opening and closing brackets and keep selection on text
+				var text = model.getText(selection.start, selection.end);
+				editor.setText(openBracket + text + closeBracket, selection.start, selection.end);
+				editor.setSelection(selection.start + 1, selection.end + 1);
+				return true;
+			}
+			return false;
+		},
+		/**
+		 * Called on a quotation mark keypress.
+		 * Automatically inserts a pair of the specified quotation around the caret the caret or selected text.
+		 */
+		autoPairQuotations: function(quotation) {
+			if (!this.autoPairQuotation) { return false; }
+			var editor = this.editor;
+			var textView = editor.getTextView();
+			if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			var selection = editor.getSelection();
+			var model = editor.getModel();
+			var currentOffset = editor.getCaretOffset();
+			var prevChar = (currentOffset === 0) ? "" : model.getText(selection.start - 1, selection.start).trim(); //$NON-NLS-0$
+			var nextChar = (currentOffset === model.getCharCount()) ? "" : model.getText(selection.start, selection.start + 1).trim(); //$NON-NLS-0$
+			var isQuotation = new RegExp("^\"$|^'$"); //$NON-NLS-0$
+			var isAlpha = new RegExp("\\w"); //$NON-NLS-0$
+			var isClosingBracket = new RegExp("^$|[)}\\]>]"); //$NON-NLS-0$ // matches any empty string and closing bracket
+
+			// Wrap the selected text with the specified opening and closing quotation marks and keep selection on text
+			if (selection.start !== selection.end) {
+				var text = model.getText(selection.start, selection.end);
+				if (isQuotation.test(text)) { return false; }
+				editor.setText(quotation + text + quotation, selection.start, selection.end);
+				editor.setSelection(selection.start + 1, selection.end + 1);
+			} else if (nextChar === quotation) {
+				// Skip over the next character if it matches the specified quotation mark
+				editor.setCaretOffset(selection.start + 1);
+			} else if (prevChar === quotation || isQuotation.test(nextChar) || isAlpha.test(prevChar) || !isClosingBracket.test(nextChar)) {
+				// Insert the specified quotation mark
+				return false;
+			} else {
+				// No selection - wrap the caret with the opening and closing quotation marks, and maintain the caret position inbetween the quotations
+				editor.setText(quotation + quotation, selection.start, selection.start);
+				editor.setCaretOffset(selection.start + 1);
+			}
 			return true;
 		},
 		/**
@@ -608,7 +849,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		 * @param {orion.editor.ContentAssist#ProposalAppliedEvent} event
 		 */
 		contentAssistProposalApplied: function(event) {
-			/**
+			/*
 			 * The event.proposal is an object with this shape:
 			 * {   proposal: "[proposal string]", // Actual text of the proposal
 			 *     description: "diplay string", // Optional
@@ -623,7 +864,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			 * Offsets are relative to the text buffer.
 			 */
 			var proposal = event.data.proposal;
-			
+
 			//if the proposal specifies linked positions, build the model and enter linked mode
 			if (proposal.positions && proposal.positions.length > 0 && this.linkedMode) {
 				var positionGroups = [];
@@ -650,6 +891,27 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				textView.setCaretOffset(proposal.escapePosition);
 			}
 			return true;
+		},
+		// On backspace keypress, checks if there are a pair of brackets or quotation marks to be deleted
+		deletePrevious: function() {
+			var editor = this.editor;
+			var textView = editor.getTextView();
+			if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			var selection = editor.getSelection();
+			var model = editor.getModel();
+			var caretOffset = editor.getCaretOffset();
+			var prevChar = (caretOffset === 0) ? "" : model.getText(selection.start - 1, selection.start); //$NON-NLS-0$
+			var nextChar = (caretOffset === model.getCharCount()) ? "" : model.getText(selection.start, selection.start + 1); //$NON-NLS-0$
+
+			if ((prevChar === "(" && nextChar === ")") || //$NON-NLS-1$ //$NON-NLS-0$
+				(prevChar === "[" && nextChar === "]") || //$NON-NLS-1$ //$NON-NLS-0$
+				(prevChar === "{" && nextChar === "}") || //$NON-NLS-1$ //$NON-NLS-0$
+				(prevChar === "<" && nextChar === ">") || //$NON-NLS-1$ //$NON-NLS-0$
+				(prevChar === '"' && nextChar === '"') || //$NON-NLS-1$ //$NON-NLS-0$
+				(prevChar === "'" && nextChar === "'")) { //$NON-NLS-1$ //$NON-NLS-0$
+				editor.setText("", selection.start, selection.start + 1); //$NON-NLS-0$
+			}
+			return false;
 		},
 		_findEnclosingComment: function(model, start, end) {
 			var open = "/*", close = "*/"; //$NON-NLS-1$ //$NON-NLS-0$
@@ -711,7 +973,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			var model = editor.getModel();
 			var selection = editor.getSelection();
 			var open = "/*", close = "*/"; //$NON-NLS-1$ //$NON-NLS-0$
-			
+
 			// Try to shrink selection to a comment block
 			var selectedText = model.getText(selection.start, selection.end);
 			var newStart, newEnd;
@@ -728,7 +990,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 					break;
 				}
 			}
-			
+
 			if (newStart !== undefined && newEnd !== undefined) {
 				editor.setText(model.getText(newStart + open.length, newEnd), newStart, newEnd + close.length);
 				editor.setSelection(newStart, newEnd);
@@ -738,7 +1000,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				if (result.commentStart === undefined || result.commentEnd === undefined) {
 					return true;
 				}
-				
+
 				var text = model.getText(result.commentStart + open.length, result.commentEnd);
 				editor.setText(text, result.commentStart, result.commentEnd + close.length);
 				editor.setSelection(selection.start - open.length, selection.end - close.length);
@@ -795,19 +1057,97 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			editor.setSelection(selStart, selEnd);
 			return true;
 		},
+		trimTrailingWhitespaces: function() {
+			var editor = this.editor;
+			var model = editor.getModel();
+			var selection = editor.getSelection();
+			editor.getTextView().setRedraw(false);
+			editor.getUndoStack().startCompoundChange();
+			var matchTrailingWhiteSpace = /(\s+$)/;
+			var lineCount = model.getLineCount();
+			for (var i = 0; i < lineCount; i++) {
+				var lineText = model.getLine(i);
+				var match = matchTrailingWhiteSpace.exec(lineText);
+				if (match) {
+					var lineStartOffset = model.getLineStart(i);
+					var matchLength = match[0].length;
+					var start = lineStartOffset + match.index;
+					model.setText("", start, start + matchLength);
+					/**
+					 * Move the caret to its original position prior to the save. If the caret
+					 * was in the trailing whitespaces, move the caret to the end of the line.
+					 */
+					if (selection.start > start) {
+						selection.start = Math.max(start, selection.start - matchLength);
+					}
+					if (selection.start !== selection.end && selection.end > start) {
+						selection.end = Math.max(start, selection.end - matchLength);
+					}
+				}
+			}
+			editor.getUndoStack().endCompoundChange();
+			editor.getTextView().setRedraw(true);
+			editor.setSelection(selection.start, selection.end, false);
+		},
 		startUndo: function() {
 			if (this.undoStack) {
 				this.undoStack.startCompoundChange();
 			}
-		}, 
-		
+		},
+		skipClosingBracket: function(closingChar) {
+			var editor = this.editor;
+			var textView = editor.getTextView();
+			if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			var selection = editor.getSelection();
+			var model = editor.getModel();
+			var currentOffset = editor.getCaretOffset();
+			var nextChar = (currentOffset === model.getCharCount()) ? "" : model.getText(selection.start, selection.start + 1); //$NON-NLS-0$
+
+			if (nextChar === closingChar) {
+				editor.setCaretOffset(selection.start + 1);
+				return true;
+			}
+			return false;
+		},
 		endUndo: function() {
 			if (this.undoStack) {
 				this.undoStack.endCompoundChange();
 			}
+		},
+		setAutoPairParentheses: function(enabled) {
+			this.autoPairParentheses = enabled;
+		},
+		setAutoPairBraces: function(enabled) {
+			this.autoPairBraces = enabled;
+		},
+		setAutoPairSquareBrackets: function(enabled) {
+			this.autoPairSquareBrackets = enabled;
+		},
+		setAutoPairAngleBrackets: function(enabled) {
+			this.autoPairAngleBrackets = enabled;
+		},
+		setAutoPairQuotations: function(enabled) {
+			this.autoPairQuotation = enabled;
+		},
+		setAutoCompleteComments: function(enabled) {
+			this.autoCompleteComments = enabled;
+		},
+		setSmartIndentation: function(enabled) {
+			this.smartIndentation = enabled;
 		}
 	};
 	exports.SourceCodeActions = SourceCodeActions;
-	
+
+	if (!String.prototype.trimLeft) {
+		String.prototype.trimLeft = function(){
+			return this.replace(/^\s+/g, '');
+		};
+	}
+	if (!String.prototype.trimRight) {
+		String.prototype.trimRight = function(){
+			return this.replace(/\s+$/g, '');
+		};
+	}
+
 	return exports;
 });

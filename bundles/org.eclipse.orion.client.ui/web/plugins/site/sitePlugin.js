@@ -61,7 +61,7 @@ define(['orion/plugin', 'plugins/site/siteServiceImpl'], function(PluginProvider
 		nls: 'orion/nls/messages',
 		forceSingleItem: true,
 		validationProperties: filesAndFoldersOnService(fileBase),
-		uriTemplate: '{OrionHome}/sites/view.html#,file={Location}'
+		uriTemplate: '{+OrionHome}/sites/view.html#,file={,Location}'
 	});
 
 	provider.registerService('orion.page.link.related', null, {
@@ -70,7 +70,7 @@ define(['orion/plugin', 'plugins/site/siteServiceImpl'], function(PluginProvider
 		tooltipKey: 'View this file or folder on a web site hosted by Orion',
 		nls: 'orion/nls/messages',
 		validationProperties: filesAndFoldersOnService(fileBase),
-		uriTemplate: '{OrionHome}/sites/view.html#,file={Location}'
+		uriTemplate: '{+OrionHome}/sites/view.html#,file={,Location}'
 	});
 
 	provider.registerService('orion.site',

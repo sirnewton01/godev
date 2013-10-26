@@ -12,9 +12,21 @@
 /*global window define setTimeout document*/
 /*jslint forin:true regexp:false sub:true*/
 
-define(['i18n!orion/search/nls/messages', 'require', 'orion/webui/littlelib', 'orion/i18nUtil', 'orion/section', 'orion/commands', 'orion/commandRegistry', 
-	'orion/keyBinding', 'orion/selection', 'orion/explorers/explorer', 'orion/EventTarget', 'orion/globalSearch/advSearchOptContainer', 'orion/webui/splitter'], 
-	function(messages, require, lib, i18nUtil, mSection, mCommands, mCommandRegistry, mKeyBinding, mSelection, mExplorer, EventTarget, mAdvSearchOptContainer, splitter){
+define([
+	'i18n!orion/search/nls/messages',
+	'require',
+	'orion/webui/littlelib',
+	'orion/i18nUtil',
+	'orion/section',
+	'orion/commands',
+	'orion/commandRegistry',
+	'orion/keyBinding',
+	'orion/selection',
+	'orion/explorers/explorer',
+	'orion/EventTarget',
+	'orion/globalSearch/advSearchOptContainer',
+	'orion/webui/splitter'
+],  function(messages, require, lib, i18nUtil, mSection, mCommands, mCommandRegistry, mKeyBinding, mSelection, mExplorer, EventTarget, mAdvSearchOptContainer, splitter){
 
 	/**
 	 * Instantiates the saved search service. This service is used internally by the
@@ -287,7 +299,14 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/webui/littlelib', 'o
 			} else {
 				var sContents = lib.node("searchContent"); //$NON-NLS-0$
 				if(sContents){
-					sContents.innerHTML = "<p>"+ i18nUtil.formatMessage(messages["Save frequently used searches by choosing ${0} shown above."], ["<b>"+"Remember search as"+"</b>"])+"</p>"; //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					var saveSearchTip = document.createElement("p"); //$NON-NLS-0$
+					saveSearchTip.textContent = messages["Save frequently used searches by clicking on the ${0} button above."]; //$NON-NLS-0$
+					var saveLabel = document.createElement("b"); //$NON-NLS-0$
+					saveLabel.textContent = messages["Save"]; //$NON-NLS-0$
+					lib.processDOMNodes(saveSearchTip, [saveLabel]);
+
+					lib.empty(sContents);
+					sContents.appendChild(saveSearchTip);
 				}
 			}
 		}
@@ -319,7 +338,7 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/webui/littlelib', 'o
 		//The vertical splitter has to adjust the top and bottm pane when the outliner is refreshed by the click on browser's refresh.
 		//Otherwise there the bottom pane is a little offset.
 		window.setTimeout(function() { 
-			this._splitter = new splitter.Splitter({node: splitNode, sidePanel: top, mainPanel: bottom, vertical: true});
+			this._splitter = new splitter.Splitter({node: splitNode, sidePanel: top, mainPanel: bottom, toggle: true, vertical: true});
 		}, 100);
 	}
 	SearchBuilder.prototype = /** @lends orion.navoutliner.SearchOutliner.prototype */ {

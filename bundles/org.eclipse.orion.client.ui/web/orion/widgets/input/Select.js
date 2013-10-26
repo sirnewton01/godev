@@ -66,6 +66,20 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 		setSelectedIndex : function setSelectedIndex(index) {
 			this.select.selectedIndex = index;
 		},
+		
+		getSelection: function(){
+			return this.getSelected();
+		},
+		
+		setSelection: function(value){
+			for (var i = 0; i < this.options.length; i++) {
+				if (this.options[i].value === value) {				
+					this.setSelectedIndex(i);
+					return;
+				}
+			}
+			this.setSelectedIndex(0);
+		},
 	
 		change : function change(){
 		

@@ -1,0 +1,17 @@
+{
+	"/plugins":{
+		"plugins/fileClientPlugin.html":true,
+		"plugins/jslintPlugin.html":true,
+		"profile/userservicePlugin.html":true,
+		"plugins/webEditingPlugin.html":true,
+		"plugins/pageLinksPlugin.html":true,
+		"plugins/preferencesPlugin.html":true,
+		"plugins/taskPlugin.html": true,
+		"plugins/csslintPlugin.html": true,
+		"plugins/esprima/esprimaJsContentAssistPlugin.html":true,
+		"shell/plugins/shellPagePlugin.html":true,
+		"search/plugins/searchPagePlugin.html":true,
+		"orion-codemirror/codeMirrorPlugin.html":true,
+		"godev/go-core.html":true
+	}
+}

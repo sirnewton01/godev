@@ -68,6 +68,7 @@ define(['i18n!orion/operations/nls/messages', "orion/Deferred"], function(messag
 					return this._services[i];
 				}
 			}
+			this._operations.remove(location);
 			return new NoMatchingOperationsClient(location);
 		};
 	}
@@ -140,7 +141,7 @@ define(['i18n!orion/operations/nls/messages', "orion/Deferred"], function(messag
 					that.getOperations.bind(that)().then(function(globalOperations){
 						globalOperations.remove(operationLocation);
 					});
-				}, function(progress){return progress;}, function(error){return error;}); //$NON-NLS-0$
+				}, function(error){return error;}, function(progress){return progress;});
 			}
 	};
 	

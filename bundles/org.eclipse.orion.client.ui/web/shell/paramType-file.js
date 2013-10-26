@@ -33,9 +33,6 @@ define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", 
 				promise.resolve({file: {path: this.value}});
 			} else {
 				/* value is an array of nodes */
-				var index = this.typedPath.lastIndexOf(this.shellPageFileService.SEPARATOR, this.typedPath.length - 2);
-				var path = index !== -1 ? this.typedPath.substring(0, index) : "."; //$NON-NLS-0$
-
 				var waitCount = 0;
 				var nodesQueue = this.value.slice(0);
 				var result = [];
@@ -55,16 +52,68 @@ define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", 
 				var processNodesQueue = function() {
 					while (nodesQueue.length > 0) {
 						var node = nodesQueue[0];
+
+						var cwd = this.shellPageFileService.getCurrentDirectory();
+						var cwdPath = cwd.Parents;
+						if ((!cwdPath || cwdPath.length === 0) && cwd.parent) {
+							/* handle file system root and project root cases */
+							cwdPath = [cwd.parent];
+						}
+						cwdPath = cwdPath ? cwdPath.slice(0) : [];
+						if (cwdPath.length > 0) {
+							var parentToPush = cwdPath[cwdPath.length - 1].parent;
+							while (parentToPush) {
+								cwdPath.push(parentToPush);
+								parentToPush = parentToPush.parent;
+							}
+						}
+						cwdPath.splice(0, 0, cwd);
+						var cwdIndex = cwdPath.length - 1;
+
+						var nodePath = node.Parents;
+						if ((!nodePath || nodePath.length === 0) && node.parent) {
+							/* handle file system root and project root cases */
+							nodePath = [node.parent];
+						}
+						nodePath = nodePath ? nodePath.slice(0) : [];
+						if (nodePath.length > 0) {
+							var parentToPush2 = nodePath[nodePath.length - 1].parent;
+							while (parentToPush2) {
+								nodePath.push(parentToPush2);
+								parentToPush2 = parentToPush2.parent;
+							}
+						}
+						nodePath.splice(0, 0, node);
+						var nodeIndex = nodePath.length - 1;
+
+						while (nodeIndex >= 0 && cwdIndex >= 0) {
+							if (nodePath[nodeIndex].Location === cwdPath[cwdIndex].Location) {
+								nodeIndex--;
+								cwdIndex--;
+							} else {
+								break;
+							}
+						}
+
+						var path = "";
+						if (node.Location.indexOf(nodePath[nodeIndex + 1].Location) === 0) {
+							/* typical case */
+							for (var i = 0; i <= cwdIndex; i++) {
+								path += ".." + this.shellPageFileService.SEPARATOR; //$NON-NLS-0$
+							}
+							path += node.Location.substring(nodePath[nodeIndex + 1].Location.length);
+						} else {
+							/*
+							 * node's Location string is not a logical descendent of the closest common
+							 * ancestor, so express its Location absolutely instead of relatively.
+							 */
+							path = node.Location;
+						}
 						var file = {
 							isDirectory: node.Directory,
-							path: path
+							path: path.length ? path : "."	//$NON-NLS-0$
 						};
-						if (node.recursePath) {
-							node.recursePath.forEach(function(current) {
-								file.path += this.shellPageFileService.SEPARATOR + current;
-							}.bind(this));
-						}
-						file.path += this.shellPageFileService.SEPARATOR + node.Name;
+
 						if (node.Directory && this.typeSpec.multiple && this.typeSpec.recurse) {
 							(function(node) {
 								waitCount++;
@@ -72,22 +121,42 @@ define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", 
 									node,
 									function(children) {
 										waitCount--;
-										var recursePath = node.recursePath ? node.recursePath.slice(0) : [];
-										recursePath.push(node.Name);
-										children.forEach(function(current) {
-											current.recursePath = recursePath;
-										});
-										nodesQueue.push.apply(nodesQueue, children);
-										if (nodesQueue.length !== children.length) {
-											/* queue was already being processed, so just let it continue */
-											return;
-										}
 										if (children.length === 0) {
 											resultFn();	/* waitCount may now be 0 */
-										} else {
-											processNodesQueue();
+											return;
 										}
-									},
+
+										var recursePath = node.recursePath ? node.recursePath.slice(0) : [];
+										recursePath.push(node.Name);
+
+										var pushToQueueFn = function(node) {
+											waitCount--;
+											nodesQueue.push(node);
+											if (nodesQueue.length !== 1) {
+												/* queue was already being processed, so just let it continue */
+												return;
+											}
+											processNodesQueue();
+										};
+
+										children.forEach(function(current) {
+											current.recursePath = recursePath;
+											waitCount++;
+											if (current.parent) {
+												/* don't need to retrieve more, so add it immediately */
+												pushToQueueFn(current);
+											} else {
+												this.shellPageFileService.withNode(
+													current.Location,
+													pushToQueueFn,
+													function(error) {
+														waitCount--;
+														resultFn();	/* waitCount may now be 0 */
+													}
+												);
+											}
+										}.bind(this));
+									}.bind(this),
 									function(error) {
 										waitCount--;
 										resultFn();	/* waitCount may now be 0 */

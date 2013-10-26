@@ -4,17 +4,13 @@
 	<div id="staticBanner" class="layoutBlock topRowBanner"> <!-- primaryNav -->
 		<a id="home" class="layoutLeft "></a>
 		<nav id="primaryNav" class="bannerLeftArea" role="navigation">
-			<div class="centralNavigation" id="centralNavigation" tabindex="0" role="button" style="margin-top:0;"></div>
+			<button class="centralNavigation commandSprite core-sprite-hamburger" type="button"id="centralNavigation"></button>
 		</nav>
 		<div class="clear navigationBreadcrumb bannerMiddleArea" >
 			<div id="location" class="currentLocation"></div>
 		</div>
 		<div class="bannerRightArea">
 			<div id="globalActions" class="spacingLeft layoutLeft"></div>
-			<div id="oldRelatedLinks" class="spacingLeft layoutLeft oldRelatedLinks">
-				<span tabindex="0" role="button" id="relatedTrigger" class="dropdownTrigger hidden">${Related}<span class="dropdownArrowDown"></span></span>
-				<ul id="relatedDropdown" class="dropdownMenu" role="menu"></ul>
-			</div>
 			<input type="text" id="search" autocomplete="off" class="layoutLeft spacingLeft searchbox" role="search" style="display:none;">
 			<div id="searchOptions" class="layoutLeft" style="padding-top:1px;display:none;"></div>
 			<div id="userMenu" class="spacingRight layoutRight" style="color:#ccc;">
@@ -28,6 +24,6 @@
 	</div>
 	<div id="notificationArea" class="notificationHide">
 		<div class="layoutLeft" id="notifications" aria-live="assertive" aria-atomic="true"></div>
-		<div class="layoutRight"><button aria-label="Close" class="dismissButton layoutRight core-sprite-close imageSprite" id="closeNotifications"></span></div>
+		<div class="layoutRight"><button aria-label="Close" class="dismissButton layoutRight core-sprite-close imageSprite" type="button" id="closeNotifications"></span></div>
 	</div>
 </header>

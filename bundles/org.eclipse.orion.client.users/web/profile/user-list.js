@@ -87,7 +87,7 @@ define(['i18n!profile/nls/messages', 'require', 'orion/webui/littlelib', 'orion/
 			
 		var deleteCommand = new mCommands.Command({
 			name: messages["Delete User"],
-			image: require.toUrl("images/delete.gif"), //$NON-NLS-0$
+			image: require.toUrl("images/delete.png"), //$NON-NLS-0$
 			id: "eclipse.deleteUser", //$NON-NLS-0$
 			visibleWhen: function(item) {
 				var items = Array.isArray(item) ? item : [item];

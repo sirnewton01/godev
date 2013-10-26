@@ -224,7 +224,7 @@ define(['i18n!orion/sites/nls/messages', 'require', 'orion/Deferred', 'orion/fil
 	 * @class Interface for a service that manages site configurations.
 	 */
 	/**#@+
-	 * @methodOf orion.sites.SiteService.prototype
+	 * @memberOf orion.sites.SiteService.prototype
 	 */
 		/**
 		 * Creates a site configuration.

@@ -37,7 +37,7 @@ eclipse.GitService = (function() {
 		checkGitService : function() {
 		},
 		
-		cloneGitRepository : function(gitName, gitRepoUrl, targetPath, repoLocation, gitSshUsername, gitSshPassword, gitSshKnownHost, privateKey, passphrase, userInfo) {
+		cloneGitRepository : function(gitName, gitRepoUrl, targetPath, repoLocation, gitSshUsername, gitSshPassword, gitSshKnownHost, privateKey, passphrase, userInfo, initProject) {
 			var service = this;
 			var postData = {};
 			if(gitName){
@@ -72,6 +72,9 @@ eclipse.GitService = (function() {
 				if( userInfo.GitName ){
 					postData.GitName = userInfo.GitName;
 				}
+			}
+			if(initProject){
+				postData.initProject = initProject;
 			}
 			//NOTE: require.toURL needs special logic here to handle "gitapi/clone"
 			var gitapiCloneUrl = require.toUrl("gitapi/clone/._"); //$NON-NLS-0$
@@ -623,6 +626,29 @@ eclipse.GitService = (function() {
 				handleAs : "json", //$NON-NLS-0$
 				data: JSON.stringify({
 					"Cherry-Pick" : commitName //$NON-NLS-0$
+				})
+			}).then(function(result) {
+				service._getGitServiceResponse(clientDeferred, result);
+			}, function(error){
+				service._handleGitServiceResponseError(clientDeferred, error);
+			});
+			
+			return clientDeferred;
+		},
+		
+		doRevert : function(gitHeadURI, commitName) {
+			var service = this;
+			
+			var clientDeferred = new Deferred();
+			xhr("POST", gitHeadURI, { 
+				headers : { 
+					"Orion-Version" : "1",
+					"Content-Type" : "charset=UTF-8"
+				},
+				timeout : 15000,
+				handleAs : "json", //$NON-NLS-0$
+				data: JSON.stringify({
+					"Revert" : commitName //$NON-NLS-0$
 				})
 			}).then(function(result) {
 				service._getGitServiceResponse(clientDeferred, result);

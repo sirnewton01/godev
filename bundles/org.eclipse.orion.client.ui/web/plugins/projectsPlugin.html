@@ -19,17 +19,19 @@
 	require(['require', 'orion/plugin'], function(require, PluginProvider) {
 		var headers = {
 			name: "Orion Projects",
-			version: "1.0",
+			version: "2.0",
 			description: "This plugin provides the entry point for Orion project support."
 		};
 	
+	
 		var provider = new PluginProvider(headers);
-		provider.registerService("orion.page.link", {}, {
+		
+		provider.registerService("orion.projects", {}, {
 			nameKey: "Projects",
 			id: "orion.projects",
-			nls: "orion/nls/messages",
-			uriTemplate: "{OrionHome}/projects/project.html"
+			nls: "orion/nls/messages"
 		});
+		
 		provider.connect();
 	});
 	</script>

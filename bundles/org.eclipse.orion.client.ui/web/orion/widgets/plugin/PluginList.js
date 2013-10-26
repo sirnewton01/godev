@@ -82,7 +82,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 							'<div id="pluginCommands" class="pluginCommands layoutRight sectionActions"></div>' + /* pluginCommands */ //$NON-NLS-0$
 						'</div>' + //$NON-NLS-0$
 
-				        '<div class="displaytable layoutBlock">' + //$NON-NLS-0$
+				        '<div class="displaytable layoutBlock sectionTable">' + //$NON-NLS-0$
 							'<div class="plugin-list-container">' + //$NON-NLS-0$
 								'<div class="plugin-list" id="plugin-list" style="overflow:hidden;"></div>' + //$NON-NLS-0$ /* pluginList */
 							'</div>' + //$NON-NLS-0$
@@ -338,12 +338,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 		},
 		
 		getPluginsLink: function( data ){		
-			var uriTemplate = this.pluginsUri;
-			var template = new URITemplate(uriTemplate);
-			var url = decodeURIComponent(template.expand({
-				OrionHome: PageLinks.getOrionHome()
-			}));
-			return url;
+			return this.pluginsUri;
 		},
 
 		pluginError: function( error ){

@@ -22,7 +22,7 @@
 				validationProperties: [
 					{source: "Directory", match: true}
 				],
-				uriTemplate: "{OrionHome}/search/search.html#{Location}",
+				uriTemplate: "{+OrionHome}/search/search.html#{,Location}",
 				forceSingleItem: true
 			});
 			provider.connect();

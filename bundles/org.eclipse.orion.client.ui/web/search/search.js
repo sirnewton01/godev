@@ -13,9 +13,9 @@
 /*browser:true*/
 
 define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility', 'orion/bootstrap', 'orion/status', 'orion/progress','orion/dialogs',
-        'orion/commandRegistry', 'orion/favorites', 'orion/searchOutliner', 'orion/searchClient', 'orion/fileClient', 'orion/operationsClient', 'orion/searchResults', 'orion/globalCommands', 
+        'orion/commandRegistry', 'orion/searchOutliner', 'orion/searchClient', 'orion/fileClient', 'orion/operationsClient', 'orion/searchResults', 'orion/globalCommands', 
         'orion/contentTypes', 'orion/searchUtils', 'orion/PageUtil','orion/webui/littlelib'], 
-		function(messages, require, mBrowserCompatibility, mBootstrap, mStatus, mProgress, mDialogs, mCommandRegistry, mFavorites, mSearchOutliner, 
+		function(messages, require, mBrowserCompatibility, mBootstrap, mStatus, mProgress, mDialogs, mCommandRegistry, mSearchOutliner, 
 				mSearchClient, mFileClient, mOperationsClient, mSearchResults, mGlobalCommands, mContentTypes, mSearchUtils, PageUtil, lib) {
 	function makeHref(fileClient, seg, location, searchParams, searcher){
 		var searchLocation = (!location || location === "" || location === "root") ? searcher.getSearchRootLocation() : location; //$NON-NLS-0$
@@ -25,7 +25,7 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 	}
 
 	function setPageInfo(serviceRegistry, fileClient, commandService, searcher, searchResultsGenerator, searchBuilder, searchParams, progress){
-		var searchLoc = searchParams.resource;
+		var searchLoc = searchParams.useRootLocation ? fileClient.fileServiceRootURL(searchParams.resource) : searchParams.resource;
 		var title = searchParams.replace ? messages["Replace All Matches"] : messages["Search Results"];
 		if(searchLoc){
 			if(searchLoc === fileClient.fileServiceRootURL(searchLoc)){
@@ -66,18 +66,17 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 		new mStatus.StatusReportingService(serviceRegistry, operationsClient, "statusPane", "notifications", "notificationArea"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		var commandRegistry = new mCommandRegistry.CommandRegistry({ });
 		var progress = new mProgress.ProgressService(serviceRegistry, operationsClient, commandRegistry);
-		// favorites and saved searches
-		new mFavorites.FavoritesService({serviceRegistry: serviceRegistry});
+		// saved searches
 		new mSearchOutliner.SavedSearches({serviceRegistry: serviceRegistry});
 
 		var fileClient = new mFileClient.FileClient(serviceRegistry);
-		var contentTypeService = new mContentTypes.ContentTypeService(serviceRegistry);
+		var contentTypeService = new mContentTypes.ContentTypeRegistry(serviceRegistry);
 		var searcher = new mSearchClient.Searcher({serviceRegistry: serviceRegistry, commandService: commandRegistry, fileService: fileClient});
 		
 		var searchOutliner = new mSearchOutliner.SearchOutliner({parent: "searchProgress", serviceRegistry: serviceRegistry, commandService: commandRegistry}); //$NON-NLS-0$
 		var searchBuilder = new mSearchOutliner.SearchBuilder({parent: "searchBuilder", searcher: searcher, serviceRegistry: serviceRegistry, commandService: commandRegistry}); //$NON-NLS-0$
 		
-		mGlobalCommands.generateBanner("orion-searchResults", serviceRegistry, commandRegistry, preferences, searcher, searcher, null, null); //$NON-NLS-0$
+		mGlobalCommands.generateBanner("orion-searchResults", serviceRegistry, commandRegistry, preferences, searcher, searcher, null, false); //$NON-NLS-0$
 		
 		var searchResultsGenerator = new mSearchResults.SearchResultsGenerator(serviceRegistry, "results", commandRegistry, fileClient, searcher, false/*crawling*/); //$NON-NLS-0$
 

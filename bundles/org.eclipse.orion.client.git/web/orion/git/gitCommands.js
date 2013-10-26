@@ -179,6 +179,15 @@ var exports = {};
 					}
 					exports.handleKnownHostsError(serviceRegistry, jsonData.JsonData, options, callee);
 					return;
+				} else if(jsonData.JsonData && jsonData.JsonData.Host){
+					if(jsonData.JsonData){
+						options.errordata = jsonData.JsonData;
+					}
+					if(jsonData.failedOperation){
+						options.failedOperation = jsonData.failedOperation;
+					}
+					exports.handleSshAuthenticationError(serviceRegistry, jsonData.JsonData, options, callee, title);
+					return;
 				}
 			default:
 				var display = [];
@@ -702,7 +711,7 @@ var exports = {};
 			tooltip: messages["Show the repository folder in the file navigator"],
 			id : "eclipse.openCloneContent", //$NON-NLS-0$
 			hrefCallback : function(data) {
-				return require.toUrl("navigate/table.html")+"#" + data.items.ContentLocation+"?depth=1"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				return require.toUrl("edit/edit.html")+"#" + data.items.ContentLocation+"?depth=1"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			},
 			visibleWhen : function(item) {
 				if (!item.ContentLocation)
@@ -734,6 +743,8 @@ var exports = {};
 
 		var compareWithWorkingTree = new mCommands.Command({
 			name : messages["Compare With Working Tree"],
+			imageClass: "git-sprite-compare", //$NON-NLS-0$
+			spriteClass: "gitCommandSprite",
 			id : "eclipse.compareWithWorkingTree", //$NON-NLS-0$
 			hrefCallback : function(data) {
 				return mCompareUtils.generateCompareHref(data.items.DiffLocation, {});
@@ -747,6 +758,8 @@ var exports = {};
 		var openGitCommit = new mCommands.Command({
 			name : messages["Open"],
 			id : "eclipse.openGitCommit", //$NON-NLS-0$
+			imageClass: "git-sprite-open", //$NON-NLS-0$
+			spriteClass: "gitCommandSprite",
 			hrefCallback: function(data) {
 				return require.toUrl("edit/edit.html")+"#" + data.items.ContentLocation; //$NON-NLS-1$ //$NON-NLS-0$
 			},
@@ -1620,7 +1633,6 @@ var exports = {};
 											});
 										}
 										
-										dialog.startup();
 										dialog.show();
 									}
 								);
@@ -1709,8 +1721,7 @@ var exports = {};
 			spriteClass: "gitCommandSprite", //$NON-NLS-0$
 			callback: function(data) {
 				var item = data.items;
-				if(confirm(messages["The content of your active branch will be replaced with "] + item.Name + ". " + //$NON-NLS-1$
-						messages["All unstaged and staged changes will be discarded and cannot be recovered. Are you sure?"])){
+				if(confirm(i18nUtil.formatMessage(messages["GitResetIndexConfirm"], item.Name))) { //$NON-NLS-0$
 					var service = serviceRegistry.getService("orion.git.provider"); //$NON-NLS-0$
 					var progressService = serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
 					var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
@@ -1884,8 +1895,7 @@ var exports = {};
 				progress.progress(service.doCherryPick(headLocation, item.Name), "Cherry picking " + item.Name).then(function(jsonData) {
 					var display = [];
 
-					// TODO we should not craft locations in the
-					// code
+					// TODO we should not craft locations in the code
 					var statusLocation = item.Location.replace("commit/" + item.Name, "status"); //$NON-NLS-1$ //$NON-NLS-0$
 
 					if (jsonData.Result === "OK") { //$NON-NLS-0$
@@ -1903,9 +1913,11 @@ var exports = {};
 					else if (jsonData.Result === "CONFLICTING") { //$NON-NLS-0$
 						display.Severity = "Warning"; //$NON-NLS-0$
 						display.HTML = true;
-						display.Message = "<span>" + jsonData.Result + messages[". Some conflicts occurred"] + //$NON-NLS-0$
-						+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-						+ statusLocation +"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+						var link = i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
+						+ statusLocation +"\">"+messages['Git Status page']+"</a>")+"</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+						
+						display.Message = "<span>" + jsonData.Result + messages[". Some conflicts occurred"] + link; //$NON-NLS-0$
+						
 					} else if (jsonData.Result === "FAILED") { //$NON-NLS-0$
 						display.Severity = "Error"; //$NON-NLS-0$
 						display.HTML = true;
@@ -1925,7 +1937,7 @@ var exports = {};
 								}
 						}
 						display.Message += i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-						+ statusLocation +"\">"+messages['Git Status page']+"</a>")+".</span>";					} //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+						+ statusLocation +"\">"+messages['Git Status page']+"</a>")+"</span>";					} //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
 					// handle other cases
 					else {
 						display.Severity = "Warning"; //$NON-NLS-0$
@@ -1941,6 +1953,54 @@ var exports = {};
 			}
 		});
 		commandService.addCommand(cherryPickCommand);
+		
+		var revertCommand = new mCommands.Command({
+			name : messages["Revert"],
+			tooltip: messages["Revert changes introduced by the commit into your active branch"],
+			id : "eclipse.orion.git.revert", //$NON-NLS-0
+			imageClass: "git-sprite-reset", //$NON-NLS-0$ //TODO: Change to custom revert icon when provided
+			spriteClass: "gitCommandSprite", //$NON-NLS-0$
+			callback: function(data) {
+				var item = data.items;
+				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
+				var service = serviceRegistry.getService("orion.git.provider"); //$NON-NLS-0$
+				var headLocation = item.Location.replace(item.Name, "HEAD"); //$NON-NLS-0$
+				progress.progress(service.doRevert(headLocation, item.Name), "Reverting " + item.Name).then(function(jsonData) {
+					var display = [];
+
+					// TODO we should not craft locations in the code
+					var statusLocation = item.Location.replace("commit/" + item.Name, "status"); //$NON-NLS-1$ //$NON-NLS-0$
+
+					if (jsonData.Result === "OK") { //$NON-NLS-0$
+						// operation succeeded
+						display.Severity = "Ok"; //$NON-NLS-0$
+						display.HTML = false;
+						display.Message = jsonData.Result;
+					}
+					// handle special cases
+					else if (jsonData.Result === "FAILURE") { //$NON-NLS-0$
+						var link = i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
+						+ statusLocation +"\">"+messages['Git Status page']+"</a>")+"</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+					
+						display.Severity = "Warning"; //$NON-NLS-0$
+						display.HTML = true;
+						display.Message = "<span>" + jsonData.Result + messages[". Could not revert into active branch"] + link; //$NON-NLS-0$
+					} 
+					// handle other cases
+					else {
+						display.Severity = "Warning"; //$NON-NLS-0$
+						display.HTML = false;
+						display.Message = jsonData.Result;
+					}
+					serviceRegistry.getService("orion.page.message").setProgressResult(display); //$NON-NLS-0$
+				}, displayErrorOnStatus);
+
+			},
+			visibleWhen : function(item) {
+				return item.Type === "Commit"; //$NON-NLS-0$
+			}
+		});
+		commandService.addCommand(revertCommand);
 	};
 	
 
@@ -2079,13 +2139,8 @@ var exports = {};
 
 											fileClient.write(repoJson.Children[0].ContentLocation + '.git/.projectInfo', pDescContent).then(
 												function(){
-													var templateString = require.toUrl("edit/edit.html") + "#{,resource,params*}"; //$NON-NLS-1$ //$NON-NLS-0$
-													window.location = new URITemplate(templateString).expand({
-														resource: "", //$NON-NLS-0$
-														params: {
-															navigate: repoJson.Children[0].ContentLocation + "?depth=1"
-														}
-													});
+													var editLocation = require.toUrl("edit/edit.html") + "#" + repoJson.Children[0].ContentLocation + "?depth=1"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+													window.location = editLocation;
 												}
 											);
 										}
@@ -2565,13 +2620,6 @@ var exports = {};
 					}	
 				};
 
-				if (!data.parameters.optionsRequested && !data.parameters.valueFor("commitName")) {
-					// Workaround: if no data, this command was triggered by a keybinding. Invoke ourself through the commandRegistry to
-					// get a parameter prompt.
-					// See https://bugs.eclipse.org/bugs/show_bug.cgi?id=410661
-					commandService.runCommand("eclipse.orion.git.openCommitCommand");
-					return;
-				}
 				if (data.items.Type === "Clone") { //$NON-NLS-0$
 					var repositories = [data.items];
 					openCommit(repositories);
@@ -2732,8 +2780,8 @@ var exports = {};
 			 {hasOptionalParameters: true});
 		
 		var commitCommand = new mCommands.Command({
-			name: "Commit", //$NON-NLS-0$
-			tooltip: "Commit", //$NON-NLS-0$
+			name: messages["Commit"],
+			tooltip: messages["Commit"],
 			id: "eclipse.orion.git.commitCommand", //$NON-NLS-0$
 			parameters: commitMessageParameters,
 			callback: function(data) {
@@ -2753,31 +2801,53 @@ var exports = {};
 					);
 				};
 				
+				var gatherCommitInformation = function(body, config){
+					for (var i=0; i < config.length; i++){
+						if (config[i].Key === "user.name"){ //$NON-NLS-0$
+							body.CommitterName = config[i].Value;
+							body.AuthorName = config[i].Value;
+						} else if (config[i].Key === "user.email"){ //$NON-NLS-0$
+							body.CommitterEmail = config[i].Value;
+							body.AuthorEmail = config[i].Value;
+						}					
+					}
+					
+					if (body.Message && body.CommitterName && body.CommitterEmail && !data.parameters.optionsRequested) {
+						commitFunction(body);
+					} else {
+						var dialog = new mCommit.CommitDialog({
+							body: body,
+							func: commitFunction
+						});
+	
+						dialog.show();
+					}
+				};
+				
 				var body = {};
 				body.Message = data.parameters.valueFor("name"); //$NON-NLS-0$
 				body.Amend = data.parameters.valueFor("amend"); //$NON-NLS-0$
 				
 				var config = item.Clone.Config;
-				for (var i=0; i < config.length; i++){
-					if (config[i].Key === "user.name"){ //$NON-NLS-0$
-						body.CommitterName = config[i].Value;
-						body.AuthorName = config[i].Value;
-					} else if (config[i].Key === "user.email"){ //$NON-NLS-0$
-						body.CommitterEmail = config[i].Value;
-						body.AuthorEmail = config[i].Value;
-					}					
-				}
-				
-
-				if (body.Message && body.CommitterName && body.CommitterEmail && !data.parameters.optionsRequested) {
-					commitFunction(body);
+				if(body.Amend && !body.Message){
+					var progressService = serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
+					var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
+					var deferred = progress.progress(serviceRegistry.getService("orion.git.provider").doGitLog(item.CommitLocation + "?page=1&pageSize=1"), messages["Committing changes"]); //$NON-NLS-0$ 
+					progressService.createProgressMonitor(
+						deferred,
+						messages["Committing changes"]);
+					deferred.then(
+						function(resp){
+							// use the last commit message
+							body.Message = resp.Children[0].Message;
+							gatherCommitInformation(body, config);
+						}, function(error){
+							//unexpected error, fall back to default
+							gatherCommitInformation(body, config);
+						}
+					);
 				} else {
-					var dialog = new mCommit.CommitDialog({
-						body: body,
-						func: commitFunction
-					});
-
-					dialog.show();
+					gatherCommitInformation(body, config);
 				}
 			},
 			visibleWhen: function(item) {

@@ -13,8 +13,8 @@
 /*jslint browser:true*/
 define(['orion/browserCompatibility', 'orion/bootstrap', 'orion/status', 'orion/progress', 'orion/commandRegistry', 'orion/fileClient', 'orion/operationsClient',
 		'orion/searchClient', 'orion/selection', 'orion/dialogs', 'orion/globalCommands', 'orion/sites/siteUtils', 'orion/sites/siteCommands', 
-		'orion/sites/sitesExplorer'], 
-	function(mBrowserCompatibility, mBootstrap, mStatus, mProgress, mCommandRegistry, mFileClient, mOperationsClient, mSearchClient, mSelection, mDialogs, mGlobalCommands, mSiteUtils, mSiteCommands, SitesExplorer) {
+		'orion/sites/sitesExplorer', 'i18n!orion/sites/nls/messages'], 
+	function(mBrowserCompatibility, mBootstrap, mStatus, mProgress, mCommandRegistry, mFileClient, mOperationsClient, mSearchClient, mSelection, mDialogs, mGlobalCommands, mSiteUtils, mSiteCommands, SitesExplorer, messages) {
 		mBootstrap.startup().then(function(core) {
 			var serviceRegistry = core.serviceRegistry;
 			var preferences = core.preferences;
@@ -43,7 +43,7 @@ define(['orion/browserCompatibility', 'orion/bootstrap', 'orion/status', 'orion/
 			}
 			
 			mGlobalCommands.generateBanner("orion-sites", serviceRegistry, commandRegistry, preferences, searcher); //$NON-NLS-0$
-			mGlobalCommands.setPageTarget({task: "Sites"});
+			mGlobalCommands.setPageTarget({task: messages["Sites"]});
 			
 			var explorer = new SitesExplorer(serviceRegistry, selection, commandRegistry, "table"); //$NON-NLS-0$
 			createCommands();

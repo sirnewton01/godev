@@ -31,11 +31,11 @@ function(messages, require, lib, i18nUtil, mCommands, mCommandRegistry, mKeyBind
 		col.classList.add("mainNavColumn"); //$NON-NLS-0$
 		col.classList.add("singleNavColumn"); //$NON-NLS-0$
 		if (item.directory) {
-			link = mNavRenderer.createLink(require.toUrl("navigate/table.html"), { Name: item.name, ChildrenLocation: item.path, Directory: true }, this.commandService, this.contentTypeService); //$NON-NLS-0$
+			link = mNavRenderer.createLink(require.toUrl("edit/edit.html"), { Name: item.name, ChildrenLocation: item.path, Directory: true }, this.commandService, this.contentTypeService); //$NON-NLS-0$
 		} else if (item.path) {
 			link = mNavRenderer.createLink("", { Name: item.name, Location: item.path }, this.commandService, this.contentTypeService); //$NON-NLS-0$
 		} else if (typeof(item.getProperty) === "function" && item.getProperty("Name") && item.getProperty("top")) { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-			href = require.toUrl("navigate/table.html") + "#" + item.getProperty("top"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			href = require.toUrl("edit/edit.html") + "#" + item.getProperty("top"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			clazz = "navlinkonpage"; //$NON-NLS-0$
 			name = item.getProperty("Name"); //$NON-NLS-0$
 		} else {
@@ -60,7 +60,7 @@ function(messages, require, lib, i18nUtil, mCommands, mCommandRegistry, mKeyBind
 		this.registry = serviceRegistry;
 		this.renderer = new NavOutlineRenderer({checkbox: false}, this);
 		this.renderer.commandService = commandService;
-		this.renderer.contentTypeService = serviceRegistry.getService("orion.core.contenttypes");
+		this.renderer.contentTypeService = serviceRegistry.getService("orion.core.contentTypeRegistry");
 	}
 	NavOutlineExplorer.prototype = mExplorer.Explorer.prototype;	
 	NavOutlineExplorer.prototype.constructor = NavOutlineExplorer;

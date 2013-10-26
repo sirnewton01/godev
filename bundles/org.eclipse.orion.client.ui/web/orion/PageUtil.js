@@ -15,6 +15,13 @@ define(function(){
 
 	var legalURICharacters = /^(?:[a-zA-Z0-9-_.!~*'()#;,\/?:@&=+$\[\]]|%[0-9A-F][0-9A-F])*$/;
 	
+	function hash() {
+		/* See https://bugzilla.mozilla.org/show_bug.cgi?id=483304 */
+		var result = window.location.href.split("#")[1]; //$NON-NLS-0$
+		result = result ? "#" + result : ""; //$NON-NLS-0$
+		return result;
+	}
+	
 	function matchResourceParameters(optURIText) {
 		optURIText = optURIText || window.location.toString();
 		var result = {resource:""};
@@ -70,6 +77,7 @@ define(function(){
 		}
 	}
 	return {
+		hash: hash,
 		matchResourceParameters: matchResourceParameters,
 		validateURLScheme: validateURLScheme	
 	};

@@ -337,10 +337,6 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 		document.getElementById('newUserHeaderShown').style.display = '';
 		document.getElementById('orionReset').style.visibility = 'hidden';
 	}
-
-	function openServerInformation() {
-		window.open("/mixloginstatic/ServerStatus.html");
-	}
 	
 	function revealLogin( event ){
 		if( handleSelectionEvent( event ) ){
@@ -463,10 +459,6 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 				lib.stop(event);
 			}
 		});
-
-		document.getElementById("orionInfoArea").addEventListener("click", openServerInformation);
-
-		document.getElementById("orionInfoArea").onclick = openServerInformation;
 
 		document.getElementById("resetUserLink").addEventListener("click",  revealResetUser);
 

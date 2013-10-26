@@ -14,14 +14,14 @@
 define([
 		'i18n!orion/nls/messages', 'require', 'orion/commonHTMLFragments', 'orion/keyBinding', 'orion/commandRegistry', 'orion/commands',
 		'orion/parameterCollectors', 'orion/extensionCommands', 'orion/uiUtils', 'orion/keyBinding', 'orion/breadcrumbs', 'orion/webui/littlelib',
-		'orion/webui/splitter', 'orion/webui/dropdown', 'orion/webui/tooltip', 'orion/favorites', 'orion/contentTypes', 'orion/URITemplate',
+		'orion/webui/splitter', 'orion/webui/dropdown', 'orion/webui/tooltip', 'orion/contentTypes', 'orion/URITemplate',
 		'orion/PageUtil', 'orion/widgets/themes/ThemePreferences', 'orion/widgets/themes/container/ThemeData', 'orion/Deferred',
 		'orion/widgets/UserMenu', 'orion/PageLinks', 'orion/webui/dialogs/OpenResourceDialog', 'text!orion/banner/banner.html',
 		'text!orion/banner/footer.html', 'text!orion/banner/toolbar.html', 'orion/widgets/input/DropDownMenu', 'orion/widgets/input/GroupedContent',
 		'orion/util', 'orion/customGlobalCommands', 'orion/fileClient'
 	],
 	function (messages, require, commonHTML, KeyBinding, mCommandRegistry, mCommands, mParameterCollectors, mExtensionCommands, mUIUtils, mKeyBinding,
-		mBreadcrumbs, lib, mSplitter, mDropdown, mTooltip, mFavorites, mContentTypes, URITemplate, PageUtil, mThemePreferences, mThemeData, Deferred,
+		mBreadcrumbs, lib, mSplitter, mDropdown, mTooltip, mContentTypes, URITemplate, PageUtil, mThemePreferences, mThemeData, Deferred,
 		mUserMenu, PageLinks, openResource, BannerTemplate, FooterTemplate, ToolbarTemplate, DropDownMenu, GroupedContent, util, mCustomGlobalCommands, mFileClient) {
 	/**
 	 * This class contains static utility methods. It is not intended to be instantiated.
@@ -109,10 +109,7 @@ define([
 				position: ["right"] //$NON-NLS-0$
 			});
 
-			var navDropDown = new DropDownMenu('centralNavigation', {
-				label: 'Develop',
-				icon: 'commandSprite core-sprite-hamburger'
-			});
+			var navDropDown = new DropDownMenu('primaryNav', 'centralNavigation');
 			var groupedContent = new GroupedContent();
 			navDropDown.addContent(groupedContent.getContentPane());
 		},
@@ -221,11 +218,11 @@ define([
 			if (contentTypesCache) {
 				return contentTypesCache;
 			}
-			var contentTypeService = serviceRegistry.getService("orion.core.contenttypes"); //$NON-NLS-0$
+			var contentTypeService = serviceRegistry.getService("orion.core.contentTypeRegistry"); //$NON-NLS-0$
 			// TODO Shouldn't really be making service selection decisions at this level. See bug 337740
 			if (!contentTypeService) {
-				contentTypeService = new mContentTypes.ContentTypeService(serviceRegistry);
-				contentTypeService = serviceRegistry.getService("orion.core.contenttypes"); //$NON-NLS-0$
+				contentTypeService = new mContentTypes.ContentTypeRegistry(serviceRegistry);
+				contentTypeService = serviceRegistry.getService("orion.core.contentTypeRegistry"); //$NON-NLS-0$
 			}
 			return contentTypeService.getContentTypes().then(function (ct) {
 				contentTypesCache = ct;
@@ -456,6 +453,18 @@ define([
 		}
 	}
 
+	function boundingNode(node) {
+		var style = window.getComputedStyle(node, null);
+		if (style === null) {
+			return node;
+		}
+		var position = style.getPropertyValue("position"); //$NON-NLS-0$
+		if (position === "absolute" || !node.parentNode || node === document.body) { //$NON-NLS-0$
+			return node;
+		}
+		return boundingNode(node.parentNode);
+	}
+
 	function getToolbarElements(toolNode) {
 		var elements = {};
 		var toolbarNode = null;
@@ -487,10 +496,10 @@ define([
 			if (toolbarNode.parentNode) {
 				elements.toolbarTarget = lib.$(".toolbarTarget", toolbarNode.parentNode); //$NON-NLS-0$
 				if (elements.toolbarTarget) {
-					var bounds = lib.bounds(toolbarNode);
-					// assumes that there is never anything besides notifications and slideout between toolbar and its target 
-					// see https://bugs.eclipse.org/bugs/show_bug.cgi?id=391596
-					elements.toolbarTargetY = bounds.height + 1;
+					var bounds = lib.bounds(elements.toolbarTarget);
+					var parentBounds = lib.bounds(boundingNode(elements.toolbarTarget.parentNode));
+					elements.toolbarTargetY = bounds.top - parentBounds.top;
+					elements.toolbar = toolbarNode;
 				}
 			}
 		}
@@ -512,20 +521,13 @@ define([
 			if (heightExtras > 0) {
 				heightExtras += 8; // padding
 			}
-			elements.toolbarTarget.style.top = elements.toolbarTargetY + heightExtras + "px"; //$NON-NLS-0$
-			elements.toolbarTarget.style.bottom = 0;
+			if (heightExtras) {
+				elements.toolbarTarget.style.top = elements.toolbarTargetY + heightExtras + "px"; //$NON-NLS-0$
+				elements.toolbar.style.paddingBottom = heightExtras + "px"; //$NON-NLS-0$ 
+			} else {
+				elements.toolbarTarget.style.top = elements.toolbar.style.paddingBottom = "";
+			}
 		}
-	}
-
-	/*
-	 * This function adds a settings dialog to a page. It adds it so that a settings gear will appear at the right hand side
-	 */
-	function addSettings(settings) {
-		var navDropDown = new DropDownMenu('settingsTab', {
-			label: 'Develop',
-			icon: 'imageSprite core-sprite-wrench'
-		}, false);
-		navDropDown.updateContent = settings.updateContent.bind(settings);
 	}
 
 	var mainSplitter = null;
@@ -539,8 +541,17 @@ define([
 	 *
 	 * @name orion.globalCommands#generateBanner
 	 * @function
+	 * 
+	 * @param parentId
+	 * @param serviceRegistry
+	 * @param commandRegistry
+	 * @param prefsService
+	 * @param searcher
+	 * @param handler
+	 * @param editor
+	 * @param {Boolean} closeSplitter true to make the splitter's initial state "closed".
 	 */
-	function generateBanner(parentId, serviceRegistry, commandRegistry, prefsService, searcher, handler, /* optional */ editor) {
+	function generateBanner(parentId, serviceRegistry, commandRegistry, prefsService, searcher, handler, /* optional */ editor, closeSplitter) {
 		new mThemePreferences.ThemePreferences(prefsService, new mThemeData.ThemeData()).apply();
 
 		var parent = lib.node(parentId);
@@ -563,7 +574,7 @@ define([
 		// TODO not entirely happy with this. Dynamic behavior that couldn't be in the html template, maybe it could be
 		// dynamically bound in a better way like we do with NLS strings
 		var home = lib.node("home"); //$NON-NLS-0$
-		home.href = require.toUrl("navigate/table.html"); //$NON-NLS-0$
+		home.href = require.toUrl("edit/edit.html"); //$NON-NLS-0$
 		home.setAttribute("aria-label", messages['Orion Home']); //$NON-NLS-1$ //$NON-NLS-0$
 		var progressPane = lib.node("progressPane"); //$NON-NLS-0$
 		progressPane.src = require.toUrl("images/none.png"); //$NON-NLS-0$
@@ -578,6 +589,15 @@ define([
 			closeNotification.setAttribute("aria-label", messages['Close notification']); //$NON-NLS-1$ //$NON-NLS-0$
 		}
 
+		//Hack for FF17 Bug#415176
+		if (util.isFirefox <= 17) {
+			var staticBanner = lib.node("staticBanner"); //$NON-NLS-0$
+			if (staticBanner) {
+				staticBanner.style.width = "100%"; //$NON-NLS-0$
+				staticBanner.style.MozBoxSizing = "border-box"; //$NON-NLS-0$
+			}
+		}
+		
 		var footer = lib.node("footer"); //$NON-NLS-0$
 		if (footer) {
 			footer.innerHTML = FooterTemplate;
@@ -621,14 +641,12 @@ define([
 					side: side,
 					main: main
 				};
-				// For any page that defines the splitter style as "left:0%", we treate it as a collasped left pane as default.
-				var closeByDefault = (splitNode.style && splitNode.style.left === "0%"); //$NON-NLS-0$
 				mainSplitter.splitter = new mSplitter.Splitter({
 					node: splitNode,
 					sidePanel: side,
 					mainPanel: main,
 					toggle: true,
-					closeByDefault: closeByDefault
+					closeByDefault: closeSplitter
 				});
 				var toggleSidePanelCommand = new mCommands.Command({
 					name: messages["Toggle side panel"],
@@ -645,10 +663,7 @@ define([
 				if (editor) {
 					mainSplitter.splitter.addResizeListener(function (node) {
 						if (editor && node === main) {
-							var textView = editor.getTextView();
-							if (textView) {
-								textView.resize();
-							}
+							editor.resize();
 						}
 					});
 				}
@@ -657,46 +672,6 @@ define([
 
 		// Assemble global commands, those that could be available from any page due to header content or common key bindings.
 
-		// make favorite
-		var favoriteCommand = new mCommands.Command({
-			name: messages["Make Favorite"],
-			tooltip: messages['Add to the favorites list'],
-			imageClass: "core-sprite-favorite", //$NON-NLS-0$
-			id: "orion.makeFavorite", //$NON-NLS-0$
-			visibleWhen: function (item) {
-				var items = Array.isArray(item) ? item : [item];
-				if (items.length === 0) {
-					return false;
-				}
-				for (var i = 0; i < items.length; i++) {
-					if (!items[i].Location) {
-						return false;
-					}
-				}
-				return true;
-			},
-			callback: function (data) {
-				var items = Array.isArray(data.items) ? data.items : [data.items];
-				var favService = serviceRegistry.getService("orion.core.favorite"); //$NON-NLS-0$
-				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
-				var doAdd = function (item) {
-					return function (result) {
-						if (!result) {
-							progress.progress(favService.makeFavorites(item), "Making favorite " + item.Name);
-						} else {
-							serviceRegistry.getService("orion.page.message").setMessage(item.Name + messages[' is already a favorite.'], 2000); //$NON-NLS-0$
-						}
-					};
-				};
-				for (var i = 0; i < items.length; i++) {
-					var item = items[i];
-					progress.progress(favService.hasFavorite(item.ChildrenLocation || item.Location), "Checking favorite " + item.Name).then(
-						doAdd(item));
-				}
-			}
-		});
-		commandRegistry.addCommand(favoriteCommand);
-
 		// open resource
 		var showingResourceDialog = false;
 		var openResourceDialog = function (searcher, serviceRegistry, /* optional */
@@ -704,25 +679,15 @@ define([
 			if (showingResourceDialog) {
 				return;
 			}
-			var favoriteService = serviceRegistry.getService("orion.core.favorite"); //$NON-NLS-0$
 			var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
-			// TODO Shouldn't really be making service selection decisions at this level. See bug 337740
-			if (!favoriteService) {
-				favoriteService = new mFavorites.FavoritesService({
-					serviceRegistry: serviceRegistry
-				});
-				// service must be accessed via the registry so we get async behaviour
-				favoriteService = serviceRegistry.getService("orion.core.favorite"); //$NON-NLS-0$
-			}
 			var dialog = new openResource.OpenResourceDialog({
 				searcher: searcher,
 				progress: progress,
 				searchRenderer: searcher.defaultRenderer,
-				favoriteService: favoriteService,
 				onHide: function () {
 					showingResourceDialog = false;
-					if (editor && editor.getTextView()) {
-						editor.getTextView().focus();
+					if (editor) {
+						editor.focus();
 					}
 				}
 			});
@@ -762,8 +727,8 @@ define([
 					footer.style.visibility = "hidden"; //$NON-NLS-0$
 					content.classList.add("content-fixedHeight-maximized"); //$NON-NLS-0$
 				}
-				if (editor && editor.getTextView()) {
-					editor.getTextView().resize();
+				if (editor) {
+					editor.resize();
 				}
 				return true;
 			}
@@ -854,7 +819,7 @@ define([
 				this._keyAssistContents.scrollTop = 0;
 				this._idCount = 0;
 
-				if (editor && editor.getTextView()) {
+				if (editor && editor.getTextView && editor.getTextView()) {
 					var textView = editor.getTextView();
 					// Remove actions without descriptions
 					var editorActions = textView.getActions(true).filter(function (element) {
@@ -970,6 +935,9 @@ define([
 				}.bind(this), 100);
 			},
 			hide: function () {
+				if (!this.isVisible()) {
+					return;
+				}
 				var activeElement = document.activeElement;
 				var keyAssistDiv = this._keyAssistDiv;
 				var hasFocus = keyAssistDiv === activeElement || (keyAssistDiv.compareDocumentPosition(activeElement) & 16) !== 0;
@@ -1020,6 +988,9 @@ define([
 				}
 			},
 			show: function () {
+				if (this.isVisible()) {
+					return;
+				}
 				this._previousActiveElement = document.activeElement;
 				this.createContents();
 				this._keyAssistContents.style.height = Math.floor(this._keyAssistDiv.parentNode.clientHeight * 0.75) + "px"; //$NON-NLS-0$
@@ -1081,7 +1052,7 @@ define([
 			editor.getTextView().setKeyBinding(new KeyBinding.KeyBinding(191, false, true, !util.isMac, util.isMac), keyAssistCommand.id);
 			editor.getTextView().setAction(keyAssistCommand.id, keyAssistCommand.callback, keyAssistCommand);
 		};
-		if (editor) {
+		if (editor && editor.getTextView) {
 			if (editor.getTextView()) {
 				addKeyAssistAction();
 			} else {
@@ -1135,7 +1106,6 @@ define([
 
 	// return the module exports
 	return {
-		addSettings: addSettings,
 		generateBanner: generateBanner,
 		getToolbarElements: getToolbarElements,
 		getMainSplitter: getMainSplitter,

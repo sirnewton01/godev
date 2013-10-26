@@ -7,7 +7,11 @@ There are certain advantages of a web UI in this case
 
 * Remote access through your web browser (no extra install required)
 * OS independent GUI (Go has no standard cross-platform library)
-* Hosted Go development environment
+* Hosted Go development environments
+
+
+Where possible godev aims to reuse existing tools to provide an integrated experience. Not every tool needs to be installed in order to get a basic editing, 
+navigation and execution environment. This helps to keep the IDE bloat to a minimum as well as promote existing standalone tools.
 
 # The Plan
 
@@ -29,6 +33,11 @@ Areas explored:
     + Create console and markers for specific compile errors
 * Run
     + Run and manage running Go process (output buffer, input, stop)
+* Go test
+    + Run a package's go test suite and report back results in a table/tree
+* Contextual content assist
+    + Content assists based on the return value of a function call
+    + Content assists based on the other functions in the current file and local GOPATH packages 
 
 New areas to explore:
 
@@ -36,11 +45,6 @@ New areas to explore:
     + Manage push/pull/commit/add
 * RTC SCM Integration
     + Manage pending changes, check-ins, deliveries
-* Go test
-    + Run a package's go test suite and report back results in a table/tree
-* Contextual content assist
-    + Content assists based on the return value of a function call
-    + Content assists based on the other functions in the current file and local GOPATH packages 
 
 # Screenshots
 
@@ -105,3 +109,19 @@ $ export GOCERTFILE=/path/to/my/cert.pem
 $ export GOKEYFILE=/path/to/my/key.pem
 
 These variables can be set in the same place you set your GOPATH and PATH variables so that they are set automatically every time you run the tool.
+
+# Debugging
+
+You can debug your applications within godev with the godbg application. Go get it so that you can debug inside your godev session.
+
+$ go get github.com/sirnewton01/godbg
+
+Debugging is accessed via the "Debug" section of godev. Pick your package, set the command-line arguments and click on the "Debug" button. Click on the URL to switch to the debugging session.
+
+# Content Assist
+
+Godev has an optional integration with the gocode tool to bring rich content assistance to the editor. Go get the latest go code source to activate the integration.
+
+$ go get github.com/nsf/gocode
+
+To activate content assistance you press Ctrl+Space in the editor to bring up a list of suggestions.

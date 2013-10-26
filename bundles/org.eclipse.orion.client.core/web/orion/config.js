@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -9,8 +9,12 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 /*global console define setTimeout*/
-define(['orion/Deferred', 'orion/serviceTracker'],
-	function(Deferred, ServiceTracker) {
+define([
+	'orion/Deferred',
+	'orion/serviceTracker',
+	'orion/objects'
+], function(Deferred, ServiceTracker, objects) {
+
 var ManagedServiceTracker, ConfigAdminFactory, ConfigStore, ConfigAdminImpl, ConfigImpl;
 
 var PROPERTY_PID = 'pid'; //$NON-NLS-0$
@@ -253,17 +257,9 @@ ConfigStore = /** @ignore */ (function() {
  * @private
  */
 ConfigImpl = /** @ignore */ (function() {
-	function clone(props) {
-		// Configurations cannot have nested properties, so a 1-level-deep clone is enough
-		var c = {}, keys = Object.keys(props);
-		for (var i=0; i < keys.length; i++) {
-			var key = keys[i], value = props[key];
-			c[key] = (value instanceof Array) ? value.slice() : value;
-		}
-		return c;
-	}
 	function setProperties(configuration, newProps) {
-		newProps = clone(newProps);
+		// Configurations cannot have nested properties, so a shallow clone is sufficient.
+		newProps = objects.clone(newProps);
 		delete newProps[PROPERTY_PID];
 		configuration.properties = newProps;
 	}
@@ -294,7 +290,7 @@ ConfigImpl = /** @ignore */ (function() {
 			this._checkRemoved();
 			var props = null;
 			if (this.properties) {
-				props = clone(this.properties);
+				props = objects.clone(this.properties);
 				if (!omitPid) {
 					props[PROPERTY_PID] = this.pid;
 				}
@@ -329,24 +325,28 @@ ConfigImpl = /** @ignore */ (function() {
  */
 	/**
 	 * @name getPid
-	 * @methodOf orion.cm.Configuration.prototype
+	 * @function
+	 * @memberOf orion.cm.Configuration.prototype
 	 * @returns {String} The PID of this Configuration.
 	 */
 	/**
 	 * @name getProperties
-	 * @methodOf orion.cm.Configuration.prototype
+	 * @function
+	 * @memberOf orion.cm.Configuration.prototype
 	 * @returns {orion.cm.ConfigurationProperties} A private copy of this Configuration's properties, or <code>null</code>
 	 * if the configuration has never been updated.
 	 */
 	/**
 	 * @name remove
-	 * @methodOf orion.cm.Configuration.prototype
+	 * @function
+	 * @memberOf orion.cm.Configuration.prototype
 	 * @description Deletes this Configuration. Any {@link orion.cm.ManagedService} that registered interest in this 
 	 * Configuration's PID will have its {@link orion.cm.ManagedService#updated} method called with <code>null</code> properties. 
 	 */
 	/**
 	 * @name update
-	 * @methodOf orion.cm.Configuration.prototype
+	 * @function
+	 * @memberOf orion.cm.Configuration.prototype
 	 * @param {Object} [properties] The new properties to be set in this Configuration. The <code>pid</code> 
 	 * property will be added or overwritten and set to this Configuration's PID.
 	 * @description Updates the properties of this Configuration. Any {@link orion.cm.ManagedService} that registered
@@ -359,7 +359,7 @@ ConfigImpl = /** @ignore */ (function() {
  */
 	/**
 	 * @name getConfiguration
-	 * @methodOf orion.cm.ConfigurationAdmin.prototype
+	 * @memberOf orion.cm.ConfigurationAdmin.prototype
 	 * @description Gets the configuration having the given PID, creating a new one if necessary. Newly created configurations
 	 * have <code>null</code> properties.
 	 * @param {String} pid
@@ -367,7 +367,7 @@ ConfigImpl = /** @ignore */ (function() {
 	 */
 	/**
 	 * @name listConfigurations
-	 * @methodOf orion.cm.ConfigurationAdmin.prototype
+	 * @memberOf orion.cm.ConfigurationAdmin.prototype
 	 * @description Returns all Configurations having non-<code>null</code> properties.
 	 * @returns {orion.cm.Configuration[]} An array of configurations.
 	 */
@@ -383,7 +383,7 @@ ConfigImpl = /** @ignore */ (function() {
  */
 	/**
 	 * @name updated
-	 * @methodOf orion.cm.ManagedService.prototype
+	 * @memberOf orion.cm.ManagedService.prototype
 	 * @description Invoked after a Configuration has been updated.
 	 * @param {orion.cm.ConfigurationProperties} properties The properties of the {@link orion.cm.Configuration} that was
 	 * updated. This parameter will be <code>null</code> if the Configuration does not exist or was deleted.

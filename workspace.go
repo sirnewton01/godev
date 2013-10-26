@@ -6,13 +6,15 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"go/build"
+	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
-	"go/build"
-	"path/filepath"
 )
 
 type Project struct {
@@ -42,29 +44,29 @@ type WorkspacesList struct {
 func getWsProjects() ([]Project, []FileDetails) {
 	projects := make([]Project, 0, 0)
 	children := make([]FileDetails, 0, 0)
-	
+
 	nameMap := make(map[string]string)
-	
-	for _,srcDir := range(srcDirs) {
+
+	for _, srcDir := range srcDirs {
 		if strings.HasPrefix(srcDir, runtime.GOROOT()) {
 			continue
 		}
-	
+
 		filesDir := srcDir
-	
+
 		_, err := os.Stat(filesDir)
 		if err != nil {
 			logger.Printf("src directory doesn't exist in gopath at %v", filesDir)
 			return []Project{}, []FileDetails{}
 		}
-	
+
 		dir, err := os.Open(filesDir)
 		if err != nil {
 			logger.Printf("Unable to open src directory in gopath at %v", filesDir)
 			return []Project{}, []FileDetails{}
 		}
 		names, err := dir.Readdirnames(-1)
-	
+
 		dir.Close()
 		for _, name := range names {
 			if strings.HasPrefix(name, ".") {
@@ -74,14 +76,14 @@ func getWsProjects() ([]Project, []FileDetails) {
 				continue
 			}
 			nameMap[name] = "1"
-			
+
 			fileinfo, err := os.Stat(filesDir + "/" + name)
 			if err != nil {
 				return []Project{}, []FileDetails{}
 			}
 			projectInfo := Project{Id: name, Location: "/workspace/project/" + name, ContentLocation: "/file/" + name}
 			projects = append(projects, projectInfo)
-	
+
 			info := FileDetails{}
 			info.Name = fileinfo.Name()
 			info.Id = fileinfo.Name()
@@ -159,17 +161,129 @@ func workspaceHandler(writer http.ResponseWriter, req *http.Request, path string
 		}
 
 		//workspaceId := pathSegs[1]
-		
+
 		// New top-level folders (ie projects) go at the end of the GOPATH
-		gopaths := filepath.SplitList(build.Default.GOPATH)		
+		gopaths := filepath.SplitList(build.Default.GOPATH)
 		filesDir := gopaths[len(gopaths)-1] + "/src"
 
-		projectPath := filesDir + "/" + projectName
-		os.Mkdir(filesDir, 0700)
-		err = os.Mkdir(projectPath, 0700)
-		if err != nil {
-			ShowError(writer, 500, "Unable to create project directory", err)
+		createOptions := req.Header.Get("X-Create-Options")
+
+		// This is a move
+		if strings.Contains(createOptions, "move") {
+			origLocation := data["Location"]
+			origSegments := strings.Split(origLocation, "/")
+			origProject := origSegments[len(origSegments)-1]
+
+			origPath := ""
+
+			for _, srcDir := range srcDirs {
+				p := filepath.Join(srcDir, origProject)
+
+				_, err := os.Stat(p)
+				if err == nil {
+					origPath = p
+					break
+				}
+			}
+
+			if origPath == "" {
+				ShowError(writer, 400, "Original project not found", nil)
+				return true
+			}
+
+			// Delete the destination
+			if !strings.Contains(createOptions, "no-overwrite") {
+				err := os.RemoveAll(filesDir + "/" + projectName)
+				if err != nil {
+					ShowError(writer, 500, "Destination already exists and couldn't be deleted", nil)
+					return true
+				}
+			}
+
+			err = os.Rename(origPath, filesDir+"/"+projectName)
+
+			if err != nil {
+				ShowError(writer, 500, "Could not move project", err)
+				return true
+			}
+		} else if strings.Contains(createOptions, "copy") {
+			origLocation := data["Location"]
+			origSegments := strings.Split(origLocation, "/")
+			origProject := origSegments[len(origSegments)-1]
+			origPath := ""
+
+			for _, srcDir := range srcDirs {
+				p := filepath.Join(srcDir, origProject)
+
+				_, err := os.Stat(p)
+				if err == nil {
+					origPath = p
+					break
+				}
+			}
+
+			if origPath == "" {
+				ShowError(writer, 400, "Original project not found", nil)
+				return true
+			}
+
+			overwrite := !strings.Contains(createOptions, "no-overwrite")
+
+			err = filepath.Walk(origPath, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+
+				destRelPath, _ := filepath.Rel(origPath, path)
+				destPath := filepath.Join(filesDir, destRelPath)
+
+				if !overwrite {
+					_, statErr := os.Stat(destPath)
+					if statErr == nil {
+						// Already exists, return error
+						return errors.New("File exists, can't overwrite")
+					}
+				}
+
+				if info.IsDir() {
+					err = os.Mkdir(destPath, info.Mode())
+					if err != nil && overwrite {
+						err = nil
+					}
+				} else {
+					sourceFile, err := os.Open(path)
+					if err != nil {
+						return err
+					}
+					defer sourceFile.Close()
+
+					destFile, err := os.Create(destPath)
+					if err != nil {
+						return err
+					}
+					defer destFile.Close()
+
+					_, err = io.Copy(destFile, sourceFile)
+				}
+
+				return err
+			})
+
+			if err != nil {
+				ShowError(writer, 500, "Error copying project", err)
+				return true
+			}
+
+			writer.WriteHeader(201)
 			return true
+		} else {
+			projectPath := filesDir + "/" + projectName
+			os.Mkdir(filesDir, 0700)
+			err = os.Mkdir(projectPath, 0700)
+			if err != nil {
+				ShowError(writer, 500, "Unable to create project directory", err)
+				return true
+			}
 		}
 
 		contentLocation := "/file/" + projectName
@@ -204,20 +318,21 @@ func workspaceHandler(writer http.ResponseWriter, req *http.Request, path string
 		ShowError(writer, 400, "Workspace PUT not supported.", nil)
 		return true
 	case req.Method == "DELETE" && numPathSegs == 3 && pathSegs[1] == "project":
-		for _,srcDir := range(srcDirs) {
-			_, err := os.Stat(srcDir+pathSegs[2])
+		for _, srcDir := range srcDirs {
+			projectPath := filepath.Join(srcDir, pathSegs[2])
+			_, err := os.Stat(projectPath)
 			if err == nil {
-				err = os.RemoveAll(srcDir+pathSegs[2])
+				err = os.RemoveAll(projectPath)
 				if err != nil {
 					ShowError(writer, 400, "Project could not be removed", err)
 					return true
 				}
-				
+
 				ShowJson(writer, 200, "")
 				return true
 			}
 		}
-		
+
 		ShowError(writer, 200, "Project could not be found. It was not removed.", nil)
 		return true
 	case req.Method == "DELETE" && numPathSegs == 2:

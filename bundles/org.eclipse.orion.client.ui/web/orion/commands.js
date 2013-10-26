@@ -32,7 +32,45 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 		function setKeyBindingProvider(getBindingsFunction) {
 			getBindings = getBindingsFunction;
 		}
-		
+
+		/**
+		 * Executes a binding if possible.
+		 * @name orion.commands.executeBinding
+		 * @function
+		 * @static
+		 * @param {Object} binding
+		 * @returns {Boolean} <code>true</code> if the binding was executed, <code>false</code> otherwise.
+		 */
+		function executeBinding(binding) {
+			var invocation = binding.invocation;
+			if (invocation) {
+				var command = binding.command;
+				if (command.hrefCallback) {
+					var href = command.hrefCallback.call(invocation.handler || window, invocation);
+					if (href.then){
+						href.then(function(l){
+							window.open(l);
+						});
+					} else {
+						// We assume window open since there's no link gesture to tell us what to do.
+						window.open(href);
+					}
+					return true;
+				} else if (invocation.commandRegistry) {
+					// See https://bugs.eclipse.org/bugs/show_bug.cgi?id=411282
+					invocation.commandRegistry._invoke(invocation);
+					return true;
+				} else if (command.onClick || command.callback) {
+					// TODO: what is this timeout for?
+					window.setTimeout(function() {
+						(command.onClick || command.callback).call(invocation.handler || window, invocation);
+					}, 0);
+					return true;
+				}
+			}
+			return false;
+		}
+
 		/*
 		 * Process a key event against the provided bindings.
 		 */
@@ -44,28 +82,9 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 						var keyBinding = activeBinding.keyBinding;
 						// Check for keys that are scoped to a particular part of the DOM
 						if (!keyBinding.domScope || lib.contains(lib.node(keyBinding.domScope), event.target)) {
-							var invocation = activeBinding.invocation;
-							if (invocation) {
-								var command = activeBinding.command;
-								if (command.hrefCallback) {
-									lib.stop(event);
-									var href = command.hrefCallback.call(invocation.handler || window, invocation);
-									if (href.then){
-										href.then(function(l){
-											window.open(l);
-										});
-									} else {
-										// We assume window open since there's no link gesture to tell us what to do.
-										window.open(href);
-									}
-									return;
-								} else if (command.onClick || command.callback) {
-									lib.stop(event);
-									window.setTimeout(function() {	
-										(command.onClick || command.callback).call(invocation.handler || window, invocation);
-									}, 0);
-									return;
-								}
+							if (executeBinding(activeBinding)) {
+								lib.stop(event);
+								return;
 							}
 						}
 					}
@@ -199,7 +218,7 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 		return node;
 	}
 
-	function createDropdownMenu(parent, name, populateFunction, buttonClass, buttonIconClass, showName) {
+	function createDropdownMenu(parent, name, populateFunction, buttonClass, buttonIconClass, showName, selectionClass) {
 		parent = lib.node(parent);
 		if (!parent) {
 			throw "no parent node was specified"; //$NON-NLS-0$
@@ -226,7 +245,11 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 			_addImageToElement({ spriteClass: "commandSprite", imageClass: buttonIconClass }, menuButton, name); //$NON-NLS-0$
 			menuButton.classList.add("orionButton"); // $NON-NLS-0$
 		}
-		menuButton.dropdown = new Dropdown.Dropdown({dropdown: newMenu, populate: populateFunction});
+		menuButton.dropdown = new Dropdown.Dropdown({
+			dropdown: newMenu, 
+			populate: populateFunction,
+			selectionClass: selectionClass
+		});
 		newMenu.dropdown = menuButton.dropdown;
 		return {menuButton: menuButton, menu: newMenu, dropdown: menuButton.dropdown};
 	}
@@ -246,6 +269,7 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 		var checkbox = lib.$(".checkedMenuItem", itemParent); //$NON-NLS-0$
 		checkbox.checked = checked;
 		checkbox.addEventListener("change", onChange, false); //$NON-NLS-0$
+		return checkbox;
 	}
 
 	function createCommandItem(parent, command, commandInvocation, id, keyBinding, useImage, callback) {
@@ -335,6 +359,11 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 			} else {  // no href
 				element.href = "#"; //$NON-NLS-0$
 			}
+			element.addEventListener("keydown", function(e) { //$NON-NLS-0$
+				if (e.keyCode === lib.KEY.ENTER || e.keyCode === lib.KEY.SPACE) {
+					element.click();
+				}
+			}, false);
 		} else {
 			element = document.createElement("span"); //$NON-NLS-0$
 			element.tabIndex = 0;
@@ -345,6 +374,12 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 				element.addEventListener("click", function(e) { //$NON-NLS-0$
 					dropdown.close(true);
 					onClick.call(commandInvocation.handler, commandInvocation);
+				}, false);
+				element.addEventListener("keydown", function(e) { //$NON-NLS-0$
+					if (e.keyCode === lib.KEY.ENTER || e.keyCode === lib.KEY.SPACE) {
+						e.preventDefault(); /* prevents dropdown from receiving event and re-opening */
+						element.click();
+					}
 				}, false);
 			}
 		}
@@ -477,6 +512,7 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 	 * @param {String} [options.imageClass] a CSS class name suitable for showing a background image.  Optional.
 	 * @param {Boolean} [options.addImageClassToElement] If true, the image class will be added to the element's
 	 *  class list. Otherwise, a span element with the image class is created and appended to the element.  Optional.
+	 * @param {String} [options.selectionClass] a CSS class name to be appended when the command button is selected. Optional.
 	 * @param {String} [options.spriteClass] an additional CSS class name that can be used to specify a sprite background image.  This
 	 *  useful with some sprite generation tools, where imageClass specifies the location in a sprite, and spriteClass describes the
 	 *  sprite itself.  Optional.
@@ -507,6 +543,7 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 			this.imageClass = options.imageClass;   // points to the location in a sprite
 			this.addImageClassToElement = options.addImageClassToElement; // optional boolean if true will add the image class to the 
 																		// element's class list
+			this.selectionClass = options.selectionClass;
 			this.spriteClass = options.spriteClass || "commandSprite"; // defines the background image containing sprites //$NON-NLS-0$
 			this.visibleWhen = options.visibleWhen;
 			this.parameters = options.parameters;  // only used when a command is used in the command registry.  
@@ -593,6 +630,7 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 		createCheckedMenuItem: createCheckedMenuItem,
 		createCommandItem: createCommandItem,
 		createCommandMenuItem: createCommandMenuItem,
+		executeBinding: executeBinding,
 		setKeyBindingProvider: setKeyBindingProvider,
 		localKeyBindings: localKeyBindings,
 		_testMethodProcessKey: _processKey  // only exported for test cases

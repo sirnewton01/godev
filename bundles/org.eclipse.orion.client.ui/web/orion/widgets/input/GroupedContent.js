@@ -11,7 +11,7 @@
 /*global window console define localStorage*/
 /*jslint browser:true*/
 
-define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
+define(['i18n!orion/widgets/nls/messages', 'orion/objects', 'orion/webui/littlelib'], function(messages, objects, lib) {
 
 	/**
 	 * @param {Object[]} param.options Array of {value:Object, label:String, selected:Boolean(optional)}
@@ -25,7 +25,9 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 	
 		templateString: '<div style="float:left;">' +
 							'<section>' +
-							'<span style="color:#333;padding:15px;">Main Pages</span>' +
+							'<span style="color:#333;padding:15px;">' +
+								messages["Main Pages"] + 
+							'</span>' +
 							'<nav>' +
 								'<ul id="navigationlinks"></ul>' +
 							'</nav>' +
@@ -34,7 +36,9 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 						'<div class="groupedContentDivider"></div>' +
 						'<div style="float:left;">' +
 							'<section>' +
-								'<span style="color:#333;padding:15px;">Related Links</span>' +
+								'<span style="color:#333;padding:15px;">' +
+									messages["Related Links"] +
+								'</span>' +
 								'<nav>' +
 									'<ul id="relatedLinks">' +
 									'</ul>' +

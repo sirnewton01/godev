@@ -11,8 +11,8 @@
 /*global orion window console define localStorage*/
 /*jslint browser:true*/
 
-define(['orion/editor/textTheme', 'orion/widgets/themes/container/ThemeSheetWriter'], 
-	function(mTextTheme, ThemeSheetWriter) {
+define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme', 'orion/widgets/themes/container/ThemeSheetWriter'], 
+	function(messages, mTextTheme, ThemeSheetWriter) {
 
 		function StyleSet(){
 		
@@ -26,7 +26,7 @@ define(['orion/editor/textTheme', 'orion/widgets/themes/container/ThemeSheetWrit
 		
 		
 		StyleSet.prototype.name = 'Orion';
-		StyleSet.prototype.navbar = '#333';
+		StyleSet.prototype.navbar = '#404648';
 		StyleSet.prototype.button = '#EFEFEF';
 		StyleSet.prototype.location = '#333';
 		StyleSet.prototype.breadcrumb = '#3087B3';
@@ -45,7 +45,7 @@ define(['orion/editor/textTheme', 'orion/widgets/themes/container/ThemeSheetWrit
 			
 			var orion = new StyleSet();
 			orion.name = 'Orion';
-			orion.navbar = '#333';
+			orion.navbar = '#404648';
 			orion.button = '#EFEFEF';
 			orion.location = '#efefef';
 			orion.selection = 'FEC';
@@ -200,34 +200,29 @@ define(['orion/editor/textTheme', 'orion/widgets/themes/container/ThemeSheetWrit
 			dataset.height = UI_SIZE;
 			
 			dataset.shapes = [ 
-								{ type:'RECTANGLE', 	name:'Navigation Bar',		x:LEFT,		y:TOP,					width:UI_SIZE,	height: BANNER_HEIGHT, family:'navbar', fill: '#333', order:1 },
-								{ type:'TEXT',		name:'Navigation Text',	 label:'UserName',	x:LEFT + UI_SIZE - 70, y:TOP + 20, family:'navtext', fill: '#bfbfbf', font: '8pt sans-serif'},
-								{ type:'ROUNDRECTANGLE', name:'Search Box',	x:LEFT + UI_SIZE - 145,	y:TOP + 10, width: 70,	height: 12, family:'search', fill: '#444', order:3 },
-								{ type:'RECTANGLE', name:'Tool Panel',	x:LEFT + UI_SIZE * 0.4, y:CONTENT_TOP, width:UI_SIZE * 0.6 -1, height:30, family:'toolpanel', fill: 'white', order:4 },
-								{ type:'RECTANGLE', name:'Selection Bar',	x:LEFT + UI_SIZE * 0.4 + 5, y:CONTENT_TOP + 62, width:UI_SIZE * 0.6 -10, height:20, family:'selection', fill: '#FEC', order:7 },
-							   	{ type:'RECTANGLE', 	name:'Location',	x:LEFT,		y:TOP + BANNER_HEIGHT, 	width:UI_SIZE,	height: NAV_HEIGHT, family:'location', fill: '#efefef', order:8 },
-							   	
-							   
-								{ type:'TEXT',		name:'Navigation Text',	 label:'Navigator',	x:LEFT + 50, y: TOP + 20, family:'navtext', fill: '#bfbfbf', font: '8pt sans-serif', order:2 },
-							   	
-							  	{ type:'TEXT',		name:'Content',	 label:'Breadcrumb',	x:LEFT + 5, y:TOP + BANNER_HEIGHT + 18, family:'content', fill: '#3087B3', font: '8pt sans-serif' },
-								{ type:'TEXT',		name:'Content',	 label:'/',	x:LEFT + 68, y:TOP + BANNER_HEIGHT + 18, family:'content', fill: '#3087B3', font: '8pt sans-serif', order:9 },
-								{ type:'TEXT',		name:'Content',	 label:'Location',	x:LEFT + 74, y:TOP + BANNER_HEIGHT + 18, family:'content', fill: '#3087B3', font: '8pt sans-serif' },
-								{ type:'RECTANGLE', name:'Main Panel',	x:LEFT + UI_SIZE * 0.4, y:CONTENT_TOP + 30, width:UI_SIZE * 0.6 -1, height:UI_SIZE - CONTENT_TOP + TOP -31, family:'mainpanel', fill: 'white', order:6 },
-								
-								
-								{ type:'ROUNDRECTANGLE', name:'Button',	x:LEFT + UI_SIZE * 0.4 + 5, y:CONTENT_TOP + 5, width:37, height:20, family:'button', fill: '#EFEFEF', order:11 },
-								{ type:'TEXT',		name:'Button Text',	 label:'Button',	x:LEFT + UI_SIZE * 0.4 + 8, y:CONTENT_TOP + 19, family:'navbar', fill: '#333', font: '8pt sans-serif' },
+								{ type:'RECTANGLE', 	name: messages["Navigation Bar"],		x:LEFT,		y:TOP,					width:UI_SIZE,	height: BANNER_HEIGHT, family:'navbar', fill: '#333', order:1 },
+								{ type:'TEXT',		name: messages["Navigation Text"],	 label:'UserName',	x:LEFT + UI_SIZE - 70, y:TOP + 20, family:'navtext', fill: '#bfbfbf', font: '8pt sans-serif'},
+								{ type:'ROUNDRECTANGLE', name: messages["Search Box"],	x:LEFT + UI_SIZE - 145,	y:TOP + 10, width: 70,	height: 12, family:'search', fill: '#444', order:3 },
+								{ type:'RECTANGLE', name: messages["Tool Panel"],	x:LEFT + UI_SIZE * 0.4, y:CONTENT_TOP, width:UI_SIZE * 0.6 -1, height:30, family:'toolpanel', fill: 'white', order:4 },
+								{ type:'RECTANGLE', name: messages["Selection Bar"],	x:LEFT + UI_SIZE * 0.4 + 5, y:CONTENT_TOP + 62, width:UI_SIZE * 0.6 -10, height:20, family:'selection', fill: '#FEC', order:7 },
+							   	{ type:'RECTANGLE', 	name: messages["Location"],	x:LEFT,		y:TOP + BANNER_HEIGHT, 	width:UI_SIZE,	height: NAV_HEIGHT, family:'location', fill: '#efefef', order:8 },
+								{ type:'TEXT',		name: messages["Navigation Text"],	 label:'Navigator',	x:LEFT + 50, y: TOP + 20, family:'navtext', fill: '#bfbfbf', font: '8pt sans-serif', order:2 },
+							  	{ type:'TEXT',		name: messages["Content"],	 label:'Breadcrumb',	x:LEFT + 5, y:TOP + BANNER_HEIGHT + 18, family:'content', fill: '#3087B3', font: '8pt sans-serif' },
+								{ type:'TEXT',		name: messages["Content"],	 label:'/',	x:LEFT + 68, y:TOP + BANNER_HEIGHT + 18, family:'content', fill: '#3087B3', font: '8pt sans-serif', order:9 },
+								{ type:'TEXT',		name: messages["Content"],	 label:'Location',	x:LEFT + 74, y:TOP + BANNER_HEIGHT + 18, family:'content', fill: '#3087B3', font: '8pt sans-serif' },
+								{ type:'RECTANGLE', name: messages["Main Panel"],	x:LEFT + UI_SIZE * 0.4, y:CONTENT_TOP + 30, width:UI_SIZE * 0.6 -1, height:UI_SIZE - CONTENT_TOP + TOP -31, family:'mainpanel', fill: 'white', order:6 },
+								{ type:'ROUNDRECTANGLE', name: messages["Button"],	x:LEFT + UI_SIZE * 0.4 + 5, y:CONTENT_TOP + 5, width:37, height:20, family:'button', fill: '#EFEFEF', order:11 },
+								{ type:'TEXT',		name: messages["Button Text"],	 label:'Button',	x:LEFT + UI_SIZE * 0.4 + 8, y:CONTENT_TOP + 19, family:'navbar', fill: '#333', font: '8pt sans-serif' },
 								{ type:'TRIANGLE',	name:'userMenu', x1:LEFT + UI_SIZE - 7, y1:TOP + 14, x2:LEFT + UI_SIZE - 13, y2:TOP + 14, x3:LEFT + UI_SIZE - 10, y3:TOP + 19, family:'userMenu', fill: '#BFBFBF' },
 								{ type:'TRIANGLE',	name:'userMenu', x1:LEFT + 10, y1:CONTENT_TOP + 17, x2:LEFT + 16, y2:CONTENT_TOP + 17, x3:LEFT + 13, y3:CONTENT_TOP + 22, family:'userMenu', fill: '#BFBFBF' },
-								{ type:'TEXT',		name:'Section Text',	 label:'Section',	x:LEFT + 20, y:CONTENT_TOP + 23, family:'navbar', fill: '#333', font: '8pt sans-serif' },
-								{ type:'LINE', 		name:'Line Color', x1:LEFT + UI_SIZE * 0.4, y1:CONTENT_TOP + 30, x2:LEFT + UI_SIZE, y2:CONTENT_TOP + 30, linewidth:2, fill:'#DEDEDE' },
-								{ type:'LINE', 		name:'Line Color', x1:LEFT + UI_SIZE * 0.4, y1:CONTENT_TOP, x2:LEFT + UI_SIZE * 0.4, y2:TOP + UI_SIZE, linewidth:2, fill:'#DEDEDE'},
-								{ type:'LINE', 		name:'Line Color', x1:LEFT + 10, y1:CONTENT_TOP + 29, x2:LEFT + UI_SIZE * 0.4 - 10, y2:CONTENT_TOP + 29, linewidth:2, fill:'#DEDEDE' },
-								{ type:'RECTANGLE', 	name:'Side Panel',	x:LEFT,		y:CONTENT_TOP, 			width: UI_SIZE * 0.4,	height: UI_SIZE - CONTENT_TOP + TOP, family:'sidepanel', fill: '#FBFBFB', order:12 },
+								{ type:'TEXT',		name: messages["Section Text"],	 label:'Section',	x:LEFT + 20, y:CONTENT_TOP + 23, family:'navbar', fill: '#333', font: '8pt sans-serif' },
+								{ type:'LINE', 		name: messages["Line Color"], x1:LEFT + UI_SIZE * 0.4, y1:CONTENT_TOP + 30, x2:LEFT + UI_SIZE, y2:CONTENT_TOP + 30, linewidth:2, fill:'#DEDEDE' },
+								{ type:'LINE', 		name: messages["Line Color"], x1:LEFT + UI_SIZE * 0.4, y1:CONTENT_TOP, x2:LEFT + UI_SIZE * 0.4, y2:TOP + UI_SIZE, linewidth:2, fill:'#DEDEDE'},
+								{ type:'LINE', 		name: messages["Line Color"], x1:LEFT + 10, y1:CONTENT_TOP + 29, x2:LEFT + UI_SIZE * 0.4 - 10, y2:CONTENT_TOP + 29, linewidth:2, fill:'#DEDEDE' },
+								{ type:'RECTANGLE', 	name: messages["Side Panel"],	x:LEFT,		y:CONTENT_TOP, 			width: UI_SIZE * 0.4,	height: UI_SIZE - CONTENT_TOP + TOP, family:'sidepanel', fill: '#FBFBFB', order:12 },
 								{ type:'TRIANGLE',	name:'userMenu', x1:LEFT + UI_SIZE - 7, y1:TOP + 14, x2:LEFT + UI_SIZE - 13, y2:TOP + 14, x3:LEFT + UI_SIZE - 10, y3:TOP + 19, family:'userMenu', fill: '#BFBFBF' },
 								{ type:'TRIANGLE',	name:'userMenu', x1:LEFT + 10, y1:CONTENT_TOP + 17, x2:LEFT + 16, y2:CONTENT_TOP + 17, x3:LEFT + 13, y3:CONTENT_TOP + 22, family:'userMenu', fill: '#BFBFBF' },
-								{ type:'TEXT',		name:'Navigation Text',	 label:'Navigator',	x:LEFT + 50, y: TOP + 20, family:'navtext', fill: '#bfbfbf', font: '8pt sans-serif', order:2 },
+								{ type:'TEXT',		name: messages["Navigation Text"],	 label:'Navigator',	x:LEFT + 50, y: TOP + 20, family:'navtext', fill: '#bfbfbf', font: '8pt sans-serif', order:2 },
 								{ type:'TRIANGLE',	name:'userMenu', x1:LEFT + UI_SIZE - 7, y1:TOP + 14, x2:LEFT + UI_SIZE - 13, y2:TOP + 14, x3:LEFT + UI_SIZE - 10, y3:TOP + 19, family:'userMenu', fill: '#BFBFBF' },
 								{ type:'TRIANGLE',	name:'userMenu', x1:LEFT + 10, y1:CONTENT_TOP + 17, x2:LEFT + 16, y2:CONTENT_TOP + 17, x3:LEFT + 13, y3:CONTENT_TOP + 22, family:'userMenu', fill: '#BFBFBF' }
 			];
@@ -237,14 +232,14 @@ define(['orion/editor/textTheme', 'orion/widgets/themes/container/ThemeSheetWrit
 					
 				/* Section Items */
 					
-				dataset.shapes.push( { type:'TEXT', name:'content', label:'org.eclipse.orion.content', x: LEFT + UI_SIZE * 0.4 + 20, y:CONTENT_TOP + 56 + ( 20 * count ), fill: '#3087B3', family:'content' } );
+				dataset.shapes.push( { type:'TEXT', name: messages["Content"], label:'org.eclipse.orion.content', x: LEFT + UI_SIZE * 0.4 + 20, y:CONTENT_TOP + 56 + ( 20 * count ), fill: '#3087B3', family:'content' } );
 			}
 			
 			for( var count=0; count < 3; count++ ){
 					
 				/* Section Items */
 					
-				dataset.shapes.push( { type:'TEXT', name:'content', label:'Item', x:LEFT + 15, y:CONTENT_TOP + 44 + ( 20 * count ), fill: '#3087B3', family:'content' } );
+				dataset.shapes.push( { type:'TEXT', name: messages["Content"], label:'Item', x:LEFT + 15, y:CONTENT_TOP + 44 + ( 20 * count ), fill: '#3087B3', family:'content' } );
 			}
 			
 			for( var twisty = 0; twisty < 3; twisty++ ){

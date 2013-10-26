@@ -45,7 +45,7 @@ define([ 'i18n!git/nls/gitmessages', 'orion/webui/dialog' ], function(messages, 
 			that.destroy();
 			that.func(that.$reviewerName.value);
 		},
-		text : 'Submit'
+		text : messages["Submit"]
 		});
 
 		// Start the dialog initialization.

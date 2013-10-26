@@ -8,34 +8,14 @@
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
- *******************************************************************************/
+ ******************************************************************************/
 /*global define */
 
 define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 	'orion/editor/factories', //$NON-NLS-0$
 	'orion/editor/actions', //$NON-NLS-0$
-	'orion/editor/linkedMode' //$NON-NLS-0$
-], function(mFactories, mActions, mLinkedMode) {
-
-	var exports = {};
-
-	exports.KeyBindingsFactory = mFactories.KeyBindingsFactory;
-	
-	exports.UndoFactory = mFactories.UndoFactory;
-
-	exports.LineNumberRulerFactory = mFactories.LineNumberRulerFactory;
-
-	exports.FoldingRulerFactory = mFactories.FoldingRulerFactory;
-
-	exports.AnnotationFactory = mFactories.AnnotationFactory;
-
-	exports.TextDNDFactory = mFactories.TextDNDFactory;
-
-	exports.TextActions = mActions.TextActions;
-
-	exports.SourceCodeActions = mActions.SourceCodeActions;
-	
-	exports.LinkedMode = mLinkedMode.LinkedMode;
-
-	return exports;
+	'orion/editor/linkedMode', //$NON-NLS-0$
+	'orion/objects' //$NON-NLS-0$
+], function(mFactories, mActions, mLinkedMode, objects) {
+	return objects.mixin({}, mFactories, mActions, mLinkedMode);
 });

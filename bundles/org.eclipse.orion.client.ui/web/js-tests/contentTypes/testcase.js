@@ -96,7 +96,7 @@ define(['orion/assert', 'orion/contentTypes', 'orion/serviceregistry'], function
 		mockRegistry._registerServiceProvider("orion.core.contenttype", {}, {
 				contentTypes: basicTypes
 			});
-		contentTypeService = new contentTypesModule.ContentTypeService(mockRegistry);
+		contentTypeService = new contentTypesModule.ContentTypeRegistry(mockRegistry);
 		testbody(mockRegistry, contentTypeService, basicTypes);
 	}
 
@@ -203,7 +203,7 @@ define(['orion/assert', 'orion/contentTypes', 'orion/serviceregistry'], function
 		mockRegistry._registerServiceProvider("orion.core.contenttype", {}, {
 			contentTypes: [ bad ]
 		});
-		var contentTypeService = new contentTypesModule.ContentTypeService(mockRegistry);
+		var contentTypeService = new contentTypesModule.ContentTypeRegistry(mockRegistry);
 		assert.throws(function() {
 				contentTypeService.isExtensionOf(bad, bad);
 			}, Error, "Cycle detected");
@@ -230,6 +230,16 @@ define(['orion/assert', 'orion/contentTypes', 'orion/serviceregistry'], function
 			assertIsSomeExtensionOf(basicTypes[1], [ basicTypes[0], basicTypes[2] ], true);
 
 			assertIsSomeExtensionOf(basicTypes[3], [], false);
+		});
+	};
+
+	tests.testExtensionsCaseMismatch = function() {
+		withTestData(function(mockRegistry, contentTypeService, basicTypes) {
+			var type1 = contentTypeService.getFilenameContentType('test.TXT');
+			var type2 = contentTypeService.getFilenameContentType('test.txt');
+			var type3 = contentTypeService.getFilenameContentType('test.TxT');
+			assertContentTypesEqual(type1, type2);
+			assertContentTypesEqual(type2, type3);
 		});
 	};
 

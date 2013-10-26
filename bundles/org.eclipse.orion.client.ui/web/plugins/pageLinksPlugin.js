@@ -12,8 +12,10 @@
 /*global define document*/
 define([
 	'require',
-	'orion/plugin'
-], function(require, PluginProvider) {
+	'orion/PageLinks',
+	'orion/plugin',
+	'orion/URITemplate'
+], function(require, PageLinks, PluginProvider, URITemplate) {
 	var serviceImpl = { /* All data is in properties */ };
 
 	var headers = {
@@ -25,54 +27,42 @@ define([
 	var provider = new PluginProvider(headers);
 	
 	// Primary navigation links
-	provider.registerService("orion.page.link", serviceImpl, {
-		nameKey: "Navigator",
-		id: "orion.navigator",
+	provider.registerService("orion.page.link", null, {
+		nameKey: "Editor",
 		nls: "orion/nls/messages",
-		uriTemplate: "{OrionHome}/navigate/table.html#"
+		tooltip: "Edit code",
+		uriTemplate: "{+OrionHome}/edit/edit.html"
 	});
 	provider.registerService("orion.page.link", serviceImpl, {
 		nameKey: "Sites",
 		id: "orion.sites",
 		nls: "orion/nls/messages",
-		uriTemplate: "{OrionHome}/sites/sites.html"
+		uriTemplate: "{+OrionHome}/sites/sites.html"
 	});
 	provider.registerService("orion.page.link", serviceImpl, {
 		nameKey: "Shell",
 		id: "orion.shell",
 		nls: "orion/nls/messages",
-		uriTemplate: "{OrionHome}/shell/shellPage.html#projectfor={Location}"
+		uriTemplate: "{+OrionHome}/shell/shellPage.html#projectfor={,Location}"
 	});
 	provider.registerService("orion.page.link", serviceImpl, {
 		nameKey: "Search",
 		id: "orion.Search",
 		nls: "orion/nls/messages",
-		uriTemplate: "{OrionHome}/search/search.html"
-	});
-	provider.registerService("orion.page.link.related", null, {
-		id: "orion.navigateFromMetadata",
-		nameKey: "Navigator",
-		nls: "orion/nls/messages",
-		tooltip: "Go to the navigator",
-		validationProperties: [{
-			source: "ChildrenLocation|ContentLocation",
-			variableName: "NavigatorLocation",
-			replacements: [{pattern: "\\?depth=1$", replacement: ""}]  /* strip off depth=1 if it is there because we always add it back */
-		}],
-		uriTemplate: "{OrionHome}/navigate/table.html#{NavigatorLocation}?depth=1"
+		uriTemplate: "{+OrionHome}/search/search.html#{,Location},useRootLocation=true"
 	});
 	
 	provider.registerService("orion.page.link.related", null, {
 		id: "orion.editFromMetadata",
 		nameKey: "Editor",
 		nls: "orion/nls/messages",
-		tooltip: "Edit the code",
+		tooltip: "Open Editor page",
 		validationProperties: [{
 			source: "ChildrenLocation|ContentLocation",
-			variableName: "NavigatorLocation",
+			variableName: "EditorLocation",
 			replacements: [{pattern: "\\?depth=1$", replacement: ""}]  /* strip off depth=1 if it is there because we always add it back */
 		}],
-		uriTemplate: "{OrionHome}/edit/edit.html#,navigate={NavigatorLocation}?depth=1"
+		uriTemplate: "{+OrionHome}/edit/edit.html#{,EditorLocation},navigate={,EditorLocation}?depth=1"
 	});
 
 	provider.registerService("orion.page.link.user", null, {
@@ -87,7 +77,7 @@ define([
 		id: "orion.settings",
 		nameKey: "Settings",
 		nls: "orion/widgets/nls/messages",
-		uriTemplate: "{OrionHome}/settings/settings.html",
+		uriTemplate: "{+OrionHome}/settings/settings.html",
 		category: 1
 	});
 
@@ -114,22 +104,35 @@ define([
 
 	provider.registerService("orion.core.setting", null, {
 		settings: [
-			{	pid: "nav.config",
-				name: "Navigation",
-				category: 'general',
+			{
+				pid: "nav.config",
+				nls: "orion/settings/nls/messages",
+				nameKey: "Navigation",
+				category: "general",
+				categoryKey: "General",
 				properties: [
-					{	id: "links.newtab",
-						name: "Links",
+					{
+						id: "links.newtab",
+						nameKey: "Links",
 						type: "boolean",
 						defaultValue: false,
 						options: [
-							{value: true, label: "Open in new tab"},
-							{value: false, label: "Open in same tab"}
+							{ value: true, labelKey: "Open in new tab" },
+							{ value: false, labelKey: "Open in same tab" }
 						]
 					}
 				]
 			}
 		]
+	});
+
+	var getPluginsTemplate = "http://orion-plugins.googlecode.com/git/index.html#?target={InstallTarget}&version={Version}&OrionHome={OrionHome}";
+	provider.registerService("orion.core.getplugins", null, {
+		uri: decodeURIComponent(new URITemplate(getPluginsTemplate).expand({
+			Version: "4.0",
+			InstallTarget: PageLinks.getOrionHome() + "/settings/settings.html",
+			OrionHome: PageLinks.getOrionHome()
+		}))
 	});
 
 	provider.connect();

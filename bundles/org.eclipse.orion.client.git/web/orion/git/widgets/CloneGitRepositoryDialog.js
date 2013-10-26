@@ -144,7 +144,7 @@ define([ 'i18n!git/nls/gitmessages', 'orion/webui/dialogs/DirectoryPrompterDialo
 
 		function makePathSegment(folder) {
 			var link = document.createElement("a"); //$NON-NLS-0$
-			link.href = require.toUrl("navigate/table.html") + "#" + folder.ChildrenLocation; //$NON-NLS-1$ //$NON-NLS-0$
+			link.href = require.toUrl("edit/edit.html") + "#" + folder.ChildrenLocation; //$NON-NLS-1$ //$NON-NLS-0$
 			link.textContent = folder.Name;
 			return link;
 		}

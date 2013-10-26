@@ -1,0 +1,29 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+                    "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+	<script src="../../orion/plugin.js"></script>
+	<script src="../../requirejs/require.js"></script>
+	<script>
+		/*global window require */
+		require({
+		  baseUrl: '../..',
+		  paths: {
+    "scriptedLogger": "plugins/esprima/scriptedLogger",
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'	    
+		  }
+		});
+		window.onload = function() {
+			require(["orion/test","js-tests/esprima/indexFileParsingTests"], 
+				function(test, jsTests) {
+					test.run(jsTests);
+				});
+		};
+	</script>
+</head>
+<body>
+	<h1>Unit tests for index file parsing</h1>
+</body>
+</html>

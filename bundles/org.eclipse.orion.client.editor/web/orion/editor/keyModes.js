@@ -35,8 +35,8 @@ define("orion/editor/keyModes", [ //$NON-NLS-0$
 		 * @param {String} actionID the action ID.
 		 * @returns {orion.editor.KeyBinding[]} the array of key bindings associated to the given action ID.
 		 *
-		 * @see #setKeyBinding
-		 * @see #setAction
+		 * @see orion.editor.KeyModesetKeyBinding
+		 * @see orion.editor.KeyModesetAction
 		 */
 		getKeyBindings: function (actionID) {
 			var result = [];
@@ -55,12 +55,14 @@ define("orion/editor/keyModes", [ //$NON-NLS-0$
 			return this._view.getKeyModes().indexOf(this) !== -1;
 		},
 		match: function(e) {
-			switch (e.keyCode) {
-				case 16: /* Shift */
-				case 17: /* Control */
-				case 18: /* Alt */
-				case 91: /* Command */
-					return undefined;
+			if (e.type === "keydown") { //$NON-NLS-0$
+				switch (e.keyCode) {
+					case 16: /* Shift */
+					case 17: /* Control */
+					case 18: /* Alt */
+					case 91: /* Command */
+						return undefined;
+				}
 			}
 			var keyBindingIndex = this._keyBindingIndex;
 			var keyBindings = this._matchingKeyBindings || this._keyBindings;

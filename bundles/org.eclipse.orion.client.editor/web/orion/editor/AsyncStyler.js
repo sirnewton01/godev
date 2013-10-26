@@ -142,7 +142,7 @@ define("orion/editor/AsyncStyler", ['i18n!orion/editor/nls/messages', 'orion/edi
 			var min = Number.MAX_VALUE, max = -1;
 			var model = this.textView.getModel();
 			for (var lineIndex in style) {
-				if (style.hasOwnProperty(lineIndex)) {
+				if (Object.prototype.hasOwnProperty.call(style, lineIndex)) {
 					this.lineStyles[lineIndex] = style[lineIndex];
 					min = Math.min(min, lineIndex);
 					max = Math.max(max, lineIndex);

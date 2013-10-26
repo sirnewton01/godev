@@ -70,7 +70,7 @@ define(["orion/EventTarget", "orion/Deferred"], function(EventTarget, Deferred){
 		/**
 		 * Sets the current selection. Dispatches a <code>selectionChanged</code> event.
 		 * @param {Object|Object[]|null} itemOrArray A single selected item, or an array of selected items, or <code>null</code> (meaning no selection).
-		 * @see #event:selectionChanged
+		 * @see orion.selection.Selection#event:selectionChanged
 		 */
 		setSelections: function(itemOrArray) {
 			var oldSelection = this._selections;

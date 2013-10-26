@@ -1,11 +1,11 @@
 /*******************************************************************************
  * @license
  * Copyright (c) 2012 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
+ *
  ******************************************************************************/
 
 //NLS_CHARSET=UTF-8
@@ -32,13 +32,9 @@ define({
 	"Background Operations": "Background Operations",
 	"Background Operations Tooltip": "Go to the Background Operations page",
 	"Operation status is unknown": "Operation status is unknown",
-	" is already a favorite.": " is already a favorite.",
-	"Add to the favorites list": "Add to the favorites list",
-	"Make Favorite": "Make Favorite",
 	"Unknown item": "Unknown item",
 	"Can't search: no search service is available": "Can't search: no search service is available",
 	"could not find banner parent, id was ": "could not find banner parent, id was ",
-	" has been added to the favorites list.": " has been added to the favorites list.",
 	"Related": "Related",
 	"Options": "Options",
 	"FAQ": "FAQ",
@@ -47,9 +43,7 @@ define({
 	"Terms of Use": "Terms",
 	"Copyright Agent": "Copyright",
 	"Orion Logo": "Orion Logo",
-	"Type a keyword or wild card to search in root": "Type a keyword or wild card to search in root",
 	"Orion is in Beta. Please try it out but BEWARE your data may be lost.": "@buildLabel@",
-	"Add this page to the favorites list": "Add this page to the favorites list",
 	"LOG: ": "LOG: ",
 	"View": "View",
 	"no parent": "no parent",
@@ -57,16 +51,11 @@ define({
 	"no renderer": "no renderer",
 	"could not find table row ": "could not find table row ",
 	"Resource is out of sync with the server. Do you want to save it anyway?": "Resource is out of sync with the server. Do you want to save it anyway?",
-	"Orion Home": "Orion Home",
-	"Operations - Press spacebar to show current operations": "Operations - Press spacebar to show current operations",
 	"Operations": "Operations",
 	"Operations running": "Operations running",
 	"Some operations finished with warning": "Some operations finished with warning",
 	"Some operations finished with error": "Some operations finished with error",
 	"no service registry": "no service registry",
-	"Are you sure you want to delete '${0}' from the favorites?": "Are you sure you want to delete '${0}' from the favorites?",
-	"Are you sure you want to delete these ${0} favorites?": "Are you sure you want to delete these ${0} favorites?",
-	"You can create favorites by selecting any file or folder in the navigator and choosing ${0} from the More menu.": "You can create favorites by selecting any file or folder in the navigator and choosing ${0} from the More menu.",
 	"Tasks": "Tasks",
 	"Close": "Close",
 	"Expand all": "Expand all",
@@ -77,7 +66,6 @@ define({
 	"More" : "More",
 	"Saved searches" : "Saved searches",
 	"Recent searches" : "Recent searches",
-	"Open in new tab" : "Open in new tab", 
 	"Regular expression" : "Regular expression",
 	"Search options" : "Search options",
 	"Global search" : "Global search",
@@ -92,6 +80,10 @@ define({
 	"Sample HTML5 Site": "Sample HTML5 Site",
 	"Generate an HTML5 'Hello World' website, including JavaScript, HTML, and CSS files.": "Generate an HTML5 'Hello World' website, including JavaScript, HTML, and CSS files.",
 	"Sample Orion Plugin": "Sample Orion Plugin",
-	"Generate a sample plugin for integrating with Orion.": "Generate a sample plugin for integrating with Orion."
-	
+	"Generate a sample plugin for integrating with Orion.": "Generate a sample plugin for integrating with Orion.",
+	"Raw": "Raw",
+	"Open the raw file or folder in the browser": "Open the raw file or folder in the browser",
+	"OutlineProgress": "Getting outline for ${0} from ${1}",
+	"UnknownError": "An unknown error occurred.",
+	"UnknownWarning": "An unknown warning occurred."
 });

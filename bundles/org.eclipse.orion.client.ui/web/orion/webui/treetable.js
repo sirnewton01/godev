@@ -110,7 +110,13 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 				this._renderer.bodyCallback(this._bodyElement);
 			}
 			this._bodyElement.id = this._id+"tbody"; //$NON-NLS-0$
-			this._generateChildren(children, indentLevel); //$NON-NLS-0$
+			if (children.length === 0) {
+				if (this._renderer.emptyCallback) {
+					this._renderer.emptyCallback(this._bodyElement);
+				}
+			} else {
+				this._generateChildren(children, indentLevel); //$NON-NLS-0$
+			}
 			table.appendChild(this._bodyElement);
 			wrapper.appendChild(table);
 			this._parent.appendChild(wrapper);
@@ -169,17 +175,20 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 					row._item = item;
 					// If the row should be expanded
 					if (row && (forceExpand || row._expanded)) {
-						row._expanded = true;
 						this._removeChildRows(parentId);
 						this._renderer.updateExpandVisuals(row, true);
 						if(children){
+							row._expanded = true;
 							this._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
 							this._rowsChanged();
 						} else {
 							tree = this;
 							children = this._treeModel.getChildren(row._item, function(children) {
-								tree._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
-								tree._rowsChanged();
+								if (!row._expanded) {
+									row._expanded = true;
+									tree._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
+									tree._rowsChanged();
+								}
 							});
 						}
 					} else {
@@ -215,7 +224,8 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 			}
 		},
 		
-		isExpanded: function(id) {
+		isExpanded: function(itemOrId) {
+			var id = typeof(itemOrId) === "string" ? itemOrId : this._treeModel.getId(itemOrId); //$NON-NLS-0$
 			var row =lib.node(id);
 			if (row) {
 				return row._expanded;
@@ -230,12 +240,14 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 				if (row._expanded) {
 					return;
 				}
-				row._expanded = true;
 				var tree = this;
 				this._renderer.updateExpandVisuals(row, true);
 				this._treeModel.getChildren(row._item, function(children) {
-					tree._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
-					tree._rowsChanged();
+					if (!row._expanded) {
+						row._expanded = true;
+						tree._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
+						tree._rowsChanged();
+					}
 					if (postExpandFunc) {
 						postExpandFunc.apply(tree, args);
 					}

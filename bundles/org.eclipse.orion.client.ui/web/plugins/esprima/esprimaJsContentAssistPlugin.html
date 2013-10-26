@@ -1,33 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="copyright" content="Copyright (c) VMware Corporation and others 2012.">
-<title>Esprima Content Assist</title>
-<script src="../../orion/plugin.js"></script>
-<script src="../../requirejs/require.js"></script>
-<script type="text/javascript">
-/*global orion require */
-require({
-  baseUrl: '../..',
-  paths: {
-    "scriptedLogger": "plugins/esprima/scriptedLogger"
-  },
-});
-require(["plugins/esprima/esprimaJsContentAssist"], function(esprimaContentAssistPlugin) {
-	var headers = {
-		name: "Orion JavaScript Content Assist",
-		version: "1.0",
-		description: "This plugin provides content assist for JavaScript using the Esprima JavaScript parser."
-	};
-	var provider = new orion.PluginProvider(headers);
-	provider.registerServiceProvider("orion.edit.contentAssist", 
-			new esprimaContentAssistPlugin.EsprimaJavaScriptContentAssistProvider(), {
-		contentType: ["application/javascript"],
-		name: "Esprima based JavaScript content assist",
-		id: "orion.edit.contentassist.esprima"
-	});
-	provider.connect();
-});
+	<meta name="copyright" content="Copyright (c) VMware Corporation and others 2012.">
+	<title>Esprima Content Assist</title>
+	<script src="../../requirejs/require.js"></script>
+	<script>
+		/*global require */
+		require({
+			baseUrl: '../../'
+		});
+	
+		require(["esprimaJsContentAssistPlugin.js"]);
 </script>
 </head>
 <body>

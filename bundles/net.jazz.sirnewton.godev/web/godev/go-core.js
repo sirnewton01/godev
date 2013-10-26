@@ -52,10 +52,20 @@ define(['orion/xhr', 'orion/plugin'], function (xhr, PluginProvider) {
 			                    problems.push({
 			                        description: error.Msg,
 			                        line: error.Line,
-			                        start: 0,
-			                        end: 0,
+			                        start: error.Column,
+			                        end: 80,
 			                        severity: "error"
 			                    });
+			                // There is another problem unrelated to this file
+			                //  Put a marker at the top of the file.
+		                    } else {
+		                        problems.push({
+		                            description: "There is a compile error in another file: "+error.Location,
+		                            line: 1,
+		                            start: 0,
+		                            end: 80,
+		                            severity: "error"
+		                        });
 		                    }
 	                    }
 	                    return {problems: problems};
@@ -104,80 +114,87 @@ define(['orion/xhr', 'orion/plugin'], function (xhr, PluginProvider) {
         }, {
             contentType: ["text/x-go"]
         });
-
+        
     provider.registerServiceProvider("orion.edit.contentAssist", {
             computeProposals: function (buffer, offset, context) {
-                // context.prefix will not include a '.' and any characters before it.
-                // This is quite annoying because we often was code assists for qualified
-                //  package names and the first letter of a var, constant or function.
-                // We will recalculate the context prefix here.
-                var o = offset - context.prefix.length - 1;
-                var dots = 0;
-                
-                debugger;
-                
-                while (o !== -1 && /^[A-Za-z0-9_\.]$/.exec(buffer.substring(o,o+1))) {
-                    if (buffer[o] === '.') {
-                        if (dots === 1) {
-                            break;
+                // TODO provide the path for the editor buffer for better results
+                var d = xhr("POST", "/completion?offset=" + offset + 
+                                               "&path=" + context.title, {
+	                    headers: {},
+	                    timeout: 60000,
+	                    data: buffer
+	                }).then(function (result) {
+	                    var completions = JSON.parse(result.response);
+	                    var proposals = [];
+	                    
+	                    var name, type, proposal, positions;
+	                    
+	                    if (completions.length < 2) {
+	                        return proposals;
+	                    }
+	                    
+	                    for (var idx = 0; idx < completions[1].length; idx++) {
+	                        name = completions[1][idx].name;
+	                        type = completions[1][idx].type;
+	                        
+	                        // The proposal is just the name for now
+	                        proposal = name;
+	                        
+	                        // Positions are only necessary for functions
+	                        positions = null;
+	                        
+		                    // Ellide the proposal with the existing prefix text where possible
+		                    // The user may have partially typed the result to the get the
+		                    //  assistance.
+		                    if (proposal.indexOf(context.prefix) === 0) {
+		                        proposal = proposal.substring(context.prefix.length);
+		                    }
+		                    
+		                    // This is a function, 
+		                    if (type.indexOf("func") === 0) {
+		                        var signature = type.substring(type.indexOf("(")+1, type.indexOf(")"));
+		                        var parameters = signature.split(",");
+		          
+		                        if (parameters.length !== 1 || parameters[0] !== "") {
+			                        var parameterOffset = 0;         
+			                        positions = [];
+			                        for (var j = 0; j < parameters.length; j++) {
+			                            positions.push({offset: offset + proposal.length + 1 + parameterOffset, length: parameters[j].length});
+			                            parameterOffset = parameterOffset + parameters[j].length + 1;
+			                        }
+		                        }
+		                        
+		                        proposal = proposal + "(" + signature + ")";
+		                    }
+	                        
+	                        // TODO completion to include arguments, positions, etc.
+	                        
+		                    proposals.push({
+	                            proposal: proposal,
+	                            description: name + " " + type,
+	                            positions: positions,
+	                            escapePosition: offset + proposal.length
+	                        });
                         }
-                        dots++;
-                    }
-                    o--;
-                }
-                
-                context.prefix = buffer.substring(o+1, offset);
-                
-                // There are alot of these kinds of proposals.
-                //  We only present them if we have some kind of 
-                //  existing text to narrow down the search.
-                //  Also, these are proposals for inside func, const, var, type.
-                //  They don't make sense when invoked at the first column.
-                if (context.prefix === "" || context.indentation === "") {
-                    return [];
-                }
-                
-                var proposals = [];
 
-                for (var i = 0; i < goCodeAssistTemplates.length; i = i + 4) {
-                    var matcher = goCodeAssistTemplates[i];
-                    var keyword = goCodeAssistTemplates[i + 1];
-                    var proposal = goCodeAssistTemplates[i + 2];
-                    var parmsPositions = goCodeAssistTemplates[i + 3];
-                    
-                    if (matcher.indexOf(context.prefix) !== 0) {
-                        continue;
-                    }
-
-                    // Ellide the proposal with the existing prefix text where possible
-                    if (proposal.indexOf(context.prefix) === 0) {
-                        proposal = proposal.substring(context.prefix.length);
-                    }
-                    
-                    var positions = [];
-                    
-                    // Generate offsets for the parameters
-                    for (var idx = 0; idx < parmsPositions.length; idx = idx + 2) {
-                        var off = parmsPositions[idx] + offset - context.prefix.length;
-                        var len = parmsPositions[idx+1];
-                        
-                        positions.push({offset: off, length: len});
-                    }
-
-                    proposals.push({
-                            proposal: proposal,
-                            description: keyword,
-                            positions: positions,
-                            escapePosition: proposal.length + offset
-                        });
-                }
-
-                return proposals;
+	                    return proposals;
+	                }, function(error) {
+	                    if (error.status === 400) {
+		                    return [{proposal: "", 
+		                                description: "go get github.com/nsf/gocode for more assistance",
+		                                escapePosition: offset}];
+	                    }
+	                    
+	                    return [];
+	                });
+	
+	            return d;
             }
         }, {
             name: "Go content assist",
             contentType: ["text/x-go"]
         });
+
 
     provider.registerServiceProvider("orion.edit.contentAssist", {
             computeProposals: function (buffer, offset, context) {

@@ -14,21 +14,29 @@
 /* This SettingsContainer widget manages a left and right side. The left is for choosing a 
    category, the right shows the resulting HTML for that category. */
 
-define(['i18n!orion/settings/nls/messages', 'require', 'orion/globalCommands',
-		'orion/PageUtil', 'orion/webui/littlelib', 'orion/objects', 'orion/URITemplate', 
-		'orion/widgets/themes/ThemeBuilder', 
-		'orion/settings/ui/PluginSettings', 
-		'orion/widgets/themes/ThemePreferences', 
-		'orion/widgets/themes/container/ThemeData', 
-		'orion/widgets/settings/SplitSelectionLayout',
-		'orion/widgets/plugin/PluginList',
-		'orion/widgets/settings/UserSettings',
-		'orion/widgets/settings/GitSettings',
-		'orion/widgets/settings/EditorSettings',
-		'edit/editorPreferences'
-		], function(messages, require, mGlobalCommands, PageUtil, lib, objects, URITemplate, 
-			ThemeBuilder, SettingsList, mThemePreferences, containerThemeData, SplitSelectionLayout, PluginList, UserSettings,  GitSettings,
-			EditorSettings, mEditorPreferences) {
+define([
+	'i18n!orion/settings/nls/messages',
+	'orion/Deferred',
+	'orion/globalCommands',
+	'orion/PageUtil',
+	'orion/webui/littlelib',
+	'orion/objects',
+	'orion/URITemplate',
+	'orion/widgets/themes/ThemeBuilder',
+	'orion/settings/ui/PluginSettings',
+	'orion/widgets/themes/ThemePreferences',
+	'orion/widgets/themes/editor/ThemeData',
+	'orion/widgets/themes/container/ThemeData',
+	'orion/widgets/settings/SplitSelectionLayout',
+	'orion/widgets/plugin/PluginList',
+	'orion/widgets/settings/UserSettings',
+	'orion/widgets/settings/GitSettings',
+	'orion/widgets/settings/EditorSettings',
+	'orion/editorPreferences'
+], function(messages, Deferred, mGlobalCommands, PageUtil, lib, objects, URITemplate, 
+		ThemeBuilder, SettingsList, mThemePreferences, editorThemeData, containerThemeData, SplitSelectionLayout, PluginList, UserSettings,
+		GitSettings,
+		EditorSettings, mEditorPreferences) {
 
 	/**
 	 * @param {Object} options
@@ -38,61 +46,99 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/globalCommands',
 	function SettingsContainer(options, node) {
 		SplitSelectionLayout.apply(this, arguments);
 
-		this.settingsCategories = [
-			{
-				id: "userSettings", //$NON-NLS-0$
-				textContent: messages["User Profile"],
-				show: this.showUserSettings
-			},
-			{
-				id: "gitSettings", //$NON-NLS-0$
-				textContent: messages["Git Settings"],
-				show: this.showGitSettings
-			},
-			{
-				id: "themeBuilder", //$NON-NLS-0$
-				textContent: 'UI Theme', // messages["Themes"],
-				show: this.showThemeBuilder
-			},
-			{
-				id: "editorSettings", //$NON-NLS-0$
-				textContent: messages.Editor,
-				show: this.showEditor
-			},
-			{
-				id: "plugins", //$NON-NLS-0$
-				textContent: messages["Plugins"],
-				show: this.showPlugins
-			}];
-		this.settingsCategories.forEach(function(item) {
-			item.show = item.show.bind(this, item.id);
-		}.bind(this));
+		var getPluginsRefs = this.registry.getServiceReferences("orion.core.getplugins"); //$NON-NLS-0$
+		this.pluginsUri = getPluginsRefs[0] && getPluginsRefs[0].getProperty("uri"); //$NON-NLS-0$
 
-		// Add extension categories
-		this.settingsRegistry.getCategories().sort().forEach(function(category, i) {
-			this.settingsCategories.push({
-				id: category,
-				textContent: messages[category] || category,
-				show: this.showPluginSettings.bind(this, category)
-			});
-		}.bind(this));
+		this.settingsCategories = [];
 	}
-	SettingsContainer.prototype = Object.create(SplitSelectionLayout.prototype);
+	SettingsContainer.prototype = Object.create(superPrototype);
 	objects.mixin(SettingsContainer.prototype, {
-		show: function() {
+		/**
+		 * @returns {orion.Promise}
+		 */
+		loadTranslatedPluginSettings: function() {
+			return this.settingsRegistry.loadI18n();
+		},
 
-			this.itemToIndexMap = {};
-			this.toolbar = lib.node( this.pageActions );
-			this.manageDefaultData();
-			// TODO revisit
-			// hack/workaround.  We may still be initializing the settings asynchronously in manageDefaultData, so we do not want
-			// to build the UI until there are settings to be found there.
-			window.setTimeout(function() {
-				this.drawUserInterface();
-			}.bind(this), 100);
-			window.addEventListener("hashchange", this.processHash.bind(this)); //$NON-NLS-0$
-			
-			mGlobalCommands.setPageTarget({task: 'Settings', serviceRegistry: this.registry, commandService: this.commandService});
+		show: function() {
+			var _self = this;
+
+			Deferred.all([this.preferences.getPreferences('/settingsContainer'), this.loadTranslatedPluginSettings()]).then(function(results){
+				var prefs = results[0];
+				var categories = prefs.get( 'categories' ) || {};
+				if (categories.showUserSettings === undefined || categories.showUserSettings) {
+					_self.settingsCategories.push({
+						id: "userSettings", //$NON-NLS-0$
+						textContent: messages["User Profile"],
+						show: _self.showUserSettings
+					});
+				}
+				
+				if (categories.showGitSettings === undefined || categories.showGitSettings) {
+					_self.settingsCategories.push({
+						id: "gitSettings", //$NON-NLS-0$
+						textContent: messages["Git Settings"],
+						show: _self.showGitSettings
+					});
+				}
+				
+				if (categories.showEditorSettings === undefined || categories.showEditorSettings) {
+					_self.settingsCategories.push({
+						id: "editorSettings", //$NON-NLS-0$
+						textContent: messages.Editor,
+						show: _self.showEditor
+					});
+				}
+				
+				if (categories.showThemeSettings === undefined || categories.showThemeSettings) {
+					_self.settingsCategories.push({
+						id: "themeBuilder", //$NON-NLS-0$
+						textContent: messages["UI Theme"],
+						show: _self.showThemeBuilder
+					});
+				}
+
+				if (categories.showPluginSettings === undefined || categories.showPluginSettings) {
+					_self.settingsCategories.push({
+						id: "plugins", //$NON-NLS-0$
+						textContent: messages["Plugins"],
+						show: _self.showPlugins
+					});
+				}
+
+				_self.settingsCategories.forEach(function(item) {
+					item.show = item.show.bind(_self, item.id);
+				}.bind(_self));
+
+				// Add plugin-contributed extension categories
+				var settingsRegistry = _self.settingsRegistry;
+				settingsRegistry.getCategories().map(function(category, i) {
+					return {
+						category: category,
+						label: settingsRegistry.getCategoryLabel(category) || messages[category] || category
+					};
+				}).sort(function byLabel(a, b) {
+					return a.label.localeCompare(b.label);
+				}).forEach(function(currData) {
+					var category = currData.category;
+					_self.settingsCategories.push({
+						id: category,
+						textContent: currData.label,
+						show: _self.showPluginSettings.bind(_self, category)
+					});
+				});
+
+				_self.itemToIndexMap = {};
+				_self.toolbar = lib.node( _self.pageActions );
+	
+				_self.manageDefaultData(prefs);
+				
+				_self.drawUserInterface();
+	
+				window.addEventListener("hashchange", _self.processHash.bind(_self)); //$NON-NLS-0$
+	
+				mGlobalCommands.setPageTarget({task: 'Settings', serviceRegistry: _self.registry, commandService: _self.commandService});
+			});
 		},
 		
 		processHash: function() {
@@ -100,7 +146,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/globalCommands',
 			
 			var container = this;
 			
-			this.preferences.getPreferences('/settingsContainer', 2).then(function(prefs){
+			this.preferences.getPreferences('/settingsContainer').then(function(prefs){
 
 				var selection = prefs.get( 'selection' );
 
@@ -158,12 +204,22 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/globalCommands',
 
 			var editorSettingsNode = document.createElement('div'); //$NON-NLS-0$
 			this.table.appendChild(editorSettingsNode);
+
+			var editorTheme = new editorThemeData.ThemeData();
+			var themePreferences = new mThemePreferences.ThemePreferences(this.preferences, editorTheme);
 			
+			var editorThemeWidget = new ThemeBuilder({ commandService: this.commandService, preferences: themePreferences, themeData: editorTheme, toolbarId: 'editorThemeSettingsToolActionsArea'}); //$NON-NLS-0$
+				
+			var command = { name:messages.Import, tip:messages['Import a theme'], id:0, callback: editorTheme.importTheme.bind(editorTheme) };
+			editorThemeWidget.addAdditionalCommand( command );
+
 			var editorPreferences = new mEditorPreferences.EditorPreferences (this.preferences);
 			
 			this.editorSettings = new EditorSettings({
 				registry: this.registry,
 				preferences: editorPreferences,
+				themePreferences: themePreferences,
+				editorThemeWidget: editorThemeWidget,
 				statusService: this.preferencesStatusService,
 				dialogService: this.preferenceDialogService,
 				commandService: this.commandService,
@@ -174,7 +230,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/globalCommands',
 		},
 		
 		showUserSettings: function(id){
-		
+
 			this.selectCategory(id);
 
 			lib.empty(this.table);
@@ -238,10 +294,6 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/globalCommands',
 
 			var pluginNode = document.createElement('div');
 			this.table.appendChild(pluginNode);
-			
-			/* TODO:Customizing and including a 'get plugins' link needs some better thinking than defining it here. */
-			var VERSION = "3.0";
-			var pluginUriTemplate = "http://mamacdon.github.io/#?target={OrionHome}/settings/settings.html&version=" + VERSION + "&OrionHome={OrionHome}";
 
 			this.pluginWidget = new PluginList({
 				settings: this.settingsCore,
@@ -250,7 +302,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/globalCommands',
 				dialogService: this.preferenceDialogService,
 				commandService: this.commandService,
 				registry: this.registry,
-				pluginsUri: pluginUriTemplate
+				pluginsUri: this.pluginsUri
 			}, pluginNode);
 			
 			this.pluginWidget.show();
@@ -271,10 +323,11 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/globalCommands',
 				this.pluginSettingsWidget.destroy();
 			}
 
+			var settingsInCategory = this.settingsRegistry.getSettings(category).sort(settingsCompare);
 			this.pluginSettingsWidget = new SettingsList({
 				parent: this.table,
 				serviceRegistry: this.registry,
-				settings: this.settingsRegistry.getSettings(category).sort(settingsCompare),
+				settings: settingsInCategory,
 				title: messages[category] || category
 			});
 		},
@@ -305,7 +358,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/globalCommands',
 		},
 		
 		selectCategory: function(id) {
-			this.preferences.getPreferences('/settingsContainer', 2).then(function(prefs){
+			this.preferences.getPreferences('/settingsContainer').then(function(prefs){
 				prefs.put( 'selection', id );
 			} );
 
@@ -367,16 +420,11 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/globalCommands',
 			console.log( error );
 		},
 
-		manageDefaultData: function() {
-		
-			this.preferences.getPreferences('/settingsContainer', 2).then(function(prefs){
-				
-				var selection = prefs.get( 'selection' );
-				
-				if (!selection) {
-					prefs.put( 'selection', 'userSettings' );
-				}
-			} );
+		manageDefaultData: function(prefs) {
+			var selection = prefs.get( 'selection' );
+			if (!selection) {
+				prefs.put( 'selection', 'userSettings' );
+			}
 		}
 	});
 	return SettingsContainer;

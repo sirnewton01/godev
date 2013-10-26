@@ -71,6 +71,7 @@ define({
 	"Rename": "Rename",
 	"My Saved Searches": "My Saved Searches",
 	"Save frequently used searches by choosing ${0} shown above.": "Save frequently used searches by choosing ${0} shown above.",
+	"Save frequently used searches by clicking on the ${0} button above.": "Save frequently used searches by clicking on the ${0} button above.",
 	"Files that contain:": "Files that contain:",
 	"Search": "Search",
 	"All types": "All types",
@@ -89,5 +90,10 @@ define({
 	"Scope Search": "Scope Search",
 	"Open in Search page for this directory": "Open in Search page for this directory",
 	"${0}. Try your search again.": "${0}. Try your search again.",
-	"Click or use delete key to delete the search term": "Click or use delete key to delete the search term"
+	"Click or use delete key to delete the search term": "Click or use delete key to delete the search term",
+	"${0} matches": "${0} matches",
+	"Regular expression is off. You can click here or use options to turn it on for replacement - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>." : 
+	"Regular expression is off. You can click here or use options to turn it on for replacement - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>.",
+	"Regular expression is on. You can click here or use options to turn it off - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>." : 
+	"Regular expression is on. You can click here or use options to turn it off - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>."
 });

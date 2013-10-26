@@ -69,5 +69,6 @@ define({
 	"Stopped" : "Stopped",
 	"Started at " : "Started at ",
 	"EnterPortNumber": "Enter the HTTP port number that the Orion server is running on (default is ${0}):",
-	"SitesCommandScope": "Sites"
+	"Sites": "Sites",
+	"Mappings": "Mappings"
 });

@@ -11,61 +11,30 @@
 /*global window console define localStorage*/
 /*jslint browser:true*/
 
-define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
+define(['orion/objects', 'orion/webui/littlelib', 'orion/widgets/input/TextField'], function(objects, lib, TextField) {
 
 	function LabeledTextfield(options, node) {
-		objects.mixin(this, options);
-		this.node = node || document.createElement('div'); //$NON-NLS-0$
+		TextField.apply(this, arguments);
+		this.mylabel = lib.$(".setting-label", this.node); //$NON-NLS-0$
 	}
-	objects.mixin(LabeledTextfield.prototype, {
+	objects.mixin(LabeledTextfield.prototype, TextField.prototype, {
 		templateString: '<div class="setting-property">' +  //$NON-NLS-0$
 							'<label>' + //$NON-NLS-0$
 								'<span class="setting-label"></span>' + //$NON-NLS-0$
 								'<input class="setting-control" type="text" />' + //$NON-NLS-0$
 							'</label>' + //$NON-NLS-0$
 						'</div>', //$NON-NLS-0$
-		show: function() {
-			this.node.innerHTML = this.templateString;
-			this.mylabel = lib.$('.setting-label', this.node); //$NON-NLS-0$
-			this.myfield = lib.$('.setting-control', this.node); //$NON-NLS-0$
-			this.myfield.addEventListener('change', this.change.bind(this)); //$NON-NLS-0$
-			this.postCreate();
-		},
-
+						
 		destroy: function() {
-			if (this.node) {
-				lib.empty(this.node);
-				this.node = this.mylabel = this.myfield = null;
+			TextField.prototype.destroy.call(this);
+			if (this.mylabel) {
+				this.mylabel = null;
 			}
 		},
 
-		setStorageItem: function(){
-		
-		},
-        
-        change: function(){
-            var value = this.myfield.value;
-            this.setStorageItem( this.category, this.item, this.element, value, this.ui );
-        },
-        
-        setValue: function( value ){
-			this.myfield.value = value;
-        },
-        
-        getValue: function(){
-			return this.myfield.value;
-        },
-        
         postCreate: function(){
+			TextField.prototype.postCreate.call(this);
             this.mylabel.textContent = this.fieldlabel + ':'; //$NON-NLS-0$
-            
-            if( this.inputType && this.inputType === 'password' ){ //$NON-NLS-0$
-				this.myfield.type = "password"; //$NON-NLS-0$
-            }
-            
-            if( this.editmode && this.editmode === 'readonly' ){ //$NON-NLS-0$
-				this.myfield.setAttribute("readonly", "true"); //$NON-NLS-1$ //$NON-NLS-0$
-            }
         }
     });
     return LabeledTextfield;

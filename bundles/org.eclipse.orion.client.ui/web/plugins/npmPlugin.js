@@ -8,101 +8,96 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global window document define orion*/
+/*global define*/
 	
-define(["orion/bootstrap", "orion/xhr", "orion/Deferred", "orion/plugin", "domReady!"], function(mBootstrap, xhr, Deferred) {
+define(["orion/xhr", "orion/Deferred", "orion/plugin"/*, "domReady!"*/], function(xhr, Deferred, PluginProvider) {
 
-	mBootstrap.startup().then(
-		function(core) {
+	var headers = {
+			name : "Orion NPM",
+			version : "1.0",
+			description : "Orion NPM"
+		};
 
-			var headers = {
-					name : "Orion NPM",
-					version : "1.0",
-					description : "Orion NPM"
-				};
+	var provider = new PluginProvider(headers);
 
-			var provider = new orion.PluginProvider(headers);
-
-			/** Register parent NPM root command **/
-		    provider.registerServiceProvider(
-		        "orion.shell.command", null, {
-		        name: "npm",
-		        description: "Commands for interacting with node npm"
-		    });
+	/** Register parent NPM root command **/
+    provider.registerServiceProvider(
+        "orion.shell.command", null, {
+        name: "npm",
+        description: "Commands for interacting with node npm"
+    });
 
 
-		    /** Add npm shrinkwrap command **/
-		    var shrinkwrapImpl = {
-		        callback: function(args, cwd) {
-		            args.cwd = cwd.cwd;
-		            args.type = "shrinkwrap";
-		            var d = xhr("POST", "/npm", { //$NON-NLS-0$
-		                headers: {
-		                    "Orion-Version": "1" //$NON-NLS-0$
-		                },
-		                data: JSON.stringify(args),
-		                timeout: 300000
-		            }).then(
-		            function(result) {
-						if(result.response){
-							var res = JSON.parse(result.response);
-							return res.cmdOutput;
-						} else {
-							return "";
-						}
-		            }, function(error) {
-						return error.error;
-		            });
-		            return d;
-		        }
-		    };
-		    provider.registerServiceProvider(
-		        "orion.shell.command",
-		    shrinkwrapImpl, {
-		        name: "npm shrinkwrap",
-		        description: "npm shrinkwrap",
-		        parameters: null
-		    });
-		    
-		    /** Add npm install command **/
-		    var installImpl = {
-		        callback: function(args, cwd) {
-		            args.cwd = cwd.cwd;
-		            args.type = "install";
-		            var d = xhr("POST", "/npm", { //$NON-NLS-0$
-		                headers: {
-		                    "Orion-Version": "1" //$NON-NLS-0$
-		                },
-		                data: JSON.stringify(args),
-		                timeout: 300000
-		            }).then(
-		            function(result) {
-						if(result.response){
-							var res = JSON.parse(result.response);
-							return res.cmdOutput;
-						} else {
-							return "";
-						}
-		            }, function(error) {
-						return error.error;
-		            });
-		            return d;
-		        }
-		    };
-		    provider.registerServiceProvider(
-		        "orion.shell.command",
-		    installImpl, {
-		        name: "npm install",
-		        description: "npm install",
-		        parameters: [{
-		            name: "package",
-		            type: "string",
-		            description: "package to install",
-		            defaultValue: null		            
-		        }]
-		    });
-		    
-		    provider.connect();		
-		}
-	);
+    /** Add npm shrinkwrap command **/
+    var shrinkwrapImpl = {
+        callback: function(args, cwd) {
+            args.cwd = cwd.cwd;
+            args.type = "shrinkwrap";
+            var d = xhr("POST", "/npm", { //$NON-NLS-0$
+                headers: {
+                    "Orion-Version": "1" //$NON-NLS-0$
+                },
+                data: JSON.stringify(args),
+                timeout: 300000
+            }).then(
+            function(result) {
+				if(result.response){
+					var res = JSON.parse(result.response);
+					return res.cmdOutput;
+				} else {
+					return "";
+				}
+            }, function(error) {
+				return error.error;
+            });
+            return d;
+        }
+    };
+    provider.registerServiceProvider(
+        "orion.shell.command",
+    shrinkwrapImpl, {
+        name: "npm shrinkwrap",
+        description: "npm shrinkwrap",
+        parameters: null
+    });
+    
+    /** Add npm install command **/
+    var installImpl = {
+        callback: function(args, cwd) {
+            args.cwd = cwd.cwd;
+            args.type = "install";
+            var d = xhr("POST", "/npm", { //$NON-NLS-0$
+                headers: {
+                    "Orion-Version": "1" //$NON-NLS-0$
+                },
+                data: JSON.stringify(args),
+                timeout: 300000
+            }).then(
+            function(result) {
+				if(result.response){
+					var res = JSON.parse(result.response);
+					return res.cmdOutput;
+				} else {
+					return "";
+				}
+            }, function(error) {
+				return error.error;
+            });
+            return d;
+        }
+    };
+    provider.registerServiceProvider(
+        "orion.shell.command",
+    installImpl, {
+        name: "npm install",
+        description: "npm install",
+        parameters: [{
+            name: "package",
+            type: "string",
+            description: "package to install",
+            defaultValue: null		            
+        }]
+    });
+    
+    provider.connect();		
 });

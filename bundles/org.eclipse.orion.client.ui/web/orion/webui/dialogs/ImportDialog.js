@@ -11,7 +11,7 @@
 /*global console define orion confirm*/
 /*jslint browser:true */
 
-define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui/dialog'], function(messages, lib, dialog) {
+define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui/dialog', 'orion/util'], function(messages, lib, dialog, util) {
 
 
 	function ImportDialog(options) {
@@ -113,10 +113,10 @@ define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui
 
 	// Select File via drag
 	ImportDialog.prototype.dragEnter = function(evt) {
-		if (evt.dataTransfer.effectAllowed === "all" ||   //$NON-NLS-0$
+		/* accessing dataTransfer.effectAllowed here throws an error on IE */
+		if (!util.isIE && (evt.dataTransfer.effectAllowed === "all" ||   //$NON-NLS-0$
 			evt.dataTransfer.effectAllowed === "uninitialized" ||  //$NON-NLS-0$
-			evt.dataTransfer.effectAllowed.indexOf("copy") >= 0) {   //$NON-NLS-0$
-			// only supported in Chrome.
+			evt.dataTransfer.effectAllowed.indexOf("copy") >= 0)) {   //$NON-NLS-0$
 				evt.dataTransfer.dropEffect = "copy";  //$NON-NLS-0$
 		}   
 		lib.stop(evt);
@@ -127,10 +127,10 @@ define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui
 	};
 
 	ImportDialog.prototype.dragOver = function(evt) {
-		if (evt.dataTransfer.effectAllowed === "all" ||   //$NON-NLS-0$
+		/* accessing dataTransfer.effectAllowed here throws an error on IE */
+		if (!util.isIE && (evt.dataTransfer.effectAllowed === "all" ||   //$NON-NLS-0$
 			evt.dataTransfer.effectAllowed === "uninitialized" ||  //$NON-NLS-0$
-			evt.dataTransfer.effectAllowed.indexOf("copy") >= 0) {   //$NON-NLS-0$
-			// only supported in Chrome.
+			evt.dataTransfer.effectAllowed.indexOf("copy") >= 0)) {   //$NON-NLS-0$
 				evt.dataTransfer.dropEffect = "copy";  //$NON-NLS-0$
 		}   
 		lib.stop(evt);
@@ -141,7 +141,7 @@ define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui
 		var files = evt.dataTransfer.files;
 		if (files.length && files.length > 0 ){
 			for(var i=0; i< files.length; i++){
-				this.uploadFile(files[i]); //$NON-NLS-0$)
+				this.uploadFile(files[i]);
 			}
 		}
 	};

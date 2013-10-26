@@ -12,21 +12,22 @@
 	margin: 0;
 	border: 0;
 	background-color: rgb(51, 51, 51);
-	height: 15px;
-	padding: 10px 3px 10px 10px;
+	height: 16px;
+	padding: 10px 3px 6px 2px;
 	display: -webkit-box;
 	display: -moz-box;         /* OLD - Firefox 19- (buggy but mostly works) */
 	display: -ms-flexbox;     /* TWEENER - IE 10 */
 	display: -webkit-flex;     /* NEW - Chrome */
 	display: flex; 
-	width: calc(100% - 10px - 3px);
-	whitespace: nowrap;
+	white-space: nowrap;
 }
 
 
 /* Footer */
 .logoFooter {
 	float: left;
+	margin-top:2px;
+	margin-left:4px;
 }
 
 a {
@@ -124,8 +125,8 @@ a.breadcrumb:hover {
 	font-size: 8pt;
 	color: #444;
 	text-decoration: none;
-	text-wrap: normal;
 	line-height: 10pt;
+	white-space:nowrap;
 }
 
 a.currentLocation:hover {
@@ -153,9 +154,40 @@ a.currentLocation:hover {
 	min-width: 600px;
 }
 
+.folderNav .treetable {
+	min-width: 150px;
+}
+
 .mainToolbar {
  	background: #ffffff;
 	border-bottom: 1px solid #ebebeb;
+}
+
+/* Filesystem switcher toolbar */
+.fsToolbar {
+	padding: 2px 4px 2px 4px; /*$FSToolbarPadding*/
+	background-color: white;
+	border-bottom: 1px solid rgb(235, 235, 235);
+}
+
+.filesystemName {
+	font-weight: bold;
+	margin-left: 4px;
+	margin-top: 8px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	/* 100% - filesystemName_margin - filesystemName_margin - filesystemSwitcher_width */
+	max-width: calc(100% - 6px - 4px - 24px);
+	max-width: -webkit-calc(100% - 6px - 4px - 24px);
+	-moz-user-select: -moz-none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	color:#444;
+}
+
+.filesystemSwitcher {
 }
 
 .sidebarToolbar {
@@ -201,7 +233,7 @@ a.currentLocation:hover {
 	vertical-align: baseline;
     display: inline-block;
     padding: 2px 6px 3px;
-    border-radius: 2px;
+    border-radius: 1px;
     line-height: 12px;
 	font: 8pt Lucida Sans Unicode,Lucida Grande,Verdana,Arial,Helvetica,Myriad,Tahoma,clean,sans-serif;  /* to override user agent stylesheet */
 	margin: 0;  /* to override user agent stylesheet */
@@ -224,7 +256,7 @@ a.currentLocation:hover {
 
 .commandImage {
 	border: 1px solid transparent;
-    border-radius: 2px;
+    border-radius: 1px;
 	background-color: transparent;
 	vertical-align: baseline;
 	cursor: pointer;
@@ -305,22 +337,16 @@ a.currentLocation:hover {
 }
 
 .dropdownArrowDown {
-	background-position: 0 -432px;	
-	width: 5px;
-	height: 3px;
-	background-image: url(../images/core_sprites.png); 
+	background-image: url(../images/core_sprites.png);
 	display: inline-block; 
 	margin: 4px 4px 0;
 	vertical-align: top; 
 }
 
 .dropdownArrowRight {
-	background-position: 0 -72px; 
-	width: 16px;
-	height: 16px;
-	background-image: url(../images/core_sprites.png); 
-	margin-right: 4px;
-	float: right;
+	background-image: url(../images/core_sprites.png);
+	position: absolute;
+	right: 0;
 }
 
 .dropdownTrigger {
@@ -342,13 +368,14 @@ a.currentLocation:hover {
 	z-index: 150;
 	position: absolute;
 	list-style-type: none;
-	border-radius: 3px;
+	border-radius: 1px;
 	border: 1px solid #DDD;
 	padding: 0;
 	background-color: white;
 	padding: 10px;
-	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+	box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
 	display: none; /* don't take part in layout until open */
+	line-height: normal; /* don't want to inherit strange line-heights from ancestor elements */
 }
 
 .dropdownMenuOpen {
@@ -357,7 +384,8 @@ a.currentLocation:hover {
 }
 
 .dropdownSubMenu {
-	position: relative
+	position: relative;
+	line-height: normal;
 }
 
 .dropdownSubMenu > ul {
@@ -411,6 +439,12 @@ a.currentLocation:hover {
 	-moz-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
+	white-space: nowrap;
+}
+
+.dropdownSelection {
+	background-color: #e6e6e6 !important;
+	border: 1px solid #ccc !important;
 }
 
 .checkedMenuItem {
@@ -425,20 +459,21 @@ a.currentLocation:hover {
 	z-index: 200;
 	background: transparent;
 	position: absolute;
-	min-width: 15em;
 	max-width: 110em;
+}
+.tooltip .textContent {
+	max-width: 40em;
 }
 .tooltip {
 	color: #fafafa;
 	background-color: #555;
 	border-radius: 3px;
-	position: absolute;
 	padding: 8px;
-	z-index: 200;
+	clear: both;
+	float: left;
 }
 
 .tooltip.left {
-	min-width: 15em;
 }
 
 .tooltip .navlinkonpage {

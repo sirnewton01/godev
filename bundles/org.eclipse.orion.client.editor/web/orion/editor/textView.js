@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * Copyright (c) 2010, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -20,29 +20,16 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 	'orion/editor/keyModes', //$NON-NLS-0$
 	'orion/editor/eventTarget', //$NON-NLS-0$
 	'orion/editor/textTheme', //$NON-NLS-0$
+	'orion/editor/util', //$NON-NLS-0$
 	'orion/util' //$NON-NLS-0$
-], function(messages, mTextModel, mKeyModes, mEventTarget, mTextTheme, util) {
+], function(messages, mTextModel, mKeyModes, mEventTarget, mTextTheme, textUtil, util) {
 
 	/** @private */
 	function getWindow(document) {
 		return document.defaultView || document.parentWindow;
 	}
-	/** @private */
-	function addHandler(node, type, handler, capture) {
-		if (typeof node.addEventListener === "function") { //$NON-NLS-0$
-			node.addEventListener(type, handler, capture === true);
-		} else {
-			node.attachEvent("on" + type, handler); //$NON-NLS-0$
-		}
-	}
-	/** @private */
-	function removeHandler(node, type, handler, capture) {
-		if (typeof node.removeEventListener === "function") { //$NON-NLS-0$
-			node.removeEventListener(type, handler, capture === true);
-		} else {
-			node.detachEvent("on" + type, handler); //$NON-NLS-0$
-		}
-	}
+	var addHandler = textUtil.addEventListener;
+	var removeHandler = textUtil.removeEventListener;
 	/** @private */
 	function applyStyle(style, node, reset) {
 		if (reset) {
@@ -240,7 +227,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		}
 		/**
 		 * Plays this animation.
-		 * @methodOf orion.editor.Animation.prototype
+		 * @function
+		 * @memberOf orion.editor.Animation.prototype
 		 * @name play
 		 */
 		Animation.prototype.play = function() {
@@ -272,7 +260,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		};
 		/**
 		 * Stops this animation.
-		 * @methodOf orion.editor.Animation.prototype
+		 * @function
+		 * @memberOf orion.editor.Animation.prototype
 		 */
 		Animation.prototype.stop = function() {
 			this.options.window.clearInterval(this.interval);
@@ -541,10 +530,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 						if (start < styleStart) {
 							this._createRange(text, start, styleStart, null, data);
 						}
-						while (i + 1 < ranges.length && ranges[i + 1].start - lineStart === styleEnd && compare(range.style, ranges[i + 1].style)) {
-							range = ranges[i + 1];
-							styleEnd = Math.min(lineStart + end, range.end) - lineStart;
-							i++;
+						if (!range.style || !range.style.unmergeable) {
+							while (i + 1 < ranges.length && ranges[i + 1].start - lineStart === styleEnd && compare(range.style, ranges[i + 1].style)) {
+								range = ranges[i + 1];
+								styleEnd = Math.min(lineStart + end, range.end) - lineStart;
+								i++;
+							}
 						}
 						this._createRange(text, styleStart, styleEnd, range.style, data);
 						start = styleEnd;
@@ -560,7 +551,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var tabSize = this.view._customTabSize, range;
 			if (tabSize && tabSize !== 8) {
 				var tabIndex = text.indexOf("\t", start); //$NON-NLS-0$
-				while (tabIndex !== -1) {
+				while (tabIndex !== -1 && tabIndex < end) {
 					if (start < tabIndex) {
 						range = {text: text.substring(start, tabIndex), style: style};
 						data.ranges.push(range);
@@ -654,7 +645,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					if (lineOffset + nodeLength > offset) {
 						var index = offset - lineOffset;
 						var range;
-						if (view._isRangeRects) {
+						if (textNode.length === 1) {
+							result = new TextRect(lineChild.getBoundingClientRect());
+						} else if (view._isRangeRects) {
 							range = document.createRange();
 							range.setStart(textNode, index);
 							range.setEnd(textNode, index + 1);
@@ -663,9 +656,19 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 							range = document.body.createTextRange();
 							range.moveToElementText(lineChild);
 							range.collapse();
+							/*
+							* Bug in IE8. TextRange.getClientRects() and TextRange.getBoundingClientRect() fails
+							* if the line child is not the first element in the line and if the start offset is 0. 
+							* The fix is to use Node.getClientRects() left edge instead.
+							*/
+							var fixIE8 = index === 0 && util.isIE === 8;
+							if (fixIE8) { index = 1; }
 							range.moveEnd("character", index + 1); //$NON-NLS-0$
 							range.moveStart("character", index); //$NON-NLS-0$
 							result = new TextRect(range.getBoundingClientRect());
+							if (fixIE8) {
+								result.left = lineChild.getClientRects()[0].left;
+							}
 						} else {
 							var text = textNode.data;
 							lineChild.removeChild(textNode);
@@ -889,6 +892,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					rect = rects[j];
 					if (rect.left <= x && x < rect.right && (!view._wrapMode || (rect.top <= y && y < rect.bottom))) {
 						var range, start, end;
+						var rl = rect.left + lineRect.left, fixIE8;
 						if (util.isIE || view._isRangeRects) {
 							range = view._isRangeRects ? document.createRange() : document.body.createTextRange();
 							var high = nodeLength;
@@ -897,10 +901,17 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 								var mid = Math.floor((high + low) / 2);
 								start = low + 1;
 								end = mid === nodeLength - 1 && lineChild.ignoreChars ? textNode.length : mid + 1;
+								/*
+								* Bug in IE8. TextRange.getClientRects() and TextRange.getBoundingClientRect() fails
+								* if the line child is not the first element in the line and if the start offset is 0. 
+								* The fix is to use Node.getClientRects() left edge instead.
+								*/
+								fixIE8 = start === 0 && util.isIE === 8;
 								if (view._isRangeRects) {
 									range.setStart(textNode, start);
 									range.setEnd(textNode, end);
 								} else {
+									if (fixIE8) { start = 1; } 
 									range.moveToElementText(lineChild);
 									range.move("character", start); //$NON-NLS-0$
 									range.moveEnd("character", end - start); //$NON-NLS-0$
@@ -909,7 +920,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 								var found = false;
 								for (var k = 0; k < rects.length; k++) {
 									rect = rects[k];
-									rangeLeft = rect.left * xFactor - lineRect.left;
+									rangeLeft = (fixIE8 ? rl : rect.left) * xFactor - lineRect.left;
 									rangeRight = rect.right * xFactor - lineRect.left;
 									rangeTop = rect.top * yFactor - lineRect.top;
 									rangeBottom = rect.bottom * yFactor - lineRect.top;
@@ -935,11 +946,15 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 								range.move("character", start); //$NON-NLS-0$
 								range.moveEnd("character", end - start); //$NON-NLS-0$
 							}
-							rect = range.getClientRects()[0];
-							rangeLeft = rect.left * xFactor - lineRect.left;
-							rangeRight = rect.right * xFactor - lineRect.left;
-							//TODO test for character trailing (wrong for bidi)
-							var trailing = x > (rangeLeft + (rangeRight - rangeLeft) / 2);
+							rects = range.getClientRects();
+							var trailing = false;
+							if (rects.length > 0) {
+								rect = rects[0];
+								rangeLeft = (fixIE8 ? rl : rect.left) * xFactor - lineRect.left;
+								rangeRight = rect.right * xFactor - lineRect.left;
+								//TODO test for character trailing (wrong for bidi)
+								trailing = x > (rangeLeft + (rangeRight - rangeLeft) / 2);
+							}
 							// Handle Unicode surrogates
 							var offsetInLine = offset - lineStart;
 							var lineText = model.getLine(lineIndex);
@@ -1143,7 +1158,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var step = data.count < 0 ? -1 : 1;
 			if (offset === model.getLineEnd(lineIndex)) {
 				lineChild = child.lastChild;
-				while (lineChild && lineChild.ignoreChars) {
+				while (lineChild && lineChild.ignoreChars === lineChild.firstChild.length) {
 					lineChild = lineChild.previousSibling;
 				}
 				if (!lineChild) {
@@ -1215,6 +1230,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 	 * @property {String} [themeClass] the CSS class for the view theming.
 	 * @property {Number} [tabSize=8] The number of spaces in a tab.
 	 * @property {Boolean} [overwriteMode=false] whether or not the view is in insert/overwrite mode.
+	 * @property {Boolean} [singleMode=false] whether or not the editor is in single line mode.
+	 * @property {Number} [marginOffset=0] the offset in a line where the print margin should be displayed. <code>0</code> means no print margin.
+	 * @property {Number} [wrapOffset=0] the offset in a line where text should wrap. <code>0</code> means wrap at the client area right edge.
 	 * @property {Boolean} [wrapMode=false] whether or not the view wraps lines.
 	 * @property {Boolean} [wrapable=false] whether or not the view is wrappable.
 	 * @property {Number} [scrollAnimation=0] the time duration in miliseconds for scrolling animation. <code>0</code> means no animation.
@@ -1331,10 +1349,10 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {String} from the source coordinate space.
 		 * @param {String} to the destination coordinate space.
 		 *
-		 * @see #getLocationAtOffset
-		 * @see #getOffsetAtLocation
-		 * @see #getTopPixel
-		 * @see #setTopPixel
+		 * @see orion.editor.TextView#getLocationAtOffset
+		 * @see orion.editor.TextView#getOffsetAtLocation
+		 * @see orion.editor.TextView#getTopPixel
+		 * @see orion.editor.TextView#setTopPixel
 		 */
 		convert: function(rect, from, to) {
 			if (!this._clientDiv) { return; }
@@ -1368,7 +1386,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * attached to view can release their references.
 		 * </p>
 		 *
-		 * @see #onDestroy
+		 * @see orion.editor.TextView#onDestroy
 		 */
 		destroy: function() {
 			/* Destroy rulers*/
@@ -1403,7 +1421,6 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			* The fix is to call _updateDOMSelection() before calling focus().
 			*/
 			this._updateDOMSelection();
-			if (util.isOpera) { this._clientDiv.blur(); }
 			this._clientDiv.focus();
 			/*
 			* Feature in Safari. When focus is called the browser selects the clientDiv
@@ -1496,10 +1513,10 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Boolean} [defaultAction=false] whether or not the predefined actions are included.
 		 * @returns {String[]} an array of action IDs defined in the text view.
 		 *
-		 * @see #invokeAction
-		 * @see #setAction
-		 * @see #setKeyBinding
-		 * @see #getKeyBindings
+		 * @see orion.editor.TextView#invokeAction
+		 * @see orion.editor.TextView#setAction
+		 * @see orion.editor.TextView#setKeyBinding
+		 * @see orion.editor.TextView#getKeyBindings
 		 */
 		getActions: function (defaultAction) {
 			var result = [];
@@ -1524,8 +1541,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *    parameter is ignored if the view is not big enough to show one line.
 		 * @returns {Number} the index of the bottom line.
 		 *
-		 * @see #getTopIndex
-		 * @see #setTopIndex
+		 * @see orion.editor.TextView#getTopIndex
+		 * @see orion.editor.TextView#setTopIndex
 		 */
 		getBottomIndex: function(fullyVisible) {
 			if (!this._clientDiv) { return 0; }
@@ -1541,9 +1558,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *
 		 * @returns {Number} the bottom pixel.
 		 *
-		 * @see #getTopPixel
-		 * @see #setTopPixel
-		 * @see #convert
+		 * @see orion.editor.TextView#getTopPixel
+		 * @see orion.editor.TextView#setTopPixel
+		 * @see orion.editor.TextView#convert
 		 */
 		getBottomPixel: function() {
 			if (!this._clientDiv) { return 0; }
@@ -1552,11 +1569,11 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		/**
 		 * Returns the caret offset relative to the start of the document.
 		 *
-		 * @returns the caret offset relative to the start of the document.
+		 * @returns {Number} the caret offset relative to the start of the document.
 		 *
-		 * @see #setCaretOffset
-		 * @see #setSelection
-		 * @see #getSelection
+		 * @see orion.editor.TextView#setCaretOffset
+		 * @see orion.editor.TextView#setSelection
+		 * @see orion.editor.TextView#getSelection
 		 */
 		getCaretOffset: function () {
 			var s = this._getSelection();
@@ -1569,12 +1586,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * client area position is relative to the beginning of the document.
 		 * </p>
 		 *
-		 * @returns the client area rectangle {x, y, width, height}.
+		 * @returns {Object} the client area rectangle {x, y, width, height}.
 		 *
-		 * @see #getTopPixel
-		 * @see #getBottomPixel
-		 * @see #getHorizontalPixel
-		 * @see #convert
+		 * @see orion.editor.TextView#getTopPixel
+		 * @see orion.editor.TextView#getBottomPixel
+		 * @see orion.editor.TextView#getHorizontalPixel
+		 * @see orion.editor.TextView#convert
 		 */
 		getClientArea: function() {
 			if (!this._clientDiv) { return {x: 0, y: 0, width: 0, height: 0}; }
@@ -1591,8 +1608,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *
 		 * @returns {Number} the horizontal pixel.
 		 *
-		 * @see #setHorizontalPixel
-		 * @see #convert
+		 * @see orion.editor.TextView#setHorizontalPixel
+		 * @see orion.editor.TextView#convert
 		 */
 		getHorizontalPixel: function() {
 			if (!this._clientDiv) { return 0; }
@@ -1604,8 +1621,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {String} actionID the action ID.
 		 * @returns {orion.editor.KeyBinding[]} the array of key bindings associated to the given action ID.
 		 *
-		 * @see #setKeyBinding
-		 * @see #setAction
+		 * @see orion.editor.TextView#setKeyBinding
+		 * @see orion.editor.TextView#setAction
 		 */
 		getKeyBindings: function (actionID) {
 			var result = [];
@@ -1620,8 +1637,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *
 		 * @returns {orion.editor.KeyMode[]} the array of key modes.
 		 *
-		 * @see #addKeyMode
-		 * @see #removeKeyMode
+		 * @see orion.editor.TextView#addKeyMode
+		 * @see orion.editor.TextView#removeKeyMode
 		 */
 		getKeyModes: function() {
 			return this._keyModes.slice(0);
@@ -1633,7 +1650,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Number} [lineIndex] the line index.
 		 * @returns {Number} the height of the line in pixels.
 		 *
-		 * @see #getLinePixel
+		 * @see orion.editor.TextView#getLinePixel
 		 */
 		getLineHeight: function(lineIndex) {
 			if (!this._clientDiv) { return 0; }
@@ -1645,7 +1662,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Number} [y] the line pixel.
 		 * @returns {Number} the line index for the specified pixel position.
 		 *
-		 * @see #getLinePixel
+		 * @see orion.editor.TextView#getLinePixel
 		 */
 		getLineIndex: function(y) {
 			if (!this._clientDiv) { return 0; }
@@ -1661,9 +1678,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Number} lineIndex the line index.
 		 * @returns {Number} the pixel position of the line.
 		 *
-		 * @see #setTopPixel
-		 * @see #getLineIndex
-		 * @see #convert
+		 * @see orion.editor.TextView#setTopPixel
+		 * @see orion.editor.TextView#getLineIndex
+		 * @see orion.editor.TextView#convert
 		 */
 		getLinePixel: function(lineIndex) {
 			if (!this._clientDiv) { return 0; }
@@ -1678,10 +1695,10 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * </p>
 		 *
 		 * @param {Number} offset the character offset
-		 * @returns the {x, y} pixel location of the given offset.
+		 * @returns {Object} the {x, y} pixel location of the given offset.
 		 *
-		 * @see #getOffsetAtLocation
-		 * @see #convert
+		 * @see orion.editor.TextView#getOffsetAtLocation
+		 * @see orion.editor.TextView#convert
 		 */
 		getLocationAtOffset: function(offset) {
 			if (!this._clientDiv) { return {x: 0, y: 0}; }
@@ -1696,6 +1713,20 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			return {x: x, y: y};
 		},
 		/**
+		 * Returns the next character offset after the given offset and options
+		 *
+		 * @param {Number} offset the offset to start from
+		 * @param {Object} options
+		 *   { unit: the type of unit to advance to (eg "character", "word", "wordend", "wordWS", "wordendWS"),
+		 *    count: the number of units to advance (negative to advance backwards) }
+		 * @returns {Number} the next character offset
+		 */
+		getNextOffset: function(offset, options) {
+		  var selection = new Selection(offset, offset, false);
+		  this._doMove(options, selection);
+		  return selection.getCaret();
+		},
+        /**
 		 * Returns the specified view options.
 		 * <p>
 		 * The returned value is either a <code>orion.editor.TextViewOptions</code> or an option value. An option value is returned when only one string paremeter
@@ -1706,7 +1737,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {String|orion.editor.TextViewOptions} [options] The options to return.
 		 * @return {Object|orion.editor.TextViewOptions} The requested options or an option value.
 		 *
-		 * @see #setOptions
+		 * @see orion.editor.TextView#setOptions
 		 */
 		getOptions: function() {
 			var options;
@@ -1747,9 +1778,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *
 		 * @param x the x of the location
 		 * @param y the y of the location
-		 * @returns the character offset at the given location.
+		 * @returns {Number} the character offset at the given location.
 		 *
-		 * @see #getLocationAtOffset
+		 * @see orion.editor.TextView#getLocationAtOffset
 		 */
 		getOffsetAtLocation: function(x, y) {
 			if (!this._clientDiv) { return 0; }
@@ -1762,9 +1793,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		/**
 		 * Get the view rulers.
 		 *
-		 * @returns the view rulers
+		 * @returns {orion.editor.Ruler[]} the view rulers
 		 *
-		 * @see #addRuler
+		 * @see orion.editor.TextView#addRuler
 		 */
 		getRulers: function() {
 			return this._rulers.slice(0);
@@ -1778,7 +1809,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * 
 		 * @returns {orion.editor.Selection} the view selection
 		 *
-		 * @see #setSelection
+		 * @see orion.editor.TextView#setSelection
 		 */
 		getSelection: function () {
 			var s = this._getSelection();
@@ -1793,7 +1824,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Number} [start=0] the start offset of text range.
 		 * @param {Number} [end=char count] the end offset of text range.
 		 *
-		 * @see #setText
+		 * @see orion.editor.TextView#setText
 		 */
 		getText: function(start, end) {
 			var model = this._model;
@@ -1811,8 +1842,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *    parameter is ignored if the view is not big enough to show one line.
 		 * @returns {Number} the index of the top line.
 		 *
-		 * @see #getBottomIndex
-		 * @see #setTopIndex
+		 * @see orion.editor.TextView#getBottomIndex
+		 * @see orion.editor.TextView#setTopIndex
 		 */
 		getTopIndex: function(fullyVisible) {
 			if (!this._clientDiv) { return 0; }
@@ -1828,9 +1859,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *
 		 * @returns {Number} the top pixel.
 		 *
-		 * @see #getBottomPixel
-		 * @see #setTopPixel
-		 * @see #convert
+		 * @see orion.editor.TextView#getBottomPixel
+		 * @see orion.editor.TextView#setTopPixel
+		 * @see orion.editor.TextView#convert
 		 */
 		getTopPixel: function() {
 			if (!this._clientDiv) { return 0; }
@@ -1852,8 +1883,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Object} [actionOptions] action specific options to be passed to the action handlers.
 		 * @returns {Boolean} <code>true</code> if the action was executed.
 		 *
-		 * @see #setAction
-		 * @see #getActions
+		 * @see orion.editor.TextView#setAction
+		 * @see orion.editor.TextView#getActions
 		 */
 		invokeAction: function (actionID, defaultAction, actionOptions) {
 			if (!this._clientDiv) { return; }
@@ -1939,7 +1970,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @event
 		 * @param {orion.editor.DestroyEvent} destroyEvent the event
 		 *
-		 * @see #destroy
+		 * @see orion.editor.TextView#destroy
 		 */
 		onDestroy: function(destroyEvent) {
 			return this.dispatchEvent(destroyEvent);
@@ -2158,8 +2189,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * </p>		 
 		 * @name orion.editor.ScrollEvent
 		 * 
-		 * @property oldValue The old scroll {x,y}.
-		 * @property newValue The new scroll {x,y}.
+		 * @property {Object} oldValue The old scroll {x,y}.
+		 * @property {Object} newValue The new scroll {x,y}.
 		 */
 		/**
 		 * This event is sent when the text view scrolls vertically or horizontally.
@@ -2239,9 +2270,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		/**
 		 * Redraws the entire view, including rulers.
 		 *
-		 * @see #redrawLines
-		 * @see #redrawRange
-		 * @see #setRedraw
+		 * @see orion.editor.TextView#redrawLines
+		 * @see orion.editor.TextView#redrawRange
+		 * @see orion.editor.TextView#setRedraw
 		 */
 		redraw: function() {
 			if (this._redrawCount > 0) { return; }
@@ -2265,9 +2296,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Number} [startLine=0] the start line
 		 * @param {Number} [endLine=line count] the end line
 		 *
-		 * @see #redraw
-		 * @see #redrawRange
-		 * @see #setRedraw
+		 * @see orion.editor.TextView#redraw
+		 * @see orion.editor.TextView#redrawRange
+		 * @see orion.editor.TextView#setRedraw
 		 */
 		redrawLines: function(startLine, endLine, ruler) {
 			if (this._redrawCount > 0) { return; }
@@ -2277,8 +2308,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var div = this._clientDiv;
 			if (!div) { return; }
 			if (ruler) {
-				var location = ruler.getLocation();//"left" or "right"
-				var divRuler = location === "left" ? this._leftDiv : this._rightDiv; //$NON-NLS-0$
+				var divRuler = this._getRulerParent(ruler);
 				div = divRuler.firstChild;
 				while (div) {
 					if (div._ruler === ruler) {
@@ -2324,9 +2354,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Number} [start=0] the start offset of text range
 		 * @param {Number} [end=char count] the end offset of text range
 		 *
-		 * @see #redraw
-		 * @see #redrawLines
-		 * @see #setRedraw
+		 * @see orion.editor.TextView#redraw
+		 * @see orion.editor.TextView#redrawLines
+		 * @see orion.editor.TextView#setRedraw
 		 */
 		redrawRange: function(start, end) {
 			if (this._redrawCount > 0) { return; }
@@ -2399,8 +2429,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Function} handler the action handler.
 		 * @param {orion.editor.ActionDescription} [actionDescription=undefined] the action description.
 		 *
-		 * @see #getActions
-		 * @see #invokeAction
+		 * @see orion.editor.TextView#getActions
+		 * @see orion.editor.TextView#invokeAction
 		 */
 		setAction: function(actionID, handler, actionDescription) {
 			if (!actionID) { return; }
@@ -2436,9 +2466,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Function} [callback] if callback is specified and <code>scrollAnimation</code> is not zero, view scrolling is animated and
 		 *					the callback is called when the animation is done. Otherwise, callback is callback right away.
 		 *
-		 * @see #getCaretOffset
-		 * @see #setSelection
-		 * @see #getSelection
+		 * @see orion.editor.TextView#getCaretOffset
+		 * @see orion.editor.TextView#setSelection
+		 * @see orion.editor.TextView#getSelection
 		 */
 		setCaretOffset: function(offset, show, callback) {
 			var charCount = this._model.getCharCount();
@@ -2456,8 +2486,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *
 		 * @param {Number} pixel the horizontal pixel.
 		 *
-		 * @see #getHorizontalPixel
-		 * @see #convert
+		 * @see orion.editor.TextView#getHorizontalPixel
+		 * @see orion.editor.TextView#convert
 		 */
 		setHorizontalPixel: function(pixel) {
 			if (!this._clientDiv) { return; }
@@ -2476,7 +2506,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *
 		 * @param {Boolean} redraw the new redraw state
 		 * 
-		 * @see #redraw
+		 * @see orion.editor.TextView#redraw
 		 */
 		setRedraw: function(redraw) {
 			if (redraw) {
@@ -2532,7 +2562,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *
 		 * @param {orion.editor.TextViewOptions} options the view options.
 		 * 
-		 * @see #getOptions
+		 * @see orion.editor.TextView#getOptions
 		 */
 		setOptions: function (options) {
 			var defaultOptions = this._defaultOptions();
@@ -2573,7 +2603,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Function} [callback] if callback is specified and <code>scrollAnimation</code> is not zero, view scrolling is animated and
 		 *					the callback is called when the animation is done. Otherwise, callback is callback right away.
 		 *
-		 * @see #getSelection
+		 * @see orion.editor.TextView#getSelection
 		 */
 		setSelection: function (start, end, show, callback) {
 			var caret = start > end;
@@ -2603,7 +2633,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @param {Number} [start=0] the start offset of text range.
 		 * @param {Number} [end=char count] the end offset of text range.
 		 *
-		 * @see #getText
+		 * @see orion.editor.TextView#getText
 		 */
 		setText: function (text, start, end) {
 			var reset = start === undefined && end === undefined;
@@ -2636,8 +2666,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *
 		 * @param {Number} topIndex the index of the top line.
 		 *
-		 * @see #getBottomIndex
-		 * @see #getTopIndex
+		 * @see orion.editor.TextView#getBottomIndex
+		 * @see orion.editor.TextView#getTopIndex
 		 */
 		setTopIndex: function(topIndex) {
 			if (!this._clientDiv) { return; }
@@ -2653,9 +2683,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 *
 		 * @param {Number} pixel the top pixel.
 		 *
-		 * @see #getBottomPixel
-		 * @see #getTopPixel
-		 * @see #convert
+		 * @see orion.editor.TextView#getBottomPixel
+		 * @see orion.editor.TextView#getTopPixel
+		 * @see orion.editor.TextView#convert
 		 */
 		setTopPixel: function(pixel) {
 			if (!this._clientDiv) { return; }
@@ -2664,10 +2694,10 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		/**
 		 * Scrolls the selection into view if needed.
 		 *
-		 * @returns true if the view was scrolled. 
+		 * @returns {Boolean} true if the view was scrolled.
 		 *
-		 * @see #getSelection
-		 * @see #setSelection
+		 * @see orion.editor.TextView#getSelection
+		 * @see orion.editor.TextView#setSelection
 		 */
 		showSelection: function() {
 			return this._showCaret(true);
@@ -3140,6 +3170,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				}
 			}
 		},
+		_handleDocKeyUp: function (e) {
+			var ctrlKey = util.isMac ? e.metaKey : e.ctrlKey;
+			if (!ctrlKey) {
+				this._setLinksVisible(false);
+			}
+		},
 		_handleKeyUp: function (e) {
 			if (this._ignoreEvent(e)) { return; }
 			if (this.isListening("KeyUp")) { //$NON-NLS-0$
@@ -3150,10 +3186,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					return;
 				}
 			}
-			var ctrlKey = util.isMac ? e.metaKey : e.ctrlKey;
-			if (!ctrlKey) {
-				this._setLinksVisible(false);
-			}
+			this._handleDocKeyUp(e);
 			// don't commit for space (it happens during JP composition)  
 			if (e.keyCode === 13) {
 				this._commitIME();
@@ -3558,8 +3591,23 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				* Feature in IE7. For some reason, sometimes Internet Explorer 7 
 				* returns incorrect values for element.getBoundingClientRect() when 
 				* inside a resize handler. The fix is to queue the work.
+				*/			
+				var queue = util.isIE < 9;
+
+				/*
+				* The calculated metrics may be out of date when the zoom level changes.
 				*/
-				if (util.isIE < 9) {
+				var metrics = this._calculateMetrics();
+				if (!compare(metrics, this._metrics)) {
+					if (this._variableLineHeight) {
+						this._variableLineHeight = false;
+						this._resetLineHeight();
+					}
+					this._metrics = metrics;
+					queue = true;
+				}
+
+				if (queue) {
 					this._queueUpdate();
 				} else {
 					this._update();
@@ -3603,7 +3651,16 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 						if (ruler.onMouseOver) { ruler.onMouseOver(lineIndex, e); }
 						break;
 					case "mouseout": //$NON-NLS-0$
-						if (ruler.onMouseOut) { ruler.onMouseOut(lineIndex, e); }
+						if (ruler.onMouseOut) { 
+							var tmp = e.relatedTarget;
+							while (tmp && tmp !== this._rootDiv) {
+								if (tmp === element) {
+									return;
+								}
+								tmp = tmp.parentNode;
+							}
+							ruler.onMouseOut(lineIndex, e); 
+						}
 						break;
 				}
 			}
@@ -4500,20 +4557,48 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			parent.appendChild(div1);
 			var rect1 = div1.getBoundingClientRect();
 			var rect2 = div2.getBoundingClientRect();
-			div1.style.overflow = 'hidden'; //$NON-NLS-0$
-			div2.style.height = "200px"; //$NON-NLS-0$
-			var w1 = div1.clientWidth;
-			div1.style.overflow = 'scroll'; //$NON-NLS-0$
-			var w2 = div1.clientWidth;
+			var scrollWidth = 0;
+			if (!this._singleMode) {
+				div1.style.overflow = 'hidden'; //$NON-NLS-0$
+				div2.style.height = "200px"; //$NON-NLS-0$
+				var w1 = div1.clientWidth;
+				div1.style.overflow = 'scroll'; //$NON-NLS-0$
+				var w2 = div1.clientWidth;
+				scrollWidth = w1 - w2;
+			}
 			parent.removeChild(div1);
-			var scrollWidth = w1 - w2;
 			pad = {
 				left: rect2.left - rect1.left,
 				top: rect2.top - rect1.top,
 				right: rect1.right - rect2.right,
 				bottom: rect1.bottom - rect2.bottom
 			};
-			return {lineHeight: lineHeight, largestFontStyle: style, lineTrim: trim, viewPadding: pad, scrollWidth: scrollWidth, invalid: invalid};
+			var wrapWidth = 0, marginWidth = 0;
+			if (!invalid) {
+				if (this._wrapOffset || this._marginOffset) {
+					div1 = util.createElement(document, "div"); //$NON-NLS-0$
+					div1.style.position = "fixed"; //$NON-NLS-0$
+					div1.style.left = "-1000px"; //$NON-NLS-0$
+					div1.innerHTML = new Array(this._wrapOffset + 1).join(" "); //$NON-NLS-0$
+					parent.appendChild(div1);
+					rect1 = div1.getBoundingClientRect();
+					wrapWidth = Math.ceil(rect1.right - rect1.left);
+					div1.innerHTML = new Array(this._marginOffset + 1).join(" "); //$NON-NLS-0$
+					rect2 = div1.getBoundingClientRect();
+					marginWidth = Math.ceil(rect2.right - rect2.left);
+					parent.removeChild(div1);
+				}
+			}
+			return {
+				lineHeight: lineHeight,
+				largestFontStyle: style,
+				lineTrim: trim,
+				viewPadding: pad,
+				scrollWidth: scrollWidth,
+				wrapWidth: wrapWidth,
+				marginWidth: marginWidth,
+				invalid: invalid
+			};
 		},
 		_cancelAnimation: function() {
 			if (this._animation) {
@@ -4620,26 +4705,41 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				"toggleWrapMode": {defaultHandler: function(data) {return self._doWrapMode();}, actionDescription: {name: messages.toggleWrapMode}} //$NON-NLS-0$
 			};
 		},
+		_createRulerParent: function(className) {
+			var div = util.createElement(document, "div"); //$NON-NLS-0$
+			div.className = className;
+			div.tabIndex = -1;
+			div.style.overflow = "hidden"; //$NON-NLS-0$
+			div.style.MozUserSelect = "none"; //$NON-NLS-0$
+			div.style.WebkitUserSelect = "none"; //$NON-NLS-0$
+			div.style.position = "absolute"; //$NON-NLS-0$
+			div.style.top = "0px"; //$NON-NLS-0$
+			div.style.bottom = "0px"; //$NON-NLS-0$
+			div.style.cursor = "default"; //$NON-NLS-0$
+			div.style.display = "none"; //$NON-NLS-0$
+			div.setAttribute("aria-hidden", "true"); //$NON-NLS-1$ //$NON-NLS-0$
+			this._rootDiv.appendChild(div);
+			return div;
+		},
 		_createRuler: function(ruler, index) {
 			if (!this._clientDiv) { return; }
-			var side = ruler.getLocation();
-			var rulerParent = side === "left" ? this._leftDiv : this._rightDiv; //$NON-NLS-0$
-			rulerParent.style.display = "block"; //$NON-NLS-0$
+			var rulerParent = this._getRulerParent(ruler);
+			if (!rulerParent) { return; }
+			if (rulerParent !== this._marginDiv || this._marginOffset) {
+				rulerParent.style.display = "block"; //$NON-NLS-0$
+			}
 			var div = util.createElement(rulerParent.ownerDocument, "div"); //$NON-NLS-0$
 			div._ruler = ruler;
 			div.rulerChanged = true;
 			div.style.position = "relative"; //$NON-NLS-0$
 			div.style.cssFloat = "left"; //$NON-NLS-0$
 			div.style.styleFloat = "left"; //$NON-NLS-0$
-			div.style.borderWidth = "0px"; //$NON-NLS-0$
-			div.style.margin = "0px"; //$NON-NLS-0$
-			div.style.padding = "0px"; //$NON-NLS-0$
 			div.style.outline = "none"; //$NON-NLS-0$
 			if (index === undefined || index < 0 || index >= rulerParent.children.length) {
 				rulerParent.appendChild(div);
 			} else {
 				var sibling = rulerParent.firstChild;
-				while (sibling && --index > 0) {
+				while (sibling && index-- > 0) {
 					sibling = sibling.nextSibling;
 				}
 				rulerParent.insertBefore(div, sibling);
@@ -4663,26 +4763,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			rootDiv.setAttribute("role", "application"); //$NON-NLS-1$ //$NON-NLS-0$
 			parent.appendChild(rootDiv);
 			
-			var leftDiv = util.createElement(document, "div"); //$NON-NLS-0$
-			leftDiv.className = "textviewLeftRuler"; //$NON-NLS-0$
-			this._leftDiv = leftDiv;
-			leftDiv.tabIndex = -1;
-			leftDiv.style.overflow = "hidden"; //$NON-NLS-0$
-			leftDiv.style.MozUserSelect = "none"; //$NON-NLS-0$
-			leftDiv.style.WebkitUserSelect = "none"; //$NON-NLS-0$
-			leftDiv.style.position = "absolute"; //$NON-NLS-0$
-			leftDiv.style.top = "0px"; //$NON-NLS-0$
-			leftDiv.style.bottom = "0px"; //$NON-NLS-0$
-			leftDiv.style.cursor = "default"; //$NON-NLS-0$
-			leftDiv.style.display = "none"; //$NON-NLS-0$
-			leftDiv.setAttribute("aria-hidden", "true"); //$NON-NLS-1$ //$NON-NLS-0$
-			rootDiv.appendChild(leftDiv);
+			var leftDiv = this._leftDiv = this._createRulerParent("textviewLeftRuler"); //$NON-NLS-0$
 
 			var viewDiv = util.createElement(document, "div"); //$NON-NLS-0$
 			viewDiv.className = "textviewScroll"; //$NON-NLS-0$
 			this._viewDiv = viewDiv;
 			viewDiv.tabIndex = -1;
-			viewDiv.style.overflow = "auto"; //$NON-NLS-0$
 			viewDiv.style.position = "absolute"; //$NON-NLS-0$
 			viewDiv.style.top = "0px"; //$NON-NLS-0$
 			viewDiv.style.bottom = "0px"; //$NON-NLS-0$
@@ -4696,21 +4782,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			rootDiv.appendChild(viewDiv);
 			
-			var rightDiv = util.createElement(document, "div"); //$NON-NLS-0$
-			rightDiv.className = "textviewRightRuler"; //$NON-NLS-0$
-			this._rightDiv = rightDiv;
-			rightDiv.tabIndex = -1;
-			rightDiv.style.display = "none"; //$NON-NLS-0$
-			rightDiv.style.overflow = "hidden"; //$NON-NLS-0$
-			rightDiv.style.MozUserSelect = "none"; //$NON-NLS-0$
-			rightDiv.style.WebkitUserSelect = "none"; //$NON-NLS-0$
-			rightDiv.style.position = "absolute"; //$NON-NLS-0$
-			rightDiv.style.top = "0px"; //$NON-NLS-0$
-			rightDiv.style.bottom = "0px"; //$NON-NLS-0$
-			rightDiv.style.cursor = "default"; //$NON-NLS-0$
+			var rightDiv = this._rightDiv = this._createRulerParent("textviewRightRuler"); //$NON-NLS-0$
 			rightDiv.style.right = "0px"; //$NON-NLS-0$
-			rightDiv.setAttribute("aria-hidden", "true"); //$NON-NLS-1$ //$NON-NLS-0$
-			rootDiv.appendChild(rightDiv);
 				
 			var scrollDiv = util.createElement(document, "div"); //$NON-NLS-0$
 			this._scrollDiv = scrollDiv;
@@ -4719,15 +4792,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			scrollDiv.style.padding = "0px"; //$NON-NLS-0$
 			viewDiv.appendChild(scrollDiv);
 			
-			if (util.isFirefox) {
-				var clipboardDiv = util.createElement(document, "div"); //$NON-NLS-0$
-				this._clipboardDiv = clipboardDiv;
-				clipboardDiv.style.position = "fixed"; //$NON-NLS-0$
-				clipboardDiv.style.whiteSpace = "pre"; //$NON-NLS-0$
-				clipboardDiv.style.left = "-1000px"; //$NON-NLS-0$
-				rootDiv.appendChild(clipboardDiv);
-			}
-
+			var marginDiv = this._marginDiv = this._createRulerParent("textviewMarginRuler"); //$NON-NLS-0$
+			marginDiv.style.zIndex = "4"; //$NON-NLS-0$
+			
 			if (!util.isIE && !util.isIOS) {
 				var clipDiv = util.createElement(document, "div"); //$NON-NLS-0$
 				this._clipDiv = clipDiv;
@@ -4753,6 +4820,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var clientDiv = util.createElement(document, "div"); //$NON-NLS-0$
 			clientDiv.className = "textviewContent"; //$NON-NLS-0$
 			this._clientDiv = clientDiv;
+			clientDiv.tabIndex = 0;
 			clientDiv.style.position = "absolute"; //$NON-NLS-0$
 			clientDiv.style.borderWidth = "0px"; //$NON-NLS-0$
 			clientDiv.style.margin = "0px"; //$NON-NLS-0$
@@ -4819,6 +4887,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			this._setReadOnly(this._readonly);
 			this._setThemeClass(this._themeClass, true);
 			this._setTabSize(this._tabSize, true);
+			this._setMarginOffset(this._marginOffset, true);
 			this._hookEvents();
 			var rulers = this._rulers;
 			for (var i=0; i<rulers.length; i++) {
@@ -4836,8 +4905,11 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				tabMode: { value: true, update: null },
 				tabSize: {value: 8, update: this._setTabSize},
 				expandTab: {value: false, update: null},
+				singleMode: {value: false, update: this._setSingleMode},
 				overwriteMode: { value: false, update: this._setOverwriteMode },
 				blockCursorVisible: { value: false, update: this._setBlockCursor},
+				marginOffset: {value: 0, update: this._setMarginOffset},
+				wrapOffset: {value: 0, update: this._setWrapOffset},
 				wrapMode: {value: false, update: this._setWrapMode},
 				wrappable: {value: false, update: null},
 				theme: {value: mTextTheme.TextTheme.getTheme(), update: this._setTheme},
@@ -4845,15 +4917,14 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			};
 		},
 		_destroyRuler: function(ruler) {
-			var side = ruler.getLocation();
-			var rulerParent = side === "left" ? this._leftDiv : this._rightDiv; //$NON-NLS-0$
+			var rulerParent = this._getRulerParent(ruler);
 			if (rulerParent) {
 				var div = rulerParent.firstChild;
 				while (div) {
 					if (div._ruler === ruler) {
 						div._ruler = undefined;
 						rulerParent.removeChild(div);
-						if (rulerParent.children.length === 0) {
+						if (rulerParent.children.length === 0 && (rulerParent !== this._marginDiv || !this._marginOffset)) {
 							rulerParent.style.display = "none"; //$NON-NLS-0$
 						}
 						break;
@@ -4896,6 +4967,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			this._overlayDiv = null;
 			this._leftDiv = null;
 			this._rightDiv = null;
+			this._marginDiv = null;
+			this._cursorDiv = null;
 			this._vScrollDiv = null;
 			this._hScrollDiv = null;
 		},
@@ -4969,11 +5042,16 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		_getClipboardText: function (event, handler) {
 			var delimiter = this._model.getLineDelimiter();
 			var clipboadText, text;
+			// IE
 			var window = this._getWindow();
-			if (window.clipboardData) {
-				//IE
+			var clipboardData = window.clipboardData;
+			// WebKit and Firefox > 21
+			if (!clipboardData && event) {
+				clipboardData = event.clipboardData;
+			}
+			if (clipboardData) {
 				clipboadText = [];
-				text = window.clipboardData.getData("Text"); //$NON-NLS-0$
+				text = clipboardData.getData(util.isIE ? "Text" : "text/plain"); //$NON-NLS-1$"//$NON-NLS-0$
 				convertDelimiter(text, function(t) {clipboadText.push(t);}, function() {clipboadText.push(delimiter);});
 				text = clipboadText.join("");
 				if (handler) { handler(text); }
@@ -4982,6 +5060,15 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			if (util.isFirefox) {
 				this._ignoreFocus = true;
 				var clipboardDiv = this._clipboardDiv;
+				var document = this._rootDiv.ownerDocument;
+				if (!clipboardDiv) {
+					clipboardDiv = util.createElement(document, "div"); //$NON-NLS-0$
+					this._clipboardDiv = clipboardDiv;
+					clipboardDiv.style.position = "fixed"; //$NON-NLS-0$
+					clipboardDiv.style.whiteSpace = "pre"; //$NON-NLS-0$
+					clipboardDiv.style.left = "-1000px"; //$NON-NLS-0$
+					this._rootDiv.appendChild(clipboardDiv);
+				}
 				clipboardDiv.innerHTML = "<pre contenteditable=''></pre>"; //$NON-NLS-0$
 				clipboardDiv.firstChild.focus();
 				var self = this;
@@ -5000,7 +5087,6 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				/* Do not try execCommand if middle-click is used, because if we do, we get the clipboard text, not the primary selection text. */
 				if (!util.isLinux || this._lastMouseButton !== 2) {
 					try {
-						var document = clipboardDiv.ownerDocument;
 						result = document.execCommand("paste", false, null); //$NON-NLS-0$
 					} catch (ex) {
 						/* Firefox can throw even when execCommand() works, see bug 362835. */
@@ -5034,23 +5120,6 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					handler(text);
 				}
 				return text;
-			}
-			//webkit
-			if (event && event.clipboardData) {
-				/*
-				* Webkit (Chrome/Safari) allows getData during the paste event
-				* Note: setData is not allowed, not even during copy/cut event
-				*/
-				clipboadText = [];
-				text = event.clipboardData.getData("text/plain"); //$NON-NLS-0$
-				convertDelimiter(text, function(t) {clipboadText.push(t);}, function() {clipboadText.push(delimiter);});
-				text = clipboadText.join("");
-				if (text && handler) {
-					handler(text);
-				}
-				return text;
-			} else {
-				//TODO try paste using extension (Chrome only)
 			}
 			return "";
 		},
@@ -5220,6 +5289,14 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			return Math.max(0, Math.min(lineCount - 1, lineIndex));
 		},
+		_getRulerParent: function(ruler) {
+			switch (ruler.getLocation()) {
+				case "left": return this._leftDiv; //$NON-NLS-0$
+				case "right": return this._rightDiv; //$NON-NLS-0$
+				case "margin": return this._marginDiv; //$NON-NLS-0$
+			}
+			return null;
+		},
 		_getScroll: function(cancelAnimation) {
 			if (cancelAnimation === undefined || cancelAnimation) {
 				this._cancelAnimation();
@@ -5279,6 +5356,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			handlers.push({target: clientDiv, type: "keydown", handler: function(e) { return self._handleKeyDown(e ? e : window.event);}}); //$NON-NLS-0$
 			handlers.push({target: clientDiv, type: "keypress", handler: function(e) { return self._handleKeyPress(e ? e : window.event);}}); //$NON-NLS-0$
 			handlers.push({target: clientDiv, type: "keyup", handler: function(e) { return self._handleKeyUp(e ? e : window.event);}}); //$NON-NLS-0$
+			if (util.isIE) {
+				handlers.push({target: document, type: "keyup", handler: function(e) { return self._handleDocKeyUp(e ? e : window.event);}}); //$NON-NLS-0$
+			}
 			handlers.push({target: clientDiv, type: "contextmenu", handler: function(e) { return self._handleContextMenu(e ? e : window.event);}}); //$NON-NLS-0$
 			handlers.push({target: clientDiv, type: "copy", handler: function(e) { return self._handleCopy(e ? e : window.event);}}); //$NON-NLS-0$
 			handlers.push({target: clientDiv, type: "cut", handler: function(e) { return self._handleCut(e ? e : window.event);}}); //$NON-NLS-0$
@@ -5305,6 +5385,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				handlers.push({target: topNode, type: "dragleave", handler: function(e) { return self._handleDragLeave(e ? e : window.event);}}); //$NON-NLS-0$
 				handlers.push({target: topNode, type: "drop", handler: function(e) { return self._handleDrop(e ? e : window.event);}}); //$NON-NLS-0$
 				handlers.push({target: this._clientDiv, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
+				if (this._clipDiv) {
+					handlers.push({target: this._clipDiv, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
+				}
 				if (util.isFirefox && (!util.isWindows || util.isFirefox >= 15)) {
 					var MutationObserver = window.MutationObserver || window.MozMutationObserver;
 					if (MutationObserver) {
@@ -5325,30 +5408,28 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				}
 			}
 
-			var leftDiv = this._leftDiv, rightDiv = this._rightDiv;
-			if (util.isIE) {
-				handlers.push({target: leftDiv, type: "selectstart", handler: function() {return false;}}); //$NON-NLS-0$
-			}
-			handlers.push({target: leftDiv, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
-			handlers.push({target: leftDiv, type: "click", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: leftDiv, type: "dblclick", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: leftDiv, type: "mousemove", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: leftDiv, type: "mouseover", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: leftDiv, type: "mouseout", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			if (util.isIE) {
-				handlers.push({target: rightDiv, type: "selectstart", handler: function() {return false;}}); //$NON-NLS-0$
-			}
-			handlers.push({target: rightDiv, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
-			handlers.push({target: rightDiv, type: "click", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: rightDiv, type: "dblclick", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: rightDiv, type: "mousemove", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: rightDiv, type: "mouseover", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: rightDiv, type: "mouseout", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
+			this._hookRulerEvents(this._leftDiv, handlers);
+			this._hookRulerEvents(this._rightDiv, handlers);
+			this._hookRulerEvents(this._marginDiv, handlers);
 			
 			for (var i=0; i<handlers.length; i++) {
 				var h = handlers[i];
 				addHandler(h.target, h.type, h.handler, h.capture);
 			}
+		},
+		_hookRulerEvents: function(div, handlers) {
+			if (!div) { return; }
+			var self = this;
+			var window = this._getWindow();
+			if (util.isIE) {
+				handlers.push({target: div, type: "selectstart", handler: function() {return false;}}); //$NON-NLS-0$
+			}
+			handlers.push({target: div, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
+			handlers.push({target: div, type: "click", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
+			handlers.push({target: div, type: "dblclick", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
+			handlers.push({target: div, type: "mousemove", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
+			handlers.push({target: div, type: "mouseover", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
+			handlers.push({target: div, type: "mouseout", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
 		},
 		_getWindow: function() {
 			return getWindow(this._parent.ownerDocument);
@@ -5438,7 +5519,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var model = this._model;
 			try {
 				if (e._ignoreDOMSelection) { this._ignoreDOMSelection = true; }
-				model.setText (e.text, e.start, e.end);
+				model.setText(e.text, e.start, e.end);
 			} finally {
 				if (e._ignoreDOMSelection) { this._ignoreDOMSelection = false; }
 			}
@@ -5582,10 +5663,11 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 		},
 		_scrollViewAnimated: function (pixelX, pixelY, callback) {
+			var window = this._getWindow();
 			if (callback && this._scrollAnimation) {
 				var self = this;
 				this._animation = new Animation({
-					window: this._getWindow(),
+					window: window,
 					duration: this._scrollAnimation,
 					curve: [pixelY, 0],
 					onAnimate: function(x) {
@@ -5597,7 +5679,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 						self._animation = null;
 						self._scrollView (pixelX, pixelY);
 						if (callback) {
-							callback();
+							window.setTimeout(callback, 0);
 						}
 					}
 				});
@@ -5605,7 +5687,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			} else {
 				this._scrollView (pixelX, pixelY);
 				if (callback) {
-					callback();
+					window.setTimeout(callback, 0);
 				}
 			}
 		}, 
@@ -5631,22 +5713,21 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		},
 		_setClipboardText: function (text, event) {
 			var clipboardText;
-			var document = this._parent.ownerDocument;
+			// IE
 			var window = this._getWindow();
-			if (window.clipboardData) {
-				//IE
-				clipboardText = [];
-				convertDelimiter(text, function(t) {clipboardText.push(t);}, function() {clipboardText.push(util.platformDelimiter);});
-				return window.clipboardData.setData("Text", clipboardText.join("")); //$NON-NLS-0$
+			var clipboardData = window.clipboardData;
+			// WebKit and Firefox > 21
+			if (!clipboardData && event) {
+				clipboardData = event.clipboardData;
 			}
-			if (event && event.clipboardData) {
-				//webkit
+			if (clipboardData) {
 				clipboardText = [];
 				convertDelimiter(text, function(t) {clipboardText.push(t);}, function() {clipboardText.push(util.platformDelimiter);});
-				if (event.clipboardData.setData("text/plain", clipboardText.join(""))) { //$NON-NLS-0$
+				if (clipboardData.setData(util.isIE ? "Text" : "text/plain", clipboardText.join(""))) { //$NON-NLS-1$ //$NON-NLS-0$
 					return true;
 				}
 			}
+			var document = this._parent.ownerDocument;
 			var child = util.createElement(document, "pre"); //$NON-NLS-0$
 			child.style.position = "fixed"; //$NON-NLS-0$
 			child.style.left = "-1000px"; //$NON-NLS-0$
@@ -5858,7 +5939,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			sel1Div.style.top = (sel1Top - vd) + "px"; //$NON-NLS-0$
 			sel1Div.style.width = Math.max(0, sel1Right - sel1Left) + "px"; //$NON-NLS-0$
 			sel1Div.style.height = Math.max(0, sel1Bottom - sel1Top) + "px"; //$NON-NLS-0$
-			if (startRect.top === endRect.top) {
+			if (startNode.lineIndex === endNode.lineIndex) {
 				sel1Right = Math.min(r, right);
 				sel1Div.style.width = Math.max(0, sel1Right - sel1Left) + "px"; //$NON-NLS-0$
 			} else {
@@ -5871,7 +5952,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				sel3Div.style.top = (sel3Top - vd) + "px"; //$NON-NLS-0$
 				sel3Div.style.width = Math.max(0, sel3Right - sel3Left) + "px"; //$NON-NLS-0$
 				sel3Div.style.height = Math.max(0, sel3Bottom - sel3Top) + "px"; //$NON-NLS-0$
-				if (sel3Top - sel1Bottom > 0) {
+				if (Math.abs(startNode.lineIndex - endNode.lineIndex) > 1) {
 					var sel2Div = this._selDiv2;
 					sel2Div.style.left = (left - hd)  + "px"; //$NON-NLS-0$
 					sel2Div.style.top = (sel1Bottom - vd) + "px"; //$NON-NLS-0$
@@ -6145,9 +6226,29 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				}
 			}
 		},
+		_setMarginOffset: function(marginOffset, init) {
+			this._marginOffset = marginOffset;
+			this._marginDiv.style.display = marginOffset ? "block" : "none"; //$NON-NLS-1$ //$NON-NLS-0$
+			if (!init) {
+				this._metrics = this._calculateMetrics();
+				this._queueUpdate();
+			}
+		},
+		_setWrapOffset: function(wrapOffset, init) {
+			this._wrapOffset = wrapOffset;
+			if (!init) {
+				this._metrics = this._calculateMetrics();
+				this._queueUpdate();
+			}
+		},
 		_setReadOnly: function (readOnly) {
 			this._readonly = readOnly;
 			this._clientDiv.setAttribute("aria-readonly", readOnly ? "true" : "false"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		},
+		_setSingleMode: function (singleMode, init) {
+			this._singleMode = singleMode;
+			this._updateOverflow();
+			this._updateStyle(init);
 		},
 		_setTabSize: function (tabSize, init) {
 			this._tabSize = tabSize;
@@ -6188,18 +6289,15 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		},
 		_setWrapMode: function (wrapMode, init) {
 			this._wrapMode = wrapMode && this._wrappable;
-			var clientDiv = this._clientDiv, viewDiv = this._viewDiv;
-			if (wrapMode) {
+			var clientDiv = this._clientDiv;
+			if (this._wrapMode) {
 				clientDiv.style.whiteSpace = "pre-wrap"; //$NON-NLS-0$
 				clientDiv.style.wordWrap = "break-word"; //$NON-NLS-0$
-				viewDiv.style.overflowX = "hidden"; //$NON-NLS-0$
-				viewDiv.style.overflowY = "scroll"; //$NON-NLS-0$
 			} else {
 				clientDiv.style.whiteSpace = "pre"; //$NON-NLS-0$
 				clientDiv.style.wordWrap = "normal"; //$NON-NLS-0$
-				viewDiv.style.overflowX = "auto"; //$NON-NLS-0$
-				viewDiv.style.overflowY = "auto"; //$NON-NLS-0$
 			}
+			this._updateOverflow();
 			if (!init) {
 				this.redraw();
 				this._resetLineWidth();
@@ -6314,6 +6412,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 		},
 		_updateDOMSelection: function () {
+			if (this._redrawCount > 0) { return; }
 			if (this._ignoreDOMSelection) { return; }
 			if (!this._clientDiv) { return; }
 			var selection = this._getSelection();
@@ -6361,6 +6460,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				hScrollOnly = false;
 			}
 			var clientDiv = this._clientDiv;
+			var viewDiv = this._viewDiv;
 			if (!clientDiv) { return; }
 			if (this._metrics.invalid) {
 				this._ignoreQueueUpdate = true;
@@ -6372,9 +6472,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var viewPad = this._getViewPadding();
 			var lineCount = model.getLineCount();
 			var lineHeight = this._getLineHeight();
-			var clientWidth = this._getClientWidth();
+			var needUpdate = false;
+			var hScroll = false, vScroll = false;
+			var scrollbarWidth = this._metrics.scrollWidth;
+			
 			if (this._wrapMode) {
-				clientDiv.style.width = clientWidth + "px"; //$NON-NLS-0$
+				clientDiv.style.width = (this._metrics.wrapWidth || this._getClientWidth()) + "px"; //$NON-NLS-0$
 			}
 			
 			/*
@@ -6385,7 +6488,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			*/
 			var topIndex, lineStart, top, topIndexY,
 				leftWidth, leftRect,
-				clientHeight, scrollWidth, scrollHeight,
+				clientWidth, clientHeight, scrollWidth, scrollHeight,
 				totalHeight = 0, totalLineIndex = 0, tempLineHeight;
 			if (this._lineHeight) {
 				while (totalLineIndex < lineCount) {
@@ -6414,15 +6517,20 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var parent = this._parent;
 			var parentWidth = parent.clientWidth;
 			var parentHeight = parent.clientHeight;
-			clientHeight = this._getClientHeight();
 			if (hScrollOnly) {
 				leftWidth = 0;
 				if (this._leftDiv) {
 					leftRect = this._leftDiv.getBoundingClientRect();
 					leftWidth = leftRect.right - leftRect.left;
 				}
+				clientWidth = this._getClientWidth();
+				clientHeight = this._getClientHeight();
 				scrollWidth = clientWidth;
-				if (!this._wrapMode) {
+				if (this._wrapMode) {
+					if (this._metrics.wrapWidth) {
+						scrollWidth = this._metrics.wrapWidth;
+					}
+				} else {
 					scrollWidth = Math.max(this._maxLineWidth, scrollWidth);
 				}
 				while (totalLineIndex < lineCount) {
@@ -6432,8 +6540,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				}
 				scrollHeight = totalHeight;
 			} else {
+				clientHeight = this._getClientHeight();
 
-				var viewDiv = this._viewDiv;
 				var linesPerPage = Math.floor((clientHeight + topIndexY) / lineHeight);
 				var bottomIndex = Math.min(topIndex + linesPerPage, lineCount - 1);
 				var lineEnd = Math.min(bottomIndex + 1, lineCount - 1);
@@ -6547,6 +6655,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				// Update rulers
 				this._updateRuler(this._leftDiv, topIndex, lineEnd, parentHeight);
 				this._updateRuler(this._rightDiv, topIndex, lineEnd, parentHeight);
+				this._updateRuler(this._marginDiv, topIndex, lineEnd, parentHeight);
 				
 				leftWidth = 0;
 				if (this._leftDiv) {
@@ -6564,14 +6673,52 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				/* Need to set the height first in order for the width to consider the vertical scrollbar */
 				var scrollDiv = this._scrollDiv;
 				scrollDiv.style.height = scrollHeight + "px"; //$NON-NLS-0$
-				/*
-				* TODO if frameHeightWithoutHScrollbar < scrollHeight  < frameHeightWithHScrollbar and the horizontal bar is visible, 
-				* then the clientWidth is wrong because the vertical scrollbar is showing. To correct code should hide both scrollbars 
-				* at this point.
-				*/
+				
 				clientWidth = this._getClientWidth();
+				if (!this._singleMode && !this._wrapMode) {
+					var clientHeightNoScroll = clientHeight, clientHeightScroll = clientHeight;
+					var oldHScroll = viewDiv.style.overflowX === "scroll"; //$NON-NLS-0$
+					if (oldHScroll) {
+						clientHeightNoScroll += scrollbarWidth;
+					} else {
+						clientHeightScroll -= scrollbarWidth;
+					}
+					var clientWidthNoScroll = clientWidth, clientWidthScroll = clientWidth;
+					var oldVScroll = viewDiv.style.overflowY === "scroll"; //$NON-NLS-0$
+					if (oldVScroll) {
+						clientWidthNoScroll += scrollbarWidth;
+					} else {
+						clientWidthScroll -= scrollbarWidth;
+					}
+					clientHeight = clientHeightNoScroll;
+					clientWidth = clientWidthNoScroll;
+					if (scrollHeight > clientHeight) {
+						vScroll = true;
+						clientWidth = clientWidthScroll;
+					}
+					if (this._maxLineWidth > clientWidth) {
+						hScroll = true;
+						clientHeight = clientHeightScroll;
+						if (scrollHeight > clientHeight) {
+							vScroll = true;
+							clientWidth = clientWidthScroll;
+						}
+					}
+					if (oldHScroll !== hScroll) {
+						viewDiv.style.overflowX = hScroll ? "scroll" : "hidden"; //$NON-NLS-1$ //$NON-NLS-0$
+					}
+					if (oldVScroll !== vScroll) {
+						viewDiv.style.overflowY = vScroll ? "scroll" : "hidden"; //$NON-NLS-1$ //$NON-NLS-0$
+					}
+					needUpdate = oldHScroll !== hScroll || oldVScroll !== vScroll;
+				}
+				
 				var width = clientWidth;
-				if (!this._wrapMode) {
+				if (this._wrapMode) {
+					if (this._metrics.wrapWidth) {
+						width = this._metrics.wrapWidth;
+					}
+				} else {
 					width = Math.max(this._maxLineWidth, width);
 				}
 				/*
@@ -6604,7 +6751,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var left = scroll.x;	
 			var clipDiv = this._clipDiv;
 			var overlayDiv = this._overlayDiv;
+			var marginDiv = this._marginDiv;
 			var clipLeft, clipTop;
+			if (marginDiv) {
+				marginDiv.style.left = (-left + leftWidth + this._metrics.marginWidth + viewPad.left) + "px"; //$NON-NLS-0$
+				marginDiv.style.bottom = (viewDiv.style.overflowX === "scroll" ? scrollbarWidth : 0) + "px"; //$NON-NLS-1$ //$NON-NLS-0$
+			}
 			if (clipDiv) {
 				clipDiv.scrollLeft = left;
 				clipDiv.scrollTop = 0;
@@ -6654,7 +6806,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				if (scroll.y + clientHeight === scrollHeight) { clipBottom += viewPad.bottom; }
 				clientDiv.style.clip = "rect(" + clipTop + "px," + clipRight + "px," + clipBottom + "px," + clipLeft + "px)"; //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				clientDiv.style.left = (-left + leftWidth + viewPad.left) + "px"; //$NON-NLS-0$
-				clientDiv.style.width = (util.isWebkit ? scrollWidth : clientWidth + left) + "px"; //$NON-NLS-0$
+				clientDiv.style.width = (this._wrapMode || util.isWebkit ? scrollWidth : clientWidth + left) + "px"; //$NON-NLS-0$
 				if (!hScrollOnly) {
 					clientDiv.style.top = (-top + viewPad.top) + "px"; //$NON-NLS-0$
 					clientDiv.style.height = (clientHeight + top) + "px"; //$NON-NLS-0$
@@ -6671,20 +6823,22 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			this._updateDOMSelection();
 
-			/*
-			* If the client height changed during the update page it means that scrollbar has either been shown or hidden.
-			* When this happens update page has to run again to ensure that the top and bottom lines div are correct.
-			* 
-			* Note: On IE, updateDOMSelection() has to be called before getting the new client height because it
-			* forces the client area to be recomputed.
-			*/
-			var ensureCaretVisible = this._ensureCaretVisible;
-			this._ensureCaretVisible = false;
-			if (clientHeight !== this._getClientHeight()) {
-				this._update();
+			if (needUpdate) {
+				var ensureCaretVisible = this._ensureCaretVisible;
+				this._ensureCaretVisible = false;
 				if (ensureCaretVisible) {
 					this._showCaret();
 				}
+				this._queueUpdate();
+			}
+		},
+		_updateOverflow: function() {
+			var viewDiv = this._viewDiv;
+			if (this._wrapMode) {
+				viewDiv.style.overflowX = "hidden"; //$NON-NLS-0$
+				viewDiv.style.overflowY = "scroll"; //$NON-NLS-0$
+			} else {
+				viewDiv.style.overflow = "hidden"; //$NON-NLS-0$
 			}
 		},
 		_updateRuler: function (divRuler, topIndex, bottomIndex, parentHeight) {

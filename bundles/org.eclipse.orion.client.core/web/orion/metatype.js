@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -9,7 +9,9 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 /*global define*/
-define(['orion/serviceTracker'], function(ServiceTracker) {
+define([
+	'orion/serviceTracker'
+], function(ServiceTracker) {
 	var PROPERTY_CLASSES = 'classes', PROPERTY_DESIGNATES = 'designates'; //$NON-NLS-0$ //$NON-NLS-1$
 	var METATYPE_SERVICE = 'orion.cm.metatype'; //$NON-NLS-0$
 	var AttributeDefinitionImpl, ObjectClassDefinitionImpl;
@@ -82,6 +84,8 @@ define(['orion/serviceTracker'], function(ServiceTracker) {
 	ObjectClassDefinitionImpl = /** @ignore */ function(ocdJson) {
 		this.id = ocdJson.id;
 		this.name = ocdJson.name || null;
+		this.nameKey = ocdJson.nameKey || null;
+		this.nls = ocdJson.nls || null;
 		var props = ocdJson.properties;
 		if (!this.id) {
 			throw 'Missing "id" property: ' + JSON.stringify(ocdJson); //$NON-NLS-0$
@@ -103,6 +107,12 @@ define(['orion/serviceTracker'], function(ServiceTracker) {
 		},
 		getName: function() {
 			return this.name;
+		},
+		getNameKey: function() {
+			return this.nameKey;
+		},
+		getNls: function() {
+			return this.nls;
 		}
 	};
 
@@ -121,6 +131,7 @@ define(['orion/serviceTracker'], function(ServiceTracker) {
 		}
 		this.id = attrJson.id;
 		this.name = attrJson.name || null;
+		this.nameKey = attrJson.nameKey || null;
 		this.options = attrJson.options || null;
 		this.type = attrJson.type || 'string'; //$NON-NLS-0$
 		this.defaultValue = typeof attrJson.defaultValue !== 'undefined' ? attrJson.defaultValue : null; //$NON-NLS-0$
@@ -143,11 +154,19 @@ define(['orion/serviceTracker'], function(ServiceTracker) {
 			return this.id;
 		},
 		getName: function() {
-			return this.name;
+			return this._nlsName || this.name;
+		},
+		getNameKey: function() {
+			return this.nameKey;
 		},
 		getOptionLabels: function() {
 			return this.options && this.options.map(function(o) {
-				return o.label;
+				return o._nlsLabel || o.label;
+			});
+		},
+		getOptionLabelKeys: function() {
+			return this.options && this.options.map(function(o) {
+				return o.labelKey;
 			});
 		},
 		getOptionValues: function() {
@@ -160,6 +179,18 @@ define(['orion/serviceTracker'], function(ServiceTracker) {
 		},
 		getDefaultValue: function() {
 			return this.defaultValue;
+		},
+		// Private, for translation
+		_setNlsName: function(value) {
+			this._nlsName = value;
+		},
+		// Private, for translation
+		_setNlsOptionLabels: function(values) {
+			if (this.options) {
+				this.options.forEach(function(o, i) {
+					o._nlsLabel = values[i];
+				});
+			}
 		}
 	};
 
@@ -184,8 +215,22 @@ define(['orion/serviceTracker'], function(ServiceTracker) {
 		/**
 		 * @name orion.metatype.ObjectClassDefinition#getName
 		 * @function
-		 * @description Returns the name.
-		 * @returns {String} The name of this Object Class Definition. May be <code>null</code>.
+		 * @description Returns this Object Class Definition's name.
+		 * @returns {String} The name. May be <code>null</code>.
+		 */
+		/**
+		 * @name orion.metatype.ObjectClassDefinition#getNameKey
+		 * @function
+		 * @see #getNls
+		 * @description Returns this Object Class Definition's name key.
+		 * @returns {String} The name key. May be <code>null</code>.
+		 */
+		/**
+		 * @name orion.metatype.ObjectClassDefinition#getNls
+		 * @function
+		 * @see #getNameKey
+		 * @description Returns this Object Class Definition's NLS path.
+		 * @returns {String} The NLS path. May be <code>null</code>.
 		 */
 	/**
 	 * @name orion.metatype.AttributeDefinition
@@ -202,22 +247,38 @@ define(['orion/serviceTracker'], function(ServiceTracker) {
 		/**
 		 * @name orion.metatype.AttributeDefinition#getName
 		 * @function
-		 * @description Returns the description.
+		 * @description Returns the name.
 		 * @returns {String} The name, or <code>null</code>.
+		 */
+		/**
+		 * @name orion.metatype.AttributeDefinition#getNameKey
+		 * @function
+		 * @description Returns the name key.
+		 * @returns {String} The name key, or <code>null</code>.
 		 */
 		/**
 		 * @name orion.metatype.AttributeDefinition#getOptionValues
 		 * @function
 		 * @description Returns the option values that this attribute can take.
-		 * @returns {Object[]|null} The option values. The ordering of the returned array matches the ordering of the labels
-		 * array returned by {@link #getOptionLabels}. If there are no option values available, <code>null</code> is returned.
+		 * @returns {Object[]|null} The option values. If there are no option values available, <code>null</code> is returned.
 		 */
 		/**
 		 * @name orion.metatype.AttributeDefinition#getOptionLabels
 		 * @function
 		 * @description Returns a list of labels for option values.
 		 * @returns {String[]|null} The option labels. The ordering of the returned array matches the ordering of the values
-		 * array returned by {@link #getOptionValues}. If there are no option labels available, <code>null</code> is returned.
+		 * array returned by {@link #getOptionValues}.
+		 * <p>If there are no option labels available, <code>null</code> is returned.</p>
+		 */
+		/**
+		 * @name orion.metatype.AttributeDefinition#getOptionLabelKeys
+		 * @function
+		 * @description Returns a list of label keys for option values.
+		 * @see orion.metatype.ObjectClassDefinition#getNameKey The parent ObjectClassDefinition's nameKey gives the message bundle
+		 * to which the labelKeys apply.
+		 * @returns {String[]|null} The option label keys. The ordering of the returned array matches the ordering of the values
+		 * array returned by {@link #getOptionValues}.
+		 * <p>If there are no label keys available, <code>null</code> is returned.</p>
 		 */
 		/**
 		 * @name orion.metatype.AttributeDefinition#getType

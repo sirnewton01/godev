@@ -123,7 +123,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 *
 		 * @returns {orion.editor.AnnotationModel} the ruler annotation model.
 		 *
-		 * @see #setAnnotationModel
+		 * @see orion.editor.Ruler#setAnnotationModel
 		 */
 		getAnnotationModel: function() {
 			return this._annotationModel;
@@ -133,7 +133,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 *
 		 * @returns {String} the ruler location, which is either "left" or "right".
 		 *
-		 * @see #getOverview
+		 * @see orion.editor.Ruler#getOverview
 		 */
 		getLocation: function() {
 			return this._location;
@@ -143,7 +143,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 *
 		 * @returns {String} the overview type, which is either "page" or "document".
 		 *
-		 * @see #getLocation
+		 * @see orion.editor.Ruler#getLocation
 		 */
 		getOverview: function() {
 			return this._overview;
@@ -161,7 +161,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 *
 		 * @returns {orion.editor.TextView} the text view.
 		 *
-		 * @see #setView
+		 * @see orion.editor.Ruler#setView
 		 */
 		getView: function() {
 			return this._view;
@@ -178,7 +178,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 *
 		 * @returns {orion.editor.Annotation} the widest annotation.
 		 *
-		 * @see #getAnnotations
+		 * @see orion.editor.Ruler#getAnnotations
 		 */
 		getWidestAnnotation: function() {
 			return null;
@@ -188,7 +188,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 *
 		 * @param {orion.editor.AnnotationModel} annotationModel the annotation model.
 		 *
-		 * @see #getAnnotationModel
+		 * @see orion.editor.Ruler#getAnnotationModel
 		 */
 		setAnnotationModel: function (annotationModel) {
 			if (this._annotationModel) {
@@ -206,7 +206,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 *
 		 * @param {orion.editor.Annotation} annotation the annotation for lines with multiple annotations.
 		 * 
-		 * @see #setMultiAnnotationOverlay
+		 * @see orion.editor.Ruler#setMultiAnnotationOverlay
 		 */
 		setMultiAnnotation: function(annotation) {
 			this._multiAnnotation = annotation;
@@ -218,7 +218,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 *
 		 * @param {orion.editor.Annotation} annotation the annotation overlay for lines with multiple annotations.
 		 * 
-		 * @see #setMultiAnnotation
+		 * @see orion.editor.Ruler#setMultiAnnotation
 		 */
 		setMultiAnnotationOverlay: function(annotation) {
 			this._multiAnnotationOverlay = annotation;
@@ -253,15 +253,14 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 			var view = this._view;
 			var model = view.getModel();
 			var baseModel = model;
-			var start = model.getLineStart(lineIndex);
+			var start = model.getLineStart(lineIndex), lineStart = start;
 			var end = start;
 			var annotationModel = this._annotationModel;
 			if (annotationModel) {
 				var selection = view.getSelection();
-				var offset = Math.max(selection.start, selection.end);
 				end = model.getLineEnd(lineIndex, true);
-				if (start <= offset && offset < model.getLineEnd(lineIndex)) {
-					start = offset + 1;
+				if (start <= selection.start && selection.start < end) {
+					start = selection.start;
 				}
 				if (model.getBaseModel) {
 					start = model.mapOffset(start);
@@ -269,16 +268,27 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 					baseModel = model.getBaseModel();
 				}
 				var annotation, iter = annotationModel.getAnnotations(start, end);
+				var clickedAnnotation = null;
 				while (!annotation && iter.hasNext()) {
 					var a = iter.next();
 					if (!this.isAnnotationTypeVisible(a.type)) { continue; }
-					annotation = a;
+					clickedAnnotation = a;
+					if (a.start <= start) { continue; }
+					annotation = a; 
 				}
+				if (clickedAnnotation && clickedAnnotation.groupId !== undefined) {
+					if (this._currentClickGroup === clickedAnnotation.groupId) {
+						this._currentClickGroup = null;
+					} else {
+						this._currentClickGroup = clickedAnnotation.groupId;
+					}
+					this._setCurrentGroup(lineIndex);
+				} 
 				if (annotation && baseModel.getLineAtOffset(annotation.start) === baseModel.getLineAtOffset(start)) {
 					start = annotation.start;
 					end = annotation.end;
 				} else {
-					end = start;
+					end = start = lineStart;
 				}
 				
 				if (model.getBaseModel) {
@@ -330,6 +340,9 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 */
 		onMouseOver: function(lineIndex, e) {
 			this.onMouseMove(lineIndex, e);
+			if (!this._currentClickGroup) {
+				this._setCurrentGroup(lineIndex);
+			}
 		},
 		/**
 		 * This event is sent when the mouse pointer exits a line annotation.
@@ -339,6 +352,9 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 * @param {DOMEvent} e the mouse out event.
 		 */
 		onMouseOut: function(lineIndex, e) {
+			if (!this._currentClickGroup) {
+				this._setCurrentGroup(-1);
+			}
 			var tooltip = mTooltip.Tooltip.getTooltip(this._view);
 			if (!tooltip) { return; }
 			tooltip.setTarget(null);
@@ -445,7 +461,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 				if (style.style) {
 					if (!result.style) { result.style  = {}; }
 					for (prop in style.style) {
-						if (!result.style[prop]) {
+						if (result.style[prop] === undefined) {
 							result.style[prop] = style.style[prop];
 						}
 					}
@@ -453,13 +469,64 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 				if (style.attributes) {
 					if (!result.attributes) { result.attributes  = {}; }
 					for (prop in style.attributes) {
-						if (!result.attributes[prop]) {
+						if (result.attributes[prop] === undefined) {
 							result.attributes[prop] = style.attributes[prop];
 						}
 					}
 				}
 			}
 			return result;
+		},
+		_setCurrentGroup: function(lineIndex) {
+			var annotationModel = this._annotationModel;
+			var groupAnnotation = null;
+			var model = annotationModel.getTextModel();
+			var annotation;
+			var annotations;
+			var currentGroupAnnotation = this._currentGroupAnnotation;
+			if (lineIndex !== -1) {
+				var start = model.getLineStart(lineIndex);
+				var end = model.getLineEnd(lineIndex);
+				if (model.getBaseModel) {
+					start = model.mapOffset(start);
+					end = model.mapOffset(end);
+				}
+				annotations = annotationModel.getAnnotations(start, end);
+				while(annotations.hasNext()){
+					annotation = annotations.next();
+					if (!this.isAnnotationTypeVisible(annotation.type)) { continue; }
+					if (annotation.start <= start && annotation.end >= end){
+						if (annotation.groupId !== undefined) {
+							groupAnnotation = annotation;
+							break;
+						}
+					}
+				}
+				if (currentGroupAnnotation && groupAnnotation) {
+					if (currentGroupAnnotation.groupId === groupAnnotation.groupId) {
+						return;
+					}
+				}
+			}
+			this._currentGroupAnnotation = null;
+			if (currentGroupAnnotation) {
+				annotationModel.removeAnnotations(currentGroupAnnotation.groupType);
+			}
+			if (!groupAnnotation) { return; }
+			
+			if (lineIndex === -1) { return; }
+			this._currentGroupAnnotation = groupAnnotation;
+			annotations = annotationModel.getAnnotations(0, model.getCharCount());
+			var add = [];
+			while (annotations.hasNext()) {
+				annotation = annotations.next();
+				delete annotation.groupAnnotation;
+				if (annotation.groupId === groupAnnotation.groupId) {
+					annotation = annotation.createGroupAnnotation();
+					add.push(annotation);
+				}
+			}
+			annotationModel.replaceAnnotations(null, add);
 		}
 	};
 	mAnnotations.AnnotationTypeList.addMixin(Ruler.prototype);
@@ -486,6 +553,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		this._oddStyle = oddStyle || {style: {backgroundColor: "white"}}; //$NON-NLS-0$
 		this._evenStyle = evenStyle || {style: {backgroundColor: "white"}}; //$NON-NLS-0$
 		this._numOfDigits = 0;
+		this._firstLine = 1;
 	}
 	LineNumberRuler.prototype = new Ruler(); 
 	/** @ignore */
@@ -500,7 +568,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 				mapLine = model.getBaseModel().getLineAtOffset(model.mapOffset(lineStart));
 			}
 			if (!result[lineIndex]) { result[lineIndex] = {}; }
-			result[lineIndex].html = (mapLine + 1) + "";
+			result[lineIndex].html = (this._firstLine + mapLine) + "";
 			if (!result[lineIndex].style) { result[lineIndex].style = style; }
 		}
 		return result;
@@ -510,12 +578,21 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		var lineCount = this._view.getModel().getLineCount();
 		return this.getAnnotations(lineCount - 1, lineCount)[lineCount - 1];
 	};
+	/**
+	 * Sets the line index displayed for the first line. The default value is
+	 * <code>1</code>.
+	 *
+	 * @param {Number} [lineIndex=1] the first line index displayed
+	 */
+	LineNumberRuler.prototype.setFirstLine = function(lineIndex) {
+		this._firstLine = lineIndex !== undefined ? lineIndex : 1;
+	};
 	/** @ignore */
 	LineNumberRuler.prototype._onTextModelChanged = function(e) {
 		var start = e.start;
 		var model = this._view.getModel();
 		var lineCount = model.getBaseModel ? model.getBaseModel().getLineCount() : model.getLineCount();
-		var numOfDigits = (lineCount+"").length;
+		var numOfDigits = ((this._firstLine + lineCount - 1)+"").length;
 		if (this._numOfDigits !== numOfDigits) {
 			this._numOfDigits = numOfDigits;
 			var startLine = model.getLineAtOffset(start);

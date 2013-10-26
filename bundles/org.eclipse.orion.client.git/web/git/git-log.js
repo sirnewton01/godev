@@ -65,6 +65,7 @@ define(['i18n!git/nls/gitmessages', 'require', 'orion/browserCompatibility', 'or
 			commandService.registerCommandContribution("pageActions", "eclipse.orion.git.pushForce", 100, "eclipse.gitGroup.page"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			commandService.registerCommandContribution("itemLevelCommands", "eclipse.orion.git.addTag", 3); //$NON-NLS-1$ //$NON-NLS-0$
 			commandService.registerCommandContribution("itemLevelCommands", "eclipse.orion.git.cherryPick", 3); //$NON-NLS-1$ //$NON-NLS-0$
+			commandService.registerCommandContribution("itemLevelCommands", "eclipse.orion.git.revert", 3); //$NON-NLS-1$ //$NON-NLS-0$
 			// page navigation actions
 			commandService.registerCommandContribution("pageNavigationActions", "eclipse.orion.git.previousLogPage", 1); //$NON-NLS-1$ //$NON-NLS-0$
 			commandService.registerCommandContribution("pageNavigationActions", "eclipse.orion.git.nextLogPage", 2); //$NON-NLS-1$ //$NON-NLS-0$

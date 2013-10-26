@@ -21,10 +21,11 @@ define([ 'i18n!git/nls/gitmessages', 'orion/webui/dialog' ], function(messages, 
 
 	ApplyPatchDialog.prototype.TEMPLATE =
 
-	'<div style="padding:4px"><input type="radio" name="radio" value="urlRadio" id="urlRadio" checked/>URL:' 
-		+ '<input type="text" name="url" id="url"/></div>'
-			+'<div style="padding:4px"><input type="radio" name="radio" value="fileRadio" id="fileRadio"/>File:'
-			+ '<input type="file" name="selectedFile" id="selectedFile" class="uploadChooser" /></div>';
+	'<div style="padding:4px"><input type="radio" name="radio" value="urlRadio" id="urlRadio" checked/>' +
+		messages["URL:"] + '<input type="text" name="url" id="url"/></div>' +
+	'<div style="padding:4px"><input type="radio" name="radio" value="fileRadio" id="fileRadio"/>' +
+		messages["File:"] + '<input type="file" name="selectedFile" id="selectedFile" class="uploadChooser" />' +
+	'</div>';
 
 	ApplyPatchDialog.prototype._init = function(options) {
 		var that = this;
@@ -39,7 +40,7 @@ define([ 'i18n!git/nls/gitmessages', 'orion/webui/dialog' ], function(messages, 
 		this.buttons.push({ callback : function() {
 			that._applyPatch();
 		},
-		text : 'OK'
+		text : messages["OK"]
 		});
 		
 

@@ -30,7 +30,8 @@ define(["orion/assert", "orion/URITemplate"], function(assert, URITemplate) {
 		y: "768",
 		empty: "",
 		empty_keys: {},
-		undef: null
+		undef: null,
+		encodedpct: "%25%A2"
 	};
 	
 	tests.testLiteralTemplate = function() {
@@ -55,6 +56,7 @@ define(["orion/assert", "orion/URITemplate"], function(assert, URITemplate) {
 		assert.equal(new URITemplate("{list*}").expand(variables), "red,green,blue");
 		assert.equal(new URITemplate("{keys}").expand(variables), "semi,%3B,dot,.,comma,%2C");
 		assert.equal(new URITemplate("{keys*}").expand(variables), "semi=%3B,dot=.,comma=%2C");
+		assert.equal(new URITemplate("{encodedpct}").expand(variables), "%2525%25A2");
 	};
 	
 	tests.testReservedExpansion = function() {
@@ -75,6 +77,7 @@ define(["orion/assert", "orion/URITemplate"], function(assert, URITemplate) {
 		assert.equal(new URITemplate("{+list*}").expand(variables), "red,green,blue");
 		assert.equal(new URITemplate("{+keys}").expand(variables), "semi,;,dot,.,comma,,");
 		assert.equal(new URITemplate("{+keys*}").expand(variables), "semi=;,dot=.,comma=,");
+		assert.equal(new URITemplate("{+encodedpct}").expand(variables), "%25%A2");
 	};
 	
 	tests.testCommaReservedExpansion = function() {
@@ -95,6 +98,7 @@ define(["orion/assert", "orion/URITemplate"], function(assert, URITemplate) {
 		assert.equal(new URITemplate("{,list*}").expand(variables), "red,green,blue");
 		assert.equal(new URITemplate("{,keys}").expand(variables), "semi,;,dot,.,comma,%2C");
 		assert.equal(new URITemplate("{,keys*}").expand(variables), "semi=;,dot=.,comma=%2C");
+		assert.equal(new URITemplate("{,encodedpct}").expand(variables), "%25%A2");
 	};
 	return tests;
 });

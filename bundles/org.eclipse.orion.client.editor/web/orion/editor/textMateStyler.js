@@ -12,7 +12,7 @@
 /*jslint regexp:false laxbreak:true*/
 /*global define */
 
-define("orion/editor/textMateStyler", ['orion/editor/regex' ], function(mRegex) {
+define("orion/editor/textMateStyler", ['orion/regex' ], function(mRegex) {
 
 var RegexUtil = {
 	// Rules to detect some unsupported Oniguruma features
@@ -100,8 +100,11 @@ var RegexUtil = {
 	/**
 	 * Checks if flag applies to entire pattern. If so, obtains replacement string by calling processor
 	 * on the unwrapped pattern. Handles 2 possible syntaxes: (?f)pat and (?f:pat)
+	 * @param {String} flag
+	 * @param {String} str
+	 * @param {Function} processor
 	 */
-	processGlobalFlag: function(/**String*/ flag, /**String*/ str, /**Function*/ processor) {
+	processGlobalFlag: function(flag, str, processor) {
 		function getMatchingCloseParen(/*String*/pat, /*Number*/start) {
 			var depth = 0,
 			    len = pat.length,
@@ -515,8 +518,8 @@ var RegexUtil = {
 		},
 		
 		/**
-		 * @private
 		 * Adds eclipse.Style objects for scope to our _styles cache.
+		 * @private
 		 * @param {String} scope A scope name, like "constant.character.php".
 		 */
 		addStyles: function(scope) {

@@ -10,16 +10,24 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 /*jslint forin:true regexp:false*/
-/*global define JSLINT require window*/
-define(["orion/plugin", "orion/jslintworker", "domReady!"], function(PluginProvider) {
-	var validationOptions = {bitwise: false, eqeqeq: true, es5: true, immed: true, indent: 1, maxerr: 300, newcap: true,
-				nomen: false, onevar: false, plusplus: false, regexp: true, strict: false, undef: true, white: false};
+/*global console define JSLINT window*/
+define([
+	"orion/plugin",
+	"orion/jslintworker",
+	"orion/objects"
+], function(PluginProvider, _, objects) {
+	var DEFAULT_VALIDATION_OPTIONS = {
+			bitwise: false, eqeqeq: true, es5: true, immed: true, indent: 1, maxerr: 300, newcap: true, nomen: false,
+			onevar: false, plusplus: false, regexp: true, strict: false, undef: true, white: false
+	};
+	var validationOptions = DEFAULT_VALIDATION_OPTIONS;
+	var isEnabled = true;
 
 	function jslint(contents) {
 		JSLINT(contents, validationOptions);
 		return JSLINT.data();
 	}
-	
+
 	function cleanup(error) {
 		function fixWith(fixes, severity, force) {
 			var description = error.description;
@@ -64,114 +72,124 @@ define(["orion/plugin", "orion/jslintworker", "domReady!"], function(PluginProvi
 		return isBogus(error) ? null : error;
 	}
 
+	function _computeProblems(contents) {
+		if (!isEnabled) {
+			return {problems: []};
+		}
+		var result = jslint(contents);
+		var problems = [];
+		var i;
+		if (result.errors) {
+			var errors = result.errors;
+			for (i=0; i < errors.length; i++) {
+				var error = errors[i];
+				if (error) {
+					var start = error.character - 1,
+					    end = start + 1;
+					if (error.evidence) {
+						var index = error.evidence.substring(start).search(/.\b/);
+						if (index > -1) {
+							end += index;
+						}
+					}
+					// Convert to format expected by validation service
+					error.description = error.reason;
+					error.start = error.character;
+					error.end = end;
+					error = cleanup(error);
+					if (error) { problems.push(error); }
+				}
+			}
+		}
+		if (result.functions) {
+			var functions = result.functions;
+			var lines;
+			for (i=0; i < functions.length; i++) {
+				var func = functions[i];
+				var unused = func.unused;
+				if (!unused || unused.length === 0) {
+					continue;
+				}
+				if (!lines) {
+					lines = contents.split(/\r?\n/);
+				}
+				var nameGuessed = func.name[0] === '"';
+				var name = nameGuessed ? func.name.substring(1, func.name.length - 1) : func.name;
+				var line = lines[func.line - 1];
+				for (var j=0; j < unused.length; j++) {
+					// Find "function" token in line based on where fName appears.
+					// nameGuessed implies "foo:function()" or "foo = function()", and !nameGuessed implies "function foo()"
+					var nameIndex = line.indexOf(name);
+					var funcIndex = nameGuessed ? line.indexOf("function", nameIndex) : line.lastIndexOf("function", nameIndex);
+					if (funcIndex !== -1) {
+						problems.push({
+							reason: "Function declares unused variable '" + unused[j] + "'.",
+							line: func.line,
+							character: funcIndex + 1,
+							end: funcIndex + "function".length,
+							severity: "warning"
+						});
+					}
+				}
+			}
+		}
+		return { problems: problems };
+	}
+
 	var validationService = {
 		// ManagedService
 		updated: function(properties) {
-			if (properties && typeof properties.options === "string") {
-				var options = properties.options;
-				if (!/^\s*$/.test(options)) {
-					var optionsMap = {};
-					options.split(/,/).forEach(function(option) {
-						var match = /\s*(\w+)\s*:\s*(\w+)\s*/.exec(option); // name:value
-						if (match === null) {
-							console.log('JSLINT ignoring bad option: ' + option);
-						} else {
-							var name = match[1], value = match[2];
-							optionsMap[name] = value;
+			if (properties) {
+				if (typeof properties.enabled === "boolean") {
+					isEnabled = !!properties.enabled;
+				}
+				if (typeof properties.options === "string") {
+					var options = properties.options;
+					if (!/^\s*$/.test(options)) {
+						var userOptionsMap = {}, hasUserOption = false;
+						options.split(/,/).forEach(function(option) {
+							var match = /\s*(\w+)\s*:\s*(\w+)\s*/.exec(option); // name:value
+							if (match === null) {
+								console.log('JSLint ignoring bad option: ' + option);
+							} else {
+								var name = match[1], value = match[2];
+								userOptionsMap[name] = value;
+								hasUserOption = true;
+							}
+						});
+						validationOptions = {};
+						objects.mixin(validationOptions, DEFAULT_VALIDATION_OPTIONS, userOptionsMap);
+						if (hasUserOption) {
+							console.log('JSLint using user-provided options: {' + Object.keys(userOptionsMap).map(function(k) {
+								return k + ':' + userOptionsMap[k];
+							}).join(',') + "}");
 						}
-					});
-					if (Object.keys(optionsMap).length > 0) {
-						validationOptions = optionsMap;
-						console.log('JSLINT using custom options: ' + Object.keys(validationOptions).map(function(k) {
-							return k + ':' + optionsMap[k];
-						}).join(','));
 					}
 				}
 			}
 		},
-		checkSyntax : function(title, contents) {
-			var result = jslint(contents);
-			//this.dispatchEvent("syntaxChecked", {title: title, result: result});
-			var problems = [];
-			var i;
-			if (result.errors) {
-				var errors = result.errors;
-				for (i=0; i < errors.length; i++) {
-					var error = errors[i];
-					if (error) {
-						var start = error.character - 1,
-						    end = start + 1;
-						if (error.evidence) {
-							var index = error.evidence.substring(start).search(/.\b/);
-							if (index > -1) {
-								end += index;
-							}
-						}
-						// Convert to format expected by validation service
-						error.description = error.reason;
-						error.start = error.character;
-						error.end = end;
-						error = cleanup(error);
-						if (error) { problems.push(error); }
-					}
-				}
-			}
-			if (result.functions) {
-				var functions = result.functions;
-				var lines;
-				for (i=0; i < functions.length; i++) {
-					var func = functions[i];
-					var unused = func.unused;
-					if (!unused || unused.length === 0) {
-						continue;
-					}
-					if (!lines) {
-						lines = contents.split(/\r?\n/);
-					}
-					var nameGuessed = func.name[0] === '"';
-					var name = nameGuessed ? func.name.substring(1, func.name.length - 1) : func.name;
-					var line = lines[func.line - 1];
-					for (var j=0; j < unused.length; j++) {
-						// Find "function" token in line based on where fName appears.
-						// nameGuessed implies "foo:function()" or "foo = function()", and !nameGuessed implies "function foo()"
-						var nameIndex = line.indexOf(name);
-						var funcIndex = nameGuessed ? line.indexOf("function", nameIndex) : line.lastIndexOf("function", nameIndex);
-						if (funcIndex !== -1) {
-							problems.push({
-								reason: "Function declares unused variable '" + unused[j] + "'.",
-								line: func.line,
-								character: funcIndex + 1,
-								end: funcIndex + "function".length,
-								severity: "warning"
-							});
-						}
-					}
-				}
-			}
-			return { problems: problems };
+		// orion.edit.validator
+		computeProblems: function(editorContext, context) {
+			return editorContext.getText().then(_computeProblems);
 		}
 	};
 	
-	// Converts jslint's "functions" list to a flat outline model
-	function toOutlineModel(title, jslintResult) {
+	/**
+	 * Converts jslint's output to a flat outline model
+	 * @param {Object} jslintResult Result of calling JSLINT() on the file
+	 * @returns {Object[]} Outline model
+	 */
+	function jsOutline(jslintResult) {
 		var outline = [],
 		    functions = jslintResult.functions;
-		for (var func in functions) {
-			var f = functions[func],
+		for (var i=0; i < functions.length; i++) {
+			var f = functions[i],
 			    name = f.name,
 			    isAnonymousFunction = (name[0]==='"');
 			if (isAnonymousFunction) {
 				f.name = name = name.substring(1, name.length-1);
 			}
-			name += "(";
-			if (f.param) {
-				var params = [];
-				for (var p in f.param) {
-					params.push(f.param[p]);
-				}
-				name += params.join(",");
-			}
-			name += ")";
+			name += "(" + (f.param ? f.param.join(",") : "") + ")";
 			var element = {
 				label: name,
 				children: null,
@@ -182,41 +200,53 @@ define(["orion/plugin", "orion/jslintworker", "domReady!"], function(PluginProvi
 		}
 		return outline;
 	}
-	var outlineService = {
-			getOutline : function(contents, title) {
-				if (/\.js$/.test(title)) {
-					var jslintResult = jslint(contents);
-					return toOutlineModel(title, jslintResult);
-				} else if (/\.html?$/.test(title)) {
-					var outline = [];
-					var pattern = /id=['"]\S*["']/gi, // experimental: |<head[^>]*|<body[^>]*|<script[^>]*/gi;
-					    match;
-					while ((match = pattern.exec(contents)) !== null) {
-						var start = match.index,
-						    name = match[0],
-						    end;
-						if (name[0]==='<') {
-							name = "&lt;" + name.substring(1) + "&gt;";
-							start += 1;
-							end = start + name.length;
-						} else {
-							start += 4;
-							name = name.substring(4, name.length-1);
-							end = start+name.length;
-						}
-						var element = {
-							label: name,
-							children: null,
-							start: start,
-							end: end
-						};
-						outline.push(element);
-					}
-					return outline;
-				}
+
+	/**
+	 * Generates outline for an HTML document.
+	 * @param {String} contents
+	 * @returns {Object[]} Outline model
+	 */
+	function htmlOutline(contents) {
+		var outline = [];
+		var pattern = /id=['"]\S*["']/gi, // experimental: |<head[^>]*|<body[^>]*|<script[^>]*/gi;
+		    match;
+		while ((match = pattern.exec(contents)) !== null) {
+			var start = match.index,
+			    name = match[0],
+			    end;
+			if (name[0]==='<') {
+				name = "&lt;" + name.substring(1) + "&gt;";
+				start += 1;
+				end = start + name.length;
+			} else {
+				start += 4;
+				name = name.substring(4, name.length-1);
+				end = start+name.length;
 			}
+			var element = {
+				label: name,
+				children: null,
+				start: start,
+				end: end
+			};
+			outline.push(element);
+		}
+		return outline;
+	}
+
+	var outlineService = {
+		computeOutline: function(editorContext, context) {
+			return editorContext.getText().then(function(contents) {
+				var contentType = context.contentType;
+				if (contentType === "application/javascript") {
+					var jslintResult = jslint(contents);
+					return jsOutline(jslintResult);
+				} else if (contentType === "text/html") {
+					return htmlOutline(contents);
+				}
+			});
+		}
 	};
-	
 
 	var headers = {
 		name: "Orion JSLint Service",
@@ -243,8 +273,13 @@ define(["orion/plugin", "orion/jslintworker", "domReady!"], function(PluginProvi
 					tags: 'validation javascript js jslint'.split(' '),
 					category: 'validation',
 					properties: [
+						{	id: 'enabled',
+							name: 'Use JSLint to check JavaScript code',
+							defaultValue: true,
+							type: 'boolean'
+						},
 						{	id: 'options',
-							name: 'Default Options',
+							name: 'Options to pass to JSLint (/*jslint ..*/)',
 							type: 'string'
 						}
 					]

@@ -12,7 +12,7 @@
  ******************************************************************************/
 
 /*global define esprima */
-define(["scriptedLogger"], function(scriptedLogger) {
+define(["plugins/esprima/scriptedLogger"], function(scriptedLogger) {
 
 
 

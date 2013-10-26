@@ -119,7 +119,7 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 	 * @param {Boolean} isInitialValid
 	 */
 	function getUserText(id, refNode, shouldHideRefNode, initialText, onComplete, onEditDestroy, promptMessage, selectTo, isInitialValid) {
-		/** @return function(event) */
+		/** @return {Function} function(event) */
 		var done = false;
 		var handler = function(isKeyEvent) {
 			return function(event) {
@@ -151,6 +151,9 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 					done = true;
 				} else {
 					onComplete(newValue);
+					if (shouldHideRefNode && refNode.parentNode) {
+						refNode.style.display = "inline"; //$NON-NLS-0$
+					}
 					done = true;
 				}
 				// some clients remove temporary dom structures in the onComplete processing, so check that we are still in DOM

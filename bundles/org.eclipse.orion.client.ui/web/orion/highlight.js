@@ -16,7 +16,7 @@ define(['examples/editor/textStyler', 'orion/editor/textMateStyler', 'orion/edit
 	 * Returns a promise that will provide a styler for the given content type.
 	 * @static
 	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry
-	 * @param {orion.core.ContentTypeService} contentTypeService
+	 * @param {orion.core.ContentTypeRegistry} contentTypeService
 	 * @param {orion.core.ContentType} contentType
 	 * @param {orion.editor.TextView} textView
 	 * @param {orion.editor.AnnotationModel} annotationModel
@@ -110,7 +110,7 @@ define(['examples/editor/textStyler', 'orion/editor/textMateStyler', 'orion/edit
 	 * @name orion.highlight.SyntaxHighlighter
 	 * @class
 	 * @description 
-	 * <p>Requires service {@link orion.core.ContentTypeService}</p>
+	 * <p>Requires service {@link orion.core.ContentTypeRegistry}</p>
 	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry Registry to look up highlight providers from.
 	 */
 	function SyntaxHighlighter(serviceRegistry) {
@@ -137,7 +137,7 @@ define(['examples/editor/textStyler', 'orion/editor/textMateStyler', 'orion/edit
 				this.styler = null;
 			}
 			var self = this;
-			return createStyler(this.serviceRegistry, this.serviceRegistry.getService("orion.core.contenttypes"), //$NON-NLS-0$
+			return createStyler(this.serviceRegistry, this.serviceRegistry.getService("orion.core.contentTypeRegistry"), //$NON-NLS-0$
 				fileContentType, textView, annotationModel, fileName, allowAsync).then(
 					function(styler) {
 						self.styler = styler;

@@ -13,8 +13,8 @@
 /*jslint regexp:false forin:true*/
 
 define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/webui/littlelib', 'orion/i18nUtil', 'orion/fileUtils', 'orion/explorers/explorer',
-		'orion/EventTarget'],
-		function(messages, require, Deferred, lib, i18nUtil, mFileUtils, mExplorer, EventTarget){
+		'orion/EventTarget', 'orion/util'],
+		function(messages, require, Deferred, lib, i18nUtil, mFileUtils, mExplorer, EventTarget, util){
 
 	/**
 	 * Tree model used by the FileExplorer
@@ -156,19 +156,15 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 		this.myTree = null;
 		this.checkbox = false;
 		this._hookedDrag = false;
-		var modelEventDispatcher = this.modelEventDispatcher = new EventTarget();
+		var modelEventDispatcher = options.modelEventDispatcher ? options.modelEventDispatcher : new EventTarget();
+		this.modelEventDispatcher = modelEventDispatcher;
 
 		// Listen to model changes from fileCommands
 		var _self = this;
+		this._modelListeners = {};
 		["copy", "copyMultiple", "create", "delete", "deleteMultiple", "import", //$NON-NLS-5$//$NON-NLS-4$//$NON-NLS-3$//$NON-NLS-2$//$NON-NLS-1$//$NON-NLS-0$
 		 "move", "moveMultiple"].forEach(function(eventType) { //$NON-NLS-1$//$NON-NLS-0$
-				modelEventDispatcher.addEventListener(eventType, _self.modelHandler[eventType].bind(_self));
-				modelEventDispatcher.addEventListener(eventType, function(evt) {
-					// DEBUG
-					if (typeof console !== "undefined" && console) { //$NON-NLS-)$
-						console.log(evt);
-					}
-				});
+				modelEventDispatcher.addEventListener(eventType, _self._modelListeners[eventType] = _self.modelHandler[eventType].bind(_self));
 			});
 
 		// Same tab/new tab setting
@@ -182,13 +178,22 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 						} else {
 							target = "_self"; //$NON-NLS-0$
 						}
-						renderer.setTarget(target);
+						if (renderer.setTarget) {
+							renderer.setTarget(target);
+						}
 					}
 				}, {pid: "nav.config"}); //$NON-NLS-0$
 		}
 	}
 
 	FileExplorer.prototype = Object.create(mExplorer.Explorer.prototype);
+	
+	FileExplorer.prototype.destroy = function() {
+		var _self = this;
+		Object.keys(this._modelListeners).forEach(function(eventType) {
+			_self.modelEventDispatcher.removeEventListener(eventType, _self._modelListeners[eventType]);
+		});
+	};
 
 	/**
 	 * Handles model changes. Subclasses can override these methods to control how the FileExplorer reacts to various types of model changes.
@@ -203,7 +208,9 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 		copyMultiple: function(modelEvent) {
 			var _self = this, changedLocations = {};
 			modelEvent.items.forEach(function(item) {
-				var parent = item.newValue.Parents[0] || _self.treeRoot;
+				var itemParent = (item.newValue.Parents && item.newValue.Parents[0]);
+				// if !itemParent we refresh the treeRoot (TODO this makes no sense when using Copy To > top-level folder in other filesystem)
+				var parent = itemParent || _self.treeRoot;
 				changedLocations[parent.Location] = parent;
 			});
 			Object.keys(changedLocations).forEach(function(loc) {
@@ -285,6 +292,7 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 		}
 	};
 
+	var dragStartTarget;
 	FileExplorer.prototype._makeDropTarget = function(item, node, persistAndReplace) {
 		function dropFileEntry(entry, path, target, explorer, performDrop, fileClient) {
 			path = path || "";
@@ -328,6 +336,29 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 			var explorer = this;
 			var performDrop = this.dragAndDrop;
 			
+			var dragStart = function(evt) {
+				dragStartTarget = evt.target;
+			};
+			if (persistAndReplace) {
+				if (this._oldDragStart) {
+					node.removeEventListener("dragstart", this._oldDragStart, false); //$NON-NLS-0$
+				}
+				this._oldDragStart = dragStart;
+			}
+			node.addEventListener("dragstart", dragStart, false); //$NON-NLS-0$
+			
+			
+			var dragEnd = function(evt) {
+				dragStartTarget = null;
+			};
+			if (persistAndReplace) {
+				if (this._oldDragEnd) {
+					node.removeEventListener("dragend", this._oldDragEnd, false); //$NON-NLS-0$
+				}
+				this._oldDragEnd = dragEnd;
+			}
+			node.addEventListener("dragend", dragEnd, false); //$NON-NLS-0$
+			
 			var dragLeave = function(evt) { //$NON-NLS-0$
 				node.classList.remove("dragOver"); //$NON-NLS-0$
 				evt.preventDefault();
@@ -342,11 +373,11 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 			}
 			node.addEventListener("dragleave", dragLeave, false); //$NON-NLS-0$
 
-			var dragEnter = function (evt) { //$NON-NLS-0$
-				if (evt.dataTransfer.effectAllowed === "all" ||   //$NON-NLS-0$
+			var dragEnter = function (evt) {
+				/* accessing dataTransfer.effectAllowed here throws an error on IE */
+				if (!util.isIE && (evt.dataTransfer.effectAllowed === "all" ||   //$NON-NLS-0$
 					evt.dataTransfer.effectAllowed === "uninitialized" ||  //$NON-NLS-0$
-					evt.dataTransfer.effectAllowed.indexOf("copy") >= 0) {   //$NON-NLS-0$
-					// only supported in Chrome.
+					evt.dataTransfer.effectAllowed.indexOf("copy") >= 0)) {   //$NON-NLS-0$
 						evt.dataTransfer.dropEffect = "copy";  //$NON-NLS-0$
 				}   
 				node.classList.add("dragOver"); //$NON-NLS-0$
@@ -361,14 +392,14 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 			node.addEventListener("dragenter", dragEnter, false); //$NON-NLS-0$
 
 			// this listener is the same for any time, so we don't need to remove/rehook.
-			var dragOver = function (evt) { //$NON-NLS-0$
+			var dragOver = function (evt) {
 				// default behavior is to not trigger a drop, so we override the default
 				// behavior in order to enable drop.  
 				// we have to specify "copy" again here, even though we did in dragEnter
-				if (evt.dataTransfer.effectAllowed === "all" ||   //$NON-NLS-0$
+				/* accessing dataTransfer.effectAllowed here throws an error on IE */
+				if (!util.isIE && (evt.dataTransfer.effectAllowed === "all" ||   //$NON-NLS-0$
 					evt.dataTransfer.effectAllowed === "uninitialized" ||  //$NON-NLS-0$
-					evt.dataTransfer.effectAllowed.indexOf("copy") >= 0) {   //$NON-NLS-0$
-					// only supported in Chrome.
+					evt.dataTransfer.effectAllowed.indexOf("copy") >= 0)) {   //$NON-NLS-0$
 						evt.dataTransfer.dropEffect = "copy";  //$NON-NLS-0$
 				}   
 				lib.stop(evt);
@@ -378,11 +409,28 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 				this._oldDragOver = dragOver;
 			}
 
-			var drop = function(evt) { //$NON-NLS-0$
+			var drop = function(evt) {
 				node.classList.remove("dragOver"); //$NON-NLS-0$
+				
+				if (dragStartTarget) {
+					var fileClient = explorer.fileClient;
+					var location = dragStartTarget.href;
+					var index = location.indexOf("#"); //$NON-NLS-0$
+					location = location.substring(index + 1);
+					var progress = explorer.registry.getService("orion.page.progress"); //$NON-NLS-0$
+					progress.showWhile(fileClient.copyFile(location, item.Location), i18nUtil.formatMessage(messages["Copying ${0}"], location)).then(function(result) {
+						explorer.changedItem(item, true);
+					}, function(error) {
+						if (progress) {
+							progress.setProgressResult(error);
+						} else {
+							window.console.log(error);
+						}
+					});
+					
 				// webkit supports testing for and traversing directories
 				// http://wiki.whatwg.org/wiki/DragAndDropEntries
-				if (evt.dataTransfer.items && evt.dataTransfer.items.length > 0) {
+				} else if (evt.dataTransfer.items && evt.dataTransfer.items.length > 0) {
 					for (var i=0; i<evt.dataTransfer.items.length; i++) {
 						var entry = null;
 						if (typeof evt.dataTransfer.items[i].getAsEntry === "function") { //$NON-NLS-0$
@@ -432,7 +480,7 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 	 * @returns {orion.Promise}
 	 */
 	FileExplorer.prototype.changedItem = function(parent, forceExpand) {
-		if (parent === this.treeRoot) {
+		if (this.treeRoot && this.treeRoot.Location === parent.Location) {
 			return this.loadResourceList(this.treeRoot, forceExpand);
 		}
 		var that = this;
@@ -476,6 +524,15 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 	 * @function
 	 */
 	FileExplorer.prototype.scopeUp = function() {
+	};
+		
+	/**
+	 * The explorerNavHandler hooked up by the explorer will call this function when the focus into command is clicked.
+	 * The default implementation does nothing.
+	 * @name orion.explorer.FileExplorer#scopeDown
+	 * @function
+	 */
+	FileExplorer.prototype.scopeDown = function(item) {
 	};
 	
 	/**
@@ -573,29 +630,16 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 					}
 				}
 				
-				if (self.model.hasChildren()) {
-					self.createTree(self.parentId, self.model, {
-						navHandlerFactory: self.navHandlerFactory,
-						setFocus: (typeof self.setFocus === "undefined" ? true : self.setFocus), 
-						selectionPolicy: self.renderer.selectionPolicy, 
-						onCollapse: function(model) {
-							if(self.getNavHandler()){
-								self.getNavHandler().onCollapse(model);
-							}
+				self.createTree(self.parentId, self.model, {
+					navHandlerFactory: self.navHandlerFactory,
+					setFocus: (typeof self.setFocus === "undefined" ? true : self.setFocus), 
+					selectionPolicy: self.renderer.selectionPolicy, 
+					onCollapse: function(model) {
+						if(self.getNavHandler()){
+							self.getNavHandler().onCollapse(model);
 						}
-					});
-				} else {
-					lib.empty(parent);
-					var noFile = document.createElement("div"); //$NON-NLS-0$
-					noFile.classList.add("noFile"); //$NON-NLS-0$
-					noFile.textContent = messages["NoFile"];
-					var plusIcon = document.createElement("span"); //$NON-NLS-0$
-					plusIcon.classList.add("core-sprite-addcontent"); //$NON-NLS-0$
-					plusIcon.classList.add("icon-inline"); //$NON-NLS-0$
-					plusIcon.classList.add("imageSprite"); //$NON-NLS-0$
-					lib.processDOMNodes(noFile, [plusIcon]);
-					parent.appendChild(noFile);
-				}
+					}
+				});
 				
 				if (typeof postLoad === "function") { //$NON-NLS-0$
 					try {

@@ -9,15 +9,173 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
- /*global define*/
- /*jslint maxerr:150 browser:true devel:true laxbreak:true regexp:false*/
+/*global define*/
 
-define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBinding', 'orion/editor/eventTarget', 'orion/editor/tooltip', 'orion/editor/annotations', 'orion/util'], function(messages, mKeyBinding, mEventTarget, mTooltip, mAnnotations, util) { //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		
+define("orion/editor/editor", [ //$NON-NLS-0$
+	'i18n!orion/editor/nls/messages', //$NON-NLS-0$
+	'orion/editor/eventTarget', //$NON-NLS-0$
+	'orion/editor/tooltip', //$NON-NLS-0$
+	'orion/editor/annotations', //$NON-NLS-0$
+	'orion/objects', //$NON-NLS-0$
+	'orion/util' //$NON-NLS-0$
+], function(messages, mEventTarget, mTooltip, mAnnotations, objects, util) {
+
+	var AT = mAnnotations.AnnotationType;
+
 	var HIGHLIGHT_ERROR_ANNOTATION = "orion.annotation.highlightError"; //$NON-NLS-0$
+	
+	/**
+	 * @name orion.editor.BaseEditor
+	 * @class This is the base interface for text and visual editors based on a text buffer.
+	 * 
+	 * @description Creates a new Base Editor with the given options.
+	 * @param {Object} options Creation options for this editor.
+	 * @param {Object} options.domNode
+	 * @param {Object} options.statusReporter
+	 *
+	 * @borrows orion.editor.EventTarget#addEventListener as #addEventListener
+	 * @borrows orion.editor.EventTarget#removeEventListener as #removeEventListener
+	 * @borrows orion.editor.EventTarget#dispatchEvent as #dispatchEvent
+	 */
+	function BaseEditor(options) {
+		options = options || {};
+		this._domNode = options.domNode;
+		this._statusReporter = options.statusReporter;
+		this._dirty = false;
+		this._title = null;
+	}
+	BaseEditor.prototype = /** @lends orion.editor.BaseEditor.prototype */ {
+		/**
+		 * Destroys the editor. Uninstall the editor view.
+		 */
+		destroy: function() {
+			this.uninstall();
+			this._statusReporter = this._domNode = null;
+		},
+		/**
+		 * Focus the the editor view. The default implementation does nothing.
+		 */
+		focus: function() {
+		},
+		/**
+		 * Returns the text model of the editor.
+		 *
+		 * @returns {orion.editor.TextModel} the text model of the view.
+		 */
+		getModel: function() {
+			return this._model;	
+		},
+		/**
+		 * Returns the text for the given range.
+		 * <p>
+		 * The text does not include the character at the end offset.
+		 * </p>
+		 *
+		 * @param {Number} [start=0] the start offset of text range.
+		 * @param {Number} [end=char count] the end offset of text range.
+		 *
+		 * @see orion.editor.TextView#setText
+		 */
+		getText: function(start, end) {
+			return this.getModel().getText(start, end);
+		},
+		/**
+		 * Returns the editor title. 
+		 *
+		 * @returns {String} the editor title.
+		 */
+		getTitle: function() {
+			return this._title;
+		},
+		/**
+		 * Creates the DOM hierarchy of the editor and add it to the document.
+		 */
+		install: function() {
+		},
+		/**
+		 * Returns <code>true</code> if the editor is dirty; <code>false</code> otherwise.
+		 * @returns {Boolean} whether the editor is dirty
+		 */
+		isDirty: function() {
+			return this._dirty;
+		},
+		/** 
+		 * Marks the current state of the editor as clean. Meaning there are no unsaved modifications.
+		 */
+		markClean: function() {
+			this.setDirty(false);	
+		},
+		/**
+		 * Called when the dirty state of the editor changes.
+		 * @param {Event} dirtyChangedEvent
+		 */
+		onDirtyChanged: function(dirtyChangedEvent) {
+			return this.dispatchEvent(dirtyChangedEvent);
+		},
+		/**
+		 * Called when the editor's contents have been changed or saved.
+		 * @param {Event} inputChangedEvent
+		 */
+		onInputChanged: function (inputChangedEvent) {
+			return this.dispatchEvent(inputChangedEvent);
+		},
+		/**
+		 * Report the message to the user.
+		 * 
+		 * @param {String} message the message to show
+		 * @param {String} [type] the message type. Either normal or "progress" or "error";
+		 * @param {Boolean} [isAccessible] If <code>true</code>, a screen reader will read this message.
+		 * Otherwise defaults to the domNode default.
+		 */
+		reportStatus: function(message, type, isAccessible) {
+			if (this._statusReporter) {
+				this._statusReporter(message, type, isAccessible);
+			}
+		},
+		/**
+		 * Resizes the editor view. The default implementation does nothing.
+		 */
+		resize: function() {
+		},
+		/**
+		 * Sets whether the editor is dirty.
+		 *
+		 * @param {Boolean} dirty
+		 */
+		setDirty: function(dirty) {
+			if (this._dirty === dirty) { return; }
+			this._dirty = dirty;
+			this.onDirtyChanged({type: "DirtyChanged"}); //$NON-NLS-0$
+		},
+		/**
+		 * Sets the editor's contents.
+		 *
+		 * @param {String} title the editor title
+		 * @param {String} message an error message
+		 * @param {String} contents the editor contents
+		 * @param {Boolean} contentsSaved whether the editor contents was saved.
+		 */
+		setInput: function(title, message, contents, contentsSaved) {
+			this._title = title;
+			this.onInputChanged({
+				type: "InputChanged", //$NON-NLS-0$
+				title: title,
+				message: message,
+				contents: contents,
+				contentsSaved: contentsSaved
+			});
+		},
+		/**
+		 * Removes the DOM hierarchy of the editor from the document.
+		 */
+		uninstall: function() {
+		}
+	};
+	mEventTarget.EventTarget.addMixin(BaseEditor.prototype);
 
 	/**
 	 * @name orion.editor.Editor
+	 * @augments orion.editor.BaseEditor
 	 * @class An <code>Editor</code> is a user interface for editing text that provides additional features over the basic {@link orion.editor.TextView}.
 	 * Some of <code>Editor</code>'s features include:
 	 * <ul>
@@ -40,12 +198,10 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 	 * @param {Object} options.textViewFactory
 	 * @param {Object} options.undoStackFactory
 	 * @param {Object} options.textDNDFactory
-	 *
-	 * @borrows orion.editor.EventTarget#addEventListener as #addEventListener
-	 * @borrows orion.editor.EventTarget#removeEventListener as #removeEventListener
-	 * @borrows orion.editor.EventTarget#dispatchEvent as #dispatchEvent
 	 */
 	function Editor(options) {
+		options = options || {};
+		BaseEditor.call(this, options);
 		this._textViewFactory = options.textViewFactory;
 		this._undoStackFactory = options.undoStackFactory;
 		this._textDNDFactory = options.textDNDFactory;
@@ -54,8 +210,6 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 		this._lineNumberRulerFactory = options.lineNumberRulerFactory;
 		this._contentAssistFactory = options.contentAssistFactory;
 		this._keyBindingFactory = options.keyBindingFactory;
-		this._statusReporter = options.statusReporter;
-		this._domNode = options.domNode;
 		
 		this._annotationStyler = null;
 		this._annotationModel = null;
@@ -63,20 +217,18 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 		this._lineNumberRuler = null;
 		this._overviewRuler = null;
 		this._foldingRuler = null;
-		this._dirty = false;
 		this._contentAssist = null;
-		this._title = null;
 	}
-	Editor.prototype = /** @lends orion.editor.Editor.prototype */ {
+	Editor.prototype = new BaseEditor();
+	objects.mixin(Editor.prototype, /** @lends orion.editor.Editor.prototype */ {
 		/**
 		 * Destroys the editor.
 		 */
 		destroy: function() {
-			this.uninstallTextView();
+			BaseEditor.prototype.destroy.call(this);
 			this._textViewFactory = this._undoStackFactory = this._textDNDFactory = 
 			this._annotationFactory = this._foldingRulerFactory = this._lineNumberRulerFactory = 
-			this._contentAssistFactory = this._keyBindingFactory = this._statusReporter =
-			this._domNode = null;
+			this._contentAssistFactory = this._keyBindingFactory = null;
 		},
 		/**
 		 * Returns the annotation model of the editor. 
@@ -101,6 +253,14 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 		 */
 		getAnnotationStyler: function() {
 			return this._annotationStyler;
+		},
+		/**
+		 * Returns the content assist of the editor. 
+		 *
+		 * @returns {orion.editor.LineNumberRuler}
+		 */
+		getContentAssist: function() {
+			return this._contentAssist;
 		},
 		/**
 		 * Returns the folding ruler of the editor. 
@@ -146,37 +306,71 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 			return this._textView;
 		},
 		/**
-		 * Returns the editor title. 
+		 * Returns the editor undo stack. 
 		 *
-		 * @returns {String} the editor title.
+		 * @returns {orion.editor.UndoStack} the editor undo stack.
 		 */
-		getTitle: function() {
-			return this._title;
+		getUndoStack: function() {
+			return this._undoStack;
 		},
-		
 		/**
 		 * Returns the editor's key modes.
 		 *
 		 * @returns {Array} the editor key modes.
 		 */
 		getKeyModes: function() {
-			return  this._textView.getKeyModes();
+			return this._textView.getKeyModes();
 		},
-		
 		/**
-		 * Returns <code>true</code> if the editor is dirty; <code>false</code> otherwise.
-		 * @returns {Boolean} 
+		 * Returns the editor source code actions.
+		 *
+		 * @returns {orion.editor.sourceCodeActions}
 		 */
-		isDirty: function() {
-			return this._dirty;
+		getSourceCodeActions: function() {
+			return this._sourceCodeActions;
+		},
+		/**
+		 * Returns the editor linked mode.
+		 *
+		 * @returns {orion.editor.LinkedMode}
+		 */
+		getLinkedMode: function() {
+			return this._linkedMode;
+		},
+		/**
+		 * Returns the editor text actions.
+		 *
+		 * @returns {orion.editor.textActions}
+		 */
+		getTextActions: function() {
+			return this._textActions;
+		},
+		/**
+		 * Gives focus to the text view.
+		 */
+		focus: function() {
+			if (this._textView) {
+				this._textView.focus();
+			}
+		},
+		markClean: function() {
+			this.getUndoStack().markClean();
+		},
+		/**
+		 * Resizes the text view.
+		 */
+		resize: function() {
+			if (this._textView) {
+				this._textView.resize();
+			}
 		},
 		/**
 		 * Sets whether the annotation ruler is visible.
 		 *
 		 * @param {Boolean} visible <code>true</code> to show ruler, <code>false</code> otherwise
 		 */
-		setAnnotationRulerVisible: function(visible) {
-			if (this._annotationRulerVisible === visible) { return; }
+		setAnnotationRulerVisible: function(visible, force) {
+			if (this._annotationRulerVisible === visible && !force) { return; }
 			this._annotationRulerVisible = visible;
 			if (!this._annotationRuler) { return; }
 			var textView = this._textView;
@@ -191,40 +385,30 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 		 *
 		 * @param {Boolean} visible <code>true</code> to show ruler, <code>false</code> otherwise
 		 */
-		setFoldingRulerVisible: function(visible) {
-			if (this._foldingRulerVisible === visible) { return; }
+		setFoldingRulerVisible: function(visible, force) {
+			if (this._foldingRulerVisible === visible && !force) { return; }
 			this._foldingRulerVisible = visible;
 			if (!this._foldingRuler) { return; }
 			var textView = this._textView;
 			if (!textView.getModel().getBaseModel) { return; }
 			if (visible) {
-				textView.addRuler(this._foldingRuler, 100);
+				textView.addRuler(this._foldingRuler);
 			} else {
 				textView.removeRuler(this._foldingRuler);
 			}
-		},
-		/**
-		 * Sets whether the editor is dirty.
-		 *
-		 * @param {Boolean} dirty
-		 */
-		setDirty: function(dirty) {
-			if (this._dirty === dirty) { return; }
-			this._dirty = dirty;
-			this.onDirtyChanged({type: "DirtyChanged"}); //$NON-NLS-0$
 		},
 		/**
 		 * Sets whether the line numbering ruler is visible.
 		 *
 		 * @param {Boolean} visible <code>true</code> to show ruler, <code>false</code> otherwise
 		 */
-		setLineNumberRulerVisible: function(visible) {
-			if (this._lineNumberRulerVisible === visible) { return; }
+		setLineNumberRulerVisible: function(visible, force) {
+			if (this._lineNumberRulerVisible === visible && !force) { return; }
 			this._lineNumberRulerVisible = visible;
 			if (!this._lineNumberRuler) { return; }
 			var textView = this._textView;
 			if (visible) {
-				textView.addRuler(this._lineNumberRuler, 1);
+				textView.addRuler(this._lineNumberRuler, !this._annotationRulerVisible ? 0 : 1);
 			} else {
 				textView.removeRuler(this._lineNumberRuler);
 			}
@@ -234,8 +418,8 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 		 *
 		 * @param {Boolean} visible <code>true</code> to show ruler, <code>false</code> otherwise
 		 */
-		setOverviewRulerVisible: function(visible) {
-			if (this._overviewRulerVisible === visible) { return; }
+		setOverviewRulerVisible: function(visible, force) {
+			if (this._overviewRulerVisible === visible && !force) { return; }
 			this._overviewRulerVisible = visible;
 			if (!this._overviewRuler) { return; }
 			var textView = this._textView;
@@ -270,15 +454,6 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 			return selection;
 		},
 		
-		getText: function(start, end) {
-			var textView = this._textView;
-			var model = textView.getModel();
-			if (model.getBaseModel) {
-				model = model.getBaseModel();
-			}
-			return model.getText(start, end);
-		},
-		
 		_expandOffset: function(offset) {
 			var model = this._textView.getModel();
 			var annotationModel = this._annotationModel;
@@ -286,7 +461,7 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 			var annotations = annotationModel.getAnnotations(offset, offset + 1);
 			while (annotations.hasNext()) {
 				var annotation = annotations.next();
-				if (annotation.type === mAnnotations.AnnotationType.ANNOTATION_FOLDING) {
+				if (annotation.type === AT.ANNOTATION_FOLDING) {
 					if (annotation.expand) {
 						annotation.expand();
 						annotationModel.modifyAnnotation(annotation);
@@ -319,13 +494,6 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 				}
 			}
 			textView.setText(text, start, end);
-		},
-		
-		/**
-		 * @deprecated use #setFoldingRulerVisible
-		 */
-		setFoldingEnabled: function(enabled) {
-			this.setFoldingRulerVisible(enabled);
 		},
 		
 		setSelection: function(start, end, show, callback) {
@@ -366,15 +534,6 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 			this.setDirty(!this._undoStack.isClean());
 		},
 		
-		/**
-		 * @private
-		 */
-		reportStatus: function(message, type, isAccessible) {
-			if (this._statusReporter) {
-				this._statusReporter(message, type, isAccessible);
-			}
-		},
-		
 		/** @private */
 		_getTooltipInfo: function(x, y) {
 			var textView = this._textView;			
@@ -407,7 +566,8 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 		_highlightCurrentLine: function(newSelection, oldSelection) {
 			var annotationModel = this._annotationModel;
 			if (!annotationModel) { return; }
-			var textView = this._textView;	
+			var textView = this._textView;
+			if (textView.getOptions("singleMode")) { return; } //$NON-NLS-0$
 			var model = textView.getModel();
 			var oldLineIndex = oldSelection ? model.getLineAtOffset(oldSelection.start) : -1;
 			var lineIndex = model.getLineAtOffset(newSelection.start);
@@ -426,18 +586,24 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 			var remove = annotation ? [annotation] : null;
 			var add;
 			if (newEmpty) {
-				var type = mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINE;
-				annotation = mAnnotations.AnnotationType.createAnnotation(type, start, end);
+				var type = AT.ANNOTATION_CURRENT_LINE;
+				annotation = AT.createAnnotation(type, start, end);
 				add = [annotation];
 			}
 			this._currentLineAnnotation = annotation;
 			annotationModel.replaceAnnotations(remove, add);
 		},
 		
+		install: function() {
+			this.installTextView();
+		},
+		
 		/**
 		 * Creates the underlying TextView and installs the editor's features.
 		 */
 		installTextView : function() {
+			if (this._textView) { return; }
+			
 			// Create textView and install optional features
 			this._textView = this._textViewFactory();
 			if (this._undoStackFactory) {
@@ -490,7 +656,7 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 				onScroll: function(e) {
 					var tooltip = mTooltip.Tooltip.getTooltip(textView);
 					if (!tooltip) { return; }
-					tooltip.setTarget(null);
+					tooltip.setTarget(null, 0, 0);
 				},
 				onSelection: function(e) {
 					self._updateCursorStatus();
@@ -506,10 +672,16 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 						
 			// Set up keybindings
 			if (this._keyBindingFactory) {
-				if (typeof this._keyBindingFactory === "function") {
-					this._keyBindingFactory(this, this.getKeyModes(), this._undoStack, this._contentAssist);
+				var keyBindings;
+				if (typeof this._keyBindingFactory === "function") { //$NON-NLS-0$
+					keyBindings = this._keyBindingFactory(this, this.getKeyModes(), this._undoStack, this._contentAssist);
 				} else {
-					this._keyBindingFactory.createKeyBindings(editor, this._undoStack, this._contentAssist);
+					keyBindings = this._keyBindingFactory.createKeyBindings(editor, this._undoStack, this._contentAssist);
+				}
+				if (keyBindings) {
+					this._textActions = keyBindings.textActions;
+					this._linkedMode = keyBindings.linkedMode;
+					this._sourceCodeActions = keyBindings.sourceCodeActions;
 				}
 			}
 
@@ -525,7 +697,7 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 				var bookmark = null;
 				while (annotations.hasNext()) {
 					var annotation = annotations.next();
-					if (annotation.type === mAnnotations.AnnotationType.ANNOTATION_BOOKMARK) {
+					if (annotation.type === AT.ANNOTATION_BOOKMARK) {
 						bookmark = annotation;
 						break;
 					}
@@ -533,7 +705,7 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 				if (bookmark) {
 					annotationModel.removeAnnotation(bookmark);
 				} else {
-					bookmark = mAnnotations.AnnotationType.createAnnotation(mAnnotations.AnnotationType.ANNOTATION_BOOKMARK, lineStart, lineEnd);
+					bookmark = AT.createAnnotation(AT.ANNOTATION_BOOKMARK, lineStart, lineEnd);
 					bookmark.title = undefined;
 					annotationModel.addAnnotation(bookmark);
 				}
@@ -547,18 +719,18 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 				if (this._annotationModel) {
 					var styler = this._annotationStyler = this._annotationFactory.createAnnotationStyler(textView, this._annotationModel);
 					if (styler) {
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_SEARCH);
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_MATCHING_SEARCH);
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_ERROR);
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_WARNING);
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_MATCHING_BRACKET);
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_BRACKET);
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINE);
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_READ_OCCURRENCE);
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_WRITE_OCCURRENCE);
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_SELECTED_LINKED_GROUP);
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINKED_GROUP);
-						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_LINKED_GROUP);
+						styler.addAnnotationType(AT.ANNOTATION_CURRENT_SEARCH);
+						styler.addAnnotationType(AT.ANNOTATION_MATCHING_SEARCH);
+						styler.addAnnotationType(AT.ANNOTATION_ERROR);
+						styler.addAnnotationType(AT.ANNOTATION_WARNING);
+						styler.addAnnotationType(AT.ANNOTATION_MATCHING_BRACKET);
+						styler.addAnnotationType(AT.ANNOTATION_CURRENT_BRACKET);
+						styler.addAnnotationType(AT.ANNOTATION_CURRENT_LINE);
+						styler.addAnnotationType(AT.ANNOTATION_READ_OCCURRENCE);
+						styler.addAnnotationType(AT.ANNOTATION_WRITE_OCCURRENCE);
+						styler.addAnnotationType(AT.ANNOTATION_SELECTED_LINKED_GROUP);
+						styler.addAnnotationType(AT.ANNOTATION_CURRENT_LINKED_GROUP);
+						styler.addAnnotationType(AT.ANNOTATION_LINKED_GROUP);
 						styler.addAnnotationType(HIGHLIGHT_ERROR_ANNOTATION);
 					}
 				}
@@ -575,40 +747,43 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 				if (ruler) {
 					ruler.onDblClick = addRemoveBookmark;
 					ruler.setMultiAnnotationOverlay({html: "<div class='annotationHTML overlay'></div>"}); //$NON-NLS-0$
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_ERROR);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_WARNING);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_TASK);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_BOOKMARK);
+					ruler.addAnnotationType(AT.ANNOTATION_ERROR);
+					ruler.addAnnotationType(AT.ANNOTATION_WARNING);
+					ruler.addAnnotationType(AT.ANNOTATION_TASK);
+					ruler.addAnnotationType(AT.ANNOTATION_BOOKMARK);
 				}
-				this.setAnnotationRulerVisible(true);
+				this.setAnnotationRulerVisible(this._annotationRulerVisible || this._annotationRulerVisible === undefined, true);
 					
 				ruler = this._overviewRuler = rulers.overviewRuler;
 				if (ruler) {
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_SEARCH);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_MATCHING_SEARCH);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_ERROR);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_WARNING);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_TASK);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_BOOKMARK);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_MATCHING_BRACKET);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_BRACKET);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINE);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_READ_OCCURRENCE);
-					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_WRITE_OCCURRENCE);
+					ruler.addAnnotationType(AT.ANNOTATION_CURRENT_SEARCH);
+					ruler.addAnnotationType(AT.ANNOTATION_MATCHING_SEARCH);
+					ruler.addAnnotationType(AT.ANNOTATION_READ_OCCURRENCE);
+					ruler.addAnnotationType(AT.ANNOTATION_WRITE_OCCURRENCE);
+					ruler.addAnnotationType(AT.ANNOTATION_CURRENT_BLAME);
+					ruler.addAnnotationType(AT.ANNOTATION_ERROR);
+					ruler.addAnnotationType(AT.ANNOTATION_WARNING);
+					ruler.addAnnotationType(AT.ANNOTATION_TASK);
+					ruler.addAnnotationType(AT.ANNOTATION_BOOKMARK);
+					ruler.addAnnotationType(AT.ANNOTATION_MATCHING_BRACKET);
+					ruler.addAnnotationType(AT.ANNOTATION_CURRENT_BRACKET);
+					ruler.addAnnotationType(AT.ANNOTATION_CURRENT_LINE);
 				}
-				this.setOverviewRulerVisible(true);
+				this.setOverviewRulerVisible(this._overviewRulerVisible || this._overviewRulerVisible === undefined, true);
 			}
 			
 			if (this._lineNumberRulerFactory) {
 				this._lineNumberRuler = this._lineNumberRulerFactory.createLineNumberRuler(this._annotationModel);
+				this._lineNumberRuler.addAnnotationType(AT.ANNOTATION_CURRENT_BLAME);
+				this._lineNumberRuler.addAnnotationType(AT.ANNOTATION_BLAME);
 				this._lineNumberRuler.onDblClick = addRemoveBookmark;
-				this.setLineNumberRulerVisible(true);
+				this.setLineNumberRulerVisible(this._lineNumberRulerVisible || this._lineNumberRulerVisible === undefined, true);
 			}
 			
 			if (this._foldingRulerFactory) {
 				this._foldingRuler = this._foldingRulerFactory.createFoldingRuler(this._annotationModel);
-				this._foldingRuler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_FOLDING);
-				this.setFoldingRulerVisible(false);
+				this._foldingRuler.addAnnotationType(AT.ANNOTATION_FOLDING);
+				this.setFoldingRulerVisible(this._foldingRulerVisible || this._foldingRulerVisible === undefined, true);
 			}
 			
 			var textViewInstalledEvent = {
@@ -616,6 +791,10 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 				textView: textView
 			};
 			this.dispatchEvent(textViewInstalledEvent);
+		},
+
+		uninstall: function() {
+			this.uninstallTextView();
 		},
 		
 		/**
@@ -632,6 +811,8 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 				this._annotationRuler = this._overviewRuler = this._lineNumberRuler =
 				this._foldingRuler = this._currentLineAnnotation = this._title = null;
 			this._dirty = false;
+			this._foldingRulerVisible = this._overviewRulerVisible =
+				this._lineNumberRulerVisible = this._annotationRulerVisible = undefined;
 			
 			var textViewUninstalledEvent = {
 				type: "TextViewUninstalled", //$NON-NLS-0$
@@ -657,70 +838,136 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 			this.reportStatus(util.formatMessage(messages.lineColumn, lineIndex + 1, offsetInLine + 1));
 		},
 		
-		showProblems: function(problems) {
+		showAnnotations: function(annotations, types, createAnnotation, getType) {
 			var annotationModel = this._annotationModel;
 			if (!annotationModel) {
 				return;
 			}
 			var remove = [], add = [];
 			var model = annotationModel.getTextModel();
-			var annotations = annotationModel.getAnnotations(0, model.getCharCount()), annotation;
-			while (annotations.hasNext()) {
-				annotation = annotations.next();
-				if (annotation.type === mAnnotations.AnnotationType.ANNOTATION_ERROR || annotation.type === mAnnotations.AnnotationType.ANNOTATION_WARNING) {
-					remove.push(annotation);
+			var iter = annotationModel.getAnnotations(0, model.getCharCount()), annotation;
+			while (iter.hasNext()) {
+				annotation = iter.next();
+				if (types.indexOf(annotation.type) !== -1) {
+					if (annotation.creatorID === this) {
+						remove.push(annotation);
+					}
 				}
 			}
-			if (problems) { 
-				for (var i = 0; i < problems.length; i++) {
-					var problem = problems[i];
-					if (problem) {
-						// escaping voodoo... we need to construct HTML that contains valid JavaScript.
-						var escapedDescription = problem.description.replace(/'/g, "&#39;").replace(/"/g, '&#34;'); //$NON-NLS-1$ //$NON-NLS-0$
-						var lineIndex = problem.line - 1;
-						var lineStart = model.getLineStart(lineIndex);
-						var severity = problem.severity;
-						var type = severity === "error" ? mAnnotations.AnnotationType.ANNOTATION_ERROR : mAnnotations.AnnotationType.ANNOTATION_WARNING; //$NON-NLS-0$
-						var start = lineStart + problem.start - 1;
-						var end = lineStart + problem.end;
-						annotation = mAnnotations.AnnotationType.createAnnotation(type, start, end, escapedDescription);
-						add.push(annotation);
+			if (annotations) { 
+				for (var i = 0; i < annotations.length; i++) {
+					annotation = annotations[i];
+					if (!annotation) { continue; }
+					if (createAnnotation) {
+						annotation = createAnnotation(annotation);
+					} else {
+						var start, end;
+						if (typeof annotation.line === "number") { //$NON-NLS-0$
+							// line/column
+							var lineIndex = annotation.line - 1;
+							var lineStart = model.getLineStart(lineIndex);
+							start = lineStart + annotation.start - 1;
+							end = lineStart + annotation.end;
+						} else {
+							// document offsets
+							start = annotation.start;
+							end = annotation.end;
+						}
+						var type = getType(annotation);
+						if (!type) { continue; }
+						annotation = AT.createAnnotation(type, start, end, annotation.description);
 					}
+					annotation.creatorID = this;
+					add.push(annotation);
+					
 				}
 			}
 			annotationModel.replaceAnnotations(remove, add);
 		},
 		
+		showProblems: function(problems) {
+			this.showAnnotations(problems, [
+				AT.ANNOTATION_ERROR,
+				AT.ANNOTATION_WARNING,
+				AT.ANNOTATION_TASK
+			], null, function(annotation) {
+				switch (annotation.severity) {
+					case "error": return AT.ANNOTATION_ERROR; //$NON-NLS-0$
+					case "warning": return AT.ANNOTATION_WARNING; //$NON-NLS-0$
+					case "task": return AT.ANNOTATION_TASK; //$NON-NLS-0$
+				}
+				return null;
+			});
+		},
+		
 		showOccurrences: function(occurrences) {
-			var annotationModel = this._annotationModel;
-			if (!annotationModel) {
-				return;
+			this.showAnnotations(occurrences, [
+				AT.ANNOTATION_READ_OCCURRENCE,
+				AT.ANNOTATION_WRITE_OCCURRENCE
+			], null, function(annotation) {
+				return annotation.readAccess ? AT.ANNOTATION_READ_OCCURRENCE : AT.ANNOTATION_WRITE_OCCURRENCE;
+			});
+		},
+		
+		showBlame : function(blameMarkers) {
+			var blameRGB = this._blameRGB;
+			var document = this.getTextView().getOptions("parent").ownerDocument; //$NON-NLS-0$
+			if (!blameRGB) {
+				var div = util.createElement(document, "div"); //$NON-NLS-0$
+				div.className = "annotation blame"; //$NON-NLS-0$
+				document.body.appendChild(div);
+				var window = document.defaultView || document.parentWindow;
+				var blameStyle = window.getComputedStyle(div);
+				var color = blameStyle.getPropertyValue("background-color"); //$NON-NLS-0$
+				div.parentNode.removeChild(div);
+				var i1 = color.indexOf("("); //$NON-NLS-0$
+				var i2 = color.indexOf(")"); //$NON-NLS-0$
+				color = color.substring(i1 + 1, i2);
+				this._blameRGB = blameRGB = color.split(",").slice(0,3); //$NON-NLS-0$
 			}
-			var remove = [], add = [];
-			var model = annotationModel.getTextModel();
-			var annotations = annotationModel.getAnnotations(0, model.getCharCount()), annotation;
-			while (annotations.hasNext()) {
-				annotation = annotations.next();
-				if (annotation.type === mAnnotations.AnnotationType.ANNOTATION_READ_OCCURRENCE || annotation.type === mAnnotations.AnnotationType.ANNOTATION_WRITE_OCCURRENCE) {
-					remove.push(annotation);
-				}
-			}
-			if (occurrences) { 
-				for (var i = 0; i < occurrences.length; i++) {
-					var occurrence = occurrences[i];
-					if (occurrence) {
-						var lineIndex = occurrence.line - 1;
-						var lineStart = model.getLineStart(lineIndex);
-						var start = lineStart + occurrence.start - 1;
-						var end = lineStart + occurrence.end;
-						var type = occurrence.readAccess === true ? mAnnotations.AnnotationType.ANNOTATION_READ_OCCURRENCE : mAnnotations.AnnotationType.ANNOTATION_WRITE_OCCURRENCE;
-						var description = occurrence.description;
-						annotation = mAnnotations.AnnotationType.createAnnotation(type, start, end, description);
-						add.push(annotation);
-					}
-				}
-			}
-			annotationModel.replaceAnnotations(remove, add);
+			var createGroup = function() {
+				var annotation = mAnnotations.AnnotationType.createAnnotation(this.groupType, this.start, this.end, this.title);
+				annotation.style = objects.mixin({}, annotation.style);
+				annotation.style.style = objects.mixin({}, annotation.style.style);
+				annotation.style.style.backgroundColor = "";
+				this.groupAnnotation = annotation;
+				annotation.blame = this.blame;
+				annotation.html = this.html;
+				return annotation;
+			};
+			var title = function() {
+				var div = util.createElement(document, "div"); //$NON-NLS-0$
+				div.className = "tooltipTitle"; //$NON-NLS-0$
+				var index = this.blame.Message.indexOf("\n"); //$NON-NLS-0$
+				if (index === -1) { index = this.blame.Message.length; }
+				var commitLink = util.createElement(document, "a"); //$NON-NLS-0$
+				commitLink.href = this.blame.CommitLink;
+				commitLink.appendChild(document.createTextNode(this.blame.Message.substring(0, index)));
+				div.appendChild(commitLink);
+				div.appendChild(util.createElement(document, "br")); //$NON-NLS-0$
+				div.appendChild(document.createTextNode(util.formatMessage(messages.committerOnTime, this.blame.AuthorName, this.blame.Time)));
+				return div;
+			};
+			var model = this.getModel();
+			this.showAnnotations(blameMarkers, [
+				AT.ANNOTATION_BLAME,
+				AT.ANNOTATION_CURRENT_BLAME
+			], function (blameMarker) {
+				var start = model.getLineStart(blameMarker.Start - 1);
+				var end = model.getLineEnd(blameMarker.End - 1, true);
+				var annotation = mAnnotations.AnnotationType.createAnnotation(AT.ANNOTATION_BLAME, start, end, title);
+				var blameColor = blameRGB.slice(0);
+				blameColor.push(blameMarker.Shade);
+				annotation.style = objects.mixin({}, annotation.style);
+				annotation.style.style = objects.mixin({}, annotation.style.style);
+				annotation.style.style.backgroundColor = "rgba(" + blameColor.join() + ")"; //$NON-NLS-0$ //$NON-NLS-1$
+				annotation.groupId = blameMarker.Name;
+				annotation.groupType = AT.ANNOTATION_CURRENT_BLAME;
+				annotation.createGroupAnnotation = createGroup;
+				annotation.html = '<img class="annotationHTML blame" src="' + blameMarker.AuthorImage + '"/>'; //$NON-NLS-0$ //$NON-NLS-1$
+				annotation.blame = blameMarker;
+				return annotation;
+			});
 		},
 		
 		/**
@@ -760,13 +1007,8 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 		 * @param {Boolean} contentsSaved
 		 */
 		setInput: function(title, message, contents, contentsSaved) {
-			this._title = title;
 			if (this._textView) {
-				if (contentsSaved) {
-					// don't reset undo stack on save, just mark it clean so that we don't lose the undo past the save
-					this._undoStack.markClean();
-					this.checkDirty();
-				} else {
+				if (!contentsSaved) {
 					if (message) {
 						this._textView.setText(message);
 					} else {
@@ -777,24 +1019,11 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 						}
 					}
 					this._undoStack.reset();
-					this.checkDirty();
 					this._textView.focus();
 				}
+				this.checkDirty();
 			}
-			this.onInputChanged({
-				type: "InputChanged", //$NON-NLS-0$
-				title: title,
-				message: message,
-				contents: contents,
-				contentsSaved: contentsSaved
-			});
-		},
-		/**
-		 * Called when the editor's contents have changed.
-		 * @param {Event} inputChangedEvent
-		 */
-		onInputChanged: function (inputChangedEvent) {
-			return this.dispatchEvent(inputChangedEvent);
+			BaseEditor.prototype.setInput.call(this, title, message, contents, contentsSaved);
 		},
 		/**
 		 * Reveals a line in the editor, and optionally selects a portion of the line.
@@ -825,44 +1054,11 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 				}
 				this.moveSelection(lineStart + start, lineStart + end, callback);
 			}
-		},
-		
-		/**
-		 * Called when the dirty state of the editor changes.
-		 * @param {Event} dirtyChangedEvent
-		 */
-		onDirtyChanged: function(dirtyChangedEvent) {
-			return this.dispatchEvent(dirtyChangedEvent);
 		}
-	};
-	mEventTarget.EventTarget.addMixin(Editor.prototype);
-
-	/**
-	 * @private
-	 * @param context Value to be used as the returned function's <code>this</code> value.
-	 * @param [arg1, arg2, ...] Fixed argument values that will prepend any arguments passed to the returned function when it is invoked.
-	 * @returns {Function} A function that always executes this function in the given <code>context</code>.
-	 */
-	function bind(context) {
-		var fn = this,
-		    fixed = Array.prototype.slice.call(arguments, 1);
-		if (fixed.length) {
-			return function() {
-				return arguments.length
-					? fn.apply(context, fixed.concat(Array.prototype.slice.call(arguments)))
-					: fn.apply(context, fixed);
-			};
-		}
-		return function() {
-			return arguments.length ? fn.apply(context, arguments) : fn.call(context);
-		};
-	}
-
-	if (!Function.prototype.bind) {
-		Function.prototype.bind = bind;
-	}
+	});
 
 	return {
+		BaseEditor: BaseEditor,
 		Editor: Editor
 	};
 });

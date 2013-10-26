@@ -64,7 +64,8 @@ define(['orion/Deferred'], function(Deferred) {
 	/**
 	 * Wrapper for {@link XMLHttpRequest} that returns a promise.
 	 * @name xhr
-	 * @methodOf orion.xhr
+	 * @function
+	 * @memberOf orion.xhr
 	 * @param {String} method One of 'GET', 'POST', 'PUT', 'DELETE'.
 	 * @param {String} url The URL to request.
 	 * @param {Object} [options]
@@ -96,24 +97,47 @@ define(['orion/Deferred'], function(Deferred) {
 		if (typeof options.data !== 'undefined' && (method === 'POST' || method === 'PUT')) { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			data = options.data;
 		}
+		
+		var cancelled = false;
+		var aborted = false;
+		d.promise.then(undefined, function(error) {
+			cancelled = true;
+			if (!aborted && error instanceof Error && error.name === "Cancel") {
+				xhr.abort();
+			}
+		});
+		
+		xhr.onabort = function() {
+			aborted = true;
+			if (!cancelled) {
+				var cancelError = new Error("Cancel");
+	            cancelError.name = "Cancel";
+	            d.reject(cancelError);
+            }
+		};
+		xhr.onload = function() {
+			var result = makeResult(url, options, xhr);
+			if(200 <= xhr.status && xhr.status < 400) {
+				d.resolve(result);
+			} else {
+				d.reject(result);
+				if(log && typeof console !== 'undefined') { //$NON-NLS-0$
+					console.log(new Error(xhr.statusText));
+				}
+			}
+		};
+		xhr.onerror = function() {
+			var result = makeResult(url, options, xhr);
+			d.reject(result);
+			if (log && typeof console !== 'undefined') { //$NON-NLS-0$
+				console.log(new Error(xhr.statusText));
+			}
+		};
 		xhr.onprogress = function(progressEvent) {
 			progressEvent.xhr = xhr;
 			d.progress(progressEvent);
 		};
-		xhr.onreadystatechange = function() {
-			if (xhr.readyState === 4) {
-				var result = makeResult(url, options, xhr);
-				var statusCode = xhr.status;
-				if (200 <= statusCode && statusCode < 400) {
-					d.resolve(result);
-				} else {
-					if (log && typeof console !== 'undefined') { //$NON-NLS-0$
-						console.log(new Error(xhr.statusText));
-					}
-					d.reject(result);
-				}
-			}
-		};
+	
 		try {
 			xhr.open(method, url, true /* async */);
 			if (typeof options.responseType === 'string') { //$NON-NLS-0$
@@ -131,7 +155,7 @@ define(['orion/Deferred'], function(Deferred) {
 					var timeoutId = setTimeout(function() {
 						d.reject(makeResult(url, options, xhr, 'Timeout exceeded')); //$NON-NLS-0$
 					}, options.timeout);
-					d.then(clearTimeout.bind(null, timeoutId), clearTimeout.bind(null, timeoutId));
+					d.promise.then(clearTimeout.bind(null, timeoutId), clearTimeout.bind(null, timeoutId));
 				}
 			}
 			Object.keys(headers).forEach(function(key) {
@@ -141,6 +165,7 @@ define(['orion/Deferred'], function(Deferred) {
 		} catch (e) {
 			d.reject(makeResult(url, options, xhr, e));
 		}
+
 		return d.promise;
 	}
 	return _xhr;

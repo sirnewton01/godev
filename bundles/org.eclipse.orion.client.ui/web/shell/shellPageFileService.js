@@ -371,13 +371,13 @@ define(["i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/fileClient", 
 						}
 					}
 				}.bind(this);
-				var updateParents = function(node) {
+				var updateParents = function(node, func, errorFunc) {
 					if (node.Location === this.SEPARATOR) {
-						return;
-					}
-					if (!node.Parents) {
+						func(node);
+					} else if (!node.Parents) {
 						/* node is the root of a file service */
 						node.parent = this.rootNode;
+						func(node);
 					} else if (node.Parents.length === 0) {
 						/* node's parent is the root of a file service */
 						var location = fileClient.fileServiceRootURL(node.Location);
@@ -386,7 +386,9 @@ define(["i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/fileClient", 
 							function(parent) {
 								parent.parent = this.rootNode;
 								node.parent = parent;
-							}.bind(this)
+								func(node);
+							}.bind(this),
+							errorFunc
 						);
 					} else {
 						node.parent = node.Parents[0];
@@ -394,6 +396,7 @@ define(["i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/fileClient", 
 							node.Parents[i].parent = node.Parents[i+1];
 							node.Parents[i].Directory = true;
 						}
+						func(node);
 					}
 				}.bind(this);
 				if (!node.Parents && !node.Projects && node.Location !== this.SEPARATOR && node.Name !== fileClient.fileServiceName(node.Location)) {
@@ -401,15 +404,29 @@ define(["i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/fileClient", 
 					(progress ? progress.progress(fileClient.loadWorkspace(node.Location), "Loading workspace " + node.Location) : fileClient.loadWorkspace(node.Location)).then( //$NON-NLS-0$
 						function(metadata) {
 							node.Parents = metadata.Parents;
-							updateParents(node);
-							retrieveChildren(node, func, errorFunc);
+							updateParents(
+								node,
+								function(updatedNode) {
+									retrieveChildren(updatedNode, func, errorFunc);
+								},
+								function(error) {
+									retrieveChildren(node, func, errorFunc);
+								}
+							);
 						});
 				} else {
 					if (node.ChildrenLocation) {
 						node.Directory = true;
 					}
-					updateParents(node);
-					retrieveChildren(node, func, errorFunc);
+					updateParents(
+						node,
+						function(updatedNode) {
+							retrieveChildren(updatedNode, func, errorFunc);
+						},
+						function(error) {
+							retrieveChildren(node, func, errorFunc);
+						}
+					);
 				}
 			},
 			_sort: function(children) {

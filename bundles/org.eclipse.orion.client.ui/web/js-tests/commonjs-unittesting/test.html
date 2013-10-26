@@ -5,46 +5,31 @@
 	<script>
 	/*global window define require*/
 	require({
-		  baseUrl: '../..',
-		  paths: {
-			  text: 'requirejs/text',
-			  i18n: 'requirejs/i18n',
-			  domReady: 'requirejs/domReady'	    
-		  },
-		  isTest: true
-		});
-	</script>
-	<script type="text/javascript">
+	    baseUrl: '../..',
+	    paths: {
+	        text: 'requirejs/text',
+	        i18n: 'requirejs/i18n',
+	        domReady: 'requirejs/domReady'
+	    },
+	    isTest: true
+	});
+
 	var exports = {};
 	var module = {};
-	
-	// needed for FF 3.6
-	if (!Object.keys) {
-		Object.keys = function(obj) {
-			var key,
-				keys = [];
-		    for (key in obj) {
-		        if (obj.hasOwnProperty(key)) {
-		            keys.push(key);
-		        }
-		    }
-		    return keys;
-		};
-	}
-	
+
 	define("assert", ["orion/assert"], function(assert) {
-		return assert;
+	    return assert;
 	});
-	
+
 	define("test", ["orion/test"], function(test) {
-		return test;
+	    return test;
 	});
 	window.onload = function() {
-		require(['test', 'assert'], function(test) {
-			require(["https://github.com/commonjs/commonjs/raw/master/tests/unit-testing/1.0/program.js"], function(a) {
-				test.run(exports);			
-			});
-		});
+	    require(['test', 'assert'], function(test) {
+	        require(["https://github.com/commonjs/commonjs/raw/master/tests/unit-testing/1.0/program.js"], function(a) {
+	            test.run(exports);
+	        });
+	    });
 	};
 	</script>
 </head>

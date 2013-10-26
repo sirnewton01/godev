@@ -16,7 +16,7 @@ define("orion/editor/find", [ //$NON-NLS-0$
 	'orion/keyBinding', //$NON-NLS-0$
 	'orion/editor/keyModes', //$NON-NLS-0$
 	'orion/editor/annotations', //$NON-NLS-0$
-	'orion/editor/regex', //$NON-NLS-0$
+	'orion/regex', //$NON-NLS-0$
 	'orion/objects', //$NON-NLS-0$
 	'orion/util' //$NON-NLS-0$
 ], function(messages, mKeyBinding, mKeyModes, mAnnotations, mRegex, objects, util) {
@@ -247,7 +247,11 @@ define("orion/editor/find", [ //$NON-NLS-0$
 		},
 		getFindString: function() {
 			var selection = this._editor.getSelection();
-			return this._editor.getText(selection.start, selection.end) || this._lastString;
+			var searchString = this._editor.getText(selection.start, selection.end);
+			if (this._regex) {
+				searchString = mRegex.escape(searchString);
+			}
+			return searchString || this._lastString;
 		},
 		getOptions: function() {
 			return {
@@ -277,8 +281,41 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				}
 			}
 			this._removeAllAnnotations();
-			this._editor.getTextView().removeEventListener("Focus", this._listeners.onEditorFocus); //$NON-NLS-0$
-			this._editor.getTextView().focus();
+			var textView = this._editor.getTextView();
+			if (textView) {
+				textView.removeEventListener("Focus", this._listeners.onEditorFocus); //$NON-NLS-0$
+				textView.focus();
+			}
+		},
+		_processReplaceString: function(str) {
+			var newStr = str;
+			if (this._regex) {
+				newStr = "";
+				var escape = false;
+				var delimiter = this._editor.getModel().getLineDelimiter();
+				for (var i=0; i<str.length; i++) {
+					var c = str.substring(i, i + 1);
+					if (escape) {
+						switch (c) {
+							case "R": newStr += delimiter; break;
+							case "r": newStr += "\r"; break;
+							case "n": newStr += "\n"; break;
+							case "t": newStr += "\t"; break;
+							case "\\": newStr += "\\"; break;
+							default: newStr += "\\" + c;
+						}
+						escape = false;
+					} else if (c === "\\") {
+						escape = true;
+					} else {
+						newStr += c;
+					}
+				}
+				if (escape) {
+					newStr += "\\";
+				}
+			}
+			return newStr;
 		},
 		isVisible: function() {
 			return this._visible;
@@ -287,7 +324,7 @@ define("orion/editor/find", [ //$NON-NLS-0$
 			var string = this.getFindString();
 			if (string) {
 				var editor = this._editor;
-				var replaceString = this.getReplaceString();
+				var replaceString = this._processReplaceString(this.getReplaceString());
 				var selection = editor.getSelection();
 				var start = selection.start;
 				var result = editor.getModel().find({
@@ -316,13 +353,15 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				var editor = this._editor;
 				var textView = editor.getTextView();
 				editor.reportStatus(messages.replaceAll);
-				var replaceString = this.getReplaceString();
+				var replaceString = this._processReplaceString(this.getReplaceString());
 				var self = this;
 				window.setTimeout(function() {
 					var startPos = 0;
 					var count = 0, lastResult;
 					while (true) {
-						var result = self._doFind(string, startPos);
+						//For replace all, we need to ignore the wrap search from the user option
+						//Otherwise the loop will be dead, see https://bugs.eclipse.org/bugs/show_bug.cgi?id=411813
+						var result = self._doFind(string, startPos, null, true);
 						if (!result) {
 							break;
 						}
@@ -436,7 +475,19 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				this._undoStack.endCompoundChange();
 			}
 		},
-		_doFind: function(string, startOffset, count) {
+		_find: function(string, startOffset, noWrap) {
+			return this._editor.getModel().find({
+				string: string,
+				start: startOffset,
+				end: this._end,
+				reverse: this._reverse,
+				wrap: (noWrap ? false: this._wrap),
+				regex: this._regex,
+				wholeWord: this._wholeWord,
+				caseInsensitive: this._caseInsensitive
+			});
+		},
+		_doFind: function(string, startOffset, count, noWrap) {
 			count = count || 1;
 			var editor = this._editor;
 			if (!string) {
@@ -444,17 +495,17 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				return null;
 			}
 			this._lastString = string;
-			var iterator = editor.getModel().find({
-				string: string,
-				start: startOffset,
-				end: this._end,
-				reverse: this._reverse,
-				wrap: this._wrap,
-				regex: this._regex,
-				wholeWord: this._wholeWord,
-				caseInsensitive: this._caseInsensitive
-			});
-			var result;
+			var result, iterator;
+			if (this._regex) {
+				try {
+					iterator = this._find(string, startOffset, noWrap);
+				} catch (ex) {
+					editor.reportStatus(ex.message, "error"); //$NON-NLS-0$
+					return;
+				}
+			} else {
+				iterator = this._find(string, startOffset, noWrap);
+			}
 			for (var i=0; i<count && iterator.hasNext(); i++) {
 				result = iterator.next();
 			}

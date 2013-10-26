@@ -37,7 +37,7 @@ define(["orion/assert", "orion/serviceregistry", "orion/searchRenderer"],
 	};
 	tests.testDirectory = function() {
 		var renderer = mSearchRenderer.makeRenderFunction(document.querySelectorAll("#results")[0], false, function(results) {
-			assert.equal(results.innerHTML, "<table><tbody><tr><td><a href=\"../../navigate/table.html#foo/blap\">link</a></td></tr></tbody></table>");
+			assert.equal(results.innerHTML, "<table><tbody><tr><td><a href=\"../../edit/edit.html#foo/blap\">link</a></td></tr></tbody></table>");
 		});
 		renderer([{
 			name: 'link',

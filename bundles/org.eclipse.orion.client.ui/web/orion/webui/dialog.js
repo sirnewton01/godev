@@ -25,7 +25,7 @@ define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', '
 	 *            should be used to bind strings.
 	 *        title - If the dialog should display a title, set the title field.
 	 *        buttons - If the dialog should show buttons along the bottom, set an array of button objects.  Each button should
-	 *            have a text property that labels the button and a calback property that is called when the button is pushed.
+	 *            have a text property that labels the button and a callback property that is called when the button is pushed.
 	 *        modal - Set this field to true if modal behavior is desired.
 	 * 
 	 *    2.  To hook event listeners to elements in the dialog, implement the _bindToDOM function.  DOM elements
@@ -66,6 +66,7 @@ define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', '
 			var frameFragment = range.createContextualFragment(this.CONTAINERTEMPLATE);
 			parent.appendChild(frameFragment);
 			this.$frame = parent.lastChild;
+//			this.handle = lib.addAutoDismiss([this.$frame], this.hide.bind(this));
 			if (this.title) {
 				lib.$("#title", this.$frame).appendChild(document.createTextNode(this.title)); //$NON-NLS-0$
 			}

@@ -11,9 +11,9 @@
 
 /*global define console document Image */
 
-define(['i18n!git/nls/gitmessages', 'require', 'orion/explorers/explorer', 'orion/PageUtil', 'orion/webui/littlelib', 'orion/section', 'orion/globalCommands', 
+define(['i18n!git/nls/gitmessages', 'require', 'orion/explorers/explorer', 'orion/PageUtil', 'orion/webui/littlelib', 'orion/section', 'orion/i18nUtil', 'orion/globalCommands', 
         'orion/git/gitCommands', 'orion/explorers/navigationUtils', 'orion/Deferred', 'orion/git/widgets/CommitTooltipDialog'], 
-		function(messages, require, mExplorer, PageUtil, lib, mSection, mGlobalCommands, mGitCommands, mNavUtils, Deferred,
+		function(messages, require, mExplorer, PageUtil, lib, mSection, i18nUtil, mGlobalCommands, mGitCommands, mNavUtils, Deferred,
 				mCommitTooltip) {
 var exports = {};
 
@@ -115,25 +115,32 @@ exports.GitLogExplorer = (function() {
 				function(metadata) {
 					this.isDirectory = metadata.Directory;
 					
-					var title = branchName ? branchName + " on " + metadata.Name + " - Git Log" : metadata.Name + " - " + "Git Log";
-					var breadcrumbRootName;
-					var branchIdentifier = branchName ? " (" + branchName + ") " : "";
-			
-					// adjust top name of breadcrumb segment
-					if (metadata.Parents && metadata.Parents.length > 0) {
-						var rootParent = metadata.Parents[metadata.Parents.length - 1];
-						breadcrumbRootName = "Log" + branchIdentifier + rootParent.Name;
-					} else {
-						breadcrumbRootName = "Log" + branchIdentifier + metadata.Name;
-					}
+					/* breadcrumb target item */
+					var breadcrumbItem = {};
 					
-					mGlobalCommands.setPageTarget({task: "Git Log", title: title, target: item, breadcrumbTarget: metadata, breadcrumbRootName: breadcrumbRootName,
-						makeBreadcrumbLink: function(seg, location) {
-							that.makeHref(that.fileClient, seg, location, isRemote);
-						}, serviceRegistry: that.registry, commandService: that.commandService}); 
-						
-						mGitCommands.updateNavTools(that.registry, that.commandService, that, "pageActions", "selectionTools", item); //$NON-NLS-1$ //$NON-NLS-0$
-						deferred.resolve();
+					breadcrumbItem.Parents = [];
+					breadcrumbItem.Name = metadata.ETag ? i18nUtil.formatMessage(messages["Log (0) - 1"], branchName, metadata.Name) : i18nUtil.formatMessage(messages["Log (0)"], branchName);
+										
+					breadcrumbItem.Parents[0] = {};
+					breadcrumbItem.Parents[0].Name = item.Clone.Name;
+					breadcrumbItem.Parents[0].Location = item.Clone.Location;
+					breadcrumbItem.Parents[0].ChildrenLocation = item.Clone.Location;
+					breadcrumbItem.Parents[1] = {};
+					breadcrumbItem.Parents[1].Name = messages.Repo;
+					
+					mGlobalCommands.setPageTarget({
+						task : messages["Git Log"],
+						target : item,
+						breadcrumbTarget : breadcrumbItem,
+						makeBreadcrumbLink : function(seg, location) {
+							seg.href = require.toUrl("git/git-repository.html") + (location ? "#" + location : ""); //$NON-NLS-0$
+						},
+						serviceRegistry : that.registry,
+						commandService : that.commandService
+					});
+					
+					mGitCommands.updateNavTools(that.registry, that.commandService, that, "pageActions", "selectionTools", item); //$NON-NLS-1$ //$NON-NLS-0$
+					deferred.resolve();
 				}, function(error) { 
 					deferred.reject(error);
 				}
@@ -229,34 +236,31 @@ exports.GitLogExplorer = (function() {
 			var resp = JSON.parse(error.responseText);
 			display.Message = resp.DetailedMessage ? resp.DetailedMessage : resp.Message;
 		} catch (Exception) {
-			display.Message = error.message;
+			display.Message = error.DetailedMessage || error.Message || error.message;
 		}
 		this.registry.getService("orion.page.message").setProgressResult(display); //$NON-NLS-0$
 	};
 	
 	GitLogExplorer.prototype.loadResource = function(location){
-		var loadingDeferred = new Deferred();
-		var progressService = this.registry.getService("orion.page.message");
-		progressService.showWhile(loadingDeferred, messages['Loading git log...']);
-		
 		var that = this;
+		var progressService = this.registry.getService("orion.page.message");
 		var gitService = this.registry.getService("orion.git.provider"); //$NON-NLS-0$
-		this.registry.getService("orion.page.progress").progress(gitService.doGitLog(location), "Getting git log").then(
+		var loadingDeferred = this.registry.getService("orion.page.progress").progress(gitService.doGitLog(location), "Getting git log").then(
 			function(resp) {
 				var resource = resp;
-				that.registry.getService("orion.page.progress").progress(gitService.getGitClone(resource.CloneLocation), "Getting repository details for " + resource.Name).then(
+				return that.registry.getService("orion.page.progress").progress(gitService.getGitClone(resource.CloneLocation), "Getting repository details for " + resource.Name).then(
 					function(resp){
 						var clone = resp.Children[0];	
 						resource.Clone = clone;
 						resource.ContentLocation = clone.ContentLocation;
-						that.registry.getService("orion.page.progress").progress(gitService.getGitBranch(clone.BranchLocation), "Getting default branch details for " + resource.Name).then(
+						return that.registry.getService("orion.page.progress").progress(gitService.getGitBranch(clone.BranchLocation), "Getting default branch details for " + resource.Name).then(
 							function(branches){
 								for(var i=0; i<branches.Children.length; i++){
 									var branch = branches.Children[i];
 									
 									if (branch.Current === true){
 										resource.Clone.ActiveBranch = branch.CommitLocation;
-										loadingDeferred.resolve(resource);
+										return resource;
 									}
 								}
 							}
@@ -265,7 +269,7 @@ exports.GitLogExplorer = (function() {
 				);
 			}
 		);
-		
+		progressService.showWhile(loadingDeferred, messages['Loading git log...']);
 		return loadingDeferred;
 	};
 	
@@ -419,7 +423,7 @@ exports.GitLogExplorer = (function() {
 					detailsView.appendChild(d);
 
 					var description = document.createElement("span");
-					description.textContent = messages[" (SHA "] + commit.Name + messages[") by "] + commit.AuthorName + " on "
+					description.textContent = messages[" (SHA "] + commit.Name + messages[") by "] + commit.AuthorName + messages[" on "]
 							+ new Date(commit.Time).toLocaleString();
 					detailsView.appendChild(description);
 

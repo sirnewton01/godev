@@ -66,6 +66,17 @@ define(['i18n!orion/search/nls/messages', 'orion/editor/find', 'orion/commands',
 				findDiv.focus();
 			}, 10);
 		},
+		_showReplaceInfo: function() {
+			if(this._regex) {
+				this._replaceInfo.src = "data:image/gif;base64,R0lGODlhBwAIAMQAAMzX6cbT5kh4qFiIuKC40FCIuGSXwmWZw2SaxGacxmadxmWcxbPM4GigyJW92JzC26DI0P///////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAABIALAAAAAAHAAgAAAUmoEQUQkFI0PBEz5A2yII0w9AwkUPbRpTsjUNEQUsFIgCXiGSShAAAOw==";//$NON-NLS-0$
+				this._replaceInfo.title=messages["Regular expression is on. You can click here or use options to turn it off - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>."];
+				this._replaceInfo.style.display = "";
+			} else {
+				this._replaceInfo.src ="data:image/gif;base64,R0lGODlhBwAIAEAAACH5BAEAABIALAAAAAAHAAgAhwAAAAAAMwAAZgAAmQAAzAAA/wArAAArMwArZgArmQArzAAr/wBVAABVMwBVZgBVmQBVzABV/wCAAACAMwCAZgCAmQCAzACA/wCqAACqMwCqZgCqmQCqzACq/wDVAADVMwDVZgDVmQDVzADV/wD/AAD/MwD/ZgD/mQD/zAD//zMAADMAMzMAZjMAmTMAzDMA/zMrADMrMzMrZjMrmTMrzDMr/zNVADNVMzNVZjNVmTNVzDNV/zOAADOAMzOAZjOAmTOAzDOA/zOqADOqMzOqZjOqmTOqzDOq/zPVADPVMzPVZjPVmTPVzDPV/zP/ADP/MzP/ZjP/mTP/zDP//2YAAGYAM2YAZmYAmWYAzGYA/2YrAGYrM2YrZmYrmWYrzGYr/2ZVAGZVM2ZVZmZVmWZVzGZV/2aAAGaAM2aAZmaAmWaAzGaA/2aqAGaqM2aqZmaqmWaqzGaq/2bVAGbVM2bVZmbVmWbVzGbV/2b/AGb/M2b/Zmb/mWb/zGb//5kAAJkAM5kAZpkAmZkAzJkA/5krAJkrM5krZpkrmZkrzJkr/5lVAJlVM5lVZplVmZlVzJlV/5mAAJmAM5mAZpmAmZmAzJmA/5mqAJmqM5mqZpmqmZmqzJmq/5nVAJnVM5nVZpnVmZnVzJnV/5n/AJn/M5n/Zpn/mZn/zJn//8wAAMwAM8wAZswAmcwAzMwA/8wrAMwrM8wrZswrmcwrzMwr/8xVAMxVM8xVZsxVmcxVzMxV/8yAAMyAM8yAZsyAmcyAzMyA/8yqAMyqM8yqZsyqmcyqzMyq/8zVAMzVM8zVZszVmczVzMzV/8z/AMz/M8z/Zsz/mcz/zMz///8AAP8AM/8AZv8Amf8AzP8A//8rAP8rM/8rZv8rmf8rzP8r//9VAP9VM/9VZv9Vmf9VzP9V//+AAP+AM/+AZv+Amf+AzP+A//+qAP+qM/+qZv+qmf+qzP+q///VAP/VM//VZv/Vmf/VzP/V////AP//M///Zv//mf//zP///wAAAAAAAAAAAAAAAAgsAPcpQzMJjbJ9xNAQQ6hwUqaHDws+3PeQoMN9DiUuzFRQ2ZiDyyYdHFhwYUAAOw==";
+				this._replaceInfo.title=messages["Regular expression is off. You can click here or use options to turn it on for replacement - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>."];
+				this._replaceInfo.style.display = "";
+			}
+		},
 		_createActionTable: function() {
 			var that = this;
 			this._commandService.openParameterCollector("pageNavigationActions", function(parentDiv) { //$NON-NLS-0$
@@ -101,7 +112,8 @@ define(['i18n!orion/search/nls/messages', 'orion/editor/find', 'orion/commands',
 						return that._handleKeyDown(evt);
 					};
 					parentDiv.appendChild(replaceStringInput);
-					
+					that._replaceInfo = that._createInfoImage(null, parentDiv, null);
+					that._showReplaceInfo();
 					that._createButton(messages["Replace"], parentDiv, function() {that.replace();}); //$NON-NLS-0$		
 					that._createButton(messages["Replace All"], parentDiv, function() {that.replaceAll();});	//$NON-NLS-0$
 				}
@@ -144,11 +156,12 @@ define(['i18n!orion/search/nls/messages', 'orion/editor/find', 'orion/commands',
 						that.find(true);
 					});
 					
-				mCommands.createCheckedMenuItem(optionMenu.menu,  messages["Regular expression"], that._regex,
+				that._regExBox = mCommands.createCheckedMenuItem(optionMenu.menu,  messages["Regular expression"], that._regex,
 					function(event) {
 						that.setOptions({regex: event.target.checked});
 						optionMenu.dropdown.close(true);
 						that.find(true);
+						that._showReplaceInfo();
 					});
 
 				if (!readonly) {
@@ -176,6 +189,18 @@ define(['i18n!orion/search/nls/messages', 'orion/editor/find', 'orion/commands',
 			button.className = "dismissButton parameterInlineButton"; //$NON-NLS-0$
 			
 			parent.appendChild(button);
+		},
+		_createInfoImage: function(text, parent, callback) {
+			var image = document.createElement("img"); //$NON-NLS-0$
+			image.classList.add("replaceInfo"); //$NON-NLS-0$
+			image.addEventListener("click", function(e) { //$NON-NLS-0$
+				this._regExBox.checked = !this._regex;
+				this.setOptions({regex: !this._regex});
+				this.find(true);
+				this._showReplaceInfo();
+			}.bind(this));
+			parent.appendChild(image);
+			return image;
 		},
 		_handleInput: function(evt){
 			if (this._incremental) {

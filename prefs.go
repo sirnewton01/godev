@@ -6,11 +6,11 @@ package main
 
 import (
 	"encoding/json"
+	"go/build"
 	"net/http"
 	"os"
-	"strings"
 	"path/filepath"
-	"go/build"
+	"strings"
 )
 
 func prefsHandler(writer http.ResponseWriter, req *http.Request, path string, pathSegs []string) bool {
@@ -18,7 +18,7 @@ func prefsHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 	case req.Method == "PUT":
 		gopaths := filepath.SplitList(build.Default.GOPATH)
 		prefFile := gopaths[len(gopaths)-1] + "/prefs.txt"
-		
+
 		var prefs map[string]map[string]string
 
 		_, err := os.Stat(prefFile)
@@ -102,7 +102,7 @@ func prefsHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 	case req.Method == "DELETE":
 		gopaths := filepath.SplitList(build.Default.GOPATH)
 		prefFile := gopaths[len(gopaths)-1] + "/prefs.txt"
-		
+
 		var prefs map[string]map[string]string
 
 		_, err := os.Stat(prefFile)

@@ -10,9 +10,19 @@
  ******************************************************************************/
 /*global define document window*/
 /*jslint sub:true*/
-define(['i18n!orion/nls/messages', 'orion/Deferred', 'orion/webui/littlelib', 'orion/uiUtils', 'orion/section', 'orion/explorers/explorer',
-		'orion/commands', 'orion/URITemplate', 'orion/EventTarget', 'orion/i18nUtil'],
-		function(messages, Deferred, lib, mUIUtils, mSection, mExplorer, mCommands, URITemplate, EventTarget, i18nUtil) {
+define([
+	'i18n!orion/nls/messages',
+	'orion/Deferred',
+	'orion/webui/littlelib',
+	'orion/uiUtils',
+	'orion/section',
+	'orion/explorers/explorer',
+	'orion/commands',
+	'orion/URITemplate',
+	'orion/EventTarget',
+	'orion/i18nUtil',
+	'orion/edit/editorContext'
+], function(messages, Deferred, lib, mUIUtils, mSection, mExplorer, mCommands, URITemplate, EventTarget, i18nUtil, EditorContext) {
 
 	function OutlineRenderer (options, explorer, title, selectionService) {
 		this.explorer = explorer;
@@ -180,12 +190,11 @@ define(['i18n!orion/nls/messages', 'orion/Deferred', 'orion/webui/littlelib', 'o
 			this._sidebar = options.sidebar;
 			var _self = this;
 
-			this._inputManager.addEventListener("ContentTypeChanged", function(event) { //$NON-NLS-0$
+			this._inputManager.addEventListener("InputChanged", function(event) { //$NON-NLS-0$
 				_self.setContentType(event.contentType, event.location);
 			});
 
-			var editor = this._inputManager.getEditor();
-			editor.addEventListener("InputChanged", this.generateOutline.bind(this)); //$NON-NLS-0$
+			this._inputManager.getEditor().addEventListener("InputChanged", this.generateOutline.bind(this)); //$NON-NLS-0$
 
 			Deferred.when(_self._outlineService, function(service) {
 				service.addEventListener("outline", function(event) { //$NON-NLS-0$
@@ -193,14 +202,6 @@ define(['i18n!orion/nls/messages', 'orion/Deferred', 'orion/webui/littlelib', 'o
 //					_self._updateViewModes(self.outlineProviders);
 					_self._renderOutline(event.outline, event.title);
 				});
-			});
-
-		},
-		outlineChanged: function(outlinerService, title, contents) {
-			var self = this;
-			var progress = this._serviceRegistry.getService("orion.page.progress");
-			progress.progress(outlinerService.getOutline(contents, title), "Getting outline for " + title).then(function(outlineModel) {
-				self._renderOutline(outlineModel, title);
 			});
 		},
 		/** Invokes the outline service to produce an outline */
@@ -212,8 +213,7 @@ define(['i18n!orion/nls/messages', 'orion/Deferred', 'orion/webui/littlelib', 'o
 			if (this._providerLookup) {
 				return;
 			}
-			var editor = this._inputManager.getEditor();
-			this._outlineService.emitOutline(editor.getText(), editor.getTitle());
+			this._outlineService.emitOutline(this._inputManager);
 		},
 		setSelectedProvider: function(/** orion.serviceregistry.ServiceReference */ provider) {
 			this.providerId = provider.getProperty("id"); //$NON-NLS-0$
@@ -401,13 +401,25 @@ define(['i18n!orion/nls/messages', 'orion/Deferred', 'orion/webui/littlelib', 'o
 		getProvider: function() {
 			return this._provider.promise;
 		},
-		emitOutline: function(contents, title, providerId) {
+		emitOutline: function(inputManager) {
 			var self = this;
 			Deferred.when(this.getProvider(), function(provider) {
-				var progress = self._serviceRegistry.getService("orion.page.progress");
-				progress.progress(self._serviceRegistry.getService(provider).getOutline(contents, title), "Getting outline for " + title + " from " + provider.displayName).then(function(outline) {
+				var editor = inputManager.getEditor(), title = editor.getTitle();
+				var serviceRegistry = self._serviceRegistry;
+				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
+				var outlineProviderService = serviceRegistry.getService(provider);
+				var method, args;
+				if ((method = outlineProviderService.computeOutline)) {
+					var contentType = inputManager.getContentType();
+					args = [EditorContext.getEditorContext(serviceRegistry), {
+						contentType: contentType && contentType.id
+					}];
+				} else if ((method = outlineProviderService.getOutline)) {
+					args = [editor.getText(), title];
+				}
+				progress.progress(method.apply(outlineProviderService, args), i18nUtil.formatMessage(messages["OutlineProgress"], title, provider.displayName)).then(function(outline) { //$NON-NLS-0$
 					if (outline) {
-						self.dispatchEvent({type:"outline", outline: outline, title: title, providerId: provider.getProperty("id")}); //$NON-NLS-1$ //$NON-NLS-0$
+						self.dispatchEvent({ type:"outline", outline: outline, title: title, providerId: provider.getProperty("id") }); //$NON-NLS-1$ //$NON-NLS-0$
 					}
 				});
 			});

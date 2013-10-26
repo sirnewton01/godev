@@ -209,7 +209,10 @@ define("orion/editor/vi", [ //$NON-NLS-0$
 			}, this._msg("viB")); //$NON-NLS-0$
 			
 			view.setAction("vi" + key + "e", function() { //$NON-NLS-1$ //$NON-NLS-0$
-				return self._invoke("wordNext", {unit: "wordend"}); //$NON-NLS-1$ //$NON-NLS-0$
+				self._invoke("charNext", {unit: "character"}); //$NON-NLS-1$ //$NON-NLS-0$
+				self._invoke("wordNext", {unit: "wordend"}); //$NON-NLS-1$ //$NON-NLS-0$
+				self._invoke("charPrevious", {unit: "character"}); //$NON-NLS-1$ //$NON-NLS-0$
+				return true;
 			}, this._msg("vie")); //$NON-NLS-0$
 			
 			view.setAction("vi" + key + "E", function() { //$NON-NLS-1$ //$NON-NLS-0$
@@ -668,7 +671,8 @@ define("orion/editor/vi", [ //$NON-NLS-0$
 			
 			bindings.push({actionID: "vi-C",	keyBinding: createStroke("C", false, false, false, false, "keypress"), predefined: true});  //$NON-NLS-2$  //$NON-NLS-1$  //$NON-NLS-0$
 			bindings.push({actionID: "vi-D",	keyBinding: createStroke("D", false, false, false, false, "keypress"), predefined: true});  //$NON-NLS-2$  //$NON-NLS-1$  //$NON-NLS-0$
-		
+			bindings.push({actionID: "vi-*",  keyBinding: createStroke("*", false, false, false, false, "keypress"), predefined: true});  //$NON-NLS-2$  //$NON-NLS-1$  //$NON-NLS-0$
+			
 			return bindings;
 		},
 		getKeyBindings: function (actionID) {
@@ -750,11 +754,16 @@ define("orion/editor/vi", [ //$NON-NLS-0$
 			}, {name: messages.viI});
 			
 			view.setAction("vi-O", function() { //$NON-NLS-0$
-				return self._toInsertMode("enter", {insert:"above"}); //$NON-NLS-1$ //$NON-NLS-0$
+				self._invoke("lineUp"); //$NON-NLS-0$
+				self._invoke("lineEnd"); //$NON-NLS-0$
+				self._toInsertMode("enter"); //$NON-NLS-0$
+				return true;
 			}, {name: messages.viO});
 			
 			view.setAction("vi-o", function() { //$NON-NLS-0$
-				return self._toInsertMode("enter", {insert:"below"}); //$NON-NLS-1$ //$NON-NLS-0$
+				self._invoke("lineEnd"); //$NON-NLS-0$
+				self._toInsertMode("enter"); //$NON-NLS-0$
+				return true;
 			}, {name: messages.vio});
 			
 			view.setAction("vi-R", function() { //$NON-NLS-0$
@@ -847,6 +856,24 @@ define("orion/editor/vi", [ //$NON-NLS-0$
 			view.setAction("vi-D", function() { //$NON-NLS-0$
 				return self._invoke("deleteLineEnd"); //$NON-NLS-0$
 			}, {name: messages.deleteLineEnd});
+			
+      view.setAction("vi-*", function() { //$NON-NLS-0$
+		// Get word under caret
+		var view = self.getView();
+		var caret = view.getCaretOffset();
+		var wordStart = view.getNextOffset(caret + 1, {count: -1, unit: "word"}); //$NON-NLS-0$
+		var wordEnd = view.getNextOffset(wordStart, {count: 1, unit: "wordend"}); //$NON-NLS-0$
+		var text = view.getText(wordStart, wordEnd);
+		// Search for the word
+		self._searchFwd = true;
+		var data = {
+		  hideAfterFind: true,
+		  incremental: false,
+		  reverse: false,
+		  findString: text
+		};
+		return self._invoke("find", data); //$NON-NLS-0$
+		}, {name: messages.viStar});
 				
 //			Status Line Mode
 //			view.setAction("statusLineMode", function() { //$NON-NLS-0$

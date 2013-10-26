@@ -122,7 +122,7 @@ define("orion/editor/htmlContentAssist", ['orion/editor/templates'], function(mT
 
 	HTMLContentAssistProvider.prototype.getPrefix = function(buffer, offset, context) {
 		var index = offset;
-		while (index && /[A-Za-z<]/.test(buffer.charAt(index - 1))) {
+		while (index && /[A-Za-z0-9<]/.test(buffer.charAt(index - 1))) {
 			index--;
 			if (buffer.charAt(index) === "<") { //$NON-NLS-0$
 				break;

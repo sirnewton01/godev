@@ -48,7 +48,7 @@ exports.GitRepositoryExplorer = (function() {
 			var resp = JSON.parse(error.responseText);
 			display.Message = resp.DetailedMessage ? resp.DetailedMessage : resp.Message;
 		} catch (Exception) {
-			display.Message = error.message;
+			display.Message = error.DetailedMessage || error.Message || error.message;
 		}
 		this.registry.getService("orion.page.message").setProgressResult(display); //$NON-NLS-0$
 		
@@ -212,7 +212,7 @@ exports.GitRepositoryExplorer = (function() {
 	GitRepositoryExplorer.prototype.initTitleBar = function(resource, sectionName){
 		var that = this;
 		var item = {};
-		var task = "Repositories";
+		var task = messages.Repo;
 		var scopeId = "repoPageActions";
 
 		var repository;
@@ -225,21 +225,21 @@ exports.GitRepositoryExplorer = (function() {
 			item.Parents[0].Location = repository.Location;
 			item.Parents[0].ChildrenLocation = repository.Location;
 			item.Parents[1] = {};
-			item.Parents[1].Name = "Repositories"; //$NON-NLS-0$
+			item.Parents[1].Name = messages.Repo;
 			task = sectionName;
 		} else if (resource && resource.Type === "Clone") { //$NON-NLS-0$
 			repository = resource;
 			item.Name = repository.Name;
 			item.Parents = [];
 			item.Parents[0] = {};
-			item.Parents[0].Name = "Repositories"; //$NON-NLS-0$
+			item.Parents[0].Name = messages.Repo;
 		} else {
-			item.Name = "Repositories"; //$NON-NLS-0$
+			item.Name = messages.Repo;
 			scopeId = "reposPageActions";
 		}
 		
 		updatePageActions(that.registry, that.commandService, "pageActions", scopeId, repository || {}); //$NON-NLS-1$ //$NON-NLS-0$
-		mGlobalCommands.setPageTarget({task: "Repositories", target: repository, breadcrumbTarget: item,
+		mGlobalCommands.setPageTarget({task: messages.Repo, target: repository, breadcrumbTarget: item,
 			makeBreadcrumbLink: function(seg, location) {
 				seg.href = require.toUrl("git/git-repository.html") + (location ? "#" + location : ""); //$NON-NLS-0$
 			},
@@ -424,7 +424,7 @@ exports.GitRepositoryExplorer = (function() {
 				detailsView.appendChild(div);
 				
 				var span = document.createElement("span");
-				span.textContent = (repositories[i].GitUrl !== null ? "git url: " + repositories[i].GitUrl : messages["(no remote)"]);
+				span.textContent = (repositories[i].GitUrl !== null ? messages["git url:"] + repositories[i].GitUrl : messages["(no remote)"]);
 				detailsView.appendChild(span);
 				
 				div = document.createElement("div");
@@ -477,7 +477,7 @@ exports.GitRepositoryExplorer = (function() {
 		var status = repository.Status;
 		
 		if (mode === "full"){ //$NON-NLS-0$
-			var unstaged = status.Untracked.length + status.Conflicting.length + status.Modified.length;
+			var unstaged = status.Untracked.length + status.Conflicting.length + status.Modified.length + status.Missing.length;
 			var staged = status.Changed.length + status.Added.length + status.Removed.length;
 			
 			var workspaceState = ((unstaged > 0 || staged > 0) 
@@ -514,7 +514,7 @@ exports.GitRepositoryExplorer = (function() {
 		
 		that.commandService.registerCommandContribution(titleWrapper.actionsNode.id, "eclipse.orion.git.repositories.viewAllCommand", 10); //$NON-NLS-0$
 		that.commandService.renderCommands(titleWrapper.actionsNode.id, titleWrapper.actionsNode.id, 
-			{"ViewAllLink":"git/git-status2.html#" + repository.StatusLocation, "ViewAllLabel": messages["See Full Status"], "ViewAllTooltip": messages["See the status"]}, that, "button");
+			{"ViewAllLink":"git/git-status.html#" + repository.StatusLocation, "ViewAllLabel": messages["See Full Status"], "ViewAllTooltip": messages["See the status"]}, that, "button");
 		
 		var progress = titleWrapper.createProgressMonitor();
 		progress.begin("Loading status"); //$NON-NLS-0$
@@ -542,7 +542,7 @@ exports.GitRepositoryExplorer = (function() {
 		horizontalBox.style.overflow = "hidden";
 		sectionItem.appendChild(horizontalBox);
 		
-		var unstaged = status.Untracked.length + status.Conflicting.length + status.Modified.length;
+		var unstaged = status.Untracked.length + status.Conflicting.length + status.Modified.length + status.Missing.length;
 		var staged = status.Changed.length + status.Added.length + status.Removed.length;
 		var workspaceState = messages["You have no changes to commit."];
 		

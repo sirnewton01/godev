@@ -11,7 +11,7 @@
 @import "../css/theme.css";
 
 .outlineExplorer {
-	overflow-y: none;
+	overflow-y: hidden;
 }
 
 .findOptionsDiv {
@@ -19,3 +19,11 @@
 	margin: 0;
 	padding: 0;
 }
+
+.replaceInfo {
+	margin-left: -14px;
+	margin-right: 7px;
+	margin-bottom: -3px;
+	cursor: pointer;
+}
+

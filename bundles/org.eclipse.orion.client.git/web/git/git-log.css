@@ -17,14 +17,6 @@
 	max-width: 700px;
 }
 
-.lightTreeTableRow {
-	border-bottom: 1px solid #e6e6e6;
-}
-
-.darkTreeTableRow {
-	border-bottom: 1px solid #e6e6e6;
-}
-
 .stretch {
 	float: left;
 	position: relative;

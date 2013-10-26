@@ -146,6 +146,11 @@ define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', '
 					link.textContent = item.textContent;
 					li.appendChild(link);
 					category.appendChild(li);
+					link.addEventListener("keydown", function(e) { //$NON-NLS-0$
+						if (e.keyCode === lib.KEY.ENTER || e.keyCode === lib.KEY.SPACE) {	
+							link.click();
+						}
+					}, false);
 				}.bind(this));
 
 				if(this.keyAssistFunction){

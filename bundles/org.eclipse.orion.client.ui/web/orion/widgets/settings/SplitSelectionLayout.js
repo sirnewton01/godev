@@ -121,8 +121,8 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/webui/littlelib', 
 			lib.empty(this.navbar);
 
 			var that = this, click;
-			this.navbar.addEventListener('keypress', function(evt) {
-				if (evt.keyCode === lib.keys.LEFT || evt.keyCode === lib.KEY.UP) {
+			this.navbar.addEventListener('keydown', function(evt) { //$NON-NLS-0$
+				if (evt.keyCode === lib.KEY.LEFT || evt.keyCode === lib.KEY.UP) {
 					if (that.selectedCategory.previousSibling) {
 						click = document.createEvent("MouseEvents"); //$NON-NLS-0$
 						click.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null); //$NON-NLS-0$

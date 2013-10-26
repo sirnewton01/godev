@@ -7,26 +7,33 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
-	"io/ioutil"
-	"os"
 )
 
 type CompileError struct {
 	Location string
 	Line     int64
+	Column   int64
 	Msg      string
 }
 
-func parseBuildOutput(cmd *exec.Cmd) (compileErrors []CompileError) {
+func parseBuildOutput(cmd *exec.Cmd) (compileErrors []CompileError, err error) {
 	buffer, _ := cmd.CombinedOutput()
 
 	reader := bytes.NewReader(buffer)
 	bufReader := bufio.NewReader(reader)
-	var currentPkg string
+
+	workingDir, err := os.Getwd()
+
+	if err != nil {
+		return []CompileError{}, err
+	}
 
 	for {
 		l, _, err := bufReader.ReadLine()
@@ -38,17 +45,27 @@ func parseBuildOutput(cmd *exec.Cmd) (compileErrors []CompileError) {
 		line := string(l)
 
 		if strings.HasPrefix(line, "#") {
-			// Package Marker
-			currentPkg = strings.Replace(line, "# ", "", 1)
+			// Skip comment lines
+		} else if strings.HasPrefix(line, "\t") && len(compileErrors) > 0 {
+			// Continuation of previous error message comment
+			prevCompileError := compileErrors[len(compileErrors)-1]
+			prevCompileError.Msg = prevCompileError.Msg + " " + line
+			compileErrors[len(compileErrors)-1] = prevCompileError
 		} else if strings.Contains(line, ":") {
 			// Compile Error
 			pieces := strings.Split(line, ":")
 			file := pieces[0]
 
-			pkgLoc := strings.Index(file, currentPkg)
+			if !filepath.IsAbs(file) {
+				file = filepath.Join(workingDir, file)
+			}
+			file = filepath.Clean(file)
 
-			if pkgLoc != -1 {
-				file = "/file/" + currentPkg + file[pkgLoc + len(currentPkg):]
+			for _, srcDir := range srcDirs {
+				pkgLoc := strings.Index(file, srcDir)
+				if pkgLoc == 0 {
+					file = filepath.Join("/file", file[len(srcDir):])
+				}
 			}
 
 			l := pieces[1]
@@ -58,13 +75,23 @@ func parseBuildOutput(cmd *exec.Cmd) (compileErrors []CompileError) {
 				continue
 			}
 
-			msg := strings.Replace(line, pieces[0]+":"+pieces[1]+":", "", 1)
-			error := CompileError{Location: file, Line: lineNum, Msg: msg}
+			pieces = pieces[2:]
+
+			columnNum, err := strconv.ParseInt(pieces[0], 10, 64)
+			if err != nil {
+				columnNum = 0
+			} else {
+				pieces = pieces[1:]
+			}
+
+			msg := strings.Join(pieces, ":")
+			error := CompileError{Location: file, Line: lineNum,
+				Column: columnNum, Msg: msg}
 			compileErrors = append(compileErrors, error)
 		}
 	}
-	
-	return compileErrors
+
+	return compileErrors, nil
 }
 
 func buildHandler(writer http.ResponseWriter, req *http.Request, path string, pathSegs []string) bool {
@@ -79,26 +106,46 @@ func buildHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 			ShowError(writer, 500, "Unable to create temporary file for build", err)
 			return true
 		}
-		
+
 		// Compile the regular parts of the package
 		tmpFileName := tmpFile.Name()
 		cmd := exec.Command("go", "build", "-o", tmpFileName, pkg)
-		compileErrors := parseBuildOutput(cmd)
+		compileErrors, err := parseBuildOutput(cmd)
 		os.Remove(tmpFileName)
-		
+
+		if err != nil {
+			ShowError(writer, 500, "Error parsing build output", err)
+			return true
+		}
+
 		// Compile the tests too
 		// Do this in a temporary directory to avoid collisions.
 		// Too bad "go build" doesn't have a "-t" parameters to include the tests.
 		// Too bad that "go test -c" doesn't handle collisions, while "go test" does.
-		os.Mkdir(tmpFileName, os.ModeDir | 0700)
+		os.Mkdir(tmpFileName, os.ModeDir|0700)
 		cmd = exec.Command("go", "test", "-c", pkg)
 		cmd.Dir = tmpFileName
-		compileErrors = append(compileErrors, parseBuildOutput(cmd)...)
-		os.Remove(tmpFileName)
+		testCompileErrors, err := parseBuildOutput(cmd)
+		for _, newError := range testCompileErrors {
+			if strings.HasSuffix(newError.Location, "_test.go") {
+				compileErrors = append(compileErrors, newError)
+			}
+		}
+		os.RemoveAll(tmpFileName)
+
+		if err != nil {
+			ShowError(writer, 500, "Error parsing build output", err)
+			return true
+		}
 
 		if install == "true" && len(compileErrors) == 0 {
 			cmd := exec.Command("go", "install", pkg)
-			cmd.Run()
+			err = cmd.Run()
+
+			if err != nil {
+				ShowError(writer, 500, "Error installing package", err)
+				return true
+			}
 		}
 
 		ShowJson(writer, 200, compileErrors)

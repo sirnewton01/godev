@@ -10,7 +10,7 @@
  ******************************************************************************/
 /*global define document window*/
 /*jslint regexp:false*/
-define(['require', 'orion/xhr', 'orion/editor/regex'], function(require, xhr, regex) {
+define(['require', 'orion/xhr', 'orion/regex'], function(require, xhr, regex) {
 	
 	var temp = document.createElement('a');
 	

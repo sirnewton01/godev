@@ -9,26 +9,27 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"go/build"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
-	"strings"
 	"runtime"
-	"math/rand"
-	"time"
+	"sort"
 	"strconv"
-	"fmt"
+	"strings"
+	"time"
 )
 
-const(
-	loopbackHost                = "127.0.0.1"
-	defaultPort                 = "2022"
+const (
+	loopbackHost = "127.0.0.1"
+	defaultPort  = "2022"
 )
 
 var (
-	srcDirs                     = []string {}
+	srcDirs                     = []string{}
 	bundle_root_dir             = ""
 	port                        = flag.String("port", defaultPort, "HTTP port number for the development server. (e.g. '2022')")
 	debug                       = flag.Bool("debug", false, "Put the development server in debug mode with detailed logging.")
@@ -47,42 +48,42 @@ func init() {
 	} else {
 		logger = log.New(ioutil.Discard, "godev", log.LstdFlags)
 	}
-	
+
 	dirs := build.Default.SrcDirs()
-	
-	for i := len(dirs)-1; i >= 0; i-- {
+
+	for i := len(dirs) - 1; i >= 0; i-- {
 		srcDir := dirs[i]
-		
+
 		if !strings.HasPrefix(srcDir, runtime.GOROOT()) {
 			srcDirs = append(srcDirs, srcDir)
 		}
-		
+
 		if bundle_root_dir == "" {
 			_, err := os.Stat(srcDir + "/github.com/sirnewton01/godev/bundles")
-			
+
 			if err == nil {
 				bundle_root_dir = srcDir + "/github.com/sirnewton01/godev/bundles"
 				break
 			}
 		}
 	}
-	
+
 	if bundle_root_dir == "" {
 		log.Fatal("GOPATH variable doesn't contain the godev source.\nPlease add the location to the godev source to the GOPATH.")
 	}
-	
+
 	if os.Getenv("GOHOST") != "" {
 		hostName = os.Getenv("GOHOST")
-		
+
 		certFile = os.Getenv("GOCERTFILE")
 		keyFile = os.Getenv("GOKEYFILE")
-		
+
 		// If the host name is not loopback then we must use a secure connection
 		//  with certificatns
 		if certFile == "" || keyFile == "" {
 			log.Fatal("When using a public port a certificate file (GOCERTFILE) and key file (GOKEYFILE) environment variables must be provided to secure the connection.")
 		}
-		
+
 		// Initialize the random magic key for this session
 		rand.Seed(time.Now().UTC().UnixNano())
 		magicKey = strconv.FormatInt(rand.Int63(), 16)
@@ -174,12 +175,12 @@ type delegateFunc func(writer http.ResponseWriter, req *http.Request, path strin
 func wrapHandler(delegate delegateFunc) handlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
 		logger.Printf("HANLDER: %v %v\n", req.Method, req.URL.Path)
-	
-		if hostName != loopbackHost {	
+
+		if hostName != loopbackHost {
 			// Check the magic cookie
 			// Since redirection is not generally possible if the cookie is not
 			//  present then we deny the request.
-			cookie, err := req.Cookie("MAGIC"+*port)
+			cookie, err := req.Cookie("MAGIC" + *port)
 			if err != nil || (*cookie).Value != magicKey {
 				// Denied
 				http.Error(writer, "Permission Denied", 403)
@@ -207,36 +208,36 @@ func wrapFileServer(delegate http.Handler) handlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
 		if hostName != loopbackHost {
 			// Check for the magic cookie
-			cookie, err := req.Cookie("MAGIC"+*port)
+			cookie, err := req.Cookie("MAGIC" + *port)
 			if err != nil || (*cookie).Value != magicKey {
 				// Check for a query parameter with the magic cookie
 				// If we find it then we redirect the user's browser to set the
 				//  cookie for all future requests.
 				// Otherwise we return permission denied.
-				
+
 				magicValues := req.URL.Query()["MAGIC"]
 				if len(magicValues) < 1 || magicValues[0] != magicKey {
 					// Denied
 					http.Error(writer, "Permission Denied", 403)
 					return
 				}
-				
+
 				// Redirect to the base URL setting the cookie
 				// Cookie lasts for a couple of weeks
-				cookie := &http.Cookie{Name: "MAGIC"+*port, Value: magicKey, 
-										Path: "/", Domain: hostName, MaxAge: 2000000,
-										Secure: true, HttpOnly: false}						
-				
+				cookie := &http.Cookie{Name: "MAGIC" + *port, Value: magicKey,
+					Path: "/", Domain: hostName, MaxAge: 2000000,
+					Secure: true, HttpOnly: false}
+
 				http.SetCookie(writer, cookie)
-				
+
 				urlWithoutQuery := req.URL
 				urlWithoutQuery.RawQuery = ""
-				
+
 				http.Redirect(writer, req, urlWithoutQuery.String(), 302)
 				return
 			}
 		}
-		
+
 		delegate.ServeHTTP(writer, req)
 	}
 }
@@ -244,19 +245,19 @@ func wrapFileServer(delegate http.Handler) handlerFunc {
 func wrapWebSocket(delegate http.Handler) handlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
 		logger.Printf("WEBSOCK HANLDER: %v %v\n", req.Method, req.URL.Path)
-	
+
 		if hostName != loopbackHost {
 			// Check the magic cookie
 			// Since redirection is not generally possible if the cookie is not
 			//  present then we deny the request.
-			cookie, err := req.Cookie("MAGIC"+*port)
+			cookie, err := req.Cookie("MAGIC" + *port)
 			if err != nil || (*cookie).Value != magicKey {
 				// Denied
 				http.Error(writer, "Permission Denied", 403)
 				return
 			}
 		}
-		
+
 		delegate.ServeHTTP(writer, req)
 	}
 }
@@ -264,6 +265,10 @@ func wrapWebSocket(delegate http.Handler) handlerFunc {
 func main() {
 	file, _ := os.Open(bundle_root_dir)
 	bundleNames, err := file.Readdirnames(-1)
+
+	// Sort the bundle names to guarantee that file overrides/shadowing happen in that order
+	sort.Strings(bundleNames)
+
 	bundleFileSystems := make([]http.FileSystem, len(bundleNames), len(bundleNames))
 	for idx, bundleName := range bundleNames {
 		bundleFileSystems[idx] = http.Dir(bundle_root_dir + "/" + bundleName + "/web")
@@ -279,8 +284,8 @@ func main() {
 	http.HandleFunc("/file/", wrapHandler(fileHandler))
 	http.HandleFunc("/prefs", wrapHandler(prefsHandler))
 	http.HandleFunc("/prefs/", wrapHandler(prefsHandler))
-	//http.HandleFunc("/completion", wrapHandler(completionHandler))
-	//http.HandleFunc("/completion/", wrapHandler(completionHandler))
+	http.HandleFunc("/completion", wrapHandler(completionHandler))
+	http.HandleFunc("/completion/", wrapHandler(completionHandler))
 	http.HandleFunc("/filesearch", wrapHandler(filesearchHandler))
 	http.HandleFunc("/filesearch/", wrapHandler(filesearchHandler))
 	http.HandleFunc("/go/build", wrapHandler(buildHandler))
@@ -292,17 +297,18 @@ func main() {
 	http.HandleFunc("/debug", wrapHandler(debugHandler))
 	http.HandleFunc("/debug/", wrapHandler(debugHandler))
 	http.HandleFunc("/debug/console/output/", wrapWebSocket(websocket.Handler(debugSocket)))
-//	http.HandleFunc("/gitapi", wrapHandler(gitapiHandler))
-//	http.HandleFunc("/gitapi/", wrapHandler(gitapiHandler))
+	http.HandleFunc("/test", wrapWebSocket(websocket.Handler(testSocket)))
+	//	http.HandleFunc("/gitapi", wrapHandler(gitapiHandler))
+	//	http.HandleFunc("/gitapi/", wrapHandler(gitapiHandler))
 
 	if hostName == loopbackHost {
 		fmt.Printf("http://%v:%v\n", hostName, *port)
-		err = http.ListenAndServe(hostName + ":" + *port, nil)
+		err = http.ListenAndServe(hostName+":"+*port, nil)
 	} else {
 		fmt.Printf("https://%v:%v/?MAGIC=%v\n", hostName, *port, magicKey)
-		err = http.ListenAndServeTLS(hostName + ":" + *port, certFile, keyFile, nil)
+		err = http.ListenAndServeTLS(hostName+":"+*port, certFile, keyFile, nil)
 	}
-	
+
 	if err != nil {
 		log.Fatal(err)
 	}

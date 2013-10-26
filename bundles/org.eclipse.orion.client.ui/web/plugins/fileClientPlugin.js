@@ -75,12 +75,11 @@ define(["orion/Deferred", "orion/plugin", "plugins/filePlugin/fileImpl", "domRea
 	temp.href = "..";
 	var patternBase = makeParentRelative(temp.href);
 
-
 	var service = new FileServiceImpl(fileBase, workspaceBase);
 	//provider.registerService("orion.core.file", trace(service), {Name:'Orion Content', top:fileBase, pattern:patternBase});
 	provider.registerService("orion.core.file", service, {
-		Name: 'Godev Content',  // HACK  see https://bugs.eclipse.org/bugs/show_bug.cgi?id=386509
-		NameKey: 'Godev Content',
+		Name: 'Orion Content',  // HACK  see https://bugs.eclipse.org/bugs/show_bug.cgi?id=386509
+		NameKey: 'Orion Content',
 		nls: 'orion/navigate/nls/messages',
 		top: fileBase,
 		pattern: patternBase

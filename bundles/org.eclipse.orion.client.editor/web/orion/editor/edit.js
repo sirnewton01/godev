@@ -13,6 +13,7 @@
 /*globals define Node */
 
 define('orion/editor/edit', [ //$NON-NLS-0$
+	"orion/editor/shim", //$NON-NLS-0$
 	
 	"orion/editor/textView", //$NON-NLS-0$
 	"orion/editor/textModel", //$NON-NLS-0$
@@ -39,7 +40,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	"orion/editor/textMateStyler", //$NON-NLS-0$
 	"orion/editor/htmlGrammar", //$NON-NLS-0$
 	"examples/editor/textStyler" //$NON-NLS-0$
-], function(mTextView, mTextModel, mTextTheme, mProjModel, mEventTarget, mKeyBinding, mRulers, mAnnotations, mTooltip, mUndoStack, mTextDND, mEditor, mEditorFeatures, mContentAssist, mCSSContentAssist, mHtmlContentAssist, mJSContentAssist, mAsyncStyler, mMirror, mTextMateStyler, mHtmlGrammar, mTextStyler) {
+], function(shim, mTextView, mTextModel, mTextTheme, mProjModel, mEventTarget, mKeyBinding, mRulers, mAnnotations, mTooltip, mUndoStack, mTextDND, mEditor, mEditorFeatures, mContentAssist, mCSSContentAssist, mHtmlContentAssist, mJSContentAssist, mAsyncStyler, mMirror, mTextMateStyler, mHtmlGrammar, mTextStyler) {
 
 	/**	@private */
 	function getDisplay(window, document, element) {
@@ -130,16 +131,8 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	
 	/**	@private */
 	function getHeight(node) {
-		var document = node.ownerDocument;
-		var window = document.defaultView || document.parentWindow;
-		var height;
-		if (window.getComputedStyle) {
-			var style = window.getComputedStyle(node, null);
-			height = style.getPropertyValue("height"); //$NON-NLS-0$
-		} else if (node.currentStyle) {
-			height = node.currentStyle.height;
-		}
-		return parseInt(height, 10) || 0;
+		var rect = node.getBoundingClientRect();
+		return rect.bottom - rect.top;
 	}
 	
 	/**
@@ -153,6 +146,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	 * @property {Boolean} [expandTab=false] whether or not the tab key inserts white spaces.
 	 * @property {String} [themeClass] the CSS class for the view theming.
 	 * @property {Number} [tabSize=4] The number of spaces in a tab.
+	 * @property {Boolean} [singleMode=false] whether or not the editor is in single line mode.
 	 * @property {Boolean} [wrapMode=false] whether or not the view wraps lines.
 	 * @property {Function} [statusReporter] a status reporter.
 	 * @property {String} [title=""] the editor title.
@@ -162,6 +156,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	 * @property {Boolean} [showAnnotationRuler=true] whether or not the annotation ruler is shown.
 	 * @property {Boolean} [showOverviewRuler=true] whether or not the overview ruler is shown.
 	 * @property {Boolean} [showFoldingRuler=true] whether or not the folding ruler is shown.
+	 * @property {Number} [firstLineIndex=1] the line index displayed for the first line of text.
 	 */
 	/**
 	 * Creates an editor instance configured with the given options.
@@ -214,6 +209,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 				fullSelection: options.fullSelection,
 				tabMode: options.tabMode,
 				expandTab: options.expandTab,
+				singleMode: options.singleMode,
 				themeClass: options.themeClass,
 				theme: options.theme,
 				wrapMode: options.wrapMode
@@ -272,6 +268,22 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 			statusReporter: options.statusReporter,
 			domNode: parent
 		});
+		editor.addEventListener("TextViewInstalled", function() { //$NON-NLS-0$
+			var ruler = editor.getLineNumberRuler();
+			if (ruler && options.firstLineIndex !== undefined) {
+				ruler.setFirstLine(options.firstLineIndex);
+			}
+			var sourceCodeActions = editor.getSourceCodeActions();
+			if (sourceCodeActions) {
+				sourceCodeActions.setAutoPairParentheses(options.autoPairParentheses);
+				sourceCodeActions.setAutoPairBraces(options.autoPairBraces);
+				sourceCodeActions.setAutoPairSquareBrackets(options.autoPairSquareBrackets);
+				sourceCodeActions.setAutoPairAngleBrackets(options.autoPairAngleBrackets);
+				sourceCodeActions.setAutoPairQuotations(options.autoPairQuotations);
+				sourceCodeActions.setAutoCompleteComments(options.autoCompleteComments);
+				sourceCodeActions.setSmartIndentation(options.smartIndentation);
+			}
+		});
 		
 		var contents = options.contents;
 		if (contents === undefined) {
@@ -285,15 +297,19 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		editor.setOverviewRulerVisible(options.showOverviewRuler === undefined || options.showOverviewRuler);
 		editor.setFoldingRulerVisible(options.showFoldingRuler === undefined || options.showFoldingRuler);
 		editor.setInput(options.title, null, contents);
+		
 		syntaxHighlighter.highlight(options.lang, editor);
 		if (contentAssist) {
 			var cssContentAssistProvider = new mCSSContentAssist.CssContentAssistProvider();
+			var htmlContentAssistProvider = new mHtmlContentAssist.HTMLContentAssistProvider();
 			var jsTemplateContentAssistProvider = new mJSContentAssist.JSTemplateContentAssistProvider();
 			contentAssist.addEventListener("Activating", function() { //$NON-NLS-0$
 				if (/css$/.test(options.lang)) {
 					contentAssist.setProviders([cssContentAssistProvider]);
 				} else if (/js$/.test(options.lang)) {
 					contentAssist.setProviders([jsTemplateContentAssistProvider]);
+				} else if (/html$/.test(options.lang)) {
+					contentAssist.setProviders([htmlContentAssistProvider]);
 				}
 			});
 		}

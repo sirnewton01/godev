@@ -20,7 +20,7 @@ define(['orion/browserCompatibility', 'orion/bootstrap', 'orion/status', 'orion/
 		var commandService = new mCommandRegistry.CommandRegistry({ });
 		// File operations
 		var fileClient = new mFileClient.FileClient(serviceRegistry);
-		var contentTypeService = new mContentTypes.ContentTypeService(serviceRegistry);
+		var contentTypeService = new mContentTypes.ContentTypeRegistry(serviceRegistry);
 		var searcher = new mSearchClient.Searcher({
 			serviceRegistry: serviceRegistry, commandService: commandService, fileService: fileClient
 		});

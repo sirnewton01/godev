@@ -80,12 +80,13 @@ define([], function() {
 		 * @returns {orion.serviceregistry.ServiceReference[]} References to all services that are being tracked by this ServiceTracker.
 		 */
 		this.getServiceReferences = function() {
-			if (refs.length) {
-				return Object.keys(refs).map(function(serviceId) {
-					return refs[serviceId];
-				});
+			var keys = Object.keys(refs);
+			if (!keys.length) {
+				return null;
 			}
-			return null;
+			return keys.map(function(serviceId) {
+				return refs[serviceId];
+			});
 		};
 		/**
 		 * Begins tracking services.

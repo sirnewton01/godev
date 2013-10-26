@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script src="../../requirejs/require.js"></script>
+	<script>
+	parent.postMessage("!_{h:'http%3A//127.0.0.2%3A8080/orionGoogleDriveFileSystem.html_1372335923473'}", "*"); //$NON-NLS-0$
+		/*global require orion window console*/
+		require({
+		  baseUrl: '../..',
+		  paths: {
+			  domReady: 'requirejs/domReady'
+		  }
+		});
+		require(["orion/Deferred", "orion/EventTarget", "orion/plugin", "domReady!"], function(Deferred, EventTarget, PluginProvider) {
+			var headers = {
+				name: "test plugin",
+				description: "This is a test plugin",
+				license: "http://eclipse.org/org/documents/edl-v10.php",
+				website: "http://eclipse.org/orion"
+			};
+			var provider = new PluginProvider(headers);
+			var returnReason;
+			var resolveDeferred = new Deferred();
+			var cancelDeferred = new Deferred(function(reason) {
+				resolveDeferred.resolve(reason);
+			});	
+			var impl = {
+				test: function(echo) {
+					return echo;
+				},
+				testPromise: function(echo) {
+					var d = new Deferred();
+					window.setTimeout(function() {
+						d.progress("progress");
+						d.resolve(echo);
+					},0);
+					return d;
+				},
+				testEvent: function(name) {
+					this.dispatchEvent({
+						type: name,
+						result: name + "test"
+					});
+				},
+				testCancel: function(resolve) {
+					return resolve ? resolveDeferred : cancelDeferred;
+				},
+				testError: function() {
+					throw new Error("helloerror");
+				},
+				testCallback: function(cb) {
+					return cb.test();
+				}				
+			};
+			EventTarget.attach(impl);
+			provider.registerService("test", impl, {name : "echotest", change: "tested"});
+			provider.connect();
+		});
+	</script>
+</head>
+<body>
+</body>
+</html>

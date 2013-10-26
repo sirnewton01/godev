@@ -223,7 +223,8 @@ define(['i18n!orion/nls/messages', 'require', 'orion/webui/littlelib'],
 				var parentDismiss = dismissArea;
 				if (!parentDismiss) {
 					parentDismiss = document.createElement("span"); //$NON-NLS-0$
-					parentDismiss.className = "layoutRight parametersDismiss"; //$NON-NLS-0$
+					parentDismiss.classList.add("layoutRight"); //$NON-NLS-0$
+					parentDismiss.classList.add("parametersDismiss"); //$NON-NLS-0$
 					parameterArea.appendChild(parentDismiss);
 				}
 				var finish = function (collector) {

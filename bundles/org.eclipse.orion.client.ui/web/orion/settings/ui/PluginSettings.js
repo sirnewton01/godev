@@ -15,15 +15,20 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 	var Explorer = mExplorer.Explorer, SelectionRenderer = mExplorer.SelectionRenderer, Section = mSection.Section;
 
 	/**
-	 * Base mixin for plugin settings widgets. Classes this is mixed into must define these 2 methods:
-	 * changeProperty(event) -- sets the model value to reflect the given UI event.
-	 * updateField(modelValue) -- sets the UI field to reflect the modelValue.
+	 * @name orion.settings.ui.PropertyWidget
+	 * @class Base mixin for plugin settings widgets.
+	 * @description Base mixin for plugin settings widgets.
+	 */
+	/**
+	 * @name orion.settings.ui.PropertyWidget#property
+	 * @field
+	 * @type orion.metatype.AttributeDefinition
 	 */
 	var PropertyWidget = function(options) {
 		objects.mixin(this, options);
-		this.fieldlabel = this.property.getName();
+		this.fieldlabel = this.property.getName(); // TODO nls
 	};
-	objects.mixin(PropertyWidget.prototype, {
+	objects.mixin(PropertyWidget.prototype, /** @lends orion.settings.ui.PropertyWidget.prototype */ {
 		postCreate: function() {
 			var property = this.property, config = this.configuration;
 			var properties = config.getProperties();
@@ -37,7 +42,15 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 				this.updateField(value);
 			}
 		},
+		/**
+		 * Sets the model value to reflect the given UI event.
+		 * @param {Object} uiValue
+		 */
 		changeProperty: null, /*function() {},*/
+		/**
+		 * Sets the UI field to reflect the modelValue.
+		 * @param {Object} modelValue
+		 */
 		updateField: null /*function(modelValue) {}*/
 	});
 
@@ -54,16 +67,16 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 			PropertyWidget.prototype.postCreate.apply(this, arguments);
 			var type = this.property.getType();
 			if (type === 'number') { //$NON-NLS-0$
-				this.myfield.type = 'number'; //$NON-NLS-0$
+				this.textfield.type = 'number'; //$NON-NLS-0$
 			} else {
-				this.myfield.type = 'text'; //$NON-NLS-0$
+				this.textfield.type = 'text'; //$NON-NLS-0$
 			}
 		},
 		change: function(event) {
-			this.changeProperty(this.myfield.value);
+			this.changeProperty(this.textfield.value);
 		},
 		updateField: function(value) {
-			this.myfield.value = value;
+			this.textfield.value = value;
 		}
 	});
 
@@ -83,7 +96,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 			LabeledCheckbox.prototype.postCreate.call(this);
 		},
 		updateField: function(value) {
-			this.myfield.checked = value;
+			this.checkbox.checked = value;
 		}
 	});
 
@@ -96,7 +109,8 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 	};
 	objects.mixin(PropertySelect.prototype, LabeledSelect.prototype, PropertyWidget.prototype, {
 		postCreate: function() {
-			var values = this.property.getOptionValues(), labels = this.property.getOptionLabels();
+			var values = this.property.getOptionValues();
+			var labels = this.property.getOptionLabels(); // TODO nls
 			this.options = values.map(function(value, i) {
 				var label = (typeof labels[i] === 'string' ? labels[i] : value); //$NON-NLS-0$
 				return {value: label, label: label};
@@ -229,7 +243,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 		var sectionHeader = document.createElement('h3'); //$NON-NLS-0$
 		sectionHeader.id = headerId;
 		sectionHeader.className = 'setting-header'; //$NON-NLS-0$
-		sectionHeader.textContent = setting.getName();
+		sectionHeader.textContent = setting.getName(); // TODO nls
 
 		var propertiesElement = document.createElement('div'); //$NON-NLS-0$
 		propertiesElement.className = 'setting-content'; //$NON-NLS-0$
@@ -282,7 +296,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 		var serviceRegistry = options.serviceRegistry;
 		var settings = options.settings;
 		if (!options.parent || !options.serviceRegistry || !options.settings || !options.title) {
-			throw 'Missing required option'; //$NON-NLS-0$
+			throw new Error('Missing required option'); //$NON-NLS-0$
 		}
 		this.parent = typeof parent === 'string' ? document.getElementById('parent') : parent; //$NON-NLS-0$ //$NON-NLS-1$
 		// TODO add commands

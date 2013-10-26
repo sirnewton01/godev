@@ -35,5 +35,6 @@ define({
 	"Options": "Options",
 	"Sort by folders": "Sort by folders",
 	"Line 0 : Col 0": "Line 0 : Col 0",
-	"No Matching DiffService for location:": "No Matching DiffService for location:"
+	"No Matching DiffService for location:": "No Matching DiffService for location:",
+	"${0} files compared. The two folders are identical.": "${0} files compared. The two folders are identical."
 });

@@ -56,6 +56,13 @@ define(["require",
 		theme.setThemeClass(themeClass, {href: "orion/editor/themes/" + themeClass}); //$NON-NLS-0$
 	}
 	
+	function updateMarginRuler(view, options) {
+		view.removeRuler(view.marginLines);
+		if (options.showMarginRuler) {
+			view.addRuler(view.marginLines);
+		}
+	}
+	
 	function updateKeyMode(view, options) {
 		view.removeKeyMode(vi);
 		view.removeKeyMode(emacs);
@@ -72,6 +79,7 @@ define(["require",
 				loadTheme(options.themeClass);
 				view.setOptions(options);
 				updateKeyMode(view, options);
+				updateMarginRuler(view, options);
 			}
 			return view;
 		}
@@ -91,6 +99,7 @@ define(["require",
 		vi = new mVI.VIMode(view);
 		emacs = new mEmacs.EmacsMode(view);
 		updateKeyMode(view, options);
+		updateMarginRuler(view, options);
 		
 		/* Undo stack */
 		var undoStack = exports.undoStack = new mUndoStack.UndoStack(view, 200);
@@ -206,6 +215,9 @@ define(["require",
 		
 		view.addRuler(annotationRuler);
 		view.addRuler(linesRuler);
+		
+		view.marginLines = new mRulers.LineNumberRuler(annotationModel, "margin", {styleClass: "ruler lines"}, {styleClass: "rulerLines odd"}, {styleClass: "rulerLines even"}); //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		
 		if (foldingEnabled) {
 			var foldingRuler = view.folding = new mRulers.FoldingRuler(annotationModel, "left", {styleClass: "ruler folding"}); //$NON-NLS-1$ //$NON-NLS-0$
 			foldingRuler.addAnnotationType(AnnotationType.ANNOTATION_FOLDING);
@@ -243,6 +255,14 @@ define(["require",
 		return view;
 	}
 	exports.setupView = setupView;
+	
+	function destroyView() {
+		if (view) {
+			view.destroy();
+		}
+		view = null;
+	}
+	exports.destroyView = destroyView;
 
 	return exports;
 });

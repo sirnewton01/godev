@@ -171,7 +171,9 @@ define(["i18n!orion/widgets/nls/messages", "orion/i18nUtil", "gcli/index", "gcli
 						var prototype = Object.getPrototypeOf(this);
 						var lastParseTimestamp = prototype.lastParseTimestamp;
 						prototype.lastParseTimestamp = Math.round(new Date().getTime() / 1000);
-						return type.parse(arg, this.typeSpec, {lastParseTimestamp: lastParseTimestamp}).then(function(completion) {
+						/* argObj is equivalent to arg without the additional prototype functions */
+						var argObj = JSON.parse(JSON.stringify(arg));
+						return type.parse(argObj, this.typeSpec, {lastParseTimestamp: lastParseTimestamp}).then(function(completion) {
 							var status = mTypes.Status.VALID;
 							if (completion.status) {
 								switch (completion.status) {
@@ -192,7 +194,9 @@ define(["i18n!orion/widgets/nls/messages", "orion/i18nUtil", "gcli/index", "gcli
 						var prototype = Object.getPrototypeOf(this);
 						var lastParseTimestamp = prototype.lastParseTimestamp;
 						prototype.lastParseTimestamp = Math.round(new Date().getTime() / 1000);
-						return type.parse(new mArgument.Argument(), this.typeSpec, {lastParseTimestamp: lastParseTimestamp}).then(function(completion) {
+						/* argObj is equivalent to "new mArgument.Argument()" without the additional prototype functions */
+						var argObj = {prefix: "", suffix: "", text: ""};
+						return type.parse(argObj, this.typeSpec, {lastParseTimestamp: lastParseTimestamp}).then(function(completion) {
 							return completion.predictions;
 						});
 					};

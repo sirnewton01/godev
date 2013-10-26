@@ -17,6 +17,7 @@ define(["orion/assert", "orion/URITemplate", "orion/PageUtil"], function(assert,
 	var uriTemplate = "http://localhost/a/b#{resource,params*}";
 	var orionURITemplate = "http://localhost/a/b#{,resource,params*}";
 	var keys = {"test":"pass","semi":";","dot":".","comma":","};
+	var anEncodedResource = "http://localhost/a/resource/a%2520c%2Cabc,f";
 	
 	tests.testBasicResourceParameters = function() {
 		assert.equal(PageUtil.matchResourceParameters("http://localhost#" + aResource).resource, aResource);
@@ -58,6 +59,7 @@ define(["orion/assert", "orion/URITemplate", "orion/PageUtil"], function(assert,
 		assert.equal(PageUtil.matchResourceParameters(new URITemplate(uriTemplate).expand({resource: aResource, params: keys})).semi, keys.semi);
 		assert.equal(PageUtil.matchResourceParameters(new URITemplate(uriTemplate).expand({resource: aResource, params: keys})).dot, keys.dot);
 		assert.equal(PageUtil.matchResourceParameters(new URITemplate(uriTemplate).expand({resource: aResource, params: keys})).comma, keys.comma);
+		assert.equal(PageUtil.matchResourceParameters(new URITemplate(uriTemplate).expand({resource: anEncodedResource})).resource, anEncodedResource);		
 	};
 		
 	tests.testOrionURITemplateResourceParameters = function() {		
@@ -66,7 +68,8 @@ define(["orion/assert", "orion/URITemplate", "orion/PageUtil"], function(assert,
 		assert.equal(PageUtil.matchResourceParameters(new URITemplate(orionURITemplate).expand({resource: aResource, params: keys})).test, keys.test);
 		assert.equal(PageUtil.matchResourceParameters(new URITemplate(orionURITemplate).expand({resource: aResource, params: keys})).semi, keys.semi);
 		assert.equal(PageUtil.matchResourceParameters(new URITemplate(orionURITemplate).expand({resource: aResource, params: keys})).dot, keys.dot);
-		assert.equal(PageUtil.matchResourceParameters(new URITemplate(orionURITemplate).expand({resource: aResource, params: keys})).comma, keys.comma);		
+		assert.equal(PageUtil.matchResourceParameters(new URITemplate(orionURITemplate).expand({resource: aResource, params: keys})).comma, keys.comma);
+		assert.equal(PageUtil.matchResourceParameters(new URITemplate(orionURITemplate).expand({resource: anEncodedResource})).resource, anEncodedResource);
 	};
 
 	return tests;

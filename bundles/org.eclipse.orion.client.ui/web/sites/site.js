@@ -18,7 +18,7 @@
 define(['require', 'i18n!orion/sites/nls/messages', 'orion/bootstrap', 'orion/status', 'orion/progress', 'orion/commandRegistry', 
 	'orion/fileClient', 'orion/operationsClient', 'orion/searchClient', 'orion/dialogs', 'orion/globalCommands', 'orion/sites/siteClient', 'orion/sites/siteCommands',
 	'orion/PageUtil', 'orion/sites/SiteEditor'], 
-	function(require, messages,mBootstrap, mStatus, mProgress, mCommandRegistry, mFileClient, mOperationsClient, mSearchClient, mDialogs, mGlobalCommands, mSiteClient, mSiteCommands, PageUtil, SiteEditor) {
+	function(require, messages, mBootstrap, mStatus, mProgress, mCommandRegistry, mFileClient, mOperationsClient, mSearchClient, mDialogs, mGlobalCommands, mSiteClient, mSiteCommands, PageUtil, SiteEditor) {
 		mBootstrap.startup().then(function(core) {
 			var serviceRegistry = core.serviceRegistry;
 			var preferences = core.preferences;
@@ -43,7 +43,7 @@ define(['require', 'i18n!orion/sites/nls/messages', 'orion/bootstrap', 'orion/st
 					item.Parents = [];
 					item.Name = site.Name;
 					item.Parents[0] = {};
-					item.Parents[0].Name = "Sites";
+					item.Parents[0].Name = messages["Sites"];
 					item.Parents[0].Location = "";
 					mGlobalCommands.setPageTarget({task: "Edit Site", target: site, breadcrumbTarget: item,
 						makeBreadcrumbLink: function(seg, location){

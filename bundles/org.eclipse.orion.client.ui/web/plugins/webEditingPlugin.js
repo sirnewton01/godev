@@ -33,37 +33,37 @@ define([
 			[{	id: "text/plain",
 				name: "Text",
 				extension: ["txt"],
-				image: "../images/file_model.gif"
+				image: "../images/file.png"
 			},
 			{	id: "text/html",
 				"extends": "text/plain",
 				name: "HTML",
 				extension: ["html", "htm"],
-				image: "../images/html.gif"
+				image: "../images/html.png"
 			},
 			{	id: "text/css",
 				"extends": "text/plain",
 				name: "CSS",
 				extension: ["css"],
-				image: "../images/stylesheet.gif"
+				image: "../images/css.png"
 			},
 			{	id: "application/javascript",
 				"extends": "text/plain",
 				name: "JavaScript",
 				extension: ["js"],
-				image: "../images/javascript.gif"
+				image: "../images/javascript.png"
 			},
 			{	id: "application/json",
 				"extends": "text/plain",
 				name: "JSON",
 				extension: ["json"],
-				image: "../images/wtp/json.gif"
+				image: "../images/file.png"
 			},
 			{	id: "application/xml",
 				"extends": "text/plain",
 				name: "XML",
 				extension: ["xml"],
-				image: "../images/wtp/xmlfile.gif"
+				image: "../images/xmlfile.png"
 			},
 			{	id: "text/x-java-source",
 				"extends": "text/plain",
@@ -124,10 +124,11 @@ define([
 		});
 
 	provider.registerService("orion.navigate.command", {}, {
-		name: "Raw",
 		id: "orion.view.raw",
-		tooltip: "Open the raw file or folder in the browser",
-		uriTemplate: "{Location}",
+		nameKey: "Raw",
+		nls: "orion/nls/messages",
+		tooltipKey: "Open the raw file or folder in the browser",
+		uriTemplate: "{,Location}",
 		forceSingleItem: true
 	});
 
@@ -135,7 +136,7 @@ define([
 		id: "orion.editor",
 		nameKey: "Orion Editor",
 		nls: "orion/nls/messages",
-		uriTemplate: "../edit/edit.html#{Location,params*}",
+		uriTemplate: "../edit/edit.html#{,Location,params*}",
 		orionTemplate: "../edit/edit.html#{,Location,params*}"});
 
 	provider.registerService("orion.navigate.openWith", {}, {
@@ -146,17 +147,17 @@ define([
 			editor: "orion.editor"});
 
 	// Register content assist providers
-	provider.registerService("orion.edit.contentAssist",
+	provider.registerService("orion.edit.contentassist",
 		new cssContentAssist.CssContentAssistProvider(),
 		{	name: "CSS content assist",
 			contentType: ["text/css"]
 		});
-	provider.registerService("orion.edit.contentAssist",
+	provider.registerService("orion.edit.contentassist",
 		new jsTemplateContentAssist.JSTemplateContentAssistProvider(),
 		{	name: "JavaScript content assist",
 			contentType: ["application/javascript"]
 		});
-	provider.registerService("orion.edit.contentAssist",
+	provider.registerService("orion.edit.contentassist",
 		new htmlContentAssist.HTMLContentAssistProvider(),
 		{	name: "HTML content assist",
 			contentType: ["text/html"]

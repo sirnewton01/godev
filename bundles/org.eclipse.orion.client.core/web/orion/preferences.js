@@ -30,6 +30,9 @@ define(['require', 'orion/Deferred', 'orion/xhr'], function(require, Deferred, x
 		
 		// filled by sync call
 		this._stores = []; 
+		
+		//filled by remove
+		this._pendingDeletes = [];
 
 		// filled by _scheduleFlush
 		this._dirty = [];
@@ -44,13 +47,19 @@ define(['require', 'orion/Deferred', 'orion/xhr'], function(require, Deferred, x
 				if (this._dirty.indexOf(store) !== -1) {
 					flushes.push(this._providers[i].put(this._name, store));
 				}
+				if(this._pendingDeletes[i] && this._pendingDeletes[i].length>0){
+					for(var j=0; j<this._pendingDeletes[i].length; j++){
+						flushes.push(this._providers[i].remove(this._name, this._pendingDeletes[i][j]));
+					}
+					delete this._pendingDeletes[i];
+				}
 			}
 			this._dirty = [];
 			return Deferred.all(flushes);
 		},
 		
 		_scheduleFlush: function(store) {
-			if (this._dirty.indexOf(store) === -1) {
+			if (store && this._dirty.indexOf(store) === -1) {
 				this._dirty.push(store);
 			}
 			
@@ -122,13 +131,17 @@ define(['require', 'orion/Deferred', 'orion/xhr'], function(require, Deferred, x
 		 * effect if no such key is defined.
 		 * @param {String} key The preference key to remove
 		 */
-		remove: function(key) {	
+		remove: function(key) {
 			for (var i=0; i < this._stores.length; ++i) {
 				var store = this._stores[i];
 				if (store.hasOwnProperty(key)) {
 					delete store[key];
+					if(!this._pendingDeletes[i]){
+						this._pendingDeletes[i] = [];
+					}
+					this._pendingDeletes[i].push(key);
 					this._cached = null;
-					this._scheduleFlush(store);
+					this._scheduleFlush();
 					return true;
 				}
 			}
@@ -275,6 +288,13 @@ define(['require', 'orion/Deferred', 'orion/xhr'], function(require, Deferred, x
 		put: function(name, data) {
 			this._cache.set(name, data);
 			return this._service.put(name, data);
+		},
+		
+		remove: function(name, key){
+			var cached = this._cache.get(name);
+			delete cached[key];
+			this._cache.set(name, cached);
+			return this._service.remove(name, key);
 		}
 	};
 	
@@ -334,6 +354,11 @@ define(['require', 'orion/Deferred', 'orion/xhr'], function(require, Deferred, x
 			var d = new Deferred();
 			d.resolve();
 			return d;
+		},
+		remove: function(name, key){
+			var cached = this._cache.get(name);
+			delete cached[key];
+			this.put(name, cached);
 		}
 	};
 	
@@ -357,6 +382,11 @@ define(['require', 'orion/Deferred', 'orion/xhr'], function(require, Deferred, x
 			this._cache.set(name, data);
 			d.resolve();
 			return d;
+		},
+		remove: function(name, key){
+			var cached = this._cache.get(name);
+			delete cached[key];
+			this.put(name, cached);
 		}
 	};
 	

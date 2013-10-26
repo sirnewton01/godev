@@ -23,7 +23,7 @@
  * depend on everything else in the file. 
  */
  
-define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "orion/contentTypes", "orion/URITemplate", "orion/i18nUtil", "orion/URL-shim", "orion/PageLinks"],
+define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/contentTypes", "orion/URITemplate", "orion/i18nUtil", "orion/URL-shim", "orion/PageLinks"],
 	function(require, Deferred, mCommands, mRegex, mContentTypes, URITemplate, i18nUtil, _, PageLinks){
 
 	/**
@@ -289,7 +289,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "or
 				var variableExpansions = {};
 				// we need the properties of the item
 				for (var property in item){
-					if(item.hasOwnProperty(property)){
+					if(Object.prototype.hasOwnProperty.call(item, property)){
 						variableExpansions[property] = item[property];
 					}
 				}
@@ -314,7 +314,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "or
 				// special properties.  Should already be in metadata.  See bug https://bugs.eclipse.org/bugs/show_bug.cgi?id=373450
 				variableExpansions.OrionHome = orionHome;
 				var uriTemplate = new URITemplate(this.info.uriTemplate);
-				return window.decodeURIComponent(uriTemplate.expand(variableExpansions));
+				return uriTemplate.expand(variableExpansions);
 			} 
 			return null;
 		};

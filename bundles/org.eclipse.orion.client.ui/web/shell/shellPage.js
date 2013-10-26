@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License v1.0
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
@@ -51,7 +51,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 				return this.array;
 			},
 			stringify: function() {
-				if (this.type !== "string") { //$NON-NLS-0$
+				if (this.type !== "string" && this.type !== "markdown") { //$NON-NLS-0$ //$NON-NLS-1$
 					return "(" + (this.array ? "[" : "") + this.value + (this.array ? "]" : "") + ")"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				}
 				if (!this.array) {
@@ -93,10 +93,11 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 				return promise;
 			},
 			stringify: function(arg, typeSpec) {
-				if (!this.stringifyFn) {
-					return arg.name;
-				}
 				var promise = new Deferred();
+				if (!this.stringifyFn) {
+					return arg ? arg.name : "";
+				}
+				
 				this.stringifyFn(arg, typeSpec).then(
 					function(result) {
 						promise.resolve(result);
@@ -227,7 +228,9 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		try {
 			error = JSON.parse(xhrResult.responseText);
 		} catch (e) {}
-		if (error && error.Message) {
+		if (error && error.DetailedMessage) {
+			error = i18nUtil.formatMessage(messages["Error: ${0}"], error.DetailedMessage);
+		} else if (error && error.Message) {
 			error = i18nUtil.formatMessage(messages["Error: ${0}"], error.Message);
 		} else if (typeof xhrResult.url === "string") {
 			if (xhrResult.status === 0) {
@@ -601,13 +604,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 				object = object.toString();
 			}
 		}
-		var string = object;
-		var segments = string.split("\n"); //$NON-NLS-0$
-		segments.forEach(function(segment) {
-			writer.appendText(segment);
-			writer.appendNewline();
-		});
-		return writer.write();
+		return writer.write(object);
 	}
 
 	function processBlobResult(promise, result, output, isProgress) {
@@ -655,7 +652,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 			writer = new mResultWriters.FileStringWriter(output, shellPageFileService);
 		} else {
 			element = document.createElement("div"); //$NON-NLS-0$
-			writer = new mResultWriters.ShellStringWriter(element);
+			writer = new mResultWriters.ShellStringWriter(element/*, result.getType() === "markdown"*/); //$NON-NLS-0$
 		}
 
 		outputString(result.stringify(), writer).then(
@@ -1120,8 +1117,8 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		});
 
 		/* initialize the editors cache (used by some of the built-in commands */
-		contentTypeService = new mContentTypes.ContentTypeService(serviceRegistry);
-		serviceRegistry.getService("orion.core.contenttypes").getContentTypes().then(function(contentTypes) { //$NON-NLS-0$
+		contentTypeService = new mContentTypes.ContentTypeRegistry(serviceRegistry);
+		serviceRegistry.getService("orion.core.contentTypeRegistry").getContentTypes().then(function(contentTypes) { //$NON-NLS-0$
 			var commands = mExtensionCommands._createOpenWithCommands(serviceRegistry, contentTypes);
 			var fn = function(command) {
 				openWithCommands.push(command);
@@ -1204,7 +1201,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 				return;
 			}
 
-			var hash = window.location.hash.substring(1);
+			var hash = PageUtil.hash().substring(1);
 			if (hash.length === 0) {
 				hash = ROOT_ORIONCONTENT;
 			}

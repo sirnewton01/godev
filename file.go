@@ -6,9 +6,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -43,21 +45,21 @@ type GitMeta struct {
 
 func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pathSegs []string) bool {
 	switch {
-	case req.Method == "POST":
+	case req.Method == "POST" && len(pathSegs) > 1:
 		fileRelPath := "/" + strings.Join(pathSegs[1:], "/")
 		filePath := ""
-		
+
 		// Find a match in reverse GOPATH order
-		for _,srcDir := range(srcDirs) {
+		for _, srcDir := range srcDirs {
 			p := srcDir + fileRelPath
-	
+
 			_, err := os.Stat(p)
 			if err == nil {
 				filePath = p
 				break
 			}
 		}
-		
+
 		if filePath == "" {
 			ShowError(writer, 400, "Parent doesn't exist. The entry could be in the GOROOT and not on the GOPATH.", nil)
 			return true
@@ -73,7 +75,121 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		}
 
 		newName := details["Name"]
-		if details["Directory"] == "true" {
+
+		createOptions := req.Header.Get("X-Create-Options")
+
+		// This is a move
+		if strings.Contains(createOptions, "move") {
+			oldPathSegs := strings.Split(details["Location"], "/")
+			// Two path segments are stripped off of the beginning (one for / and the other for "file")
+			oldRelPath := strings.Join(oldPathSegs[2:], "/")
+			oldPath := ""
+
+			// Find a match in reverse GOPATH order
+			for _, srcDir := range srcDirs {
+				p := filepath.Join(srcDir, oldRelPath)
+
+				_, err := os.Stat(p)
+				if err == nil {
+					oldPath = p
+					break
+				}
+			}
+
+			if oldPath == "" {
+				ShowError(writer, 400, "Original doesn't exist", nil)
+				return true
+			}
+
+			// Delete the destination if we don't have the no overwrite flag
+			if !strings.Contains(createOptions, "no-overwrite") {
+				err := os.RemoveAll(filePath + "/" + newName)
+
+				if err != nil {
+					ShowError(writer, 500, "Error overwriting file", err)
+					return true
+				}
+			}
+
+			err := os.Rename(oldPath, filePath+"/"+newName)
+
+			if err != nil {
+				ShowError(writer, 500, "Error moving file", err)
+				return true
+			}
+
+			writer.WriteHeader(201)
+		} else if strings.Contains(createOptions, "copy") {
+			oldPathSegs := strings.Split(details["Location"], "/")
+			// Two path segments are stripped off of the beginning (one for / and the other for "file")
+			oldRelPath := strings.Join(oldPathSegs[2:], "/")
+			oldPath := ""
+
+			// Find a match in reverse GOPATH order
+			for _, srcDir := range srcDirs {
+				p := filepath.Join(srcDir, oldRelPath)
+
+				_, err := os.Stat(p)
+				if err == nil {
+					oldPath = p
+					break
+				}
+			}
+
+			if oldPath == "" {
+				ShowError(writer, 400, "Original not found so nothing copied", nil)
+				return true
+			}
+
+			overwrite := !strings.Contains(createOptions, "no-overwrite")
+
+			err = filepath.Walk(oldPath, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+
+				destRelPath, _ := filepath.Rel(oldPath, path)
+				destPath := filepath.Join(filePath, newName, destRelPath)
+
+				if !overwrite {
+					_, statErr := os.Stat(destPath)
+					if statErr == nil {
+						// Already exists, return error
+						return errors.New("File exists, can't overwrite")
+					}
+				}
+
+				if info.IsDir() {
+					err = os.Mkdir(destPath, info.Mode())
+					if err != nil && overwrite {
+						err = nil
+					}
+				} else {
+					sourceFile, err := os.Open(path)
+					if err != nil {
+						return err
+					}
+					defer sourceFile.Close()
+
+					destFile, err := os.Create(destPath)
+					if err != nil {
+						return err
+					}
+					defer destFile.Close()
+
+					_, err = io.Copy(destFile, sourceFile)
+				}
+
+				return err
+			})
+
+			if err != nil {
+				ShowError(writer, 500, "Error copying project", err)
+				return true
+			}
+			writer.WriteHeader(201)
+			return true
+		} else if details["Directory"] == "true" {
 			err = os.Mkdir(filePath+"/"+newName, 0700)
 			if err != nil {
 				ShowError(writer, 500, "Error creating directory", err)
@@ -89,21 +205,22 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 			file.Close()
 			writer.WriteHeader(201)
 		}
+
 		return true
-	case req.Method == "DELETE":
+	case req.Method == "DELETE" && len(pathSegs) > 1:
 		fileRelPath := "/" + strings.Join(pathSegs[1:], "/")
 		filePath := ""
-		
-		for _,srcDir := range(srcDirs) {
+
+		for _, srcDir := range srcDirs {
 			p := srcDir + fileRelPath
-			_,err := os.Stat(p)
-			
+			_, err := os.Stat(p)
+
 			if err == nil {
 				filePath = p
 				break
 			}
 		}
-		
+
 		if filePath == "" {
 			writer.WriteHeader(204)
 			return true
@@ -116,20 +233,20 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		}
 		writer.WriteHeader(204)
 		return true
-	case req.Method == "PUT":
+	case req.Method == "PUT" && len(pathSegs) > 1:
 		fileRelPath := "/" + strings.Join(pathSegs[1:], "/")
 		filePath := ""
-		
-		for _,srcDir := range(srcDirs) {
+
+		for _, srcDir := range srcDirs {
 			p := srcDir + fileRelPath
-			
-			_,err := os.Stat(p)
+
+			_, err := os.Stat(p)
 			if err == nil {
 				filePath = p
 				break
 			}
 		}
-		
+
 		if filePath == "" {
 			writer.WriteHeader(404)
 			return true
@@ -169,21 +286,21 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 
 		ShowJson(writer, 200, info)
 		return true
-	case req.Method == "GET":
+	case req.Method == "GET" && len(pathSegs) > 1:
 		fileRelPath := "/" + strings.Join(pathSegs[1:], "/")
 		filePath := ""
 		var err error
 		var fileinfo os.FileInfo
-		for _,srcDir := range(srcDirs) {
+		for _, srcDir := range srcDirs {
 			p := srcDir + fileRelPath
-			fileinfo,err = os.Stat(p)
-			
+			fileinfo, err = os.Stat(p)
+
 			if err == nil {
 				filePath = p
 				break
 			}
 		}
-		
+
 		isgoroot := false
 
 		if filePath == "" && len(pathSegs) >= 2 && pathSegs[1] == "GOROOT" {

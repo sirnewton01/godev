@@ -47,6 +47,9 @@
 				},
 				testError: function() {
 					throw new Error("helloerror");
+				},
+				testCallback: function(cb) {
+					return cb.test();
 				}
 				
 			};

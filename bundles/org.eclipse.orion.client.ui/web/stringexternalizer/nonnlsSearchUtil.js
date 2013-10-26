@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*globals define*/
+/*global define*/
 define(['orion/Deferred'], function(Deferred) {
 
 	function NonNlsSearch(fileClient, root, progress) {
@@ -219,6 +219,16 @@ define(['orion/Deferred'], function(Deferred) {
 		return message;
 	}
 
+	// see https://bugs.eclipse.org/bugs/show_bug.cgi?id=408259
+	function generateMessageKey(str) {
+		function camelCase(str, index) {
+			var c = str.charAt(0);
+			return ((index === 0) ? c.toLowerCase() : c.toUpperCase()) + str.substr(1);
+		}
+		var MAX_WORDS = 5;
+		return str.split(/\s+/, MAX_WORDS).filter(function(s) { return s; }).map(camelCase).join(""); //$NON-NLS-0$
+	}
+
 	function replaceNls(contents, nls, config, saveMessages) {
 		if (!config) {
 			config = {};
@@ -254,19 +264,38 @@ define(['orion/Deferred'], function(Deferred) {
 				if (change.checked) {
 					stringExternalized = true;
 					var strippedString = unescapeQuotes(change.string);
-					if (messages && messages[strippedString]) {
-						change.replace = "messages[\"" + escapeQuotes(messages[strippedString]) + "\"]"; //$NON-NLS-1$ //$NON-NLS-0$
+					var messageValue = strippedString;
+					var messageKey = generateMessageKey(messageValue);
+					var legacyMessageKey = messageValue; // for compatibility with old message files
+					if (change.parent && change.parent.Location === config.fileLocation) {
+						// We are changing the message file itself, update a legacy-style key to new style
+						var isChangeToKey = change.line.indexOf(change.string, change.character + change.end) !== -1;
+						if (messages && Object.prototype.hasOwnProperty.call(messages, legacyMessageKey)) { //$NON-NLS-1$ //$NON-NLS-0$
+							if (isChangeToKey) {
+								delete messages[legacyMessageKey];
+								change.replace = '"' + escapeQuotes(messageKey) + '"'; //$NON-NLS-1$ //$NON-NLS-0$
+							} else {
+								// Don't mess with message values
+								delete change.replace;
+							}
+						}
+					} else if (messages && Object.prototype.hasOwnProperty.call(messages, messageKey)) {
+						change.replace = "messages[\"" + escapeQuotes(messageKey) + "\"]"; //$NON-NLS-1$ //$NON-NLS-0$
 					} else {
-						change.replace = "messages[" + change.string + "]"; //$NON-NLS-0$
+						change.replace = "messages[\"" + escapeQuotes(messageKey) + "\"]"; //$NON-NLS-1$ //$NON-NLS-0$
 						messages = messages || {};
-						messages[strippedString] = strippedString;
+						messages[messageKey] = messageValue;
 					}
-					//					 change.replace = change.string;//remove
-					var moveCharacters = change.replace.length - change.string.length;
-					change.newcharacter = change.character;
-					lines[lineNum] = line.substring(0, change.character - 1) + change.replace + line.substring(change.end);
-					for (var j = i + 1; j < lineStructure[lineNum].length; j++) {
-						lineStructure[lineNum][j].newcharacter += moveCharacters;
+					if (change.replace) {
+						//					 change.replace = change.string;//remove
+						var moveCharacters = change.replace.length - change.string.length;
+						change.newcharacter = change.character;
+						lines[lineNum] = line.substring(0, change.character - 1) + change.replace + line.substring(change.end);
+						for (var j = i + 1; j < lineStructure[lineNum].length; j++) {
+							lineStructure[lineNum][j].newcharacter += moveCharacters;
+						}
+					} else {
+						lines[lineNum] = line;
 					}
 				} else if (config.marknls) {
 					var foundStrings = line.substring(0, change.character - 1).match(stringRegExp);
@@ -322,7 +351,7 @@ define(['orion/Deferred'], function(Deferred) {
 		var keyToMessage = {};
 		
 		Object.keys(messages).forEach(function (message) {
-			keyToMessage[messages[message]] = message;
+			keyToMessage[message] = messages[message];
 		});
 		var def = fileClient.read(config.fileLocation);
 		if (progress) {

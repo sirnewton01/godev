@@ -1,15 +1,15 @@
-.tooltip.textview {
+.tooltipTheme.textview {
 	background-color: InfoBackground !important;
 	color: InfoText !important;
 }
 
-.tooltip .textviewScroll {
+.tooltipTheme .textviewScroll {
 	padding: 0px;
 }
 
 /* Styles for the view tooltips */
 .textviewTooltip {
-	font-family: monospace;
+	font-family: "Consolas", "Monaco", "Vera Mono", "monospace";
 	font-size: 10pt;
 	background-color: InfoBackground;
 	color: InfoText;
@@ -19,13 +19,25 @@
 	z-index: 100;
 	position: fixed;
 	overflow: hidden;
-	white-space: pre;
 }
+
 .textviewTooltip em {
 	font-style: normal;
 	font-weight: bold;
 }
 
-.tooltip .annotationLine.currentLine {
-	background-color: transparent;
+.textviewTooltip span {
+	vertical-align: baseline;
+}
+
+.textviewTooltip .tooltipRow {
+	display: table-row;
+}
+
+.textviewTooltip .tooltipTitle {
+	float: right;
+}
+
+.tooltipTheme .annotationLine.currentLine {
+	background-color: transparent !important;
 }

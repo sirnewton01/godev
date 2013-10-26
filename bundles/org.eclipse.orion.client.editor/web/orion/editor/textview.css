@@ -22,6 +22,10 @@
 	border-left: 1px solid #eaeaea;
 }
 
+.textviewMarginRuler {
+	border-left: 1px solid #eaeaea;
+}
+
 .textviewBlockCursor {
 	background: black;
 	opacity: 0.4;

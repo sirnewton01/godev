@@ -38,6 +38,17 @@ define(["orion/xhr", "orion/plugin", "domReady!"], function(xhr, PluginProvider)
 			}).then(function(result) {
 				return result.response ? JSON.parse(result.response) : null;
 			});
+		},
+		remove: function(name, key){
+			return xhr("DELETE", this.location + name +"?key=" + key, {
+				headers: {
+					"Orion-Version": "1"
+				},
+				contentType: "application/json;charset=UTF-8",
+				timeout: 15000
+			}).then(function(result) {
+				return result.response ? JSON.parse(result.response) : null;
+			});
 		}
 	};
 

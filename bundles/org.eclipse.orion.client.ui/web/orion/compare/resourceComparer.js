@@ -54,7 +54,7 @@ exports.DefaultDiffProvider = (function() {
 		
 		_getContentType: function(fileURL){
 			var filename = this._resolveFileName(fileURL);
-			return this.serviceRegistry.getService("orion.core.contenttypes").getFilenameContentType(filename); //$NON-NLS-0$
+			return this.serviceRegistry.getService("orion.core.contentTypeRegistry").getFilenameContentType(filename); //$NON-NLS-0$
 		},
 		
 		_resolveComplexFileURL: function(complexURL) {
@@ -152,6 +152,7 @@ exports.ResourceComparer = (function() {
 			},
 						
 			setInput: function(fileURI, editor) {
+				this._parsedLocation = {resource:fileURI, resourceRaw:fileURI};
 				that._progress.progress(that._fileClient.read(fileURI, true), "Getting file metadata " + fileURI).then( //$NON-NLS-0$
 					function(metadata) {
 						this._fileMetadata = metadata;
@@ -200,9 +201,10 @@ exports.ResourceComparer = (function() {
 		if(!options.readonly && !options.toggleable && this._compareView.getWidget().type === "twoWay") { //$NON-NLS-0$
 			var keyBindingFactory = function(editor, keyModeStack, undoStack, contentAssist) {
 				var localSearcher = new mSearcher.TextSearcher(editor, that._commandService, undoStack);
+				var keyBindings = new mEditorFeatures.KeyBindingsFactory().createKeyBindings(editor, undoStack, contentAssist, localSearcher);
 				var commandGenerator = new mEditorCommands.EditorCommandFactory(that._registry, that._commandService,that._fileClient , that._inputManager, "pageActions", false, "pageNavigationActions", localSearcher); //$NON-NLS-1$ //$NON-NLS-0$
 				commandGenerator.generateEditorCommands(editor);
-				new mEditorFeatures.KeyBindingsFactory().createKeyBindings(editor, undoStack, contentAssist, localSearcher);
+				return keyBindings;
 			};
 			this._compareView.getWidget().options.newFile.keyBindingFactory = keyBindingFactory;
 		}

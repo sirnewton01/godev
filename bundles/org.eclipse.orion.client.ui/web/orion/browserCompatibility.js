@@ -7,10 +7,10 @@
  * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
  *
  *******************************************************************************/
-/*global window document define login logout localStorage orion alert confirm*/
-/*jslint browser:true sub:true*/
+/*global alert confirm define localStorage*/
+/*jslint browser:true sub:true regexp:false*/
 
-define(function() {
+(function() {
 	function isSupportedBrowser() {
 		var userAgent = navigator.userAgent;
 		var isSupported = { 
@@ -20,7 +20,7 @@ define(function() {
 		var VERSION = 1;
 		var browserData = [	{name: 'Chrome/Chromium', regExp: /(?:chrome|crios|chromium)\/(\d+)/i, minVersion: 24}, //$NON-NLS-0$
 							{name: 'Firefox', regExp: /firefox\/(\d+)/i, minVersion: 17}, //$NON-NLS-0$
-							{name: 'MSIE', regExp: /msie\s(\d+)/i, minVersion: 10}, //$NON-NLS-0$
+							{name: 'Microsoft Internet Explorer', regExp: /msie\s(\d+)/i, minVersion: 10}, //$NON-NLS-0$
 							{name: 'Safari', regExp: /version\/(\d+).*?safari/i, minVersion: 5} ]; //$NON-NLS-0$
 
 		for (var i = 0; i < browserData.length; i++) {
@@ -47,7 +47,7 @@ define(function() {
 	
 	function throwBrowserAlert(message) {
 		alert(message);
-		throw 'unsupported browser'; //$NON-NLS-0$
+		throw new Error('unsupported browser'); //$NON-NLS-0$
 	}
 	
 	var isSupported = isSupportedBrowser();
@@ -73,4 +73,4 @@ define(function() {
 		supportsLocalStorage: supportsLocalStorage,
 		throwBrowserAlert: throwBrowserAlert
 	};
-});
+}());

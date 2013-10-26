@@ -22,10 +22,11 @@ define(function(){
 		"?": {first:"?", sep:"&", named: true, ifemp: "=", allow: "U"}, //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		"&": {first:"&", sep:"&", named: true, ifemp: "=", allow: "U"}, //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		"#": {first:"#", sep:",", named: false, ifemp: "", allow: "U+R"}, //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		",": {first:"", sep:",", named: false, ifemp: "", allow: "U+R-,"}		 //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		",": {first:"", sep:",", named: false, ifemp: "", allow: "U+R-,"} //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 	};
 
 	var VARSPEC_REGEXP = /^((?:(?:[a-zA-Z0-9_])|(?:%[0-9A-F][0-9A-F]))(?:(?:[a-zA-Z0-9_.])|(?:%[0-9A-F][0-9A-F]))*)(?:(\*)|:([0-9]+))?$/;
+	var PCT_ENCODED_G = /%25[0-9A-F][0-9A-F]/g;
 
 	function Literal(text) {
 		this._text = text;
@@ -37,6 +38,10 @@ define(function(){
 		}
 	};
 	
+	function decodePercent(str) {
+		return str.replace("%25", "%");
+	}
+	
 	function encodeString(value, encoding) {
 		if (encoding === "U") { //$NON-NLS-0$
 			return encodeURIComponent(value).replace(/[!'()*]/g, function(str) {
@@ -44,7 +49,7 @@ define(function(){
 			});
 		}
 		if (encoding === "U+R") { //$NON-NLS-0$
-			return encodeURI(value).replace(/%5B/g, '[').replace(/%5D/g, ']'); //$NON-NLS-1$ //$NON-NLS-0$
+			return encodeURI(value).replace(/%5B/g, '[').replace(/%5D/g, ']').replace(PCT_ENCODED_G, decodePercent); //$NON-NLS-1$ //$NON-NLS-0$
 		}
 		if (encoding === "U+R-,") { //$NON-NLS-0$
 			return encodeURI(value).replace(/%5B/g, '[').replace(/%5D/g, ']').replace(/,/g, '%2C'); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$

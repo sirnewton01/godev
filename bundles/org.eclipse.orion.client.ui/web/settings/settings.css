@@ -58,7 +58,6 @@
 
 .settings {
 	min-width: 500px;
-	max-width: 800px;
 	/* max-width:1000px; */
 	padding-left: 20px;
 	/* padding-right: 40px; */
@@ -150,7 +149,7 @@
 }
 
 .setting-label {
-	min-width: 145px;
+	min-width: 210px;
 	display: inline-block;
 }
 
@@ -158,6 +157,27 @@
 	min-width: 330px;
 	display: inline-block;
 	padding-top: 10px;
+}
+
+.setting-local-indicator {
+	cursor: pointer;
+	display: inline-block;
+	margin: 2px;
+	margin-right: 4px;
+	width: 6px;
+	height: 6px;
+	border-radius: 4px;
+	vertical-align: middle;
+}
+
+.setting-local-indicator.on {
+	border: 1px solid black;
+	background-color: green;
+}
+
+.setting-local-indicator.off {
+	border: 1px solid gray;
+	background-color: #eee;
 }
 
 .displaytable>section {
@@ -371,7 +391,6 @@ div.page section:last-child {
 	width: 200px;
 	padding: 4px;
 	margin: 0;
-	outline: none;
 	background-color: white;
 	border: 1px solid #CCC;
 	border-radius: 3px;

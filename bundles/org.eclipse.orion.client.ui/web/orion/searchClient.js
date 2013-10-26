@@ -46,9 +46,10 @@ function(messages, require, lib, i18nUtil, mSearchUtils, mSearchCrawler, navigat
 		 * @param {String} [queryName] A human readable name to display when there are no matches.  If 
 		 *  not used, then there is nothing displayed for no matches
 		 * @param {String} [error] A human readable error to display.
+		 * @param {Object} [searchParams] Search params used
 		 */
 		var _self = this;
-		function render(resources, queryName, error) {
+		function render(resources, queryName, error, searchParams) {
 			Deferred.when(_self.openWithCommands, function(openWithCommands) {
 				if (error) {
 					lib.empty(resultsNode);
@@ -126,13 +127,24 @@ function(messages, require, lib, i18nUtil, mSearchUtils, mSearchCrawler, navigat
 							Directory: resource.directory,
 							Location: resource.path || resource.location /*is location ever provided?*/
 						};
-						var resourceLink = navigatorRenderer.createLink(require.toUrl("navigate/table.html"), item, commandRegistry, contentTypeService,
+						var params = null;
+						if (typeof resource.LineNumber === "number") { //$NON-NLS-0$
+							params = {};
+							params.line = resource.LineNumber;
+						}
+						if (searchParams && searchParams.keyword && !searchParams.nameSearch) {
+							var searchHelper = mSearchUtils.generateSearchHelper(searchParams);
+							params = params || {};
+							params.find = searchHelper.inFileQuery.searchStr;
+							params.regEx = searchHelper.inFileQuery.wildCard ? true : undefined;
+						}
+						var resourceLink = navigatorRenderer.createLink(require.toUrl("edit/edit.html"), item, commandRegistry, contentTypeService,
 							openWithCommands, null /*defaultEditor*/, {
 								"aria-describedby": (resource.folderName ? resource.folderName : resource.path).replace(/[^a-zA-Z0-9_\.:\-]/g,''), //$NON-NLS-0$
 								style: {
 									verticalAlign: "middle" //$NON-NLS-0$
 								}
-							});
+							}, params);
 						if (resource.LineNumber) { // FIXME LineNumber === 0 
 							resourceLink.appendChild(document.createTextNode(' (Line ' + resource.LineNumber + ')'));
 						}
@@ -199,7 +211,7 @@ function(messages, require, lib, i18nUtil, mSearchUtils, mSearchCrawler, navigat
 				return transformed;
 			};
 			if(this._crawler && searchParams.nameSearch){
-				this._crawler.searchName(searchParams, function(jsonData){renderer(transform(jsonData), null);});
+				this._crawler.searchName(searchParams, function(jsonData){renderer(transform(jsonData), searchParams.keyword, null, searchParams);});
 			} else {
 				try {
 					this.registry.getService("orion.page.progress").progress(this._fileService.search(searchParams), "Searching " + searchParams.keyword).then(function(jsonData) { //$NON-NLS-1$ //$NON-NLS-0$
@@ -213,17 +225,17 @@ function(messages, require, lib, i18nUtil, mSearchUtils, mSearchCrawler, navigat
 						token= token.substring(token.indexOf("}")+1); //$NON-NLS-0$
 						//remove field name if present
 						token= token.substring(token.indexOf(":")+1); //$NON-NLS-0$
-						renderer(transform(jsonData), token);
+						renderer(transform(jsonData), token, null, searchParams);
 					}, function(error) {
-						renderer(null, null, error);
+						renderer(null, null, error, null);
 					});
 				}
 				catch(error){
 					if(typeof(error) === "string" && error.indexOf("search") > -1 && this._crawler){ //$NON-NLS-1$ //$NON-NLS-0$
-						this._crawler.searchName(searchParams, function(jsonData){renderer(transform(jsonData), null);});
+						this._crawler.searchName(searchParams, function(jsonData){renderer(transform(jsonData), null, null, searchParams);});
 					} else if(typeof(error) === "string" && error.indexOf("search") > -1 && !searchParams.nameSearch){ //$NON-NLS-1$ //$NON-NLS-0$
 						var crawler = new mSearchCrawler.SearchCrawler(this.registry, this._fileService, searchParams, {childrenLocation: this.getChildrenLocation()});
-						crawler.search(function(jsonData){renderer(transform(jsonData), null);});
+						crawler.search(function(jsonData){renderer(transform(jsonData), null, null, searchParams);});
 					} else {
 						this.registry.getService("orion.page.message").setErrorMessage(error);	 //$NON-NLS-0$
 					}

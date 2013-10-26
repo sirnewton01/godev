@@ -67,7 +67,7 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 		 * </p>
 		 * @param {orion.editor.Projection} projection The projection range to be added.
 		 * 
-		 * @see #removeProjection
+		 * @see orion.editor.ProjectionTextModel#removeProjection
 		 */
 		addProjection: function(projection) {
 			if (!projection) {return;}
@@ -114,7 +114,7 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 		 * 
 		 * @return {orion.editor.Projection[]} The projection ranges.
 		 * 
-		 * @see #addProjection
+		 * @see orion.editor.ProjectionTextModel#addProjection
 		 */
 		getProjections: function() {
 			return this._projections.slice(0);
@@ -166,7 +166,7 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 		 * 
 		 * @param {orion.editor.Projection} projection The projection range to be removed.
 		 * 
-		 * @see #addProjection
+		 * @see orion.editor.ProjectionTextModel#addProjection
 		 */
 		removeProjection: function(projection) {
 			//TODO remove listeners from model

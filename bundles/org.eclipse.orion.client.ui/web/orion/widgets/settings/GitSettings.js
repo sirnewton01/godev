@@ -29,7 +29,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/commands', 'orion/
 						'<div class="sectionAnchor sectionTitle layoutLeft">${Git Settings}</div>' + 
 						'<div id="userCommands" class="layoutRight sectionActions"></div>' +
 					'</div>' + //$NON-NLS-2$ //$NON-NLS-0$
-					'<div class="sections">' + //$NON-NLS-0$
+					'<div class="sections sectionTable">' + //$NON-NLS-0$
 					
 					'</div>' + //$NON-NLS-0$
 					'<div></div>' +
@@ -41,7 +41,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/commands', 'orion/
 						'<div class="sectionAnchor sectionTitle layoutLeft">${Git Credentials Storage}</div>' + 
 						'<div id="gitCommands" class="layoutRight sectionActions"></div>' +
 					'</div>' + //$NON-NLS-2$ //$NON-NLS-0$
-					'<div class="gitSections">' + //$NON-NLS-0$
+					'<div class="gitSections sectionTable">' + //$NON-NLS-0$
 					
 					'</div>' + //$NON-NLS-0$
 					'<div></div>' +

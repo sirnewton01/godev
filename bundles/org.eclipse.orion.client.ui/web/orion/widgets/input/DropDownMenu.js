@@ -14,102 +14,96 @@
 define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 
 	/**
-	 * @param {Object[]} param.options Array of {value:Object, label:String, selected:Boolean(optional)}
+	 * Creates a dropdown menu for a node and its associated trigger node (button)
+	 * @param {Object} parent The dom object or string id of the node that will contain the dropdown menu
+	 * @param {Object} triggerNode The dom object or string id of the dom node that will trigger the dropdown menu appearance
+	 * @param {Object} [options] options for the drop down menu.
+	 * @param {String} [options.selectionClass] CSS class to be appended when the trigger node is selected.
+	 * @param {String} [options.noClick] Do not add the click handler to the trigger node.
+	 * @param {String} [options.onShow] Callback called when the menu is shown.
+	 * @param {String} [options.onHide] Callback called when the menu is hidden.
 	 */
-	 
-	function DropDownMenu( node, body, panel ){
-	
-		if( panel !== null ){
-			this.CLEAR_PANEL = panel;
-		}else{
-			this.CLEAR_PANEL = true;
-		}
-	
-		this.OPEN = 'false';
-		
-		var nodeIdPrefix = "";
-		if( node.nodeType ){
-			this.node = node;
-		}else{
-			nodeIdPrefix = node + "_";
-			var nodeById = document.getElementById( node );
-	
-			if( nodeById.nodeType ){
-				this.node = nodeById;
-			}else{
-				this.node = document.createElement("span");
-			}
+	function DropDownMenu( parent, triggerNode, options ){
+		var node = lib.node(parent);
+		if (node) {
+			this._parent = node;
+		} else {
+			throw new Error("Parent node of dropdown menu not found"); //$NON-NLS-0$
 		}
 		
-		this.node.innerHTML = this.templateString;
-		//We need assign dynamic ids to all the children nodes loaded by the template, to support multiple drop down menus in the same page
-		this.navLabelId = nodeIdPrefix + 'navigationlabel';
-		document.getElementById( 'navigationlabel' ).id = this.navLabelId;
-		this.arrowId = nodeIdPrefix + 'dropDownArrow';
-		document.getElementById( 'dropDownArrow' ).id = this.arrowId;
-		this.navDropDownId = nodeIdPrefix + 'navdropdown';
-		document.getElementById( 'navdropdown' ).id = this.navDropDownId;
+		options = options || {};
+		this.options = options;
 		
-		if( body.icon ){
-			this.node.className = this.node.className + ' ' + body.icon;
-			this.node.onclick = this.click.bind(this);	
-		}else{
+		// Assign dynamic ids to the dropdown menu node to support multiple drop down menus in the same page
+		this.navDropDownId = this._parent.id + '_navdropdown'; //$NON-NLS-0$
+		this.selectionClass = options.selectionClass;
 		
-			if( body.label ){
-				var navlabel = document.getElementById( this.navLabelId );
-				navlabel.textContent = body.label;
-				navlabel.onclick = this.click.bind(this);	
-			}
-			
-			if( body.caret ){
-				var navArrow = document.getElementById( this.arrowId );
-				navArrow.className = body.caret;
-			}
+		// Create dropdown container and append to parent dom
+		var dropDownContainer = document.createElement("div"); //$NON-NLS-0$
+		dropDownContainer.classList.add("dropDownContainer"); //$NON-NLS-0$
+		dropDownContainer.id = this.navDropDownId; 
+		dropDownContainer.style.display = 'none'; //$NON-NLS-0$
+		this._parent.appendChild(dropDownContainer);
+		this._dropdownMenu = dropDownContainer;
+		
+		// Display trigger node and bind on click event
+		triggerNode = lib.node(triggerNode);
+		if (triggerNode) {
+			this._triggerNode = triggerNode;
+		} else {
+			throw "Trigger node of dropdown menu not found"; //$NON-NLS-0$
 		}
-		this._dropdownNode = lib.node(this.navDropDownId); 
-		this._triggerNode = lib.node(this.navLabelId);
+		if (this._triggerNode.style.visibility === 'hidden') { //$NON-NLS-0$
+			this._triggerNode.style.visibility = 'visible'; //$NON-NLS-0$
+		}
+		
+		if (!options.noClick) {
+			this._triggerNode.onclick = this.click.bind(this);
+		}
+		this._dropdownMenu.addEventListener("keydown", function (e) { //$NON-NLS-0$
+			if (e.keyCode === lib.KEY.ESCAPE) {
+				this.clearPanel();
+			}
+		}.bind(this));
 	}
 	
 	objects.mixin(DropDownMenu.prototype, {
-	
-		templateString: '<div id="navigationlabel" class="navigationLabel dropdownTrigger" ></div>' +
-						'<span id="dropDownArrow" class="dropDownArrow"></span>' + 
-						'<div class="dropDownContainer" id="navdropdown" style="display:none;"></div>',
-
 		click: function() {
-		
-			var centralNavigation = document.getElementById( this.navDropDownId );
-			
-			if( centralNavigation.style.display === 'none' ){
+			if( this._dropdownMenu.style.display === 'none' ){ //$NON-NLS-0$
 				this.updateContent ( this.getContentNode() , function () {
-					centralNavigation.style.display = '';
+					this._dropdownMenu.style.display = '';
 					this._positionDropdown();
-					this.handle = lib.addAutoDismiss( [this.node, centralNavigation], this.clearPanel.bind(this) );
+					if (this.selectionClass) {
+						this._triggerNode.classList.add(this.selectionClass);
+					}
+					this.handle = lib.addAutoDismiss( [ this._triggerNode, this._dropdownMenu], this.clearPanel.bind(this) );
+					if (this.options.onShow) {
+						this.options.onShow();
+					}
 				}.bind(this));
-				
 			}else{
-			
-				if( this.CLEAR_PANEL ){
-					this.clearPanel();
-				}
+				this.clearPanel();
 			}
 		},
 		
 		clearPanel: function(){
-			var centralNavigation = document.getElementById( this.navDropDownId );
-			centralNavigation.style.display = 'none';
+			if (!this.isVisible()) { return; }
+			this._dropdownMenu.style.display = 'none'; //$NON-NLS-0$
+			if (this.selectionClass) {
+				this._triggerNode.classList.remove(this.selectionClass);
+			}
+			if (this.options.onHide) {
+				this.options.onHide();
+			}
 		},
 		
+		// Add content to the dropdown container
 		addContent: function( content ){
-		
-			var centralNavigation = document.getElementById( this.navDropDownId );
-		
-			centralNavigation.innerHTML= content;
+			this._dropdownMenu.innerHTML = content;
 		},
 		
 		getContentNode: function(){
-			var contentNode = document.getElementById( this.navDropDownId );
-			return contentNode;
+			return this._dropdownMenu;
 		},
 		
 		updateContent: function( contentNode, callback ){
@@ -117,34 +111,42 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 			// the callback needs to be called once the content is up to date
 			callback();
 		},
-		
-		toggleLabel: function(show){
-			document.getElementById( this.navLabelId ).style.display = (show ? '' : 'none');
-			document.getElementById( this.arrowId ).style.display = (show ? '' : 'none');
-		},
-		
+
 		_positionDropdown: function() {
-			this._dropdownNode.style.left = "";
-			var bounds = lib.bounds(this._dropdownNode);
-			var totalBounds = lib.bounds(this._boundingNode(this._triggerNode));
+			this._dropdownMenu.style.left = "";
+			var bounds = lib.bounds(this._dropdownMenu);
+			var totalBounds = lib.bounds(this._boundingNode(this._parent));
 			if (bounds.left + bounds.width > (totalBounds.left + totalBounds.width)) {
-				this._dropdownNode.style.right = 0;
+				this._dropdownMenu.style.right = 0;
 			}
 		},
 		
 		_boundingNode: function(node) {
-			if (node.style.right !== "" || node.style.position === "absolute" || !node.parentNode || !node.parentNode.style) { //$NON-NLS-0$
+			if (node.style.right !== "" || node.style.position === "absolute" || !node.parentNode || !node.parentNode.style) { //$NON-NLS-1$ //$NON-NLS-0$
 				return node;
 			}
 			return this._boundingNode(node.parentNode);
 		},
+		
+		isDestroyed: function() {
+			return !this._dropdownMenu.parentNode;
+		},
+
+		isVisible: function() {
+			return this._dropdownMenu.style.display !== "none" && !this.isDestroyed(); //$NON-NLS-0$
+		},
+
+		focus: function() {
+			this._dropdownMenu.focus();
+		},
 
 		destroy: function() {
-			if (this.node) {
-				lib.empty(this.node);
-				this.node = this.select = null;
+			if (this._parent) {
+				lib.empty(this._parent);
+				this._parent = this.select = null;
 			}
 		}
 	});
+	
 	return DropDownMenu;
 });

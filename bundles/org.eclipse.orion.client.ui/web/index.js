@@ -14,6 +14,6 @@
 
 define(['orion/browserCompatibility', 'orion/bootstrap', 'domReady!'], function(mBrowserCompatibility, mBootstrap) {
 	mBootstrap.startup().then(function(core) {
-		window.location = "navigate/table.html";
+		window.location = "edit/edit.html";
 	});
 });

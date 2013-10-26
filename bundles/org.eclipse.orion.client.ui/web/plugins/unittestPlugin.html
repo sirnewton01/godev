@@ -11,7 +11,7 @@
 				id: "eclipse.runUnitTest",
 				tooltip: "Run as Unit Test",
 				contentType: ["text/html"],
-				uriTemplate: "{OrionHome}/test/unittest.html#{Location}",
+				uriTemplate: "{+OrionHome}/test/unittest.html#{,Location}",
 				forceSingleItem: true
 			});
 			provider.connect();

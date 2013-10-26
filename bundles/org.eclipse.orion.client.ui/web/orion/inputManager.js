@@ -1,10 +1,10 @@
 /*******************************************************************************
  * @license
  * Copyright (c) 2010, 2013 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
@@ -18,12 +18,8 @@ define([
 	'orion/Deferred',
 	'orion/EventTarget',
 	'orion/objects',
-	'orion/globalCommands',
-	'orion/edit/dispatcher',
-	'orion/highlight',
-	'orion/edit/syntaxmodel',
 	'orion/PageUtil'
-], function(messages, i18nUtil, Deferred, EventTarget, objects, mGlobalCommands, mDispatcher, Highlight, SyntaxModelWirer, PageUtil) {
+], function(messages, i18nUtil, Deferred, EventTarget, objects, PageUtil) {
 
 	function Idle(options){
 		this._document = options.document || document;
@@ -32,13 +28,13 @@ define([
 		//TODO: add support for multiple clients with different timeouts
 		var events = ["keypress","keydown","keyup","mousemove","mousedown","mousemove"]; //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
 		var reset = function (e) { this._resetTimer(); }.bind(this);
-		for (var i=0; i<events.length; i++) {
+		for (var i = 0; i < events.length; i++) {
 			var event = events[i];
-			this._document.addEventListener(event, reset, true);	
+			this._document.addEventListener(event, reset, true);
 		}
 		EventTarget.attach(this);
 	}
-	
+
 	Idle.prototype = {
 		_resetTimer: function() {
 			var window = this._document.defaultView || this._document.parentWindow;
@@ -48,7 +44,7 @@ define([
 			}
 			if (this._timeout !== -1) {
 				this._timer = window.setTimeout(function() {
-					this.onIdle({type:"Idle"});	//$NON-NLS-0$ 
+					this.onIdle({type:"Idle"});	//$NON-NLS-0$
 					this._timer = null;
 					this._resetTimer();
 				}.bind(this), this._timeout);
@@ -62,16 +58,7 @@ define([
 			this._resetTimer();
 		}
 	};
-	
-	function parseNumericParams(input, params) {
-		for (var i=0; i < params.length; i++) {
-			var param = params[i];
-			if (input[param]) {
-				input[param] = parseInt(input[param], 10);
-			}
-		}
-	}
-	
+
 	function handleError(statusService, error) {
 		if (!statusService) {
 			window.console.log(error);
@@ -80,7 +67,7 @@ define([
 		if (error.status === 0) {
 			error = {
 				Severity: "Error", //$NON-NLS-0$
-				Message: messages['No response from server.  Check your internet connection and try again.'] //$NON-NLS-1$
+				Message: messages.noResponse
 			};
 		} else {
 			var responseText = error.responseText;
@@ -104,65 +91,124 @@ define([
 	 * @class
 	 */
 	function InputManager(options) {
+		EventTarget.attach(this);
 		this.editor = options.editor;
 		this.serviceRegistry = options.serviceRegistry;
 		this.fileClient = options.fileClient;
 		this.progressService = options.progressService;
-		this.contentTypeService = options.contentTypeService;
+		this.contentTypeRegistry = options.contentTypeRegistry;
 		this.selection = options.selection;
-		this.syntaxHighlighter = new Highlight.SyntaxHighlighter(this.serviceRegistry);
-		this.syntaxModelWirer = new SyntaxModelWirer(this.serviceRegistry);
 		this._input = this._title = "";
 		this.dispatcher = null;
-		EventTarget.attach(this);
+		this._unsavedChanges = [];
 	}
 	objects.mixin(InputManager.prototype, /** @lends orion.editor.InputManager.prototype */ {
+		/**
+		 * @returns {orion.Promise} Promise resolving to the new Location we should use
+		 */
+		_maybeLoadWorkspace: function(resource) {
+			var fileClient = this.fileClient;
+			// If it appears to be a workspaceRootURL we cannot load it directly, have to get the workspace first
+			if (resource === fileClient.fileServiceRootURL(resource)) {
+				return fileClient.loadWorkspace(resource).then(function(workspace) {
+					return workspace.Location;
+				});
+			}
+			return new Deferred().resolve(resource);
+		},
+		/**
+		 * Wrapper for fileClient.read() that tolerates a filesystem root URL passed as location. If location is indeed
+		 * a filesystem root URL, the original read() operation is instead performed on the workspace.
+		 */
+		_read: function(location /**, readArgs*/) {
+			var fileClient = this.fileClient;
+			var readArgs = Array.prototype.slice.call(arguments, 1);
+			return this._maybeLoadWorkspace(location).then(function(newLocation) {
+				return fileClient.read.apply(fileClient, [newLocation].concat(readArgs));
+			});
+		},
 		load: function() {
 			var fileURI = this.getInput();
 			if (!fileURI) { return; }
 			var fileClient = this.fileClient;
+			var resource = this._parsedLocation.resource;
 			var progressService = this.progressService;
+			var progress = function(deferred, msgKey, uri) {
+				if (!progressService) { return deferred; }
+				return progressService.progress(deferred, i18nUtil.formatMessage(msgKey, uri));
+			};
 			var editor = this.getEditor();
 			if (this._fileMetadata) {
-				//Reload if auto of sync
-				progressService.progress(fileClient.read(fileURI, true), i18nUtil.formatMessage(messages["Reading metedata of"], fileURI)).then(function(data) {
-					if (this._fileMetadata.ETag !== data.ETag) {
-						this._fileMetadata = data;
-						if (!editor.isDirty() || window.confirm(messages.loadOutOfSync)) {
-							progressService.progress(fileClient.read(fileURI), i18nUtil.formatMessage(messages.Reading, fileURI)).then(function(contents) {
-								editor.setInput(fileURI, null, contents);										
-							});
+				//Reload if out of sync, unless we are already in the process of saving
+				if (!this._saving && !this._fileMetadata.Directory && !this._readonly) {
+					progress(fileClient.read(resource, true), messages.ReadingMetadata, fileURI).then(function(data) {
+						if (this._fileMetadata && this._fileMetadata.Location === data.Location && this._fileMetadata.ETag !== data.ETag) {
+							this._fileMetadata = data;
+							if (!editor.isDirty() || window.confirm(messages.loadOutOfSync)) {
+								progress(fileClient.read(resource), messages.Reading, fileURI).then(function(contents) {
+									editor.setInput(fileURI, null, contents);
+									this._unsavedChanges = [];
+								}.bind(this));
+							}
 						}
-					}
-				}.bind(this));
+					}.bind(this));
+				}
 			} else {
+				//TODO this URL parsing to retrieve the should be done in the server side.
+				//TODO /gitapi/commit URLs are not supported be the orion file client.
+				var metadataURI = resource;
+				if (metadataURI.indexOf("/gitapi/commit/") === 0) { //$NON-NLS-0$
+					var start = metadataURI.indexOf("/file"); //$NON-NLS-0$
+					var end = metadataURI.indexOf("?", start); //$NON-NLS-0$
+					if (end === -1) { end = metadataURI.length; }
+					metadataURI = metadataURI.substring(start, end);
+					this._readonly = true;
+				}
 				var progressTimeout = window.setTimeout(function() {
+					progressTimeout = null;
 					editor.reportStatus(i18nUtil.formatMessage(messages.Fetching, fileURI));
 				}, 800);
-				new Deferred.all([
-					progressService.progress(fileClient.read(fileURI), i18nUtil.formatMessage(messages.Reading, fileURI)),
-					progressService.progress(fileClient.read(fileURI, true), i18nUtil.formatMessage(messages["Reading metedata of"], fileURI))
-				], function(error) { return {_error: error}; }).then(function(results) {
+				var clearTimeout = function() {
+					editor.reportStatus("");
 					if (progressTimeout) {
 						window.clearTimeout(progressTimeout);
 					}
-					var contentOrError = results[0];
-					var metadataOrError = results[1];
-					if (contentOrError._error || metadataOrError._error) {
-						var statusService = this.serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
-						handleError(statusService, contentOrError._error || metadataOrError._error);
-						this._setNoInput();
+				};
+				var errorHandler = function(error) {
+					clearTimeout();
+					var statusService = this.serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
+					handleError(statusService, error);
+					this._setNoInput();
+				}.bind(this);
+				this._acceptPatch = null;
+				// Read metadata
+				progress(this._read(metadataURI, true), messages.ReadingMetadata, metadataURI).then(function(metadata) {
+					if (metadata.Directory) {
+						// Fetch children
+						progress(fileClient.fetchChildren(metadata.ChildrenLocation), messages.Reading, fileURI).then(function(contents) {
+							clearTimeout();
+							metadata.Children = contents;
+							this._setInputContents(this._parsedLocation, fileURI, contents, metadata);
+						}.bind(this), errorHandler);
 					} else {
-						this._setInputContents(this._parsedLocation, fileURI, contentOrError, metadataOrError);
+						// Read contents
+						progress(fileClient.read(resource, false, true), messages.Reading, fileURI).then(function(contents) {
+							clearTimeout();
+							if (typeof contents !== "string") { //$NON-NLS-0$
+								this._acceptPatch = contents.acceptPatch;
+								contents = contents.result;
+							}
+							this._setInputContents(this._parsedLocation, fileURI, contents, metadata);
+						}.bind(this), errorHandler);
 					}
-					editor.reportStatus("");
-				}.bind(this));
+				}.bind(this), errorHandler);
 			}
 		},
 		processParameters: function(input) {
 			var editor = this.getEditor();
-			parseNumericParams(input, ["start", "end", "line", "offset", "length"]); //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-			editor.showSelection(input.start, input.end, input.line, input.offset, input.length);
+			if (editor.processParameters) {
+				editor.processParameters(input);
+			}
 		},
 		getEditor: function() {
 			return this.editor;
@@ -176,31 +222,61 @@ define([
 		getFileMetadata: function() {
 			return this._fileMetadata;
 		},
+		getReadOnly: function() {
+			var data = this._fileMetadata;
+			return this._readonly || !data || (data.Attributes && data.Attributes.ReadOnly);
+		},
 		getContentType: function() {
 			return this._contentType;
 		},
 		save: function() {
 			if (this._saving) { return; }
 			var editor = this.getEditor();
-			if (!editor.isDirty()) { return; }
+			if (!editor.isDirty() || this.getReadOnly()) { return; }
+			var failedSaving = this._errorSaving;
 			this._saving = true;
-			this._errorSaving = false;
 			var input = this.getInput();
 			editor.reportStatus(messages['Saving...']);
+
+			this.dispatchEvent({ type: "Saving", inputManager: this}); //$NON-NLS-0$
+
+			editor.markClean();
 			var contents = editor.getText();
+			var data = contents;
+			if (this._getSaveDiffsEnabled() && !this._errorSaving) {
+				var changes = this._unsavedChanges;
+				var length = 0;
+				for (var i = 0; i < changes.length; i++) {
+					length += changes[i].text.length;
+				}
+				if (contents.length > length) {
+					data = {
+						diff: changes
+					};
+				}
+			}
+			this._unsavedChanges = [];
+			this._errorSaving = false;
+
 			var etag = this.getFileMetadata().ETag;
 			var args = { "ETag" : etag }; //$NON-NLS-0$
-			var def = this.fileClient.write(input, contents, args);
+			var resource = this._parsedLocation.resource;
+			var def = this.fileClient.write(resource, data, args);
 			var progress = this.progressService;
 			var statusService = this.serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
 			if (progress) {
-				def = progress.progress(def, i18nUtil.formatMessage(messages['Saving file {0}'], input));
+				def = progress.progress(def, i18nUtil.formatMessage(messages.savingFile, input));
 			}
 			var self = this;
 			function successHandler(result) {
-				self.getFileMetadata().ETag = result.ETag;
-				editor.setInput(input, null, contents, true);
+				if (input === self.getInput()) {
+					self.getFileMetadata().ETag = result.ETag;
+					editor.setInput(input, null, contents, true);
+				}
 				editor.reportStatus("");
+				if (failedSaving) {
+					statusService.setProgressResult({Message:messages.Saved, Severity:"Normal"}); //$NON-NLS-0$
+				}
 				if (self.afterSave) {
 					self.afterSave();
 				}
@@ -213,15 +289,15 @@ define([
 				self._errorSaving = true;
 			}
 			def.then(successHandler, function(error) {
-				// expected error - HTTP 412 Precondition Failed 
+				// expected error - HTTP 412 Precondition Failed
 				// occurs when file is out of sync with the server
 				if (error.status === 412) {
-					var forceSave = window.confirm(messages["Resource is out of sync with the server. Do you want to save it anyway?"]);
+					var forceSave = window.confirm(messages.saveOutOfSync);
 					if (forceSave) {
-						// repeat save operation, but without ETag 
-						var def = self.fileClient.write(input, contents);
+						// repeat save operation, but without ETag
+						var def = self.fileClient.write(resource, contents);
 						if (progress) {
-							def = progress.progress(def, i18nUtil.formatMessage(messages['Saving file {0}'], input));
+							def = progress.progress(def, i18nUtil.formatMessage(messages.savingFile, input));
 						}
 						def.then(successHandler, errorHandler);
 					} else {
@@ -244,39 +320,27 @@ define([
 		setAutoSaveTimeout: function(timeout) {
 			this._autoSaveEnabled = timeout !== -1;
 			if (!this._idle) {
-				var editor = this.getEditor(), textView = editor.getTextView();
-				var setIdle = function() {
-					editor.removeEventListener("TextViewInstalled", setIdle); //$NON-NLS-0$
-					var document = editor.getTextView().getOptions("parent").ownerDocument; //$NON-NLS-0$
-					var options = {
-						document: document,
-						timeout: timeout
-					};
-					this._idle = new Idle(options);
-					this._idle.addEventListener("Idle", function () { //$NON-NLS-0$
-						if (!this._errorSaving) {
-							this.save();
-						}
-					}.bind(this));
-					this._idle.setTimeout(timeout);
-				}.bind(this);
-				if (textView) {
-					setIdle();
-				} else {
-					// wait for a textview to get installed
-					editor.addEventListener("TextViewInstalled", setIdle); //$NON-NLS-0$
-				}
+				var options = {
+					document: document,
+					timeout: timeout
+				};
+				this._idle = new Idle(options);
+				this._idle.addEventListener("Idle", function () { //$NON-NLS-0$
+					if (!this._errorSaving) {
+						this.save();
+					}
+				}.bind(this));
 			} else {
 				this._idle.setTimeout(timeout);
 			}
 		},
-		setDirty: function(dirty) {
-			mGlobalCommands.setDirtyIndicator(dirty);
+		setContentType: function(contentType) {
+			this._contentType = contentType;
 		},
 		setInput: function(location) {
 			if (this._ignoreInput) { return; }
 			if (!location) {
-				location = window.location.hash;
+				location = PageUtil.hash();
 			}
 			if (typeof location !== "string") { //$NON-NLS-0$
 				return;
@@ -293,7 +357,7 @@ define([
 				if (oldResource !== newResource) {
 					if (this._autoSaveEnabled) {
 						this.save();
-					} else if (!window.confirm(messages["There are unsaved changes.  Do you still want to navigate away?"])) {
+					} else if (!window.confirm(messages.confirmUnsavedChanges)) {
 						window.location.hash = oldLocation;
 						return;
 					}
@@ -310,72 +374,120 @@ define([
 					this.processParameters(input);
 				} else {
 					this._input = fileURI;
+					this._readonly = false;
 					this._fileMetadata = null;
 					this.load();
 				}
 			} else {
-				this._setNoInput();
+				this._setNoInput(true);
 			}
 		},
-		_setNoInput: function() {
-			// No input, no editor.
-			this._input = this._title = this._contentType = null;
-			this.editor.uninstallTextView();
-			this.dispatchEvent({ type: "InputChanged", input: null }); //$NON-NLS-0$
-		},
-		_setInputContents: function(input, title, contents, metadata) {
-			var name;
-			if (metadata) {
-				this._fileMetadata = metadata;
-				this.setTitle(metadata.Location || String(metadata));
-				this._contentType = this.contentTypeService.getFileContentType(metadata);
-				name = metadata.Name;
-			} else {
-				// No metadata
-				this._fileMetadata = null;
-				this.setTitle(title);
-				this._contentType = this.contentTypeService.getFilenameContentType(this.getTitle());
-				name = this.getTitle();
-			}
-			var editor = this.getEditor();
-			if (!editor.getTextView()) {
-				editor.installTextView();
-				editor.getTextView().addEventListener("Focus", function(e) { //$NON-NLS-0$
-					// If there was an error while auto saving, auto save is temporarily disabled and
-					// we retry saving every time the editor gets focus
-					if (this._autoSaveEnabled && this._errorSaving) {
-						this.save();
-						return;
-					}
-					if (this._autoLoadEnabled) {
-						this.load();
-					}
-				}.bind(this));
-			}
-			// TODO could potentially dispatch separate events for metadata and contents changing
-			this.dispatchEvent({ type: "InputChanged", input: input, name: name, metadata: metadata, contents: contents }); //$NON-NLS-0$
-			var self = this;
-			this.syntaxHighlighter.setup(this._contentType, editor.getTextView(), editor.getAnnotationModel(), title, true).then(function() {
-				// TODO folding should be a preference.
-				var styler = self.syntaxHighlighter.getStyler();
-				editor.setFoldingEnabled(styler && styler.foldingEnabled);
-				self.dispatchEvent({ type: "ContentTypeChanged", contentType: self._contentType, location: window.location }); //$NON-NLS-0$
-				if (!self.dispatcher) {
-					self.dispatcher = new mDispatcher.Dispatcher(self.serviceRegistry, editor, self._contentType);
-				}
-				// Contents
-				editor.setInput(title, null, contents);
-				self.processParameters(input);
-			});
-			this.setDirty(false);
-		},
-		setTitle : function(title) {
+		setTitle: function(title) {
 			var indexOfSlash = title.lastIndexOf("/"); //$NON-NLS-0$
 			var shortTitle = title;
 			if (indexOfSlash !== -1) {
 				shortTitle = shortTitle.substring(indexOfSlash + 1);
 			}
 			this._title = shortTitle;
+		},
+		setSaveDiffsEnabled: function(enabled) {
+			this._saveDiffsEnabled = enabled;
+		},
+		_getSaveDiffsEnabled: function() {
+			return this._saveDiffsEnabled && this._acceptPatch !== null && this._acceptPatch.indexOf("application/json-patch") !== -1; //$NON-NLS-0$
+		},
+		_setNoInput: function(loadRoot) {
+			if (loadRoot) {
+				this.fileClient.loadWorkspace("").then(function(root) {
+					this._input = root.ChildrenLocation;
+					this._setInputContents(root.ChildrenLocation, null, root, root);
+				}.bind(this));
+				return;
+			}
+			// No input, no editor.
+			this._input = this._title = null;
+			this.setContentType(null);
+			this.editor.uninstall();
+			this.dispatchEvent({ type: "InputChanged", input: null }); //$NON-NLS-0$
+		},
+		_setInputContents: function(input, title, contents, metadata) {
+			var name, isDir = false;
+			if (metadata) {
+				this._fileMetadata = metadata;
+				this.setTitle(metadata.Location || String(metadata));
+				this.setContentType(this.contentTypeRegistry.getFileContentType(metadata));
+				name = metadata.Name;
+				isDir = metadata.Directory;
+			} else {
+				// No metadata
+				this._fileMetadata = null;
+				this.setTitle(title);
+				this.setContentType(this.contentTypeRegistry.getFilenameContentType(this.getTitle()));
+				name = this.getTitle();
+			}
+			var editor = this.getEditor();
+			if (isDir) {
+				editor.uninstall();
+			} else {
+				if (!editor.getTextView()) {
+					editor.install();
+					editor.getTextView().addEventListener("Focus", function(e) { //$NON-NLS-0$
+						// If there was an error while auto saving, auto save is temporarily disabled and
+						// we retry saving every time the editor gets focus
+						if (this._autoSaveEnabled && this._errorSaving) {
+							this.save();
+							return;
+						}
+						if (this._autoLoadEnabled) {
+							this.load();
+						}
+					}.bind(this));
+					editor.getModel().addEventListener("Changing", function(e) { //$NON-NLS-0$
+						if (!this._getSaveDiffsEnabled()) { return; }
+						var length = this._unsavedChanges.length;
+						var addedCharCount = e.addedCharCount;
+						var removedCharCount = e.removedCharCount;
+						var start = e.start;
+						var end = e.start + removedCharCount;
+						var type = 0;
+						if (addedCharCount === 0) {
+							type = -1;
+						} else if (removedCharCount === 0) {
+							type = 1;
+						}
+						if (length > 0) {
+							if (type === this.previousChangeType) {
+								var previousChange = this._unsavedChanges[length-1];
+								if (removedCharCount === 0 && start === previousChange.end + previousChange.text.length) {
+									previousChange.text += e.text;
+									return;
+								}
+								if (e.addedCharCount === 0 && end === previousChange.start) {
+									previousChange.start = start;
+									return;
+								}
+							}
+						}
+						this.previousChangeType = type;
+						this._unsavedChanges.push({start:start, end:end, text:e.text});
+					}.bind(this));
+				}
+			}
+			this.dispatchEvent({
+				type: "InputChanged", //$NON-NLS-0$
+				input: input,
+				name: name,
+				title: title,
+				contentType: this.getContentType(),
+				metadata: metadata,
+				location: window.location,
+				contents: contents
+			});
+			if (!isDir) {
+				editor.setInput(title, null, contents);
+				this._unsavedChanges = [];
+				this.processParameters(input);
+			}
 		}
 	});
 	return {

@@ -74,7 +74,7 @@ exports.ExplorerNavHandler = (function() {
 			parentDiv.focus();
 	    }
 	    var keyListener = function (e) { 
-			if(e.target !== parentDiv){
+			if(e.target !== parentDiv && e.currentTarget !== parentDiv ){
 				return;
 			}
 			if(self.explorer.preventDefaultFunc && self.explorer.preventDefaultFunc(e, self._modelIterator.cursor())){
@@ -118,6 +118,11 @@ exports.ExplorerNavHandler = (function() {
 	}
 	
 	ExplorerNavHandler.prototype = /** @lends orion.explorerNavHandler.ExplorerNavHandler.prototype */ {
+		
+		destroy: function() {
+			this._parentDiv.classList.remove("selectionModelContainer"); //$NON-NLS-0$
+			this.removeListeners();	
+		},
 		
 		_init: function(options){
 			this._linearGridMove = false;//temporary. If true right key on the last grid will go to first grid of next row
@@ -182,6 +187,13 @@ exports.ExplorerNavHandler = (function() {
 					}
 					if(that._selections.length > 0){
 						that.cursorOn(that._selections[0], true, false, noScroll);
+					} else {//If there is no selection, we should just the first item as the cursored items.  
+						that.cursorOn();
+					}
+					//If shift selection anchor exists and in the refreshed selection range, we just keep it otherwise clear the anchor
+					//See https://bugs.eclipse.org/bugs/show_bug.cgi?id=419170
+					if(!(that._shiftSelectionAnchor && that._inSelection(that._shiftSelectionAnchor) >= 0)){
+						that._shiftSelectionAnchor = null;
 					}
 				});
 			}
@@ -199,6 +211,8 @@ exports.ExplorerNavHandler = (function() {
 			}
 			this._modelIterator.setTree(this.topIterationNodes);
 			if(!noReset && this.explorer.selection){
+				//refresh the current cursor visual, otherwise the next cursorOn() call will not remove the previoous cursor visual properly.
+				this.toggleCursor(this._modelIterator.cursor(), false);
 				this._modelIterator.reset();
 			}
 			this.refreshSelection(true);
@@ -229,7 +243,21 @@ exports.ExplorerNavHandler = (function() {
 			//this._selections.splice(0, this._selections.length);
 		},
 		
-		setSelection: function(model, toggling){
+		getSelectionPolicy: function() {
+			return this._selectionPolicy;
+		},
+		
+		setSelectionPolicy: function(policy) {
+			if (this._selectionPolicy === policy) {
+				return;
+			}
+			this._selectionPolicy = policy;
+			if(this._selectionPolicy === "cursorOnly"){ //$NON-NLS-0$
+				this._clearSelection(true);
+			}
+		},
+		
+		setSelection: function(model, toggling, shiftSelectionAnchor){
 			if(this._selectionPolicy === "cursorOnly"){ //$NON-NLS-0$
 				if(toggling && this.explorer.renderer._useCheckboxSelection){
 					this._checkRow(model,true);
@@ -254,6 +282,9 @@ exports.ExplorerNavHandler = (function() {
 					this._selections.push(model);
 					this._lastSelection = model;
 				}
+			}
+			if(shiftSelectionAnchor){
+				this._shiftSelectionAnchor = this._lastSelection;
 			}
 			if (this.explorer.selection) {
 				this.explorer.renderer.storeSelections();
@@ -371,7 +402,6 @@ exports.ExplorerNavHandler = (function() {
 		},
 		
 		cursorOn: function(model, force, next, noScroll){
-			var forward = next === undefined ? false : next;
 			var previousModel, currentModel;
 			if(model || force){
 				if(currentModel === this._modelIterator.cursor()){
@@ -394,8 +424,33 @@ exports.ExplorerNavHandler = (function() {
 			this.moveColumn(null, 0);
 			this.toggleCursor(currentModel, true);
 			var currentRowDiv = this.getRowDiv();
-			if(currentRowDiv && !noScroll && !this._visible(currentRowDiv)) {
-				currentRowDiv.scrollIntoView(!forward);
+			if(currentRowDiv && !noScroll) {
+				var offsetParent = currentRowDiv.parentNode;
+				while (offsetParent) {
+					var style = window.getComputedStyle(offsetParent, null);
+					if (!style) { break; }
+					var overflow = style.getPropertyValue("overflow-y");
+					if (overflow === "hidden" || overflow === "auto" || overflow === "scroll") { break; }
+					offsetParent = offsetParent.parentNode;
+				}
+				if (!offsetParent) {
+					offsetParent = document.body;
+				}
+				var visible = true;
+				if(currentRowDiv.offsetTop <= offsetParent.scrollTop){
+					visible = false;
+					if(next === undefined){
+						next = false;
+					}
+				}else if((currentRowDiv.offsetTop + currentRowDiv.offsetHeight) >= (offsetParent.scrollTop + offsetParent.clientHeight)){
+					visible = false;
+					if(next === undefined){
+						next = true;
+					}
+				}
+				if(!visible){
+					currentRowDiv.scrollIntoView(!next);
+				}
 			}
 			if(this.explorer.onCursorChanged){
 				this.explorer.onCursorChanged(previousModel, currentModel);
@@ -431,7 +486,13 @@ exports.ExplorerNavHandler = (function() {
 			if(this._modelIterator.iterate(forward, forceExpand)){
 				this.cursorOn(null, false, forward);
 				if(selecting){
-					this.setSelection(this.currentModel(), true);
+					var previousModelInSelection = this._inSelection(this._modelIterator.prevCursor());
+					var currentModelInselection = this._inSelection(this._modelIterator.cursor());
+					if(previousModelInSelection >= 0 && currentModelInselection >= 0) {
+						this.setSelection(this._modelIterator.prevCursor(), true);
+					} else {
+						this.setSelection(this.currentModel(), true);
+					}
 				}
 			}
 		},
@@ -452,52 +513,6 @@ exports.ExplorerNavHandler = (function() {
 			}
 		},
 		
-		_vpWidth: function() {
-			return window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-		},
-		
-		_vpHeight: function(){
-			return window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-		},
-		
-		_getToolBarHeight: function(toolBarId){
-			var toolbar = lib.node(toolBarId);
-			if(toolbar){
-				var bounds = lib.bounds(toolbar);
-				return bounds.height;
-			}
-			return 0;
-		},
-		
-		_visible: function(rowDiv) {
-			if (rowDiv.offsetWidth === 0 || rowDiv.offsetHeight === 0) {
-				return false;
-			}
-			
-			var headerHeight = 0;
-			//TODO not so great to know about these ids here
-			headerHeight += this._getToolBarHeight("staticBanner"); //$NON-NLS-0$
-			headerHeight += this._getToolBarHeight("titleArea"); //$NON-NLS-0$
-			headerHeight += this._getToolBarHeight("pageToolbar"); //$NON-NLS-0$
-			
-		    var parentNode = this._getEventListeningDiv(true);
-			var parentRect = parentNode.getClientRects()[0];
-			var vPortRect = {top: headerHeight, left: 0, bottom : this._vpHeight(), right: this._vpWidth()};
-			
-			var vTop = parentRect.top >  vPortRect.top ? parentRect.top :  vPortRect.top;
-			var vBottom = parentRect.bottom <  vPortRect.bottom ? parentRect.bottom :  vPortRect.bottom;
-
-			var rects = rowDiv.getClientRects();
-			for (var i = 0, l = rects.length; i < l; i++) {
-				var r = rects[i];
-			    var in_viewport = (r.top >= vTop && r.top <= vBottom && r.bottom >= vTop && r.bottom <= vBottom);
-			    if (in_viewport ) {
-					return true;
-			    }
-			}
-			return false;
-		},
-			
 		_select: function(model, toggling){
 			if(!model){
 				model = this._modelIterator.cursor();
@@ -536,9 +551,9 @@ exports.ExplorerNavHandler = (function() {
 			if(isPad){
 				this.setSelection(model, true);
 			} else if(this._ctrlKeyOn(mouseEvt)){
-				this.setSelection(model, true);
-			} else if(mouseEvt.shiftKey && this._lastSelection){
-				var scannedSel = this._modelIterator.scan(this._lastSelection, model);
+				this.setSelection(model, true, true);
+			} else if(mouseEvt.shiftKey && this._shiftSelectionAnchor){
+				var scannedSel = this._modelIterator.scan(this._shiftSelectionAnchor, model);
 				if(scannedSel){
 					this._clearSelection(true);
 					for(var i = 0; i < scannedSel.length; i++){
@@ -546,7 +561,7 @@ exports.ExplorerNavHandler = (function() {
 					}
 				}
 			} else {
-				this.setSelection(model, false);
+				this.setSelection(model, false, true);
 			}
 		},
 		
@@ -561,7 +576,7 @@ exports.ExplorerNavHandler = (function() {
 		onUpArrow: function(e) {
 			this.iterate(false, false, e.shiftKey);
 			if(!this._ctrlKeyOn(e) && !e.shiftKey){
-				this.setSelection(this.currentModel(), false);
+				this.setSelection(this.currentModel(), false, true);
 			}
 			e.preventDefault();
 			return false;
@@ -572,7 +587,7 @@ exports.ExplorerNavHandler = (function() {
 		onDownArrow: function(e) {
 			this.iterate(true, false, e.shiftKey);
 			if(!this._ctrlKeyOn(e) && !e.shiftKey){
-				this.setSelection(this.currentModel(), false);
+				this.setSelection(this.currentModel(), false, true);
 			}
 			e.preventDefault();
 			return false;
@@ -612,7 +627,7 @@ exports.ExplorerNavHandler = (function() {
 			}
 			if(!this._modelIterator.topLevel(curModel)){
 				this.cursorOn(curModel.parent);
-				this.setSelection(curModel.parent, false);
+				this.setSelection(curModel.parent, false, true);
 			//The cursor is now on a top level item which is collapsed. We need to ask the explorer is it wants to scope up.	
 			} else if (this.explorer.scopeUp && typeof this.explorer.scopeUp === "function"){ //$NON-NLS-0$
 				this.explorer.scopeUp();
@@ -645,7 +660,7 @@ exports.ExplorerNavHandler = (function() {
 
 		//Space key toggles the check box on the current row if the renderer uses check box
 		onSpace: function(e) {
-			this.setSelection(this.currentModel(), true);
+			this.setSelection(this.currentModel(), true, true);
 			e.preventDefault();
 		},
 		

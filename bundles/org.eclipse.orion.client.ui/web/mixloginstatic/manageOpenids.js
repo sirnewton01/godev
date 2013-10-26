@@ -43,14 +43,24 @@ define(["orion/xhr", "orion/webui/littlelib", "domReady!"], function(xhr, lib) {
 	
 	loadAttachedOpenIds = function(userjsonData) {
 		jsonData = userjsonData;
+		var list = lib.node("openidList"); //$NON-NLS-0$
+		if (list.childNodes.length) {
+			/* there's already a table that is now to be replaced */
+			list.removeChild(list.childNodes[0]);
+		}
 		var table = document.createElement("table"); //$NON-NLS-0$
 		table.classList.add("manageOpenIdsTable"); //$NON-NLS-0$
-		lib.node("openidList").appendChild(table); //$NON-NLS-0$
+		list.appendChild(table); //$NON-NLS-0$
 		if (jsonData.properties && jsonData.properties.openid) {
 	
 			var openids = jsonData.properties.openid ? jsonData.properties.openid.split('\n') : []; //$NON-NLS-0$
-	
-			if (openids.length > 0) {
+			for (var i = openids.length - 1; i >= 0; i--) {
+				if (openids[i] === "") {
+					openids.splice(i, 1);
+				}
+			}
+
+			if (openids.length) {
 				var thead = document.createElement("thead"); //$NON-NLS-0$
 				thead.classList.add("navTableHeading"); //$NON-NLS-0$
 				table.appendChild(thead);
@@ -62,13 +72,9 @@ define(["orion/xhr", "orion/webui/littlelib", "domReady!"], function(xhr, lib) {
 				td.innerHTML = "<h2>External Id</h2>"; //$NON-NLS-0$
 				tr.appendChild(td);
 			}
-	
+
 			for (var i = 0; i < openids.length; i++) {
-	
 				var openid = openids[i];
-				if (openid === "") {
-					continue;
-				}
 				var tr = document.createElement("tr"); //$NON-NLS-0$
 				tr.classList.add(i % 2 === 0 ? "lightTreeTableRow" : "darkTreeTableRow");  //$NON-NLS-1$ //$NON-NLS-0$
 				tr.classList.add("manageOpenIdRow"); //$NON-NLS-0$

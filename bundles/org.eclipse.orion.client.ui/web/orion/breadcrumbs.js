@@ -19,7 +19,7 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
      * @param [options.rootSegmentName] The name to use for the root segment in lieu of the metadata name.
      * @param [options.workspaceRootSegmentName] The name to use for the workspace root. If not specified, the workspace root
      * will not be shown.
-     * @param {Function} [options.makeHref] The callback function to make the href on a bread crumb item. If not defined "/navigate/table.html#" is used.
+     * @param {Function} [options.makeHref] The callback function to make the href on a bread crumb item. If not defined "/edit/edit.html#" is used.
      * @param {Function} [option.getFirstSegment] The callback function to make DOM node for the first segment in breadcrumb. 
      * @class Bread crumbs show the current position within a resource tree and allow navigation
      * to different places in the tree. Unlike the fairy tale, bread crumbs typically don't lead
@@ -58,7 +58,7 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
                     if (this._makeHref) {
                         this._makeHref(seg, param );
                     } else {
-                        seg.href = require.toUrl("navigate/table.html") + "#" + param; //$NON-NLS-1$ //$NON-NLS-0$
+                        seg.href = require.toUrl("edit/edit.html") + "#" + param; //$NON-NLS-1$ //$NON-NLS-0$
                     }
                 } else {
                     seg = document.createElement('span'); //$NON-NLS-0$
@@ -86,7 +86,7 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
             if (this._makeHref) {
                 this._makeHref(seg, section.Location, section);
             } else {
-                seg.href = require.toUrl("navigate/table.html") + "#" + section.ChildrenLocation; //$NON-NLS-1$ //$NON-NLS-0$
+                seg.href = require.toUrl("edit/edit.html") + "#" + section.ChildrenLocation; //$NON-NLS-1$ //$NON-NLS-0$
             }
         },
 
@@ -239,6 +239,12 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
         },
 
         measure: function () {
+        
+        	var middleWidth = document.getElementById( 'location' );
+
+			middleWidth.style.width = 'auto';
+        
+        	this.MAX_LENGTH = middleWidth.offsetWidth;
 
             this.refresh();
             

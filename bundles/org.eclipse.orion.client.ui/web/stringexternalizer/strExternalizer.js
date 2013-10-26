@@ -13,12 +13,12 @@
 /*browser:true*/
 
 define(['require', 'orion/bootstrap', 'orion/status', 'orion/progress', 'orion/dialogs',
-	'orion/commandRegistry', 'orion/favorites', 'stringexternalizer/stringexternalizerconfig', 'orion/searchClient',
+	'orion/commandRegistry', 'stringexternalizer/stringexternalizerconfig', 'orion/searchClient',
 	'orion/fileClient', 'orion/operationsClient', 'stringexternalizer/strExternalizerResults', 'orion/globalCommands',
 	'orion/widgets/themes/ThemePreferences', 'orion/widgets/themes/editor/ThemeData',
 	'orion/contentTypes'],
 
-function(require, mBootstrap, mStatus, mProgress, mDialogs, mCommandRegistry, mFavorites, mStringExternalizerConfig,
+function(require, mBootstrap, mStatus, mProgress, mDialogs, mCommandRegistry, mStringExternalizerConfig,
 mSearchClient, mFileClient, mOperationsClient, mSearchResults, mGlobalCommands, mThemePreferences, mThemeData, mContentTypes) {
 
 
@@ -55,16 +55,12 @@ mSearchClient, mFileClient, mOperationsClient, mSearchResults, mGlobalCommands, 
 		new mStatus.StatusReportingService(serviceRegistry, operationsClient, "statusPane", "notifications", "notificationArea"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		var commandRegistry = new mCommandRegistry.CommandRegistry({ });
 		var progress = new mProgress.ProgressService(serviceRegistry, operationsClient, commandRegistry);
-		// Favorites
-		new mFavorites.FavoritesService({
-			serviceRegistry: serviceRegistry
-		});
 		
 		var themePreferences = new mThemePreferences.ThemePreferences(preferences, new mThemeData.ThemeData());
 		themePreferences.apply();
 
 		var fileClient = new mFileClient.FileClient(serviceRegistry);
-		new mContentTypes.ContentTypeService(serviceRegistry); //yes we're bad
+		new mContentTypes.ContentTypeRegistry(serviceRegistry); //yes we're bad
 		var searcher = new mSearchClient.Searcher({
 			serviceRegistry: serviceRegistry,
 			commandService: commandRegistry,
@@ -74,7 +70,13 @@ mSearchClient, mFileClient, mOperationsClient, mSearchResults, mGlobalCommands, 
 		mGlobalCommands.generateBanner("orion-externalizeResults", serviceRegistry, commandRegistry, preferences, searcher, searcher); //$NON-NLS-0$
 
 		var searchResultsGenerator = new mSearchResults.SearchResultsGenerator(serviceRegistry, "results", commandRegistry, fileClient); //$NON-NLS-0$
-		var configOutliner = new mStringExternalizerConfig.StringExternalizerConfig({commandService: commandRegistry}); //$NON-NLS-0$
+		var configOutliner = new mStringExternalizerConfig.StringExternalizerConfig({
+			commandService: commandRegistry,
+			fileClient: fileClient,
+			parent: "configContainer", //$NON-NLS-0$
+			serviceRegistry: serviceRegistry,
+			setConfig: searchResultsGenerator.setConfig.bind(searchResultsGenerator)
+		});
 		setPageInfo(fileClient, searcher, serviceRegistry, commandRegistry, configOutliner, progress);
 		searchResultsGenerator.loadResults(locationHash());
 		//every time the user manually changes the hash, we need to load the results with that name

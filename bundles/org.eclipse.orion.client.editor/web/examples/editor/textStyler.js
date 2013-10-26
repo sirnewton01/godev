@@ -1,11 +1,11 @@
 /*******************************************************************************
  * @license
  * Copyright (c) 2010, 2012 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
+ *
  * Contributors: IBM Corporation - initial API and implementation
  *               Alex Lakatos - fix for bug#369781
  ******************************************************************************/
@@ -38,10 +38,10 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 	var HTML_MARKUP = 12;
 	var DOC_TAG = 13;
 	var TASK_TAG = 14;
-	
+
 	var BRACKETS = "{}()[]<>"; //$NON-NLS-0$
 
-	// Styles 
+	// Styles
 	var singleCommentStyle = {styleClass: "token_singleline_comment"}; //$NON-NLS-0$
 	var multiCommentStyle = {styleClass: "token_multiline_comment"}; //$NON-NLS-0$
 	var docCommentStyle = {styleClass: "token_doc_comment"}; //$NON-NLS-0$
@@ -51,16 +51,16 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 	var stringStyle = {styleClass: "token_string"}; //$NON-NLS-0$
 	var numberStyle = {styleClass: "token_number"}; //$NON-NLS-0$
 	var keywordStyle = {styleClass: "token_keyword"}; //$NON-NLS-0$
-	var spaceStyle = {styleClass: "token_space"}; //$NON-NLS-0$
-	var tabStyle = {styleClass: "token_tab"}; //$NON-NLS-0$
+	var spaceStyle = {styleClass: "token_space", unmergeable: true}; //$NON-NLS-0$
+	var tabStyle = {styleClass: "token_tab", unmergeable: true}; //$NON-NLS-0$
 	var caretLineStyle = {styleClass: "line_caret"}; //$NON-NLS-0$
-	
+
 	function Scanner (keywords, whitespacesVisible) {
 		this.keywords = keywords;
 		this.whitespacesVisible = whitespacesVisible;
 		this.setText("");
 	}
-	
+
 	Scanner.prototype = {
 		getOffset: function() {
 			return this.offset;
@@ -165,7 +165,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 								}
 							}
 						}
-						if (c === 42) { // STAR -> multi line 
+						if (c === 42) { // STAR -> multi line
 							c = this._read();
 							var token = MULTILINE_COMMENT;
 							if (c === 42) {
@@ -254,7 +254,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 			this.startOffset = 0;
 		}
 	};
-	
+
 	function WhitespaceScanner () {
 		Scanner.call(this, null, true);
 	}
@@ -278,7 +278,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 			}
 		}
 	};
-	
+
 	function CommentScanner (whitespacesVisible) {
 		Scanner.call(this, null, whitespacesVisible);
 	}
@@ -350,7 +350,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 			}
 		}
 	};
-	
+
 	function FirstScanner () {
 		Scanner.call(this, null, false);
 	}
@@ -368,7 +368,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 			}
 		}
 	};
-	
+
 	function TextStyler (view, lang, annotationModel) {
 		this.commentStart = "/*"; //$NON-NLS-0$
 		this.commentEnd = "*/"; //$NON-NLS-0$
@@ -378,7 +378,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 			case "js": keywords = JS_KEYWORDS; break; //$NON-NLS-0$
 			case "css": keywords = CSS_KEYWORDS; break; //$NON-NLS-0$
 		}
-		this.whitespacesVisible = false;
+		this.whitespacesVisible = this.spacesVisible = this.tabsVisible = false;
 		this.detectHyperlinks = true;
 		this.highlightCaretLine = false;
 		this.foldingEnabled = true;
@@ -394,8 +394,8 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 		}
 		this.view = view;
 		this.annotationModel = annotationModel;
-		this._bracketAnnotations = undefined; 
-		
+		this._bracketAnnotations = undefined;
+
 		var self = this;
 		this._listener = {
 			onChanged: function(e) {
@@ -427,7 +427,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 		this._computeFolding();
 		view.redrawLines();
 	}
-	
+
 	TextStyler.prototype = {
 		destroy: function() {
 			var view = this.view;
@@ -447,10 +447,26 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 		setHighlightCaretLine: function(highlight) {
 			this.highlightCaretLine = highlight;
 		},
-		setWhitespacesVisible: function(visible) {
+		setWhitespacesVisible: function(visible, redraw) {
+			if (this.whitespacesVisible === visible) { return; }
 			this.whitespacesVisible = visible;
 			this._scanner.whitespacesVisible = visible;
 			this._commentScanner.whitespacesVisible = visible;
+			if (redraw) {
+				this.view.redraw();
+			}
+		},
+		setTabsVisible: function(visible) {
+			if (this.tabsVisible === visible) { return; }
+			this.tabsVisible = visible;
+			this.setWhitespacesVisible(this.tabsVisible || this.spacesVisible, false);
+			this.view.redraw();
+		},
+		setSpacesVisible: function(visible) {
+			if (this.spacesVisible === visible) { return; }
+			this.spacesVisible = visible;
+			this.setWhitespacesVisible(this.tabsVisible || this.spacesVisible, false);
+			this.view.redraw();
 		},
 		setDetectHyperlinks: function(enabled) {
 			this.detectHyperlinks = enabled;
@@ -497,7 +513,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 			for (var i=0; i<comments.length; i++) {
 				var comment = comments[i];
 				var annotation = this._createFoldingAnnotation(viewModel, baseModel, comment.start, comment.end);
-				if (annotation) { 
+				if (annotation) {
 					add.push(annotation);
 				}
 			}
@@ -559,9 +575,9 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 				start = model.mapOffset(start);
 			}
 			var end = start + text.length;
-			
+
 			var styles = [];
-			
+
 			// for any sub range that is not a comment, parse code generating tokens (keywords, numbers, brackets, line comments, etc)
 			var offset = start, comments = this.comments;
 			var startIndex = this._binarySearch(comments, start, true);
@@ -620,22 +636,22 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 							style = stringStyle;
 						}
 						break;
-					case DOC_COMMENT: 
+					case DOC_COMMENT:
 						this._parseComment(scanner.getData(), tokenStart, styles, docCommentStyle, token);
 						continue;
 					case SINGLELINE_COMMENT:
 						this._parseComment(scanner.getData(), tokenStart, styles, singleCommentStyle, token);
 						continue;
-					case MULTILINE_COMMENT: 
+					case MULTILINE_COMMENT:
 						this._parseComment(scanner.getData(), tokenStart, styles, multiCommentStyle, token);
 						continue;
 					case WHITE_TAB:
-						if (this.whitespacesVisible) {
+						if (this.whitespacesVisible && this.tabsVisible) {
 							style = tabStyle;
 						}
 						break;
 					case WHITE_SPACE:
-						if (this.whitespacesVisible) {
+						if (this.whitespacesVisible && this.spacesVisible) {
 							style = spaceStyle;
 						}
 						break;
@@ -653,12 +669,12 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 				var style = s;
 				switch (token) {
 					case WHITE_TAB:
-						if (this.whitespacesVisible) {
+						if (this.whitespacesVisible && this.tabsVisible) {
 							style = tabStyle;
 						}
 						break;
 					case WHITE_SPACE:
-						if (this.whitespacesVisible) {
+						if (this.whitespacesVisible && this.spacesVisible) {
 							style = spaceStyle;
 						}
 						break;
@@ -690,12 +706,12 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 				var style = s;
 				switch (token) {
 					case WHITE_TAB:
-						if (this.whitespacesVisible) {
+						if (this.whitespacesVisible && this.tabsVisible) {
 							style = tabStyle;
 						}
 						break;
 					case WHITE_SPACE:
-						if (this.whitespacesVisible) {
+						if (this.whitespacesVisible && this.spacesVisible) {
 							style = spaceStyle;
 						}
 						break;
@@ -772,7 +788,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 				}
 			}
 			return result;
-		}, 
+		},
 		_findMatchingBracket: function(model, offset) {
 			var brackets = BRACKETS;
 			var bracket = model.getText(offset, offset + 1);
@@ -953,7 +969,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 					if (offset > mapBracket) {
 						offset--;
 						mapBracket++;
-					}	
+					}
 					view.setSelection(mapBracket, offset);
 				}
 			}
@@ -972,7 +988,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 			var lineStart = baseModel.getLineStart(baseModel.getLineAtOffset(start));
 			var commentStart = this._binarySearch(this.comments, lineStart, true);
 			var commentEnd = this._binarySearch(this.comments, end, false, commentStart - 1, commentCount);
-			
+
 			var ts;
 			if (commentStart < commentCount && this.comments[commentStart].start <= lineStart && lineStart < this.comments[commentStart].end) {
 				ts = this.comments[commentStart].start;
@@ -1008,7 +1024,7 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 					if (comment.start !== newComment.start || comment.end !== newComment.end || comment.type !== newComment.type) {
 						redraw = true;
 						break;
-					} 
+					}
 				}
 			}
 			var args = [commentStart, commentEnd - commentStart].concat(newComments);
@@ -1083,6 +1099,6 @@ define("examples/editor/textStyler", [ //$NON-NLS-0$
 			}
 		}
 	};
-	
+
 	return {TextStyler: TextStyler};
 });

@@ -12,7 +12,7 @@
 /*global window define orion URL*/
 /*browser:true*/
 
-define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "orion/contentTypes", "orion/URITemplate", "orion/i18nUtil", "orion/URL-shim", "orion/PageLinks"],
+define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/contentTypes", "orion/URITemplate", "orion/i18nUtil", "orion/URL-shim", "orion/PageLinks"],
 	function(require, Deferred, mCommands, mRegex, mContentTypes, URITemplate, i18nUtil, _, PageLinks){
 
 	/**
@@ -58,7 +58,8 @@ define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "or
 					name: serviceRef.getProperty("name"), //$NON-NLS-0$
 					nameKey: serviceRef.getProperty("nameKey"), //$NON-NLS-0$
 					nls: serviceRef.getProperty("nls"), //$NON-NLS-0$
-					uriTemplate: serviceRef.getProperty("orionTemplate") || serviceRef.getProperty("uriTemplate") //$NON-NLS-1$ //$NON-NLS-0$
+					uriTemplate: serviceRef.getProperty("orionTemplate") || serviceRef.getProperty("uriTemplate"), //$NON-NLS-1$ //$NON-NLS-0$
+					validationProperties: serviceRef.getProperty("validationProperties") || [] //$NON-NLS-0$
 				});
 			}
 			return editors;
@@ -106,7 +107,8 @@ define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "or
 					uriTemplate: editor.uriTemplate,
 					nls: editor.nls,
 					forceSingleItem: true,
-					isEditor: (isDefaultEditor ? "default": "editor") // Distinguishes from a normal fileCommand //$NON-NLS-1$ //$NON-NLS-0$
+					isEditor: (isDefaultEditor ? "default": "editor"), // Distinguishes from a normal fileCommand //$NON-NLS-1$ //$NON-NLS-0$
+					validationProperties: editor.validationProperties
 				};
 				fileCommands.push({properties: properties, service: {}});
 			}
@@ -187,7 +189,21 @@ define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "or
 		function matchSinglePattern(item, propertyName, validationProperty, validator){
 			var value = validationProperty.match;
 			var key, keyLastSegments;
-			if (propertyName.indexOf("|") >= 0) { //$NON-NLS-0$
+			if (propertyName.indexOf("[") === 0) { //$NON-NLS-0$
+				if(propertyName.indexOf("]")<0){
+					return false;
+				}
+				if(!Array.isArray(item)){
+					return false;
+				}
+				key = propertyName.replace("[", "").replace("]", "");
+				for(var i=0; i<item.length; i++){
+					if (matchSinglePattern(item[i], key, validationProperty, validator)) {
+						return true;
+					}
+				}
+				
+			} else if (propertyName.indexOf("|") >= 0) { //$NON-NLS-0$
 				// the pipe means that any one of the piped properties can match
 				key = propertyName.substring(0, propertyName.indexOf("|")); //$NON-NLS-0$
 				keyLastSegments = propertyName.substring(propertyName.indexOf("|")+1); //$NON-NLS-0$
@@ -282,7 +298,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "or
 				var variableExpansions = {};
 				// we need the properties of the item
 				for (var property in item){
-					if(item.hasOwnProperty(property)){
+					if(Object.prototype.hasOwnProperty.call(item, property)){
 						variableExpansions[property] = item[property];
 					}
 				}
@@ -307,7 +323,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "or
 				// special properties.  Should already be in metadata.  See bug https://bugs.eclipse.org/bugs/show_bug.cgi?id=373450
 				variableExpansions.OrionHome = orionHome;
 				var uriTemplate = new URITemplate(this.info.uriTemplate);
-				return window.decodeURIComponent(uriTemplate.expand(variableExpansions));
+				return uriTemplate.expand(variableExpansions);
 			} 
 			return null;
 		};
@@ -426,6 +442,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "or
 	 * @param {Number} position
 	 * @param {String} commandGroup
 	 * @param {Boolean} isNavigator
+	 * @param {Function} visibleWhen
 	 * @returns {orion.Promise}
 	 */
 	extensionCommandUtils.createAndPlaceFileCommandsExtension = function(serviceRegistry, commandService, toolbarId, position, commandGroup, isNavigator) {
@@ -461,7 +478,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "or
 	 * @name orion.extensionCommands.createFileCommands
 	 * @function
 	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry
-	 * @param {orion.core.ContentTypeService} [contentTypeRegistry] If not provided, will be obtained from the serviceRegistry.
+	 * @param {orion.core.ContentTypeRegistry} [contentTypeRegistry] If not provided, will be obtained from the serviceRegistry.
 	 * @param {String} [includeNavCommands="global"] What kinds of <code>orion.navigate.command</code> contributions to include in the list of returned file commands.
 	 * Allowed values are:
 	 * <dl>
@@ -525,7 +542,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "or
 		}
 
 		function getContentTypes() {
-			var contentTypes = serviceRegistry.getService("orion.core.contenttypes") || contentTypeRegistry;
+			var contentTypes = serviceRegistry.getService("orion.core.contentTypeRegistry") || contentTypeRegistry;
 			return contentTypesCache || Deferred.when(contentTypes.getContentTypes(), function(ct) { //$NON-NLS-0$
 				contentTypesCache = ct;
 				return contentTypesCache;
@@ -563,7 +580,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/editor/regex", "or
 	 * @function
 	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry
 	 * @param {orion.commandregistry.CommandRegistry} [commandRegistry]
-	 * @param {orion.core.ContentTypeService} [contentTypeRegistry] If not provided, will be obtained from the serviceRegistry.
+	 * @param {orion.core.ContentTypeRegistry} [contentTypeRegistry] If not provided, will be obtained from the serviceRegistry.
 	 * @returns {orion.Promise} A promise resolving to an {@link orion.commands.Command[]} giving an array of file commands.
 	 */
 	extensionCommandUtils.createOpenWithCommands = function(serviceRegistry, contentTypeService, commandRegistry) {

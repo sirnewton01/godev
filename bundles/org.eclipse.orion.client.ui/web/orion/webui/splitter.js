@@ -1,43 +1,57 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
+ * Copyright (c) 2012, 2013 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
+ *
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 /*global window define document localStorage */
 
-define(['require', 'orion/webui/littlelib'], function(require, lib) {
+define([
+	'require',
+	'orion/EventTarget',
+	'orion/webui/littlelib'
+], function(require, EventTarget, lib) {
 
-	var MIN_SIDE_NODE_WIDTH = 5;//The minimium width/height of the splitted nodes by the splitter	
+	var MIN_SIDE_NODE_WIDTH = 5;//The minimium width/height of the splitted nodes by the splitter
+
 	/**
-	 * Constructs a new Splitter with the given options.  A splitter manages the layout
-	 * of two panels, a side panel and a main panel.  An optional toggle button can open or close the 
+	 * @name orion.webui.Splitter
+	 * @class A splitter manages the layout of two panels, a side panel and a main panel.
+	 * @description Constructs a new Splitter with the given options.  A splitter manages the layout
+	 * of two panels, a side panel and a main panel.  An optional toggle button can open or close the
 	 * side panel.
 	 *
-	 * The relative proportions of the side and main panels are determined by the position of the splitter bar
-	 * in the document.  The panels will pin themselves to the splitter by default.  Once the user moves
-	 * the splitter, the positions are remembered.
+	 * <p>The relative proportions of the side and main panels are determined by the initial style of
+	 * the splitter bar in the document. The panels will pin themselves to the splitter by default.
+	 * Once the user moves the splitter, the positions are remembered.</p>
+	 *
+	 * <p>By default, a splitter is open. The client can create a closed splitter by setting a 
+	 * <code>data-initial-state</code> attribute with value <code>"closed"</code> on the 
+	 * splitter's <code>node</code> element.</p>
 	 *
 	 * @param {Object} options The options object which must specify the split dom node
-	 * @param options.node The node for the splitter presentation.  Required.
-	 * @param options.sidePanel The node for the side (toggling) panel.  Required.
-	 * @param options.mainPanel The node for the main panel.  Required.
-	 * @param options.toggle Specifies that the side node should be able to toggle.  Optional.
-	 * @param options.vertical Specifies that the nodes are stacked vertically rather than horizontal.
-	 * @name orion.splitter.Splitter
+	 * @param {Element} options.node The node for the splitter presentation.  Required.
+	 * @param {Element} options.sidePanel The node for the side (toggling) panel.  Required.
+	 * @param {Element} options.mainPanel The node for the main panel.  Required.
+	 * @param {Boolean} [options.toggle=false] Specifies that the side node should be able to toggle.
+	 * @param {Boolean} [options.vertical=false] Specifies that the nodes are stacked vertically rather than horizontal.
+	 *
+	 * @borrows orion.editor.EventTarget#addEventListener as #addEventListener
+	 * @borrows orion.editor.EventTarget#removeEventListener as #removeEventListener
+	 * @borrows orion.editor.EventTarget#dispatchEvent as #dispatchEvent
 	 */
 	function Splitter(options) {
-		this._init(options);		
+		EventTarget.attach(this);
+		this._init(options);
 	}
-	Splitter.prototype = /** @lends orion.splitter.Splitter.prototype */ {
-			
+	Splitter.prototype = /** @lends orion.webui.Splitter.prototype */ {
+
 		_init: function(options) {
 			this._tracking = null;
-			this._resizeListeners = [];
 			this._animationDelay = 501;  // longer than CSS transitions in layout.css
 			this.$node = lib.node(options.node);
 			if (!this.$node) { throw "no dom node for splitter found"; } //$NON-NLS-0$
@@ -51,77 +65,100 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 				this._thumb = document.createElement("div"); //$NON-NLS-0$
 				this.$node.appendChild(this._thumb);
 				this._thumb.classList.add("splitThumb"); //$NON-NLS-0$
-				this._thumb.classList.add("splitThumbLayout"); //$NON-NLS-0$
+				this._thumb.classList.add(this._vertical ? "splitVerticalThumbLayout" : "splitThumbLayout"); //$NON-NLS-1$ //$NON-NLS-0$
 			}
-			this._closeByDefault = options.closeByDefault;
+			this._closeByDefault = this.$node.getAttribute("data-initial-state") === "closed"; //$NON-NLS-1$ //$NON-NLS-0$
+			if (typeof options.closeByDefault !== "undefined") { //$NON-NLS-0$
+				this._closeByDefault = options.closeByDefault; // param overrides page's initial-state
+			}
 			this._initializeFromStoredSettings();
-			
+
 			if (this._closed) {
-				this._closed = false;  // _thumbDown will toggle it, so turn it off and then call _thumbDown.
-				this._thumbDown();
+				this._closed = false;        // _thumbDown will toggle it, so turn it off and then call _thumbDown.
+				this._thumbDown(true, true); // do not animate. do not persist the initial state
 			} else {
 				this._adjustToSplitPosition();
 			}
-			this.$node.style.visibility = "visible"; //$NON-NLS-0$ 
-			this.$mainNode.style.display = "block"; //$NON-NLS-0$ 
-			this.$sideNode.style.display = "block"; //$NON-NLS-0$ 
+			this.$node.style.visibility = "visible"; //$NON-NLS-0$
+			this.$mainNode.style.display = "block"; //$NON-NLS-0$
+			this.$sideNode.style.display = "block"; //$NON-NLS-0$
 			this.$node.addEventListener("mousedown", this._mouseDown.bind(this), false); //$NON-NLS-0$
 			window.addEventListener("mouseup", this._mouseUp.bind(this), false); //$NON-NLS-0$
 			window.addEventListener("resize", this._resize.bind(this), false);  //$NON-NLS-0$
 		},
+		isClosed: function() {
+			return this._closed;
+		},
 		/**
 		 * Toggle the open/closed state of the side panel.
-		 */			
+		 */
 		toggleSidePanel: function() {
-			this._thumbDown();		
+			this._thumbDown();
 		},
-		
+
 		/**
 		 * Close the side panel.  This function has no effect if the side panel is already closed.
 		 */
-		 openSidePanel: function() {
+		openSidePanel: function() {
 			if (!this._closed) {
 				this._thumbDown();
 			}
-		 },
-		 /**
+		},
+		/**
 		 * Adds an event listener for resizing the main and side panels.
 		 * @param {Function} listener The function called when a resize occurs.  The DOM node that has
 		 * been resized is passed as an argument.
+		 *
+		 * @deprecated use addEventListener instead
 		 */
-		 addResizeListener: function(listener) {
-			this._resizeListeners.push(listener);
-		 },
-		 
-		 /* We use local storage vs. prefs because we don't presume the user wants the same window
-		    positioning across browsers and devices.
-		  */
-		 _initializeFromStoredSettings: function() {
-			var closedState = localStorage.getItem(this._prefix+"/toggleState");
-			if(!closedState){
-				this._closed = (this._closeByDefault ? true: false);
+		addResizeListener: function(listener) {
+			this.addEventListener("resize", function(event) { //$NON-NLS-0$
+				listener(event.node);
+			});
+		},
+
+		/*
+		 * We use local storage vs. prefs because we don't presume the user wants the same window positioning across browsers and devices.
+		 */
+		_initializeFromStoredSettings: function() {
+			var closedState = localStorage.getItem(this._prefix+"/toggleState"); //$NON-NLS-0$
+			if (typeof closedState === "string") { //$NON-NLS-0$
+				this._closed = closedState === "closed"; //$NON-NLS-0$
 			} else {
-				this._closed = closedState === "closed";  //$NON-NLS-1$ //$NON-NLS-0$
+				this._closed = this._closeByDefault;
 			}
+
 			var pos;
 			if (this._vertical) {
 				pos = localStorage.getItem(this._prefix+"/yPosition"); //$NON-NLS-0$
 				if (pos) {
 					this._splitTop = parseInt(pos, 10);
-				} else if (this._closeByDefault ) {
-					this._splitTop = 150;
+				} else if (this._closeByDefault) {
+					this._initialSplit = this._getSplitPosition();
+					this._splitTop = 0;
 				}
 			} else {
 				pos = localStorage.getItem(this._prefix+"/xPosition"); //$NON-NLS-0$
 				if (pos) {
 					this._splitLeft = parseInt(pos, 10);
-				} else if (this._closeByDefault ) {
-					this._splitLeft = 150;
+				} else if (this._closeByDefault) {
+					this._initialSplit = this._getSplitPosition();
+					this._splitLeft = 0;
 				}
 			}
-			
-		 },
-		 
+		},
+
+		// Gets the current splitter position from the style
+		_getSplitPosition: function() {
+			var rect = lib.bounds(this.$node);
+			var parentRect = lib.bounds(this.$node.parentNode);
+			if (this.vertical) {
+				return rect.top - parentRect.top;
+			} else {
+				return rect.left - parentRect.left;
+			}
+		},
+
 		_adjustToSplitPosition: function(updateStorage) {
 			var rect = lib.bounds(this.$node);
 			var parentRect = lib.bounds(this.$node.parentNode);
@@ -132,13 +169,12 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 					localStorage.setItem(this._prefix+"/yPosition", this._splitTop);  //$NON-NLS-1$ //$NON-NLS-0$
 				}
 				var top = this._splitTop;
-				if (this.$node.parentNode.style.position === "relative") { //$NON-NLS-0$		
+				if (this.$node.parentNode.style.position === "relative") { //$NON-NLS-0$
 					top = this._splitTop - parentRect.top;
 				}
 				this.$sideNode.style.height = top + "px"; //$NON-NLS-0$
-				this.$sideNode.style.bottom = top - 1 +"px"; //$NON-NLS-0$
-				this.$sideNode.style.display = "block"; //$NON-NLS-0$ 
-				this.$node.style.top = top + "px"; //$NON-NLS-0$ 
+				this.$sideNode.style.display = "block"; //$NON-NLS-0$
+				this.$node.style.top = top + "px"; //$NON-NLS-0$
 				this._resize();
 			} else {
 				this._splitWidth = rect.width;
@@ -147,92 +183,109 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 					localStorage.setItem(this._prefix+"/xPosition", this._splitLeft);  //$NON-NLS-1$ //$NON-NLS-0$
 				}
 				var left = this._splitLeft;
-				if (this.$node.parentNode.style.position === "relative") { //$NON-NLS-0$		
+				if (this.$node.parentNode.style.position === "relative") { //$NON-NLS-0$
 					left = this._splitLeft - parentRect.left;
 				}
 				this.$sideNode.style.width = left + "px"; //$NON-NLS-0$
-				this.$sideNode.style.right = left - 1 +"px"; //$NON-NLS-0$
-				this.$sideNode.style.display = "block"; //$NON-NLS-0$ 
-				this.$node.style.left = left + "px"; //$NON-NLS-0$ 
+				this.$sideNode.style.display = "block"; //$NON-NLS-0$
+				this.$node.style.left = left + "px"; //$NON-NLS-0$
 				this._resize();
 			}
 		},
-		
-		_resize: function(animationDelay) {
+
+		_resize: function(animationDelay, left, top) {
 			animationDelay = animationDelay || 0;
 			var parentRect = lib.bounds(this.$node.parentNode);
 			var rect = lib.bounds(this.$node);
 			if (this._vertical) {
-				this.$mainNode.style.height = (parentRect.height - (rect.top - parentRect.top + rect.height)) + "px"; //$NON-NLS-0$ 
+				if (top === undefined) {
+					top = rect.top;
+					if (this.$node.parentNode.style.position === "relative") { //$NON-NLS-0$
+						top -= parentRect.top;
+					}
+				}
+				top += rect.height;
+				this.$mainNode.style.top = top + "px"; //$NON-NLS-0$
 			} else {
-				this.$mainNode.style.width = (parentRect.width - (rect.left - parentRect.left + rect.width)) +"px"; //$NON-NLS-0$ 
+				if (left === undefined) {
+					left = rect.left;
+					if (this.$node.parentNode.style.position === "relative") { //$NON-NLS-0$
+						left -= parentRect.left;
+					}
+				}
+				left += rect.width;
+				this.$mainNode.style.left = left + "px"; //$NON-NLS-0$
 			}
 			var self = this;
-			window.setTimeout(function() { self._notifyResizeListeners(self.$mainNode); }, animationDelay);
-			window.setTimeout(function() { self._notifyResizeListeners(self.$sideNode); }, animationDelay);
-
+			window.setTimeout(function() {
+				self._notifyResizeListeners(self.$mainNode);
+				self._notifyResizeListeners(self.$sideNode);
+			}, animationDelay);
 		},
-		
+
 		_notifyResizeListeners: function(node) {
-			for (var i = 0; i <this._resizeListeners.length; i++) {
-				this._resizeListeners[i](node);
+			this.dispatchEvent({type: "resize", node: node}); //$NON-NLS-0$
+		},
+
+		_notifyToggleListeners: function() {
+			this.dispatchEvent({type: "toggle", closed: this._closed}); //$NON-NLS-0$
+		},
+
+		_thumbDown: function(noAnimation, noUpdateStorage) {
+			if (!noAnimation) {
+				this._addAnimation();
 			}
-		}, 
-		
-		_thumbDown: function() {
+			var top = this._splitTop, left = this._splitLeft;
 			if (this._closed) {
 				this._closed = false;
-				this._addAnimation();
-				if (this._vertical) {
-					this.$sideNode.style.height = this._splitTop+"px"; //$NON-NLS-0$ 
-					this.$node.style.top = this._splitTop+"px"; //$NON-NLS-0$
-				} else {
-					this.$sideNode.style.width = this._splitLeft+"px"; //$NON-NLS-0$ 
-					this.$node.style.left = this._splitLeft+"px"; //$NON-NLS-0$
+				// Expanding: restore initial size from style if present
+				if (!this._splitLeft && !this._splitTop && typeof this._initialSplit === "number") { //$NON-NLS-0$
+					top = left = this._initialSplit;
 				}
-				this._resize(this._animationDelay);
-				this._removeAnimation();
 			} else {
 				this._closed = true;
-				this._addAnimation();
-				if (this._vertical) {
-					this.$sideNode.style.top = 0;
-					this.$node.style.top = "1px"; //$NON-NLS-0$ 
-				} else {
-					this.$sideNode.style.width = 0;
-					this.$node.style.left = "1px"; //$NON-NLS-0$ 
-				}
-				this._resize(this._animationDelay);
+				top = left = 0;
+			}
+			if (this._vertical) {
+				this.$sideNode.style.height = top+"px"; //$NON-NLS-0$
+				this.$node.style.top = top+"px"; //$NON-NLS-0$
+			} else {
+				this.$sideNode.style.width = left+"px"; //$NON-NLS-0$
+				this.$node.style.left = left+"px"; //$NON-NLS-0$
+			}
+			this._resize(this._animationDelay, left, top);
+			if (!noAnimation) {
 				this._removeAnimation();
 			}
-			localStorage.setItem(this._prefix+"/toggleState", this._closed ? "closed" : null);  //$NON-NLS-1$  //$NON-NLS-0$
-
+			if (!noUpdateStorage) {
+				localStorage.setItem(this._prefix+"/toggleState", this._closed ? "closed" : null);  //$NON-NLS-1$  //$NON-NLS-0$
+			}
+			var self = this;
+			window.setTimeout(function() {
+				self._notifyToggleListeners();
+			}, this._animationDelay);
 		},
-		
+
 		_removeAnimation: function() {
 			// in a timeout to ensure the animations are complete.
 			var self = this;
 			window.setTimeout(function() {
-				self.$sideNode.classList.remove("sidePanelLayoutAnimation"); //$NON-NLS-0$ 
-				self.$mainNode.classList.remove("mainPanelLayoutAnimation"); //$NON-NLS-0$ 
-				self.$node.classList.remove("splitLayoutAnimation"); //$NON-NLS-0$ 
-				self._thumb.classList.remove("splitLayoutAnimation"); //$NON-NLS-0$ 
+				self.$sideNode.classList.remove(self._vertical ? "sidePanelVerticalLayoutAnimation" : "sidePanelLayoutAnimation"); //$NON-NLS-1$ //$NON-NLS-0$
+				self.$mainNode.classList.remove(self._vertical ? "mainPanelVerticalLayoutAnimation" : "mainPanelLayoutAnimation"); //$NON-NLS-1$ //$NON-NLS-0$
+				self.$node.classList.remove(self._vertical ? "splitVerticalLayoutAnimation" : "splitLayoutAnimation"); //$NON-NLS-1$ //$NON-NLS-0$
 			}, this._animationDelay);
 		},
-		
+
 		_addAnimation: function() {
-			this.$sideNode.classList.add("sidePanelLayoutAnimation"); //$NON-NLS-0$ 
-			this.$mainNode.classList.add("mainPanelLayoutAnimation"); //$NON-NLS-0$ 
-			this.$node.classList.add("splitLayoutAnimation"); //$NON-NLS-0$ 
-			if (this._thumb) {
-				this._thumb.classList.add("splitLayoutAnimation"); //$NON-NLS-0$ 
-			}
+			this.$sideNode.classList.add(this._vertical ? "sidePanelVerticalLayoutAnimation" : "sidePanelLayoutAnimation"); //$NON-NLS-1$ //$NON-NLS-0$
+			this.$mainNode.classList.add(this._vertical ? "mainPanelVerticalLayoutAnimation" : "mainPanelLayoutAnimation"); //$NON-NLS-1$ //$NON-NLS-0$
+			this.$node.classList.add(this._vertical ? "splitVerticalLayoutAnimation" : "splitLayoutAnimation"); //$NON-NLS-1$ //$NON-NLS-0$
 		},
-		
+
 		_mouseDown: function(event) {
 			if (event.target === this._thumb) {
 				lib.stop(event);
-				return this._thumbDown(event);
+				return this._thumbDown();
 			}
 			if (this._tracking) {
 				return;
@@ -244,12 +297,12 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 			window.addEventListener("mousemove", this._tracking); //$NON-NLS-0$
 			lib.stop(event);
 		},
-		
+
 		_mouseMove: function(event) {
 			if (this._tracking) {
 				var parentRect = lib.bounds(this.$node.parentNode);
 				if (this._vertical) {
-					this._splitTop = event.clientY;	
+					this._splitTop = event.clientY;
 					if(this._splitTop < parentRect.top + MIN_SIDE_NODE_WIDTH) {//If the top side of the splitted node is shorter than the min size
 						this._splitTop = parentRect.top + MIN_SIDE_NODE_WIDTH;
 					} else if(this._splitTop > parentRect.top + parentRect.height - MIN_SIDE_NODE_WIDTH) {//If the bottom side of the splitted node is shorter than the min size
@@ -259,7 +312,7 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 					if (this.$node.parentNode.style.position === "relative") { //$NON-NLS-0$
 						top = this._splitTop - parentRect.top;
 					}
-					this.$node.style.top = top + "px"; //$NON-NLS-0$ 
+					this.$node.style.top = top + "px"; //$NON-NLS-0$
 				} else {
 					this._splitLeft = event.clientX;
 					if(this._splitLeft < parentRect.left + MIN_SIDE_NODE_WIDTH) {//If the left side of the splitted node is narrower than the min size
@@ -271,13 +324,13 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 					if (this.$node.parentNode.style.position === "relative") { //$NON-NLS-0$
 						left = this._splitLeft - parentRect.left;
 					}
-					this.$node.style.left = left + "px"; //$NON-NLS-0$ 
+					this.$node.style.left = left + "px"; //$NON-NLS-0$
 				}
 				this._adjustToSplitPosition(true);
 				lib.stop(event);
 			}
 		},
-		
+
 		_mouseUp: function(event) {
 			if (this._tracking) {
 				window.removeEventListener("mousemove", this._tracking); //$NON-NLS-0$

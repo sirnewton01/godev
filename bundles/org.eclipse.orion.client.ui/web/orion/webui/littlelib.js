@@ -17,24 +17,57 @@ define([], function() {
 	 * @class A small library of DOM and UI helpers.
 	 */
 
+	/**
+	 * Alias for <code>node.querySelector()</code>.
+	 * @name orion.webui.littlelib.$
+	 * @function
+	 * @static
+	 * @param {String} selectors Selectors to match on.
+	 * @param {Node} [node=document] Node to query under.
+	 * @returns {Element}
+	 */
 	function $(selector, node) {
 		if (!node) {
 			node = document;
 		}
 		return node.querySelector(selector);
 	}
-	
+
+	/**
+	 * Alias for <code>node.querySelectorAll()</code>.
+	 * @name orion.webui.littlelib.$$
+	 * @function
+	 * @static
+	 * @param {String} selectors Selectors to match on.
+	 * @param {Node} [node=document] Node to query under.
+	 * @returns {NodeList}
+	 */
 	function $$(selector, node) {
 		if (!node) {
 			node = document;
 		}
 		return node.querySelectorAll(selector);
 	}
-	
+
+	/**
+	 * Identical to {@link orion.webui.littlelib.$$}, but returns an Array instead of a NodeList.
+	 * @name orion.webui.littlelib.$$array
+	 * @function
+	 * @static
+	 * @param {String} selectors Selectors to match on.
+	 * @param {Node} [node=document] Node to query under.
+	 * @returns {Element[]}
+	 */
 	function $$array(selector, node) {
 		return Array.prototype.slice.call($$(selector,node));
 	}
-		
+
+	/**
+	 * Alias for <code>document.getElementById</code>, but returns the input unmodified when passed a Node (or other non-string).
+	 * @function
+	 * @param {String|Element} elementOrId
+	 * @returns {Element}
+	 */
 	function node(either) {
 		var theNode = either;
 		if (typeof(either) === "string") { //$NON-NLS-0$
@@ -42,12 +75,27 @@ define([], function() {
 		}	
 		return theNode;
 	}
-	
+
+	/**
+	 * Returns whether <code>child</code> is a descendant of <code>parent</code> in the DOM order.
+	 * @function
+	 * @param {Node} parent
+	 * @param {Node} child
+	 * @returns {Boolean}
+	 */
 	function contains(parent, child) {
+		if (!parent || !child) { return false; }
+		if (parent === child) { return true; }
 		var compare = parent.compareDocumentPosition(child);  // useful to break out for debugging
-		return parent === child || Boolean(compare & 16);
+		return Boolean(compare & 16);
 	}
-	
+
+	/**
+	 * Returns the bounds of a node. The returned coordinates are absolute (not relative to the viewport).
+	 * @function
+	 * @param {Node} node
+	 * @returns {Object}
+	 */
 	function bounds(node) {
 		var clientRect = node.getBoundingClientRect();
 		return { 
@@ -57,7 +105,14 @@ define([], function() {
 			height: clientRect.height
 		};
 	}
-	
+
+	/**
+	 * Removes all children of the given node.
+	 * @name orion.webui.littlelib.empty
+	 * @function
+	 * @static
+	 * @param {Node} node
+	 */
 	function empty(node) {
 		while (node.hasChildNodes()) {
 			var child = node.firstChild;
@@ -115,12 +170,13 @@ define([], function() {
 	}
 
 	/**
-	 * Performs substitution of textContent within the given node and its descendants. Substitutes an occurrence of <code>${n}</code>
-	 * with <code>messages[n]</code>.
+	 * Performs substitution of strings into textContent within the given node and its descendants. An occurrence of <code>${n}</code>
+	 * in text content will be replaced with the string <code>messages[n]</code>.
+	 * <p>This function is recommended for binding placeholder text in template-created DOM elements to actual display strings.</p>
 	 * @name orion.webui.littlelib.processTextNodes
 	 * @function
-	 * @param {Node} node
-	 * @param {String[]} messages
+	 * @param {Node} node The node to perform replacement under.
+	 * @param {String[]} messages The replacement strings.
 	 */
 	function processTextNodes(node, messages) {
 		processNodes(node, function(targetNode, matches) {
@@ -132,8 +188,12 @@ define([], function() {
 	/**
 	 * Performs substitution of DOM nodes into textContent within the given node and its descendants. An occurrence of <code>${n}</code>
 	 * in text content will be replaced by the DOM node <code>replaceNodes[n]</code>.
-	 * @param {Node} node
-	 * @param {Node[]} replaceNodes
+	 * <p>This function is recommended for performing rich-text replacement within a localized string. The use of actual DOM nodes
+	 * avoids the need for embedded HTML in strings.</p>
+	 * @name orion.webui.littlelib.processDOMNodes
+	 * @function
+	 * @param {Node} node The node to perform replacement under.
+	 * @param {Node[]} replaceNodes The replacement nodes.
 	 */
 	function processDOMNodes(node, replaceNodes) {
 		processNodes(node, function(targetNode, matches) {
@@ -149,8 +209,16 @@ define([], function() {
 		});
 	}
 
+	/**
+	 * Adds auto-dismiss functionality to the document. When a click event occurs whose <code>target</code> is not a descendant of
+	 * one of the <code>excludeNodes</code>, the <code>dismissFunction</code> is invoked.
+	 * @name orion.webui.littlelib.addAutoDismiss
+	 * @function
+	 * @static
+	 * @param {Node[]} excludeNodes Clicks targeting any descendant of these nodes will not trigger the dismissFunction.
+	 * @param {Function} dismissFunction The dismiss handler.
+	 */
 	var autoDismissNodes = [];
-	
 	function addAutoDismiss(excludeNodes, dismissFunction) {
 		// auto dismissal.  Click anywhere else means close.
 		// Hook listener only once
@@ -193,16 +261,28 @@ define([], function() {
 		autoDismissNodes.push({excludeNodes: excludeNodes, dismiss: dismissFunction});
 	}
 	
-	// TODO check IE10 to see if necessary
+	/**
+	 * Cancels the default behavior of an event and stops its propagation.
+	 * @name orion.webui.littlelib.stop
+	 * @function
+	 * @static
+	 * @param {Event} event
+	 */
 	function stop(event) {
 		if (window.document.all) { 
 			event.keyCode = 0;
-		} else { 
+		}
+		if (event.preventDefault) {
 			event.preventDefault();
 			event.stopPropagation();
 		}
 	}
-	
+
+	/**
+	 * Holds useful <code>keyCode</code> values.
+	 * @name orion.webui.littlelib.KEY
+	 * @static
+	 */
 	var KEY = {
 		BKSPC: 8,
 		TAB: 9,

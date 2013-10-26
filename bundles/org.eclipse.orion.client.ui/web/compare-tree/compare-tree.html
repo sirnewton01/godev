@@ -4,11 +4,12 @@
 		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010." >
 		<meta http-equiv="Content-Language" content="en-us">
 		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-    	<title>Compare Tree</title>
-    	<link rel="stylesheet" type="text/css" href="compare-tree.css" /> 
+		<title>Compare Tree</title>
+		<link rel="stylesheet" type="text/css" href="compare-tree.css" /> 
 		<link rel="shortcut icon" href="/replaceAll.ico" />
-    	<script type="text/javascript" src="../requirejs/require.js"></script>
+		<script src="../requirejs/require.js"></script>
 		<script type="text/javascript">
+		/*global require*/
 		require({
 			  baseUrl: '..',
 			  paths: {
@@ -20,25 +21,16 @@
 		
 		require(["compare-tree.js"]);
 		</script>
-	  	 	
-   </head>
-   
-       <body id="orion-compare-tree" class="orionPage">
+	</head>
+	<body id="orion-compare-tree" class="orionPage">
 		<div class="content-fixedHeight">
-			<div id="outlineContainer" class="auxpane sidePanelLayout hasSplit">
-				<div class="sidePanelMargins" id="searchProgress"></div>
-			</div>
-			<div class="split splitLayout"></div>
-			<div id="rightPane" class="mainpane mainPanelLayout hasSplit">
-				<div class="fixedToolbarHolder">
-					<div class="mainToolbar toolComposite" id="pageToolbar"></div>
-					<div class="toolbarTarget" tabindex="0">
-						<div class="mainpane" id="compare-tree-results" tabindex="0" style="height:100%;width:100%;position:relative;">
-						</div>
-					</div>
+			<div class="fixedToolbarHolder mainpane mainPanelLayout">
+				<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+				<div id="compare-tree-results" class="toolbarTarget">
 				</div>
 			</div>
 		</div>
-		<div class="footer-fixed-bottom footer" id="footer"></div>
-	</body>
+		<div class="footer-fixed-bottom footer" id="footer">
+		</div>
+	</body>	
 </html>

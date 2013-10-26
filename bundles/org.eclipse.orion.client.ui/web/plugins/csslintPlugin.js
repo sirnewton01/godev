@@ -11,7 +11,8 @@
  *******************************************************************************/
 /*global console define CSSLint*/
 define(['orion/plugin', 'plugins/csslintPlugin/lib/csslint'], function(PluginProvider, _) {
-	function checkSyntax(title, contents) {
+
+	function _computeProblems(contents) {
 		var cssResult = CSSLint.verify(contents),
 		    messages = cssResult.messages,
 		    lines = contents.split(/\r?\n/),
@@ -73,8 +74,12 @@ define(['orion/plugin', 'plugins/csslintPlugin/lib/csslint'], function(PluginPro
 		var provider = new PluginProvider(headers);
 		// Register validator
 		provider.registerService("orion.edit.validator",
-			{	checkSyntax: checkSyntax
-			}, {
+			{
+				computeProblems: function(editorContext, context) {
+					return editorContext.getText().then(_computeProblems);
+				}
+			},
+			{
 				contentType: ["text/css"]
 			});
 
@@ -83,7 +88,6 @@ define(['orion/plugin', 'plugins/csslintPlugin/lib/csslint'], function(PluginPro
 		addOutlineRule(cssOutline);
 		provider.registerService("orion.edit.outliner",
 			{
-				// TODO outlines should be pushed, not pulled, so we can avoid parsing twice
 				getOutline: function(contents, title) {
 					CSSLint.verify(contents);
 					return cssOutline;

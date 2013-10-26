@@ -11,7 +11,7 @@
  *******************************************************************************/
 /*global define window */
 
-define(['i18n!orion/nls/messages', 'require', 'orion/editor/regex', 'orion/commandRegistry', 'orion/PageUtil', 'orion/URITemplate'], function(messages, require, mRegex, mCommands, PageUtil, URITemplate) {
+define(['i18n!orion/nls/messages', 'require', 'orion/regex', 'orion/commandRegistry', 'orion/PageUtil', 'orion/URITemplate'], function(messages, require, mRegex, mCommands, PageUtil, URITemplate) {
 
 /**
  * @name orion.searchUtils.SearchParams
@@ -137,6 +137,9 @@ searchUtils.convertSearchParams = function(searchParams) {
 	if(typeof searchParams.nameSearch === "string"){ //$NON-NLS-0$
 		searchParams.nameSearch = (searchParams.nameSearch.toLowerCase() === "true"); //$NON-NLS-0$
 	}
+	if(typeof searchParams.useRootLocation === "string"){ //$NON-NLS-0$
+		searchParams.useRootLocation = (searchParams.useRootLocation.toLowerCase() === "true"); //$NON-NLS-0$
+	}
 };
 
 searchUtils.copySearchParams = function(searchParams, copyReplace) {
@@ -164,7 +167,7 @@ searchUtils.generateSearchHref = function(options) {
 	return href;
 };
 
-searchUtils.generateFindURLBinding = function(searchParams, inFileQuery, lineNumber, replaceStr) {
+searchUtils.generateFindURLBinding = function(searchParams, inFileQuery, lineNumber, replaceStr, paramOnly) {
 	var params = {
 		find: inFileQuery.searchStr,
 		regEx: inFileQuery.wildCard ? true : undefined,
@@ -172,6 +175,9 @@ searchUtils.generateFindURLBinding = function(searchParams, inFileQuery, lineNum
 		replaceWith: typeof(replaceStr) === "string" ? replaceStr : undefined, //$NON-NLS-0$
 		atLine: typeof(lineNumber) === "number" ? lineNumber : undefined //$NON-NLS-0$
 	};
+	if(paramOnly){
+		return params;
+	}
 	var binding = new URITemplate("{,params*}").expand({ //$NON-NLS-0$
 		params: params
 	});

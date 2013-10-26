@@ -12,7 +12,8 @@ define(["require", "orion/Deferred", "orion/PageUtil", "orion/URITemplate", "ori
 
 	/**
 	 * Returns the value of the <code>{OrionHome}</code> variable.
-	 * @methodOf orion.PageLinks
+	 * @memberOf orion.PageLinks
+	 * @function
 	 * @returns {String} The value of the <code>{OrionHome}</code> variable.
 	 */
 	function getOrionHome() {
@@ -21,7 +22,8 @@ define(["require", "orion/Deferred", "orion/PageUtil", "orion/URITemplate", "ori
 
 	/**
 	 * Read info from an <code>orion.page.*</code> service extension.
-	 * @methodOf orion.PageLinks
+	 * @memberOf orion.PageLinks
+	 * @function
 	 * @param {orion.ServiceRegistry} serviceRegistry The service registry.
 	 * @param {String} serviceName Service name to read extensions from.
 	 * @return {orion.Promise} A promise that resolves to an Array of info objects.
@@ -84,7 +86,8 @@ define(["require", "orion/Deferred", "orion/PageUtil", "orion/URITemplate", "ori
 
 	/**
 	 * Build links from an <code>orion.page.link</code> service extension.
-	 * @methodOf orion.PageLinks
+	 * @memberOf orion.PageLinks
+	 * @function
 	 * @param {orion.ServiceRegistry} serviceRegistry The service registry.
 	 * @param {String} serviceName Service name to read extensions from.
 	 * @return {orion.Promise} A promise that resolves to an Array of DOM elements which are the links.

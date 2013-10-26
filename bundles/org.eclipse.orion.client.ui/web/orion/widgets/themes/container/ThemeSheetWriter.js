@@ -56,9 +56,10 @@ define(['orion/widgets/themes/ThemeClass'],
 			topRowBanner.style.border = '0';
 			topRowBanner.style.backgroundColor = this.navbar;
 //			topRowBanner.style.background = 'linear-gradient(to bottom, #959595 0%,#0d0d0d 46%,#010101 50%,#0a0a0a 53%,#1b1b1b 100%)';
-			topRowBanner.style.height = '15px';
+			topRowBanner.style.height = '16px';
 			topRowBanner.style.padding = '10px';
-			topRowBanner.style.paddingRight = '3px';
+			topRowBanner.style.paddingLeft = '6px';
+			topRowBanner.style.paddingRight = '2px';
 			
 			styles.push( topRowBanner );
 			
@@ -226,7 +227,7 @@ define(['orion/widgets/themes/ThemeClass'],
 			commandButton.style.verticalAlign = 'baseline';
 			commandButton.style.cursor = 'pointer';
 		    commandButton.style.display = 'inline-block';
-		    commandButton.style.padding = '5px 6px';
+		    commandButton.style.padding = '4px 6px';
 		    commandButton.style.borderRadius = '3px';
 		    commandButton.style.lineHeight = '12px';
 			commandButton.style.fontSize = '8pt';
@@ -332,9 +333,9 @@ define(['orion/widgets/themes/ThemeClass'],
 			
 			var mainToolbar = new ThemeClass.ThemeClass( 'mainToolbar' );
 			mainToolbar.style.background = this.toolpanel;
-			mainToolbar.style.height = '34px';
+			mainToolbar.style.height = '32px';
 			mainToolbar.style.borderBottom = '1px solid #ebebeb';
-			mainToolbar.style.paddingTop = '2px';
+			mainToolbar.style.paddingTop = '3px';
 			
 			styles.push( mainToolbar );
 		

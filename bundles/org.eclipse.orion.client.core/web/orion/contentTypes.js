@@ -11,7 +11,7 @@
  *******************************************************************************/
 /*global define */
 define([], function() {
-	var SERVICE_ID = "orion.core.contenttypes"; //$NON-NLS-0$
+	var SERVICE_ID = "orion.core.contentTypeRegistry"; //$NON-NLS-0$
 	var EXTENSION_ID = "orion.core.contenttype"; //$NON-NLS-0$
 	var OLD_EXTENSION_ID = "orion.file.contenttype"; // backwards compatibility //$NON-NLS-0$
 
@@ -21,20 +21,27 @@ define([], function() {
 	 * @property {String} id Unique identifier of this ContentType.
 	 * @property {String} name User-readable name of this ContentType.
 	 * @property {String} extends Optional; Gives the ID of another ContentType that is this one's parent.
-	 * @property {String[]} extension Optional; List of file extensions characterizing this ContentType.
+	 * @property {String[]} extension Optional; List of file extensions characterizing this ContentType. Extensions are not case-sensitive.
 	 * @property {String[]} filename Optional; List of filenames characterizing this ContentType.
 	 */
-	
+
+	function contains(array, item) {
+		return array.indexOf(item) !== -1;
+	}
+
 	function getFilenameContentType(/**String*/ filename, contentTypes) {
 		function winner(best, other, filename, extension) {
 			var nameMatch = other.filename.indexOf(filename) >= 0;
-			var extMatch = other.extension.indexOf(extension) >= 0;
+			var extMatch = contains(other.extension, extension.toLowerCase());
 			if (nameMatch || extMatch) {
-				if (!best || (nameMatch && best.extension.indexOf(extension) >= 0)) {
+				if (!best || (nameMatch && contains(best.extension, extension.toLowerCase()))) {
 					return other;
 				}
 			}
 			return best;
+		}
+		if (typeof filename !== "string") { //$NON-NLS-0$
+			return null;
 		}
 		var extension = filename && filename.split(".").pop(); //$NON-NLS-0$
 		var best = null;
@@ -48,19 +55,22 @@ define([], function() {
 	}
 
 	/**
-	 * @name orion.core.ContentTypeService
+	 * @name orion.core.ContentTypeRegistry
 	 * @class A service for querying {@link orion.core.ContentType}s.
-	 * @description A service for querying {@link orion.core.ContentType}s. Clients should request the <code>"orion.core.contenttypes"</code>
+	 * @description A service for querying {@link orion.core.ContentType}s. Clients should request the <code>"orion.core.contentTypeRegistry"</code>
 	 * service from the {@link orion.serviceregistry.ServiceRegistry} rather than instantiate this class directly. This constructor is 
 	 * intended for use only by page initialization code.
 	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry The service registry to use for looking up registered content types
 	 * and for registering this service.
 	 */
-	function ContentTypeService(serviceRegistry) {
+	function ContentTypeRegistry(serviceRegistry) {
 		function buildMap(serviceRegistry) {
 			function array(obj) {
 				if (obj === null || typeof obj === "undefined") { return []; } //$NON-NLS-0$
-				return (obj instanceof Array) ? obj : [obj];
+				return (Array.isArray(obj)) ? obj : [obj];
+			}
+			function arrayLowerCase(obj) {
+				return array(obj).map(function(str) { return String.prototype.toLowerCase.call(str); });
 			}
 			var serviceReferences = serviceRegistry.getServiceReferences(EXTENSION_ID).concat(
 					serviceRegistry.getServiceReferences(OLD_EXTENSION_ID));
@@ -75,7 +85,7 @@ define([], function() {
 							name: type.name,
 							image: type.image,
 							"extends": type["extends"], //$NON-NLS-1$ //$NON-NLS-0$
-							extension: array(type.extension),
+							extension: arrayLowerCase(type.extension),
 							filename: array(type.filename)
 						};
 					}
@@ -88,7 +98,7 @@ define([], function() {
 		this.map = buildMap(serviceRegistry);
 		serviceRegistry.registerService(SERVICE_ID, this);
 	}
-	ContentTypeService.prototype = /** @lends orion.core.ContentTypeService.prototype */ {
+	ContentTypeRegistry.prototype = /** @lends orion.core.ContentTypeRegistry.prototype */ {
 		/**
 		 * Gets all the ContentTypes in the registry.
 		 * @returns {orion.core.ContentType[]} An array of all registered ContentTypes.
@@ -97,7 +107,7 @@ define([], function() {
 			var map = this.getContentTypesMap();
 			var types = [];
 			for (var type in map) {
-				if (map.hasOwnProperty(type)) {
+				if (Object.prototype.hasOwnProperty.call(map, type)) {
 					types.push(map[type]);
 				}
 			}
@@ -173,7 +183,7 @@ define([], function() {
 		}
 	};
 	return {
-		ContentTypeService: ContentTypeService,
+		ContentTypeRegistry: ContentTypeRegistry,
 		getFilenameContentType: getFilenameContentType
 	};
 });

@@ -15,6 +15,8 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 	function TextField(options, node) {
 		objects.mixin(this, options);
 		this.node = node || document.createElement("div"); //$NON-NLS-0$
+		this.node.innerHTML = this.templateString;
+		this.textfield = lib.$(".setting-control", this.node); //$NON-NLS-0$
 	}
 	objects.mixin(TextField.prototype, {
 		 templateString: '<input type="text" class="setting-control" name="myname"/>', //$NON-NLS-0$
@@ -27,9 +29,8 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 		ui: null,
 
 		show: function() {
-			this.node.innerHTML = this.templateString;
-			this.textfield = lib.$(".setting-control", this.node); //$NON-NLS-0$
 			this.textfield.addEventListener("change", this.change.bind(this)); //$NON-NLS-0$
+			this.postCreate();
 		},
 
 		destroy: function() {
@@ -46,15 +47,40 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 		width: function( value ){
 			this.textfield.style.width = value ;
 		},
+        
+        getValue: function(){
+			if( this.inputType === "integer"){ //$NON-NLS-0$
+				return parseInt(this.textfield.value, 10);
+			}
+			return this.textfield.value;
+        },
 		
 		setValue: function( value ){
 			this.textfield.value = value;
 		},
+
+		getSelection: function(){
+			return this.getValue();
+		},
+		
+		setSelection: function(value){
+			this.setValue(value);
+		},
+		
+        postCreate: function(){
+            if( this.inputType && this.inputType === 'password' ){ //$NON-NLS-0$
+				this.textfield.type = "password"; //$NON-NLS-0$
+            }
+            
+            if( this.editmode && this.editmode === 'readonly' ){ //$NON-NLS-0$
+				this.textfield.setAttribute("readonly", "true"); //$NON-NLS-1$ //$NON-NLS-0$
+            }
+        },
 		
 		change: function(){
-		
+			var value;
 			if( this.selection && this.selection.value ){
-				var value = this.selection.value;
+				value = this.selection.value;
 			}
 		
 			this.setStorageItem( this.category, this.item, this.element, value, this.ui );

@@ -49,6 +49,7 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 			this._triggerNode = lib.$(".dropdownTrigger", this._dropdownNode.parentNode); //$NON-NLS-0$
 			if (!this._triggerNode) { throw "no dom node for dropdown trigger found"; } //$NON-NLS-0$
 			this._populate = options.populate;
+			this._selectionClass = options.selectionClass;
 			var self = this;
 			
 			// click on trigger opens.
@@ -96,11 +97,14 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 			if (items.length > 0) {
 				if (!this._hookedAutoDismiss) {
 					// add auto dismiss.  Clicking anywhere but trigger or a submenu item means close.
-					var submenuNodes = lib.$$(".dropdownSubMenu", this._dropdownNode);
+					var submenuNodes = lib.$$(".dropdownSubMenu", this._dropdownNode); //$NON-NLS-0$
 					lib.addAutoDismiss([this._triggerNode].concat(Array.prototype.slice.call(submenuNodes)), this.close.bind(this));
 					this._hookedAutoDismiss = true;
 				}
 				this._triggerNode.classList.add("dropdownTriggerOpen"); //$NON-NLS-0$
+				if (this._selectionClass) {
+					this._triggerNode.classList.add(this._selectionClass);
+				}
 				this._dropdownNode.classList.add("dropdownMenuOpen"); //$NON-NLS-0$
 				this._positionDropdown();
 				items[0].focus();
@@ -112,14 +116,25 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 		_positionDropdown: function() {
 			this._dropdownNode.style.left = "";
 			var bounds = lib.bounds(this._dropdownNode);
-			var totalBounds = lib.bounds(this._boundingNode(this._triggerNode));
-			if (bounds.left + bounds.width > (totalBounds.left + totalBounds.width)) {
-				this._dropdownNode.style.right = 0;
+			var bodyBounds = lib.bounds(document.body);
+			if (bounds.left + bounds.width > (bodyBounds.left + bodyBounds.width)) {
+				if (this._triggerNode.classList.contains("dropdownMenuItem")) { //$NON-NLS-0$
+					this._dropdownNode.style.left = -bounds.width + "px"; //$NON-NLS-0$
+				} else {
+					var totalBounds = lib.bounds(this._boundingNode(this._triggerNode));
+					var triggerBounds = lib.bounds(this._triggerNode);
+					this._dropdownNode.style.left = (triggerBounds.left  - totalBounds.left - bounds.width + triggerBounds.width) + "px"; //$NON-NLS-0$
+				}
 			}
 		},
 		
 		_boundingNode: function(node) {
-			if (node.style.right !== "" || node.style.position === "absolute" || !node.parentNode || !node.parentNode.style) { //$NON-NLS-0$
+			var style = window.getComputedStyle(node, null);
+			if (style === null) {
+				return node;
+			}
+			var position = style.getPropertyValue("position"); //$NON-NLS-0$
+			if (position === "absolute" || !node.parentNode || node === document.body) { //$NON-NLS-0$
 				return node;
 			}
 			return this._boundingNode(node.parentNode);
@@ -131,6 +146,9 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 		 */			
 		close: function(restoreFocus) {
 			this._triggerNode.classList.remove("dropdownTriggerOpen"); //$NON-NLS-0$
+			if (this._selectionClass) {
+				this._triggerNode.classList.remove(this._selectionClass);
+			}
 			this._dropdownNode.classList.remove("dropdownMenuOpen"); //$NON-NLS-0$
 			if (restoreFocus) {
 				this._triggerNode.focus();

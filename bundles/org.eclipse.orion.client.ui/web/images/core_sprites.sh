@@ -1,3 +1,4 @@
+#!/bin/sh
 zip core_sprites.zip \
 addcontent.png \
 check.gif \
@@ -8,28 +9,29 @@ collapseAll.png \
 compare-addition.gif \
 compare-removal.gif \
 copy-folder.png \
-delete.gif \
-edit.gif \
+delete.png \
+downarrow.gif \
+edit.png \
 error.png \
 expandAll.png \
-favorite.png \
-file.gif \
+file.png \
 file_model.gif \
-folder.gif \
+folder.png \
 gear.png \
+go-down.png \
 go-up.png \
 hamburger.png \
 information.png \
+initproject.png \
 leftarrow.png \
 link.png \
 list.png \
-menu_twistie.gif \
 move_down.gif \
 move_up.gif \
 none.png \
 ok.gif \
 openarrow.png \
-godev-logo.png \
+orion-logo.png \
 outline.png \
 refresh.png \
 replaceAll.gif \
@@ -38,7 +40,6 @@ sep.gif \
 silhouette.png \
 start.gif \
 stop.gif \
-stylesheet.gif \
 thumbnail.png \
 warning.gif \
 wrench.png

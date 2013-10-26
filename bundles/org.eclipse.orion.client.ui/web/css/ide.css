@@ -102,6 +102,7 @@ button::-moz-focus-inner {
 /* 4px margin used by toolbar, plus 4px of border/padding */
 .status {
 	padding-top: 8px;
+	color:#555;
 	vertical-align: baseline;
 }
 
@@ -152,6 +153,18 @@ button::-moz-focus-inner {
 	vertical-align: middle;
 	min-height: 16px;
 	min-width: 16px;
+}
+
+.cancelButton {
+	border: 1px solid transparent;
+	background: #D3D3D3 !important;
+	color: black;
+    border-radius: 3px;
+	padding: 2px;
+	font: 8pt Lucida Sans Unicode,Lucida Grande,Verdana,Arial,Helvetica,Myriad,Tahoma,clean,sans-serif;  /* to override user agent stylesheet */
+	margin: 0 4px 0;
+	vertical-align: middle;
+	min-height: 16px;
 }
 
 .dismissButton:hover {
@@ -220,7 +233,6 @@ textarea.parameterInput {
 
 .navColumn {
 	min-width: 150px;
-	padding-right: 8px;
 	vertical-align: baseline;
 }
 
@@ -231,8 +243,9 @@ textarea.parameterInput {
 
 .mainNavColumn {
 	display: inline-block;
-	padding: 4px;
+	padding: 2px;
 	vertical-align: baseline;
+	white-space: nowrap;
 }
 
 .singleNavColumn {
@@ -360,6 +373,7 @@ textarea.parameterInput {
 	float: left;
 	margin: 2px;
 	margin-top: 3px;
+	margin-left: 4px;
 	display: none;
 	vertical-align: middle;
 	font-size: 11px;
@@ -391,7 +405,7 @@ textarea.parameterInput {
 	margin-right: 8px;
 	font-size: 7pt;
 	display: inline-block;
-	padding-tp:0 !important;
+	padding-top:0 !important;
 	vertical-align: baseline;
 }
 
@@ -551,38 +565,33 @@ textarea.parameterInput {
 	color: white;
 }
 
+/* TODO these "item" classes should be removed. Check for users. */
 .folderItem {
-	background: url(../images/folder.gif);
+	background: url(../images/folder.png);
 }
-
 .fileItem {
-	background: url(../images/file.gif);
+	background: url(../images/file.png);
 }
-
 .newItem {
-	background: url(../images/add.gif);
+	background: url(../images/addcontent.png);
 }
 
 .treetable {
 	border-spacing: 0;
 	width:100%;
-	padding:5px;
-}
-
-.favoritesTable {
-	border-collapse: separate;
-	border-spacing: 2;
-	overflow-x: hidden; /* because it is placed inside a div with overflow scrollbars */
 }
 
 .secondaryColumn {
 	color: #666666;	
 	padding-right: 8px;
+	padding-top: 8px;
+	vertical-align:top;
 }
 
 .primaryColumn {
 	color: #3087B3;
 	text-decoration: none;
+	vertical-align:top;
 }
 
 .checkColumn {
@@ -599,6 +608,7 @@ textarea.parameterInput {
 
 .selectionModelContainer {
 	outline: none;
+	padding-top:1px;
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 	-khtml-user-select: none;
@@ -609,8 +619,7 @@ textarea.parameterInput {
 
 input {
 	-moz-user-select: text;
-	text-indent: none;
-	text-indent: 0px;
+	text-indent: 0;
 	text-shadow: none;
 	border: solid 1px #666;
 	color: #333;
@@ -629,7 +638,7 @@ input {
 }
 
 .treeIterationCursorRow_Dotted {
-	outline: #AAA 1px dotted !important;
+	outline: skyblue 1px dotted !important;
 	background-color: #f3f6fe;
 }
 
@@ -750,7 +759,6 @@ input {
 	width: 130px;
 	padding: 4px;
 	margin: 5px;
-	outline: none;
 	background-color: white;
 	border: 1px solid #CCC;
 	border-radius: 3px;
@@ -758,22 +766,10 @@ input {
 	color: #222;
 }
 
-.settingsPanelLabel {
-	margin-top: 10px;
-	min-width: 80px;
-	display:inline-block;
-	text-transform: uppercase;
-	color: #555;
-}
-
-.settingsPanelValue {
-	display: inline;
-}
-
-.settingsPanel{
-	position: relative;
-	float: right;
-	padding: 10px;
+.local .setting-label {
+	width: 150px;
+	text-align: right;
+	display: inline-block;
 }
 
 .delegatedUI {
@@ -790,7 +786,7 @@ input {
 /* FOR NAVIGATION DROP DOWN */
 
 .centralNavigation {
-	padding-top:2px;
+	margin-bottom:2px;
 	cursor:pointer;
 }
 
@@ -806,14 +802,14 @@ input {
 }
 
 .dropDownContainer{
-	border-radius:3px;
+	border-radius:1px;
 	background:#fefefe;
-	border: 1px solid #CCC;
+	border: 1px solid #DDD;
 	padding:10px;
-	margin-top:5px;
+	margin-top: 5px;
 	position:absolute;
 	z-index:100;
-	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+	box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 
@@ -871,4 +867,101 @@ input {
 	display: inline-block;
 	vertical-align: middle;
 	margin: 0 2px 0 2px;
+}
+
+.projectNavColumn {
+	background: none repeat scroll 0 0 #eee;
+    color: #666;
+    font-weight: bold;
+    padding-bottom: 0.2em;
+    padding-top: 0.2em;
+}
+
+.projectPrimaryNavColumn {
+	background: none repeat scroll 0 0 #d6ebf0;
+	color: #000;
+}
+
+.projectNavColumn a{
+	color: #444;
+    font-weight: bold;
+}
+
+.projectPrimaryNavColumn a{
+	color: #444;
+    font-weight: bold;
+}
+
+.projectInformationNode{
+	margin-top:3px;
+}
+
+.orionMarkdown h1 {
+	position: relative;
+}
+
+.orionMarkdown table, .orionProject table, .folderNav table, .sectionWrapper, .sectionTable{
+	text-align: left;
+	border-collapse: collapse;
+	border-spacing: 0;
+	border: 1px solid lightgrey;
+	padding: 0;
+	margin-left: 5%;
+	margin-right: 5%;
+	margin-top: 30px;
+	margin-bottom: 0;
+	border-color:#D6EBF0;
+	width: 90%;
+}
+
+.folderNav tr {
+	border-bottom: 1px solid #e6f3f6;
+	border-right: 1px solid #D6EBF0;
+	border-left: 1px solid #D6EBF0;
+	padding-left: 8px;
+	padding-right: 8px;
+	color: grey;
+}
+.folderNav tr:last-child {
+	border-bottom: 1px solid #D6EBF0;
+}
+
+.orionMarkdown td, .orionProject td {
+	border-bottom: 1px solid #D6EBF0;
+	border: 1px solid #D6EBF0;
+	padding: 8px;
+	color: grey;
+}
+
+.orionProject input, .orionProject textarea{
+	border: 1px solid lightgrey;
+}
+
+.folderNav th, .orionMarkdown th, .orionProject th, .sectionWrapper{
+	border-color:#D6EBF0;
+	border-bottom: 1px solid #D6EBF0;
+	border-top: 1px solid #D6EBF0;
+	background: none repeat scroll 0 0 #EAF5F7;
+	vertical-align: middle;
+	font-weight: bold;
+	padding: 6px;
+	color: gray;
+}
+.folderNav th:first-child, .orionMarkdown th:first-child, .orionProject th:first-child {
+	padding-top: 9px;
+	padding-bottom: 9px;
+}
+
+.sectionWrapper{
+	margin-bottom: 0;
+	width: inherit;
+}
+
+.sectionTable{
+	margin-top: 0;
+	width: inherit;
+}
+
+.lightTreeTableRow, .darkTreeTableRow {
+	border-bottom: 1px solid #D6EBF0;
 }

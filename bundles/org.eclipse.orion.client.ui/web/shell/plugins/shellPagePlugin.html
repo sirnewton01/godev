@@ -1,50 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta name="copyright" content="Copyright (c) IBM Corporation and others 2012." >
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<script src="../../orion/plugin.js"></script>
-	<script type="text/javascript">
-		/*global window orion */
-		window.onload = function() {
-			var headers = {
-				name: "Orion Shell Page Service",
-				version: "1.0",
-				description: "This plugin integrates access to Orion's Shell page into other Orion pages."
-			};
+	<title>Shell Page Plugin</title>
+	<script src="../../requirejs/require.js"></script>
+	<script>
+		/*global require*/
+		require({
+		  baseUrl: '../../',
+		  paths: {
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'
+		  }
+		});
 
-			var provider = new orion.PluginProvider(headers);
-			provider.registerService("orion.navigate.command", {}, {
-				nameKey: "Shell",
-				id: "eclipse.shell.open",
-				tooltipKey: "Open Shell page",
-				nls: "orion/shell/nls/messages",
-				validationProperties: [{
-					source: "ChildrenLocation|ContentLocation",
-					variableName: "ShellLocation",
-					replacements: [{pattern: "\\?depth=1$", replacement: ""}] 
-				}],
-				uriTemplate: "{OrionHome}/shell/shellPage.html#{ShellLocation}",
-				forceSingleItem: true
-			});
-			provider.registerService("orion.page.link.related", null, {
-				id: "eclipse.shell.open"
-			});
-			provider.registerService("orion.page.link.related", null, {
-				nameKey: "Shell",
-				id: "eclipse.shell.open",
-				tooltipKey: "Open Shell page",
-				nls: "orion/shell/nls/messages",
-				validationProperties: [{
-					source: "NoTarget"
-				}],
-				uriTemplate: "{OrionHome}/shell/shellPage.html#",
-				forceSingleItem: true
-			});
-		
-			provider.connect();
-		};
-		</script>
+		require(['shellPagePlugin.js']);
+	</script>
 </head>
 <body>
 </body>
