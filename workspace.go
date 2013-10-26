@@ -7,6 +7,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"go/build"
 	"io"
 	"net/http"
@@ -47,8 +48,10 @@ func getWsProjects() ([]Project, []FileDetails) {
 
 	nameMap := make(map[string]string)
 
+	rootCheck := fmt.Sprintf("%s%c", runtime.GOROOT(), filepath.Separator)
+
 	for _, srcDir := range srcDirs {
-		if strings.HasPrefix(srcDir, runtime.GOROOT()) {
+		if strings.HasPrefix(srcDir, rootCheck) {
 			continue
 		}
 

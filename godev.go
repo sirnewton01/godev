@@ -16,6 +16,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
@@ -51,10 +52,12 @@ func init() {
 
 	dirs := build.Default.SrcDirs()
 
+	rootCheck := fmt.Sprintf("%s%c", runtime.GOROOT(), filepath.Separator)
+
 	for i := len(dirs) - 1; i >= 0; i-- {
 		srcDir := dirs[i]
 
-		if !strings.HasPrefix(srcDir, runtime.GOROOT()) {
+		if !strings.HasPrefix(srcDir, rootCheck) {
 			srcDirs = append(srcDirs, srcDir)
 		}
 
