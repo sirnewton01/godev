@@ -427,7 +427,7 @@ define([
 					
 					doRefresh();
 					
-					refreshImg.addEventListener("click", doRefresh);
+					refresh.addEventListener("click", doRefresh);
 				}
 				
 				td.appendChild(content);
@@ -590,7 +590,7 @@ define([
 				};
 				}
 				
-				refreshImg.addEventListener("click", doRefresh);
+				refresh.addEventListener("click", doRefresh);
 				
 				td.appendChild(content);
 				tr.appendChild(td);
