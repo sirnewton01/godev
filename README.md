@@ -65,6 +65,8 @@ Bring up godocs using the GoDoc page
 
 # Videos
 [Youtube](http://www.youtube.com/watch?feature=player_embedded&v=UTfHDbUUECg)
+[Quick Start](http://www.youtube.com/watch?feature=player_embedded&v=U7RBElvfCkc)
+[Sprint 4 Summary](http://youtube.com/watch?feature=player_embedded&v=WQe5nr1tq3k)
 
 # Getting Started
 
