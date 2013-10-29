@@ -88,7 +88,7 @@ Happy Go hacking!
 
 # Remote Access
 
-Godev has remote access capabilities using your web browser and http. First, some setup is required to specify the fully qualified domain name of your system and establish a secure connection.
+Godev has remote access capabilities using your web browser and https. Access is controlled using a magic url known only to the person who launches the godev session. First, some setup is required to specify the fully qualified domain name of your system and establish a secure connection.
 
 ## Generating SSL/TLS keys
 
