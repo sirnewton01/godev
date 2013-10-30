@@ -397,7 +397,7 @@ define([
 								locColumn.appendChild(icon);
 								
 								locAnchor = document.createElement("a");
-								locAnchor.href = "/edit/edit.html#" + errors[idx].Location;
+								locAnchor.href = "/edit/edit.html#" + errors[idx].Location + ",line=" + errors[idx].Line;
 								
 								fileName = errors[idx].Location.split("/");
 								fileName = fileName[fileName.length-1];
@@ -551,6 +551,27 @@ define([
 								header.setAttribute("style", "background: #F33A3A; color: white;");
 								icon.src = "/images/error.png";
 							}
+						} else if (data.Log) {
+							tr = table.lastChild;
+							
+							var messageDiv = document.createElement("div");
+							messageDiv.style.textIndent = "1em";
+							messageDiv.style.fontStyle = "italic";
+							
+							var locAnchor = document.createElement("a");
+							locAnchor.href = "/edit/edit.html#" + data.Location + ",line=" + data.Line;
+							locAnchor.target = "_blank";
+							
+							var fileName = data.Location.split("/");
+							fileName = fileName[fileName.length-1];
+							locAnchor.innerHTML = fileName + ":" + data.Line + " ";
+							
+							var msgSpan = document.createElement("span");
+							msgSpan.innerHTML = data.Message;
+							
+							messageDiv.appendChild(locAnchor);
+							messageDiv.appendChild(msgSpan);
+							tr.childNodes[1].appendChild(messageDiv);
 						} else if (data.Start) {
 							var testNameColumn = document.createElement("td");
 							testNameColumn.innerHTML = data.TestName;

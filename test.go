@@ -12,7 +12,15 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"path/filepath"
 )
+
+type TestLog struct {
+	Location    string
+	Line    int32
+	Message string
+	Log     bool
+}
 
 type TestsComplete struct {
 	Duration float32
@@ -64,6 +72,7 @@ func testSocket(ws *websocket.Conn) {
 
 	regex1 := regexp.MustCompile(`^(\w+) \(([0-9.]+) seconds\)$`)
 	regex2 := regexp.MustCompile(`^(ok|FAIL)\s+\w+\s+([0-9.]+)s$`)
+	regex3 := regexp.MustCompile(`^\t(\S+?):([0-9]+): (.*)$`)
 
 	complete := TestsComplete{Complete: true}
 
@@ -76,6 +85,7 @@ func testSocket(ws *websocket.Conn) {
 
 		line := string(l)
 
+		// beginning of a test
 		if strings.HasPrefix(line, "=== RUN ") {
 			start := TestStart{line[8:], true}
 
@@ -83,6 +93,7 @@ func testSocket(ws *websocket.Conn) {
 			if err == nil {
 				ws.Write(output)
 			}
+		// end of a test (pass or fail)
 		} else if strings.HasPrefix(line, "--- PASS: ") ||
 			strings.HasPrefix(line, "--- FAIL: ") {
 			info := line[10:]
@@ -102,6 +113,28 @@ func testSocket(ws *websocket.Conn) {
 					ws.Write(output)
 				}
 			}
+		// logging information
+		} else if strings.HasPrefix(line, "\t") {
+			result := regex3.FindStringSubmatch(line)
+			
+			if result != nil {
+				file := result[1]
+				line := result[2]
+				message := result[3]
+				
+				lineNum, err := strconv.ParseInt(line,10,32)
+				location := filepath.Join("/file",pkg,file)
+				
+				if err == nil {
+					log := TestLog{Location: location, Line: int32(lineNum), Message: message, Log: true}
+					
+					output, err := json.Marshal(log)
+					if err == nil {
+						ws.Write(output)
+					}
+				}
+			}
+		// end of tests
 		} else if regex2.MatchString(line) {
 			result := regex2.FindStringSubmatch(line)
 			seconds, _ := strconv.ParseFloat(result[1], 32)
