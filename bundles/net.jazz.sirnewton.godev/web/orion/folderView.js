@@ -536,7 +536,6 @@ define([
 						if (data.Message) {
 							tr = table.lastChild;
 							var testNameColumn = tr.childNodes[1];
-							//testNameColumn.innerHTML = testNameColumn.innerHTML + '<br/><div style="text-indent: 1em;"><i>' +  + '</i></div>';
 							
 							var messageColumn = document.createElement("div");
 							messageColumn.style.textIndent = "1em";
