@@ -533,10 +533,20 @@ define([
 						if (typeof data === 'string') {
 							showError(evt.data);
 						}
-																
-						if (data.Finished) {
+						if (data.Message) {
 							tr = table.lastChild;
+							var testNameColumn = tr.childNodes[1];
 							
+							var messageColumn = document.createElement("div");
+							messageColumn.style.textIndent = "1em";
+							messageColumn.style.fontStyle = "italic";
+							messageColumn.innerHTML = data.Message;
+							testNameColumn.appendChild( messageColumn );
+							
+						}
+						else if (data.Finished) {
+							tr = table.lastChild;
+
 							var testNameColumn = tr.childNodes[1];
 							var durationColumn = tr.childNodes[2];
 							durationColumn.innerHTML = "" + data.Duration;

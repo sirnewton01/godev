@@ -24,6 +24,11 @@ type TestStart struct {
 	Start    bool
 }
 
+type TestFail struct {
+	TestName string
+	Message  string
+}
+
 type TestFinished struct {
 	TestName string
 	Pass     bool
@@ -67,9 +72,10 @@ func testSocket(ws *websocket.Conn) {
 
 	complete := TestsComplete{Complete: true}
 
+	lastTestFailed := false
 	for {
 		l, _, err := reader.ReadLine()
-
+		
 		if err != nil {
 			break
 		}
@@ -87,14 +93,16 @@ func testSocket(ws *websocket.Conn) {
 			strings.HasPrefix(line, "--- FAIL: ") {
 			info := line[10:]
 
+			//we use this to extract extra error lines
+			lastTestFailed = strings.HasPrefix(line, "--- FAIL: ")
+
 			result := regex1.FindStringSubmatch(info)
 
 			if result != nil {
 				name := result[1]
 				rawSeconds := result[2]
-
 				seconds, err := strconv.ParseFloat(rawSeconds, 32)
-
+				
 				finished := TestFinished{name, strings.HasPrefix(line, "--- PASS: "), float32(seconds), true}
 
 				output, err := json.Marshal(finished)
@@ -102,11 +110,17 @@ func testSocket(ws *websocket.Conn) {
 					ws.Write(output)
 				}
 			}
+		} else if strings.HasPrefix(line, "\t"); true == lastTestFailed {	
+			failure := TestFail{"", strings.Trim(line, "\t\n\r ")}
+			output, err := json.Marshal(failure)
+			if err == nil {
+				ws.Write(output)
+			}
 		} else if regex2.MatchString(line) {
 			result := regex2.FindStringSubmatch(line)
 			seconds, _ := strconv.ParseFloat(result[1], 32)
 			complete.Duration = float32(seconds)
-		}
+		} 
 	}
 
 	cmd.Wait()
