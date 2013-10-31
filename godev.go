@@ -29,6 +29,7 @@ const (
 )
 
 var (
+	goroot                      = ""
 	srcDirs                     = []string{}
 	bundle_root_dir             = ""
 	port                        = flag.String("port", defaultPort, "HTTP port number for the development server. (e.g. '2022')")
@@ -48,13 +49,15 @@ func init() {
 	} else {
 		logger = log.New(ioutil.Discard, "godev", log.LstdFlags)
 	}
+	
+	goroot = runtime.GOROOT() + string(os.PathSeparator)
 
 	dirs := build.Default.SrcDirs()
 
 	for i := len(dirs) - 1; i >= 0; i-- {
 		srcDir := dirs[i]
 
-		if !strings.HasPrefix(srcDir, runtime.GOROOT()) {
+		if !strings.HasPrefix(srcDir, goroot) {
 			srcDirs = append(srcDirs, srcDir)
 		}
 

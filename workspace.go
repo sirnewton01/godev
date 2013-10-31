@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 )
@@ -48,7 +47,7 @@ func getWsProjects() ([]Project, []FileDetails) {
 	nameMap := make(map[string]string)
 
 	for _, srcDir := range srcDirs {
-		if strings.HasPrefix(srcDir, runtime.GOROOT()) {
+		if strings.HasPrefix(srcDir, goroot) {
 			continue
 		}
 
@@ -106,7 +105,7 @@ func getWsProjects() ([]Project, []FileDetails) {
 	}
 
 	// Create a virtual project that represent the source code present at the GOROOT
-	gorootPkgPath := runtime.GOROOT() + "/src/pkg"
+	gorootPkgPath := filepath.Join(goroot, "/src/pkg")
 	gorootInfo, err := os.Stat(gorootPkgPath)
 
 	if err == nil {

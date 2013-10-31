@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 )
@@ -305,7 +304,7 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 
 		if filePath == "" && len(pathSegs) >= 2 && pathSegs[1] == "GOROOT" {
 			// Try again with the GOROOT
-			filesDir := runtime.GOROOT() + "/src/pkg"
+			filesDir := filepath.Join(goroot, "/src/pkg")
 			fileRelPath := "/" + strings.Join(pathSegs[2:], "/")
 			filePath = filesDir + fileRelPath
 			isgoroot = true

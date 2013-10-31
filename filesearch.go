@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"runtime"
 	"strings"
+	"path/filepath"
 )
 
 type Blob struct {
@@ -84,7 +84,7 @@ func filesearchHandler(writer http.ResponseWriter, req *http.Request, path strin
 				results = append(results, findNameMatches(srcDir, path, location, nameregex)...)
 			}
 
-			filesDir := runtime.GOROOT() + "/src/pkg"
+			filesDir := filepath.Join(goroot, "/src/pkg")
 			path = ""
 			location := "/file/GOROOT"
 			results = append(results, findNameMatches(filesDir, path, location, nameregex)...)
@@ -97,7 +97,7 @@ func filesearchHandler(writer http.ResponseWriter, req *http.Request, path strin
 				results = append(results, findContentMatches(srcDir, path, location, token)...)
 			}
 
-			filesDir := runtime.GOROOT() + "/src/pkg"
+			filesDir := filepath.Join(goroot, "/src/pkg")
 			path = ""
 			location := "/file/GOROOT"
 			results = append(results, findContentMatches(filesDir, path, location, token)...)

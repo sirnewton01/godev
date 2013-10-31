@@ -20,7 +20,7 @@ define(['orion/xhr', 'orion/plugin'], function (xhr, PluginProvider) {
         name: "Open Go Doc",
         id: "godev.godoc.lookup",
         forceSingleItem: true,
-        uriTemplate: "{OrionHome}/godev/godoc/godoc.html#location={Location}",
+        uriTemplate: "{+OrionHome}/godev/godoc/godoc.html#location={+Location}",
         tooltip: "Open up the go doc for this package"
     });
         

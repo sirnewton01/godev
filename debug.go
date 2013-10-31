@@ -15,7 +15,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -422,7 +421,7 @@ func debugHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 
 		for _, srcDir := range srcDirs {
 			// Skip stuff that is in the GOROOT
-			if filepath.HasPrefix(srcDir, runtime.GOROOT()) {
+			if filepath.HasPrefix(srcDir, goroot) {
 				continue
 			}
 

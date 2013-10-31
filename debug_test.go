@@ -4,7 +4,6 @@ import (
 	"go/build"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 )
 
@@ -15,7 +14,7 @@ func TestCommandDetection(t *testing.T) {
 
 	for _, srcDir := range srcDirs {
 		// Skip stuff that is in the GOROOT
-		if filepath.HasPrefix(srcDir, runtime.GOROOT()) {
+		if filepath.HasPrefix(srcDir, goroot) {
 			continue
 		}
 
