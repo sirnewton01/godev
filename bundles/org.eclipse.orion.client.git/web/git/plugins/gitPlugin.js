@@ -152,7 +152,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 			variableName: "EclipseGitLocation", 
 			variableMatchPosition: "after"
 		}],
-		uriTemplate: "http://git.eclipse.org/c{,EclipseGitLocation}"
+		uriTemplate: "http://git.eclipse.org/c{+EclipseGitLocation}"
 	});
 	
 	provider.registerService("orion.page.link.related", null, {
@@ -185,7 +185,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 		{source: "Type", match: "Commit"},
 		{source: "Name", variableName: "commitName"}
 		],
-		uriTemplate: "https://{+GitHubLocation}/commit/{,commitName}"
+		uriTemplate: "https://{+GitHubLocation}/commit/{+commitName}"
 	});
 	
 	provider.registerServiceProvider("orion.page.link.related", null, {
@@ -202,7 +202,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 		{source: "Type", match: "Commit"},
 		{source: "Name", variableName: "commitName"}
 		],
-		uriTemplate: "http://git.eclipse.org/c{+EclipseGitLocation}/commit/?id={,commitName}"
+		uriTemplate: "http://git.eclipse.org/c{+EclipseGitLocation}/commit/?id={+commitName}"
 	});
 
 	temp.href = "../../gitapi/diff/";

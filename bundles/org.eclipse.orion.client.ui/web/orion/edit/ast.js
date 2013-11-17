@@ -33,6 +33,13 @@ define([
 		this.start();
 	}
 	objects.mixin(ASTManager.prototype, /** @lends orion.edit.ASTManager.prototype */ {
+		/**
+		 * @name start
+		 * @description starts the manager, throws an error if the manager has already been started
+		 * @function
+		 * @public
+		 * @memberof orion.edit.ASTManager.prototype
+		 */
 		start: function() {
 			if (this.registration) {
 				throw new Error("Already started");
@@ -46,20 +53,39 @@ define([
 				getAST: this.getAST.bind(this)
 			}, null); //$NON-NLS-0$
 		},
+		/**
+		 * @name stop
+		 * @description stops the manager, throws an error if the manager is not running
+		 * @function
+		 * @public
+		 * @memberof orion.edit.ASTManager.prototype
+		 */
 		stop: function() {
+			if(!this.registration) {
+				throw new Error("Manager not running");
+			}
 			this.registration.unregister();
 			this.contextRegistration.unregister();
 			this.tracker.close();
 			this.listener = this.cachedAST = null;
 		},
 		/**
-		 * Notifies the AST manager of a change to the model.
+		 * @name updated
+		 * @description Notifies the AST manager of a change to the model
+		 * @function
+		 * @public
+		 * @memberof orion.edit.ASTManager.prototype
 		 * @param {Object} event
 		 */
 		updated: function(event) {
 			this.cachedAST = null;
 		},
 		/**
+		 * @name _getASTProvider
+		 * @description Returns the AST provider for the given content type identifier
+		 * @function
+		 * @private
+		 * @memberof orion.edit.ASTManager.prototype
 		 * @param {String} contentTypeId
 		 * @returns {Object} An AST provider capable of providing an AST for the given contentType.
 		 */
@@ -71,24 +97,34 @@ define([
 			return serviceRef ? this.serviceRegistry.getService(serviceRef) : null;
 		},
 		/**
-		 * @param {String} contentTypeId
-		 * @returns {Object|orion.Promise}
+		 * @name _getAST
+		 * @description Computes the AST for the given content type identifier and context
+		 * @function
+		 * @private
+		 * @memberof orion.edit.ASTManager.prototype
+		 * @param {String} contentTypeId the identifier of the content type to compute the AST for
+		 * @param {Object} astContext the context in which to compute the AST
+		 * @returns {Object|orion.Promise} or <code>null</code> if there are no providers for an AST of the given content type
 		 */
-		_getAST: function(contentTypeId, options) {
+		_getAST: function(contentTypeId, astContext) {
 			if (this.cachedAST) {
 				return this.cachedAST;
 			}
 			var provider = this._getASTProvider(contentTypeId);
 			if (provider) {
-				options.text = this.inputManager.getEditor().getText();
-				return provider.computeAST(options);
+				astContext.text = this.inputManager.getEditor().getText();
+				return provider.computeAST(astContext);
 			}
 			return null;
 		},
 		/**
-		 * Retrieves an AST from a capable AST provider.
+		 * @name getAST
+		 * @description Retrieves an AST from a capable AST provider.
+		 * @function
+		 * @public
+		 * @memberof orion.edit.ASTManager.prototype
 		 * @param {Object} [options={}] Options to be passed to the AST provider.
-		 * @returns {orion.Promise} A promise that resolves to the AST. Resolves to <code>null</code> if no capable provider was found.
+		 * @returns {Object|orion.Promise} A promise that resolves to the AST. Resolves to <code>null</code> if no capable provider was found.
 		 */
 		getAST: function(options) {
 			options = options || {};

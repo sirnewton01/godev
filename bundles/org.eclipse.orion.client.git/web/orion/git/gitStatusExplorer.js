@@ -9,14 +9,18 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 /*global define document window Image*/
-define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orion/selection', 'orion/section', 'orion/PageUtil', 'orion/webui/littlelib',
+define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orion/selection', 'orion/section', 'orion/URITemplate', 'orion/PageUtil', 'orion/webui/littlelib',
 		'orion/i18nUtil', 'orion/globalCommands', 'orion/git/util',	'orion/git/gitCommands', 'orion/Deferred', 'orion/git/widgets/CommitTooltipDialog',
 		'orion/webui/tooltip'],
-		function(require, messages, mExplorer, mSelection, mSection, PageUtil, lib, i18nUtil, mGlobalCommands, mGitUtil, mGitCommands,
+		function(require, messages, mExplorer, mSelection, mSection, URITemplate, PageUtil, lib, i18nUtil, mGlobalCommands, mGitUtil, mGitCommands,
 				Deferred, mCommitTooltip, Tooltip) {
 
 	var exports = {};
 	var conflictTypeStr = "Conflicting"; //$NON-NLS-0$
+
+	var repoTemplate = new URITemplate("git/git-repository.html#{,resource,params*}"); //$NON-NLS-0$
+	var logTemplate = new URITemplate("git/git-log.html#{,resource,params*}?page=1"); //$NON-NLS-0$
+	var commitTemplate = new URITemplate("git/git-commit.html#{,resource,params*}?page=1&pageSize=1"); //$NON-NLS-0$
 
 	function isConflict(type) {
 		return type === conflictTypeStr;
@@ -260,7 +264,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 				target : repository,
 				breadcrumbTarget : item,
 				makeBreadcrumbLink : function(seg, location) {
-					seg.href = require.toUrl("git/git-repository.html") + (location ? "#" + location : ""); //$NON-NLS-0$
+					seg.href = require.toUrl(repoTemplate.expand({resource: location || ""})); //$NON-NLS-0$
 				},
 				serviceRegistry : this.registry,
 				commandService : this.commandService
@@ -779,7 +783,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 						that.commandService.renderCommands(
 							titleWrapper.actionsNode.id,
 							titleWrapper.actionsNode.id,
-							{	"ViewAllLink" : "git/git-log.html#" + currentBranch.CommitLocation + "?page=1",
+							{	"ViewAllLink" : logTemplate.expand({resource: currentBranch.CommitLocation}),
 								"ViewAllLabel" : messages['See Full Log'],
 								"ViewAllTooltip" : messages["See the full log"]
 							}, that, "button"); //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
@@ -897,7 +901,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 			horizontalBox.style.overflow = "hidden"; //$NON-NLS-0$
 			sectionItem.appendChild(horizontalBox);
 
-			var imgSpriteName = (outgoing ? "git-sprite-outgoing_commit" : "git-sprite-incoming_commit"); //$NON-NLS-1$ //$NON-NLS-0$
+			var imgSpriteName = (outgoing ? "git-sprite-outgoing-commit" : "git-sprite-incoming-commit"); //$NON-NLS-1$ //$NON-NLS-0$
 
 			var direction = document.createElement("span"); //$NON-NLS-0$
 			direction.className = "sectionIcon gitImageSprite " + imgSpriteName; //$NON-NLS-0$
@@ -920,7 +924,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 
 			var titleLink = document.createElement("a"); //$NON-NLS-0$
 			titleLink.className = "navlinkonpage"; //$NON-NLS-0$
-			titleLink.href = require.toUrl("git/git-commit.html#") + commit.Location + "?page=1&pageSize=1"; //$NON-NLS-1$ //$NON-NLS-0$
+			titleLink.href = require.toUrl(commitTemplate.expand({resource: commit.Location})); //$NON-NLS-0$
 			titleLink.textContent = commit.Message;
 			detailsView.appendChild(titleLink);
 

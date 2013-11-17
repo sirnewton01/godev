@@ -82,6 +82,11 @@ define(['i18n!orion/search/nls/messages', 'orion/i18nUtil','require', 'orion/web
 			var that = this, crawler;
 			lib.empty(lib.node("pageNavigationActions")); //$NON-NLS-0$
 			lib.empty(lib.node("pageActions")); //$NON-NLS-0$
+			//If there is no search keyword defined, then we treat the search just as the scope change.
+			if(typeof searchParams.keyword === "undefined"){ //$NON-NLS-0$
+				lib.empty(parent);
+				return;
+			}
 			if(this.crawling){
 				lib.empty(parent);
 				parent.appendChild(document.createTextNode(""));

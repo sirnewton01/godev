@@ -8,10 +8,10 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global console window define document */
+/*global console window define document*/
 /*jslint regexp:false*/
 
-define([], function() {
+define(["orion/util"], function(util) {
 	/**
 	 * @name orion.webui.littlelib
 	 * @class A small library of DOM and UI helpers.
@@ -218,45 +218,54 @@ define([], function() {
 	 * @param {Node[]} excludeNodes Clicks targeting any descendant of these nodes will not trigger the dismissFunction.
 	 * @param {Function} dismissFunction The dismiss handler.
 	 */
-	var autoDismissNodes = [];
+	
+	var autoDismissNodes = null;
+
 	function addAutoDismiss(excludeNodes, dismissFunction) {
 		// auto dismissal.  Click anywhere else means close.
-		// Hook listener only once
-		if (autoDismissNodes.length === 0) {
-			document.addEventListener("click", function(event) { //$NON-NLS-0$
-				var stillInDocument = [];  // while we are going through the list, keep a list of the ones still connected to the document
-				for (var i=0; i<autoDismissNodes.length; i++) {
-					var exclusions = autoDismissNodes[i].excludeNodes;
-					var dismiss = autoDismissNodes[i].dismiss;
-					var inDocument = false;
-					var node;
-					var shouldDismiss = exclusions.every(function(n) {
-						if (n) {
-							inDocument = document.compareDocumentPosition(document, n) !== 1; // DOCUMENT_POSITION_DISCONNECTED = 0x01;
-							if (inDocument && contains(n, event.target)) {
-								node = n;
-								return false;
-							}
-						}
-						return true;
-					});
-					if (shouldDismiss) {
-						try {
-							dismiss();
-						} catch (e) {
-							if (typeof console !== "undefined" && console) { //$NON-NLS-0$
-								console.error(e && e.message);
-							}
-						}
-						// might have been removed as part of the dismiss processing
-						inDocument = document.compareDocumentPosition(document, node) !== 1; // DOCUMENT_POSITION_DISCONNECTED = 0x01;
+		function onclick(event) {
+			autoDismissNodes.forEach(function(autoDismissNode) {
+				var excludeNodeInDocument = false;
+				var excluded = autoDismissNode.excludeNodes.some(function(excludeNode) {
+					if(document.body.contains(excludeNode)) {
+						excludeNodeInDocument = true;
+						return excludeNode.contains(event.target);
 					}
-					if (inDocument) {
-						stillInDocument.push(autoDismissNodes[i]);
+					return false;
+				});
+				if (excludeNodeInDocument && !excluded) {
+					try {
+						autoDismissNode.dismiss();
+					} catch (e) {
+						if (typeof console !== "undefined" && console) { //$NON-NLS-0$
+							console.error(e && e.message);
+						}
 					}
 				}
-				autoDismissNodes = stillInDocument;
-			}, true); //$NON-NLS-0$
+			});
+			autoDismissNodes = autoDismissNodes.filter(function(autoDismissNode) {
+				// true if at least one excludeNode is in document.body
+				return autoDismissNode.excludeNodes.some(function(excludeNode) {
+					return document.body.contains(excludeNode);
+				});
+			});
+		}
+
+		// Hook listener only once
+		if (autoDismissNodes === null) {
+			autoDismissNodes = [];
+			document.addEventListener("click", onclick, true); //$NON-NLS-0$
+			if (util.isIOS) {
+				document.addEventListener("touchend", function(event){
+					function unhook(){
+						event.target.removeEventListener("click", unhook);
+					}
+					if (event.touches.length === 0) {
+						// we need a click eventlistener on the target to have ios really trigger a click
+						event.target.addEventListener("click", unhook);
+					}	
+				}, false);
+			}
 		}
 		autoDismissNodes.push({excludeNodes: excludeNodes, dismiss: dismissFunction});
 	}

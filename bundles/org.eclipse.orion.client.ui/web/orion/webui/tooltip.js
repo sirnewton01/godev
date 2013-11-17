@@ -58,7 +58,7 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 			// set up events
 			if (this._trigger === "click") { //$NON-NLS-0$
 				this._showDelay = 0;
-				this._node.addEventListener("click", function(event) { //$NON-NLS-0$
+				this._node.addEventListener("click", this._clickHandler = function(event) { //$NON-NLS-0$
 					if (event.target === self._node) {
 						self.show();
 						lib.stop(event);
@@ -67,19 +67,21 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 			} else if (this._trigger === "mouseover") { //$NON-NLS-0$
 				this._showDelay = options.showDelay === undefined ? 500 : options.showDelay;
 				var leave = ["mouseout", "click"];  //$NON-NLS-1$ //$NON-NLS-0$
-				this._node.addEventListener("mouseover", function(event) { //$NON-NLS-0$
+				this._node.addEventListener("mouseover", this._mouseoverHandler = function(event) { //$NON-NLS-0$
 					if (lib.contains(self._node, event.target)) {
 						self.show();
 						lib.stop(event);
 					}
 				}, false);
 				
+				this._leaveHandler = function(event) { //$NON-NLS-0$
+					if (lib.contains(self._node, event.target)) {
+						self.hide();
+					}
+				};
+
 				for (var i=0; i<leave.length; i++) {
-					this._node.addEventListener(leave[i], function(event) { //$NON-NLS-0$
-						if (lib.contains(self._node, event.target)) {
-							self.hide();
-						}
-					}, false);
+					this._node.addEventListener(leave[i], this._leaveHandler, false);
 				}
 			}						
 		},
@@ -281,6 +283,14 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 				this._tipInner = null;
 				this._tipTextContent = null;
 				this._tail = null;
+			}
+			if (this._node) {
+				this._node.removeEventListener("click", this._clickHandler, false); //$NON-NLS-0$
+				this._node.removeEventListener("mouseover", this._mouseoverHandler, false); //$NON-NLS-0$
+				var leave = ["mouseout", "click"];  //$NON-NLS-1$ //$NON-NLS-0$
+				for (var i=0; i<leave.length; i++) {
+					this._node.removeEventListener(leave[i], this._leaveHandler, false);
+				}
 			}
 		}
 	};

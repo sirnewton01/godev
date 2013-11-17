@@ -261,7 +261,7 @@ mSiteMappingsTable.MappingsTable = (function() {
 			
 			var moveUpCommand = new mCommands.Command({
 				name: messages["Move Up"],
-				imageClass: "core-sprite-move_up", //$NON-NLS-0$
+				imageClass: "core-sprite-move-up", //$NON-NLS-0$
 				id: "orion.site.mappings.moveUp", //$NON-NLS-0$
 				visibleWhen: function(item) {
 					return 'Source' in item || 'Target' in item || 'FriendlyPath' in item; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
@@ -280,7 +280,7 @@ mSiteMappingsTable.MappingsTable = (function() {
 			
 			var moveDownCommand = new mCommands.Command({
 				name: messages["Move Down"],
-				imageClass: "core-sprite-move_down", //$NON-NLS-0$
+				imageClass: "core-sprite-move-down", //$NON-NLS-0$
 				id: "orion.site.mappings.moveDown", //$NON-NLS-0$
 				visibleWhen: function(item) {
 					return 'Source' in item || 'Target' in item || 'FriendlyPath' in item; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$

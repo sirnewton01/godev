@@ -13,6 +13,9 @@ define(['orion/projects/projectExplorer',
 	'orion/selection',
 	'orion/URITemplate',
 	'orion/webui/littlelib'], function(mProjectExplorer, Selection, URITemplate, lib) {
+	
+		var uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
+	
 		function ProjectView(options){
 			this.progress = options.progress;
 			this.fileClient = options.fileClient;
@@ -29,7 +32,7 @@ define(['orion/projects/projectExplorer',
 			changedItem: function(parent, children, changeType){
 				var _self = this;
 				if(changeType === "created" && parent.ContentLocation){ //$NON-NLS-0$
-					window.location = new URITemplate("#{,resource,params*}").expand({resource: parent.ContentLocation}); //$NON-NLS-0$
+					window.location = uriTemplate.expand({resource: parent.ContentLocation}); //$NON-NLS-0$
 					return;
 				}
 				if(parent){

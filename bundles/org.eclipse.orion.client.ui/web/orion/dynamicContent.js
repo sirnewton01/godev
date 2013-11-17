@@ -8,6 +8,8 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
+
+/*global define document*/
  define(['require', 'orion/webui/littlelib', 'orion/webui/tooltip'], function(require, lib, mTooltip){
  
 	/**
@@ -47,7 +49,9 @@
 		*/
 		stop: function(){
 			var indicator = lib.node(this._prefix+this._id);
-			indicator.parentNode.removeChild(indicator);
+			if (indicator) {
+				indicator.parentNode.removeChild(indicator);
+			}
 		},
 		
 		/**
@@ -105,7 +109,9 @@
 		*/
 		stop: function(){
 			var indicator = lib.node(this._prefix+this._id);
-			indicator.parentNode.removeChild(indicator);
+			if (indicator) {
+				indicator.parentNode.removeChild(indicator);
+			}
 		},
 		
 		/**

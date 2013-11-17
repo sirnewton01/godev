@@ -38,6 +38,16 @@ exports.Explorer = (function() {
 		this.myTree = null;
 	}
 	Explorer.prototype = /** @lends orion.explorer.Explorer.prototype */ {
+	
+		destroy: function() {
+			if (this.model) {
+				this.model.destroy();
+			}
+			if (this.myTree) {
+				this.myTree.destroy();
+			}
+			this.destroyed = true;
+		},
 		
 		// we have changed an item on the server at the specified parent node
 		changedItem: function(parent, children) {
@@ -311,6 +321,7 @@ exports.ExplorerModel = (function() {
 	}
 	ExplorerModel.prototype = /** @lends orion.explorer.ExplorerModel.prototype */{
 		destroy: function(){
+			this.destroyed = true;
 		},
 		getRoot: function(onItem){
 			var self = this;
@@ -824,9 +835,6 @@ exports.SimpleFlatModel = (function() {
 		
 	SimpleFlatModel.prototype.getRoot = function(onItem){
 		onItem(this.root);
-	};
-	
-	SimpleFlatModel.prototype.destroy = function() {
 	};
 	
 	SimpleFlatModel.prototype.getId = function(/* item */ item){

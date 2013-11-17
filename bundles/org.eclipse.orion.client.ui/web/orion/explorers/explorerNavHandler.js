@@ -12,7 +12,12 @@
 /*global define window */
 /*jslint regexp:false browser:true forin:true*/
 
-define(['i18n!orion/nls/messages', 'orion/webui/littlelib', 'orion/treeModelIterator'], function(messages, lib, mTreeModelIterator){
+define([
+	'i18n!orion/nls/messages',
+	'orion/webui/littlelib',
+	'orion/treeModelIterator',
+	'orion/uiUtils'
+], function(messages, lib, mTreeModelIterator, UiUtils){
 
 var exports = {};
 var userAgent = navigator.userAgent;
@@ -74,8 +79,9 @@ exports.ExplorerNavHandler = (function() {
 			parentDiv.focus();
 	    }
 	    var keyListener = function (e) { 
-			if(e.target !== parentDiv && e.currentTarget !== parentDiv ){
-				return;
+			if(UiUtils.isFormElement(e.target)) {
+				// Not for us
+				return true;
 			}
 			if(self.explorer.preventDefaultFunc && self.explorer.preventDefaultFunc(e, self._modelIterator.cursor())){
 				return true;

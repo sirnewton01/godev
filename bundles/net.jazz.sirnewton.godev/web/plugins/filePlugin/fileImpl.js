@@ -10,7 +10,7 @@
  ******************************************************************************/
 
 /*global window define URL XMLHttpRequest BlobBuilder*/
-/*jslint forin:true devel:true browser:true*/
+/*jslint forin:true devel:true browser:true regexp:false*/
 
 
 define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], function(Deferred, xhr, _, operation) {
@@ -37,10 +37,29 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 		}
 		return data;
 	}
+	
+	// java servers are semi-colon challenged
+	function cleanseUrl(path) {
+		if (path) {
+			path = path.replace(";","%3B");
+		}
+		return path;
+	}
+
+	function _xhr(method, url, options) {
+		return xhr(method, cleanseUrl(url), options);
+	}
+
+	/**
+	 * http://tools.ietf.org/html/rfc5023#section-9.7.1
+	 */
+	function encodeSlug(s) {
+		return s.replace(/([^\u0020-\u007e]|%)+/g, encodeURIComponent);
+	}
 
 	// Wrap orion/xhr to handle long-running operations.
 	function sftpOperation() {
-		return xhr.apply(null, Array.prototype.slice.call(arguments)).then(function(result) {
+		return _xhr.apply(null, Array.prototype.slice.call(arguments)).then(function(result) {
 			if (result.xhr && result.xhr.status === 202) {
 				var response =  result.response ? JSON.parse(result.response) : null;
 				var d = new Deferred();
@@ -130,7 +149,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 				fetchLocation += "?depth=1"; //$NON-NLS-0$
 			}
 			// console.log("get children");
-			return xhr("GET", fetchLocation,{
+			return _xhr("GET", fetchLocation,{
 				headers: {
 					"Orion-Version": "1",
 					"Content-Type": "charset=UTF-8"
@@ -154,10 +173,10 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 		 */
 		_createWorkspace: function(name) {
 			//return the deferred so client can chain on post-processing
-			return xhr("POST", this.workspaceBase, {
+			return _xhr("POST", this.workspaceBase, {
 				headers: {
 					"Orion-Version": "1",
-					"Slug": name
+					"Slug": encodeSlug(name)
 				},
 				timeout: 15000
 			}).then(function(result) {
@@ -171,7 +190,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 		 * workspaces when ready.
 		 */
 		loadWorkspaces: function() {
-			return xhr("GET", this.workspaceBase, {
+			return _xhr("GET", this.workspaceBase, {
 				headers: {
 					"Orion-Version": "1"
 				},
@@ -197,7 +216,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 			if (location===this.fileBase) {
 				location = null;
 			}
-			return xhr("GET", location ? location : this.workspaceBase, {
+			return _xhr("GET", location ? location : this.workspaceBase, {
 				headers: {
 					"Orion-Version": "1"
 				},
@@ -215,7 +234,9 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 						return this.loadWorkspace(jsonData.Workspaces[0].Location);
 					} else {
 						//no workspace exists, and the user didn't specify one. We'll create one for them
+						// BEGIN GODEV CUSTOMIZATION
 						return this._createWorkspace("Godev Content");
+						// END GODEV CUSTOMIZATION
 					}
 				}
 			}.bind(this)).then(function(result) {
@@ -248,7 +269,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 			if (create) {
 				data.CreateIfDoesntExist = create;
 			}
-			return xhr("POST", location, {
+			return _xhr("POST", location, {
 				headers: {
 					"Orion-Version": "1",
 					"Content-Type": "application/json;charset=UTF-8"
@@ -272,11 +293,11 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 		 * @return {Object} JSON representation of the created folder
 		 */
 		createFolder: function(parentLocation, folderName) {
-			return xhr("POST", parentLocation, {
+			return _xhr("POST", parentLocation, {
 				headers: {
 					"Orion-Version": "1",
 					"X-Create-Options" : "no-overwrite",
-					"Slug": folderName,
+					"Slug": encodeSlug(folderName),
 					"Content-Type": "application/json;charset=UTF-8"
 				},
 				data: JSON.stringify({
@@ -302,11 +323,11 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 		 * @return {Object} A deferred that will provide the new file object
 		 */
 		createFile: function(parentLocation, fileName) {
-			return xhr("POST", parentLocation, {
+			return _xhr("POST", parentLocation, {
 				headers: {
 					"Orion-Version": "1",
 					"X-Create-Options" : "no-overwrite",
-					"Slug": fileName,
+					"Slug": encodeSlug(fileName),
 					"Content-Type": "application/json;charset=UTF-8"
 				},
 				data: JSON.stringify({
@@ -329,7 +350,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 		 * @param {String} location The location of the file or directory to delete.
 		 */
 		deleteFile: function(location) {
-			return xhr("DELETE", location, {
+			return _xhr("DELETE", location, {
 				headers: {
 					"Orion-Version": "1"
 				},
@@ -380,10 +401,10 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 				var segments = sourceLocation.split("/");
 				name = segments.pop() || segments.pop();
 			}
-			return xhr("POST", targetLocation, {
+			return _xhr("POST", targetLocation, {
 				headers: {
 					"Orion-Version": "1",
-					"Slug": name,
+					"Slug": encodeSlug(name),
 					"X-Create-Options": "no-overwrite," + (isMove ? "move" : "copy"),
 					"Content-Type": "application/json;charset=UTF-8"
 				},
@@ -409,7 +430,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 			if (isMetadata) {
 				url.query.set("parts", "meta");
 			}
-			return xhr("GET", url.href, {
+			return _xhr("GET", url.href, {
 				timeout: 15000,
 				headers: { "Orion-Version": "1" },
 				log: false
@@ -471,7 +492,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 					url.query.set("parts", "meta");
 				}
 			}
-			return xhr(method, url.href, options).then(function(result) {
+			return _xhr(method, url.href, options).then(function(result) {
 				return result.response ? JSON.parse(result.response) : null;
 			}).then(function(result) {
 				if (this.makeAbsolute) {
@@ -547,7 +568,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 		 */
 		search: function(searchParams) {
 			var query = _generateLuceneQuery(searchParams);
-			return xhr("GET", this.fileBase + "/../filesearch" + query, {
+			return _xhr("GET", this.fileBase + "/../filesearch" + query, {
 				headers: {
 					"Accept": "application/json",
 					"Orion-Version": "1"
@@ -568,7 +589,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 		var d = new Deferred(); // create a promise
 		var xhr = new XMLHttpRequest();
 		try {
-			xhr.open(method, url);
+			xhr.open(method, cleanseUrl(url));
 			if (headers) {
 				Object.keys(headers).forEach(function(header){
 					xhr.setRequestHeader(header, headers[header]);

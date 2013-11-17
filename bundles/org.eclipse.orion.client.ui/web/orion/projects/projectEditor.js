@@ -9,8 +9,11 @@
  ******************************************************************************/
  
 /*global define document setTimeout*/
-define(['orion/markdownView', 'orion/webui/littlelib', 'orion/projectCommands', 'orion/commandRegistry'],
-	function(mMarkdownView, lib, mProjectCommands, mCommandRegistry) { //$NON-NLS-0$
+define(['orion/markdownView', 'orion/URITemplate', 'orion/webui/littlelib', 'orion/projectCommands', 'orion/commandRegistry', 'orion/PageLinks'],
+	function(mMarkdownView, URITemplate, lib, mProjectCommands, mCommandRegistry, PageLinks) {
+	
+	var editTemplate = new URITemplate("./edit.html#{,resource,params*}"); //$NON-NLS-0$
+	
 	function ProjectEditor(options){
 		this.serviceRegistry = options.serviceRegistry;
 		this.fileClient = options.fileClient;
@@ -193,11 +196,11 @@ define(['orion/markdownView', 'orion/webui/littlelib', 'orion/projectCommands', 
 		},
 		renderAdditionalProjectProperties: function(parent){
 			this.projectClient.getMatchingProjectHandlers(this.parentFolder).then(function(matchingProjectHandlers){
-			for(var projectHandlerIndex = 0; projectHandlerIndex<matchingProjectHandlers.length; matchingProjectHandlers++){
+			for(var projectHandlerIndex = 0; projectHandlerIndex<matchingProjectHandlers.length; projectHandlerIndex++){
 				var projectHandler = matchingProjectHandlers[projectHandlerIndex];
 
 				if(!projectHandler || !projectHandler.getAdditionalProjectProperties){
-					return;
+					continue;
 				}
 				this.progress.progress(projectHandler.getAdditionalProjectProperties(this.parentFolder, this.projectData), "Getting additional project information").then(function(additionalProperties){
 					if(!additionalProperties || !additionalProperties.length || additionalProperties.length === 0){
@@ -233,7 +236,8 @@ define(['orion/markdownView', 'orion/webui/littlelib', 'orion/projectCommands', 
 								td = document.createElement("td");
 								if(child.href){
 									var a = document.createElement("a");
-									a.href = child.href.replace("{OrionHome}", "..");
+									var uriTemplate = new URITemplate(child.href);
+									a.href = uriTemplate.expand({OrionHome : PageLinks.getOrionHome()});
 									a.appendChild(document.createTextNode(child.value || " "));
 									td.appendChild(a);
 								} else {
@@ -278,7 +282,7 @@ define(['orion/markdownView', 'orion/webui/littlelib', 'orion/projectCommands', 
 						if(dependencyMetadata){
 							lib.empty(td);
 							var a = document.createElement("a");
-							a.href = "./edit.html#" + dependencyMetadata.Location;
+							a.href = editTemplate.expand({resource: dependencyMetadata.Location}); //$NON-NLS-0$
 							a.appendChild(document.createTextNode(dependency.Name));
 							td.appendChild(a);
 						}

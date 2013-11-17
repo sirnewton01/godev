@@ -26,8 +26,8 @@ initproject.png \
 leftarrow.png \
 link.png \
 list.png \
-move_down.gif \
-move_up.gif \
+move-down.png \
+move-up.png \
 none.png \
 ok.gif \
 openarrow.png \

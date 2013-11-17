@@ -31,6 +31,7 @@ define([
 	var KeyBinding = mKeyBinding.KeyBinding;
 	var NavigatorRenderer = mNavigatorRenderer.NavigatorRenderer;
 	
+	var uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
 	function FolderNavRenderer() {
 		NavigatorRenderer.apply(this, arguments);
 		this.selectionPolicy = this.explorer.getCommandsVisible() ? null : "cursorOnly"; //$NON-NLS-0$
@@ -41,7 +42,7 @@ define([
 		createFolderNode: function(folder) {
 			var folderNode = mNavigatorRenderer.NavigatorRenderer.prototype.createFolderNode.call(this, folder);
 			if (this.showFolderLinks && folderNode.tagName === "A") { //$NON-NLS-0$
-				folderNode.href = new URITemplate("#{,resource,params*}").expand({resource: folder.Location}); //$NON-NLS-0$
+				folderNode.href = uriTemplate.expand({resource: folder.Location}); //$NON-NLS-0$
 			}
 			folderNode.classList.add("folderNavFolder"); //$NON-NLS-0$
 			folderNode.classList.add("navlink"); //$NON-NLS-0$

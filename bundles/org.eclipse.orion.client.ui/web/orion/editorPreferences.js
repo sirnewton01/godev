@@ -29,6 +29,8 @@ define([], function() {
 		autoLoadVisible: true,
 		saveDiffs: true,
 		saveDiffsVisible: true,
+		showBlame: false,
+		showBlameVisible: true,
 		autoPairParentheses: true,
 		autoPairParenthesesVisible: true,
 		autoPairBraces: true,

@@ -48,8 +48,8 @@
 .core-sprite-leftarrow{ background-position: 0 -401px; width: 16px; height: 16px; } 
 .core-sprite-link{ background-position: 0 -419px; width: 16px; height: 16px; } 
 .core-sprite-list{ background-position: 0 -437px; width: 16px; height: 16px; } 
-.core-sprite-move_down{ background: url(../images/move-down.png); width: 16px; height: 16px; } 
-.core-sprite-move_up{ background: url(../images/move-up.png); width: 16px; height: 16px; } 
+.core-sprite-move-down{ background-position: 0 -455px; width: 16px; height: 16px; } 
+.core-sprite-move-up{ background-position: 0 -473px; width: 16px; height: 16px; } 
 .core-sprite-none{ background-position: 0 -491px; width: 16px; height: 16px; } 
 .core-sprite-ok{ background-position: 0 -509px; width: 16px; height: 16px; } 
 .core-sprite-openarrow{ background-position: 0 -527px; width: 16px; height: 16px; } 

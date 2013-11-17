@@ -84,6 +84,7 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 			var progress = this.registry.getService("orion.page.progress");
 			progress.progress(this.fileClient.fetchChildren(parentItem.ChildrenLocation), "Fetching children of " + parentItem.Name).then( 
 				function(children) {
+					if (self.destroyed) { return; }
 					onComplete(self.processParent(parentItem, children));
 				}
 			);
@@ -193,6 +194,7 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 		Object.keys(this._modelListeners).forEach(function(eventType) {
 			_self.modelEventDispatcher.removeEventListener(eventType, _self._modelListeners[eventType]);
 		});
+		mExplorer.Explorer.prototype.destroy.call(this);
 	};
 
 	/**
@@ -484,16 +486,17 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 			return this.loadResourceList(this.treeRoot, forceExpand);
 		}
 		var that = this;
-		var progress = this.registry.getService("orion.page.progress");
-		return progress.progress(this.fileClient.fetchChildren(parent.ChildrenLocation), "Fetching children of " + parent.Name).then(function(children) {
-			children = that.model.processParent(parent, children);
+		var deferred = new Deferred();
+		parent.children = null;
+		this.model.getChildren(parent, function(children) {
 			//If a key board navigator is hooked up, we need to sync up the model
 			if(that.getNavHandler()){
 				//that._initSelModel();
 			}
 			that.myTree.refresh.bind(that.myTree)(parent, children, forceExpand);
-			return new Deferred().resolve(children);
+			deferred.resolve(children);
 		});
+		return deferred;
 	};
 	
 	FileExplorer.prototype.isExpanded = function(item) {
@@ -601,8 +604,9 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/Deferred', 'orion/
 		var self = this;
 		return Deferred.when(root,
 			function(root) {
-				self.treeRoot = {};
 				clearTimeout(progressTimeout);
+				if (self.destroyed) { return; }
+				self.treeRoot = {};
 				// copy properties from root json to our object
 				for (var property in root) {
 					self.treeRoot[property] = root[property];

@@ -3,6 +3,7 @@
 */
 
 @import "./progress.css";
+@import "./assistance.css";
 
 html {
   cursor: default;
@@ -368,7 +369,7 @@ textarea.parameterInput {
 
 .slideContainer {
 	height: auto;
-	width: 100%;
+	width: 99%;
 	clear: both;
 	float: left;
 	margin: 2px;
@@ -807,6 +808,7 @@ input {
 	border: 1px solid #DDD;
 	padding:10px;
 	margin-top: 5px;
+	outline: none;
 	position:absolute;
 	z-index:100;
 	box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);

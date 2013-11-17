@@ -25,7 +25,7 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 	}
 
 	function setPageInfo(serviceRegistry, fileClient, commandService, searcher, searchResultsGenerator, searchBuilder, searchParams, progress){
-		var searchLoc = searchParams.useRootLocation ? fileClient.fileServiceRootURL(searchParams.resource) : searchParams.resource;
+		var searchLoc = searchParams.resource;
 		var title = searchParams.replace ? messages["Replace All Matches"] : messages["Search Results"];
 		if(searchLoc){
 			if(searchLoc === fileClient.fileServiceRootURL(searchLoc)){
@@ -55,6 +55,8 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 			mGlobalCommands.setPageTarget({task: "Search", title: title, serviceRegistry: serviceRegistry,  //$NON-NLS-0$
 				commandService: commandService, searchService: searcher, fileService: fileClient, breadcrumbRootName: "Search", //$NON-NLS-0$
 				makeBreadcrumbLink: function(seg,location){makeHref(fileClient, seg, location, searchParams, searcher);}});
+				searchBuilder.loadSearchParams(searchParams);
+				searchResultsGenerator.loadResults(searchParams);
 		}
 	}
 	mBootstrap.startup().then(function(core) {

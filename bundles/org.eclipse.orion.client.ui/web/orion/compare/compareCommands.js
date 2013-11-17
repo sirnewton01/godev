@@ -100,7 +100,7 @@ exports.CompareCommandFactory = (function() {
 			var nextDiffCommand = new mCommands.Command({
 				name: messages["Next diff block"],
 				tooltip : messages["Next diff block"],
-				imageClass : "core-sprite-move_down", //$NON-NLS-0$
+				imageClass : "core-sprite-move-down", //$NON-NLS-0$
 				id: "orion.compare.nextDiff", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
 				callback : function(data) {
@@ -109,7 +109,7 @@ exports.CompareCommandFactory = (function() {
 			var prevDiffCommand = new mCommands.Command({
 				name : messages["Previous diff block"],
 				tooltip : messages["Previous diff block"],
-				imageClass : "core-sprite-move_up", //$NON-NLS-0$
+				imageClass : "core-sprite-move-up", //$NON-NLS-0$
 				id: "orion.compare.prevDiff", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
 				callback : function(data) {
@@ -118,7 +118,7 @@ exports.CompareCommandFactory = (function() {
 			var nextChangeCommand = new mCommands.Command({
 				name : messages["Next diff change"],
 				tooltip : messages["Next diff change"],
-				imageClass : "core-sprite-move_down", //$NON-NLS-0$
+				imageClass : "core-sprite-move-down", //$NON-NLS-0$
 				id: "orion.compare.nextChange", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
 				callback : function(data) {
@@ -127,7 +127,7 @@ exports.CompareCommandFactory = (function() {
 			var prevChangeCommand = new mCommands.Command({
 				name : messages["Previous diff change"],
 				tooltip : messages["Previous diff change"],
-				imageClass : "core-sprite-move_up", //$NON-NLS-0$
+				imageClass : "core-sprite-move-up", //$NON-NLS-0$
 				id: "orion.compare.prevChange", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
 				callback : function(data) {

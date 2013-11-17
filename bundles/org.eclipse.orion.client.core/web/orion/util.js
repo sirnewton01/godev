@@ -9,11 +9,11 @@
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define navigator*/
+/*global define navigator document*/
 define(function() {
 
 	var userAgent = navigator.userAgent;
-	var isIE = parseFloat(userAgent.split("MSIE")[1]) || undefined; //$NON-NLS-0$
+	var isIE = (userAgent.indexOf("MSIE") !== -1 || userAgent.indexOf("Trident") !== -1) ? document.documentMode : undefined; //$NON-NLS-1$ //$NON-NLS-0$
 	var isFirefox = parseFloat(userAgent.split("Firefox/")[1] || userAgent.split("Minefield/")[1]) || undefined; //$NON-NLS-1$ //$NON-NLS-0$
 	var isOpera = userAgent.indexOf("Opera") !== -1; //$NON-NLS-0$
 	var isChrome = parseFloat(userAgent.split("Chrome/")[1]) || undefined; //$NON-NLS-0$

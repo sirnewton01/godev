@@ -27,15 +27,19 @@ define(function() {
 				return;
 			}
 
-			if (parentRequire.defined(name)) {
-				onLoad(parentRequire(name));
-				return;
+			if (!parentRequire.defined || parentRequire.defined(name)) {
+				try {
+					onLoad(parentRequire(name));
+					return;
+				} catch (e) {
+					// not defined so need to load it
+				}
 			}
-			
+
 			if (config.isBuild || config.isTest) {
 				onLoad({});
 				return;
-			}	
+			}
 
 			var prefix = match[1],
 				locale = match[3] ? match[2] : "",
@@ -61,7 +65,7 @@ define(function() {
 									}
 									// end
 									master[locale] = true;
-									if (!parentRequire.specified(name)) {
+									if (!parentRequire.specified || !parentRequire.specified(name)) {
 										define(name, ['orion/i18n!' + name], function(bundle) { //$NON-NLS-0$
 											return bundle;
 										});
@@ -71,7 +75,7 @@ define(function() {
 								}
 							}
 						});
-						if (!parentRequire.specified(name)) {
+						if (!parentRequire.specified || !parentRequire.specified(name)) {
 							if (masterReference) {
 								serviceRegistry.getService(masterReference).getMessageBundle().then(function(bundle) {
 									Object.keys(master).forEach(function(key) {

@@ -27,5 +27,3 @@ html,body {
 	vertical-align: middle; 
 	background-image: url(../images/core_sprites.png);
 }
-.core-sprite-closedarrow{ background-position: 0 -54px; width: 16px; height: 16px; } 
-.core-sprite-openarrow{ background-position: 0 -499px; width: 16px; height: 16px; } 

@@ -332,8 +332,8 @@ define(['require', 'i18n!orion/edit/nls/messages', 'orion/objects', 'orion/webui
 		},
 		createActionSections: function() {
 			var _self = this;
-			lib.empty(_self.toolbarNode);
 			[this.newActionsScope, this.selectionActionsScope, this.goUpActionsScope].forEach(function(id) {
+				if (!_self[id]) {
 					var elem = document.createElement("ul"); //$NON-NLS-0$
 					elem.id = id;
 					elem.classList.add("commandList"); //$NON-NLS-0$
@@ -341,6 +341,7 @@ define(['require', 'i18n!orion/edit/nls/messages', 'orion/objects', 'orion/webui
 					elem.classList.add("pageActions"); //$NON-NLS-0$
 					_self.toolbarNode.appendChild(elem);
 					_self[id] = elem;
+				}
 			});
 		},
 
@@ -355,9 +356,12 @@ define(['require', 'i18n!orion/edit/nls/messages', 'orion/objects', 'orion/webui
 			if((!selections || selections.length===0) && treeRoot.children){
 				this.selection.setSelections(treeRoot.children[0]);
 			}
+			var goUpActions = lib.node(this.goUpActionsScope);
+			if (goUpActions) {
+				commandRegistry.destroy(goUpActions);
+			}
 			FileCommands.updateNavTools(this.registry, commandRegistry, this, this.newActionsScope, selectionTools, treeRoot, true);
 			if(treeRoot.children){
-				var goUpActions = lib.node(this.goUpActionsScope);
 				commandRegistry.renderCommands(this.goUpActionsScope, goUpActions, treeRoot.children[0], this, "tool");
 			}
 		},
@@ -398,6 +402,7 @@ define(['require', 'i18n!orion/edit/nls/messages', 'orion/objects', 'orion/webui
 		}
 	});
 
+	var uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
 	function FilesNavRenderer() {
 		NavigatorRenderer.apply(this, arguments);
 	}
@@ -409,7 +414,7 @@ define(['require', 'i18n!orion/edit/nls/messages', 'orion/objects', 'orion/webui
 			var folderNode = NavigatorRenderer.prototype.createFolderNode.call(this, folder);
 			if (folderNode.tagName === "A") { //$NON-NLS-0$
 				folderNode.classList.add("projectNavFolder"); //$NON-NLS-0$
-				folderNode.href = new URITemplate("#{,resource,params*}").expand({resource: folder.Location}); //$NON-NLS-0$
+				folderNode.href = uriTemplate.expand({resource: folder.Location}); //$NON-NLS-0$
 			}
 			return folderNode;
 		},
@@ -457,11 +462,11 @@ define(['require', 'i18n!orion/edit/nls/messages', 'orion/objects', 'orion/webui
 					nameText += " (disconnected)";
 				} else {
 					if(item.Dependency && item.FileMetadata){
-						itemNode.href = new URITemplate("#{,resource,params*}").expand({ //$NON-NLS-0$
+						itemNode.href = uriTemplate.expand({ //$NON-NLS-0$
 							resource: item.FileMetadata.Location
 						});
 					} else if(item.Location){
-						itemNode.href = new URITemplate("#{,resource,params*}").expand({ //$NON-NLS-0$
+						itemNode.href = uriTemplate.expand({ //$NON-NLS-0$
 							resource: item.Location
 						});
 					}
@@ -502,7 +507,7 @@ define(['require', 'i18n!orion/edit/nls/messages', 'orion/objects', 'orion/webui
 		projectInfoNode.id = "projectInfoNode";
 		var a = document.createElement("a");
 		a.style.color = "black";
-		a.href =  new URITemplate("#{,resource,params*}").expand({ //$NON-NLS-0$
+		a.href = uriTemplate.expand({ //$NON-NLS-0$
 				resource: projectData.ContentLocation
 			});
 		

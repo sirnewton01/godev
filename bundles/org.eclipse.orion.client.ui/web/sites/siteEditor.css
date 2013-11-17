@@ -10,26 +10,26 @@
 	user-select: text;
 }
 
-.siteEditorTable td, .siteEditorTable th {
-	padding: 10px 10px 5px 10px;
+.siteEditorTable .cell, .siteEditorTable .header {
+	padding: 10px 10px 10px 20px;
+	display: inline-block;
 }
-.siteEditorTable th {
+.siteEditorTable .header {
 	text-align: left;
 }
 
-/* Style leftmost column of siteEditorTable */
-.siteEditorTable>tbody>tr>td:first-child {
+.siteEditorTable .header {
 	vertical-align: top;
 	min-width: 10em;
-	/*background-color: #fafafa;*/
 }
-.siteEditorTable>tbody>tr>td {
-	/*border-bottom: 1px solid #ddd;*/
-
+.siteEditorTable td {
 	vertical-align: middle;
+	padding-top: 8px;
+	padding-bottom: 8px;
 }
 .navColumn {
 	font-weight: bold;
+	padding-top: 8px;
 }
 .isValidColumn {
 	min-width: 32px;

@@ -266,7 +266,10 @@ define(['orion/xhr', 'orion/plugin'], function (xhr, PluginProvider) {
                 if (buffer.length === 0 && offset === 0) {
                     proposals.push({
                             description: "new file template",
-                            proposal: "package ${name}"       +NL+
+                            proposal: "// COPYRIGHT"          +NL+
+                                      ""                      +NL+
+                                      "// GODOC"              +NL+
+                                      "package ${name}"       +NL+
                                       NL+
                                       "import ("              +NL+
                                        TAB+"${import}"        +NL+
@@ -275,9 +278,26 @@ define(['orion/xhr', 'orion/plugin'], function (xhr, PluginProvider) {
                                       "func main() {"         +NL+
                                        TAB                    +NL+
                                       "}"                     +NL,
-                            escapePosition: 55,
-                            positions: [{offset: 8+offset, length: 7},
-                                        {offset: 27+offset, length: 9}]
+                            escapePosition: 78,
+                            positions: [{offset:31+offset, length: 7},
+                                        {offset: 50+offset, length: 9}]
+                        });
+                        
+                    proposals.push({
+                            description: "new test template",
+                            proposal: "// COPYRIGHT"          +NL+
+                                      ""                      +NL+
+                                      "package main"       +NL+
+                                      NL+
+                                      "import ("              +NL+
+                                       TAB+"testing"        +NL+
+                                      ")"                     +NL+
+                                      NL+
+                                      "func Test1(t *testing.T) {"         +NL+
+                                       TAB                    +NL+
+                                      "}"                     +NL,
+                            escapePosition: 77,
+                            positions: []
                         });
                 }
 

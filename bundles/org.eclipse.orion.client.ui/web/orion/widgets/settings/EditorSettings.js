@@ -183,6 +183,11 @@ define("orion/widgets/settings/EditorSettings", //$NON-NLS-0$
 				overviewRuler: {
 					create: createBooleanProperty
 				}
+			},
+			sourceControl: {
+				showBlame: {
+					create: createBooleanProperty
+				}
 			}
 		}
 	};

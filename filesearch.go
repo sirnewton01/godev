@@ -56,20 +56,49 @@ func filesearchHandler(writer http.ResponseWriter, req *http.Request, path strin
 
 		// TODO validate the input better, check for nils
 		query := values["q"][0]
+		
 		// TODO respect the rows, start and sort parameters
 		//rows := values["rows"][0]
 		//sort := values["sort"][0]
 		//start := values["start"][0]
 
 		// TODO proper validation, check for nil values and empty maps
-		filterparts := strings.Split(query, " ")[0]
-
-		filterparts = strings.Replace(filterparts, "\\", "", -1)
+		filterparts := strings.Split(query, " ")
+		filterparts[0] = strings.Replace(filterparts[0], "\\", "", -1)
 
 		results := []Result{}
+		
+		searchDirs := []string{}
+		locations := []string{}
+		
+		if strings.HasPrefix(filterparts[1], "Location") {
+			loc := strings.Split(filterparts[1], ":")[1]
+			loc = strings.Replace(loc, "/file", "", -1)
+			// Replace any wildcards for now
+			loc = strings.Replace(loc,"*","",-1)
+			
+			if !strings.HasPrefix(loc, "/GOROOT") {
+				for _,srcDir := range(srcDirs) {
+					searchDirs = append(searchDirs, filepath.Join(srcDir, loc))
+					locations = append(locations, filepath.Join("/file", loc))
+				}
+			}
+			
+			loc = strings.Replace(loc, "/GOROOT", "", -1)
+			searchDirs = append(searchDirs, filepath.Join(goroot, "/src/pkg", loc))
+			locations = append(locations, filepath.Join("/file/GOROOT", loc))
+		} else {
+			searchDirs = srcDirs
+			for _,_ = range(searchDirs) {
+				locations = append(locations, "/file")
+			}
+			
+			searchDirs = append(searchDirs, filepath.Join(goroot, "/src/pkg"))
+			locations = append(locations, "/file/GOROOT")
+		}
 
-		if strings.HasPrefix(filterparts, "NameLower") {
-			matches := strings.Split(filterparts, ":")[1]
+		if strings.HasPrefix(filterparts[0], "NameLower") {
+			matches := strings.Split(filterparts[0], ":")[1]
 
 			// Convert wildcard to regex and use the standard regex library
 			nameregex, err := regexp.Compile("^" + strings.Replace(strings.Replace(matches, "*", ".*", -1), "?", ".?", -1) + "$")
@@ -78,29 +107,17 @@ func filesearchHandler(writer http.ResponseWriter, req *http.Request, path strin
 				return true
 			}
 
-			for _, srcDir := range srcDirs {
+			for idx, _ := range searchDirs {
 				path := ""
-				location := "/file"
-				results = append(results, findNameMatches(srcDir, path, location, nameregex)...)
+				results = append(results, findNameMatches(searchDirs[idx], path, locations[idx], nameregex)...)
 			}
-
-			filesDir := filepath.Join(goroot, "/src/pkg")
-			path = ""
-			location := "/file/GOROOT"
-			results = append(results, findNameMatches(filesDir, path, location, nameregex)...)
 		} else {
-			token := filterparts
+			token := filterparts[0]
 
-			for _, srcDir := range srcDirs {
+			for idx, _ := range searchDirs {
 				path := ""
-				location := "/file"
-				results = append(results, findContentMatches(srcDir, path, location, token)...)
+				results = append(results, findContentMatches(searchDirs[idx], path, locations[idx], token)...)
 			}
-
-			filesDir := filepath.Join(goroot, "/src/pkg")
-			path = ""
-			location := "/file/GOROOT"
-			results = append(results, findContentMatches(filesDir, path, location, token)...)
 		}
 
 		retval := Blob{}

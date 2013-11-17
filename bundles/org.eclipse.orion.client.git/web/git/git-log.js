@@ -71,11 +71,11 @@ define(['i18n!git/nls/gitmessages', 'require', 'orion/browserCompatibility', 'or
 			commandService.registerCommandContribution("pageNavigationActions", "eclipse.orion.git.nextLogPage", 2); //$NON-NLS-1$ //$NON-NLS-0$
 
 			var pageParams = PageUtil.matchResourceParameters();
-			explorer.display(pageParams.resourceRaw);
+			explorer.display(pageParams.resource);
 
 			window.addEventListener("hashchange", function() {
 				var pageParams = PageUtil.matchResourceParameters();
-				explorer.display(pageParams.resourceRaw);
+				explorer.display(pageParams.resource);
 			}, false);
 		});
 	});

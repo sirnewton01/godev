@@ -166,6 +166,8 @@ define({
 	"autoPairQuotations": 'Autopair "Strings"',
 	"autoCompleteComments": "Autocomplete /** Block Comments */",
 	"smartIndentation": "Smart Indentation",
+	"sourceControl": "Source Control",
+	"showBlame": "Show Blame",
 	"Editor preferences updated": "Editor preferences updated",
 	"Editor defaults restored": "Editor defaults restored",
 	"Theme": "Theme",

@@ -84,10 +84,15 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 				}
 				else {
 					tree._treeModel.getChildren(root, function(children) {
+						if (tree.destroyed) { return; }
 						tree._generate(children, 0);
 					});
 				}
 			});
+		},
+		
+		destroy: function() {
+			this.destroyed = true;
 		},
 		
 		_generate: function(children, indentLevel) {
@@ -184,6 +189,7 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 						} else {
 							tree = this;
 							children = this._treeModel.getChildren(row._item, function(children) {
+								if (tree.destroyed) { return; }
 								if (!row._expanded) {
 									row._expanded = true;
 									tree._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
@@ -243,6 +249,7 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 				var tree = this;
 				this._renderer.updateExpandVisuals(row, true);
 				this._treeModel.getChildren(row._item, function(children) {
+					if (tree.destroyed) { return; }
 					if (!row._expanded) {
 						row._expanded = true;
 						tree._generateChildren(children, row._depth+1, row); //$NON-NLS-0$

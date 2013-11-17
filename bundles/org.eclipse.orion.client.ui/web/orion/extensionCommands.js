@@ -126,6 +126,10 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 		function checkItem(item, key, match, validationProperty, validator) {
 			var valid = false;
 			var value;
+			// Match missing property
+			if (key.charAt(0) === "!") { //$NON-NLS-0$
+				return (typeof item[key.substring(1)] === "undefined"); //$NON-NLS-0$
+			}
 			// item has the specified property
 			if (typeof(item[key]) !== "undefined") { //$NON-NLS-0$
 				if (typeof(match) === "undefined") {  //$NON-NLS-0$ // value doesn't matter, just the presence of the property is enough				if (!match) {  // value doesn't matter, just the presence of the property is enough

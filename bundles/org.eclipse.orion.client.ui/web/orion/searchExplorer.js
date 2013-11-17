@@ -786,7 +786,7 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
         });
         var nextResultCommand = new mCommands.Command({
             tooltip: messages["Next result"],
-            imageClass: "core-sprite-move_down", //$NON-NLS-0$
+            imageClass: "core-sprite-move-down", //$NON-NLS-0$
             id: "orion.search.nextResult", //$NON-NLS-0$
             groupId: "orion.searchGroup", //$NON-NLS-0$
             visibleWhen: function(item) {
@@ -798,7 +798,7 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
         });
         var prevResultCommand = new mCommands.Command({
             tooltip: messages["Previous result"],
-            imageClass: "core-sprite-move_up", //$NON-NLS-0$
+            imageClass: "core-sprite-move-up", //$NON-NLS-0$
             id: "orion.search.prevResult", //$NON-NLS-0$
             groupId: "orion.searchGroup", //$NON-NLS-0$
             visibleWhen: function(item) {
@@ -1468,6 +1468,7 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
 		    this.parentNode.textContent = "";
 		    var textBold = _createElement('b', null, null, this.parentNode); //$NON-NLS-1$ //$NON-NLS-0$
 		    _place(document.createTextNode(message), textBold, "only"); //$NON-NLS-0$
+            this.reportStatus("");
 		    return;
 		} 
         var that = this;

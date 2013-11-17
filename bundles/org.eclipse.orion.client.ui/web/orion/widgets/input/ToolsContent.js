@@ -23,7 +23,7 @@ define(['orion/objects'], function(objects) {
 	
 	objects.mixin(ToolsContent.prototype, {
 	
-		templateString: '<div style="float:right;">' +
+		templateString: '<div class="toolsNav" style="float:right;">' +
 							'<section>' +
 							'<nav>' +
 								'<ul id="navigationlinks"></ul>' +

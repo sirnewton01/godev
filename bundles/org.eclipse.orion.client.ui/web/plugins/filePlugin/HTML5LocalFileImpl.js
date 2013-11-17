@@ -242,7 +242,7 @@ eclipse.HTML5LocalFileServiceImpl= (function() {
 			return this._getEntry(sourceLocation).then(function(entry) {
 				return that._getEntry(targetLocation).then(function(parent) {
 					var d = new orion.Deferred();
-					entry.moveTo(parent, name, function() {d.resolve();}, d.reject);
+					entry.moveTo(parent, name, function() {d.resolve(that.read(targetLocation + "/" + name, true));}, d.reject);
 					return d;
 				});
 			});
@@ -263,7 +263,7 @@ eclipse.HTML5LocalFileServiceImpl= (function() {
 			return this._getEntry(sourceLocation).then(function(entry) {
 				return that._getEntry(targetLocation).then(function(parent) {
 					var d = new orion.Deferred();
-					entry.copyTo(parent, name, function() {d.resolve();}, d.reject);
+					entry.copyTo(parent, name, function() {d.resolve(that.read(targetLocation + "/" + name, true));}, d.reject);
 					return d;
 				});
 			});

@@ -124,7 +124,7 @@ mBootstrap.startup().then(function(core) {
 	);	
 	
 	// previously saved resource value
-	var previousResourceValue = "";
+	var previousResourceValue = params.resource;
 	
 	window.addEventListener("hashchange", function() {
 		// make sure to close all parameter collectors

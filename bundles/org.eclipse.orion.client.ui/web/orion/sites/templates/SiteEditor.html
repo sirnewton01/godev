@@ -1,62 +1,47 @@
 <div class="siteEditor">
 	<div class="sectionTable" role="region">
-		<div>
-			<div class="sectionTableItem ">
+		<form id="siteForm" class="siteForm sectionTableItem">
+			<div class="siteEditorTable">
+				<div>
+					<div class="header">
+						<label class="siteConfigNameLabel">${Name:}</label>
+					</div>
+					<div class="cell">
+						<input class="siteConfigName" required="required" pattern="\s*\S+\s*" value="">
+						<div class="nameInvalid">${Not a valid name}</div>
+					</div>
+				</div>
 				
-				<form id="siteForm" class="siteForm">
-					<table class="siteEditorTable">
-						<tr>
-							<td>
-								<label class="siteConfigNameLabel">${Name:}</label>
-							</td>
-							<td>
-								<input class="siteConfigName" required="required" pattern="\s*\S+\s*" value="">
-								<div class="nameInvalid">${Not a valid name}</div>
-							</td>
-						</tr>
-						
-						<tr>
-							<td>
-								<label class="hostHintLabel">${Hostname hint:}</label>
-							</td>
-							<td>
-								<input class="hostHint" required="required" pattern="^(?:\s*|[A-Za-z0-9-_]+)$" value="">
-								<em>${Optional; used to determine the URL where a started site can be accessed.}</em>
-								<div class="hostInvalid">${Not a valid hostname}</div>
-							</td>
-						</tr>
-						
-						<tr>
-							<td>
-								<label class="hostingStatusLabel">${Status:}</label>
-							</td>
-							<td class="hostingStatusArea">
-								<span class="hostingStatus"></span>
-								<span class="siteStartedWarning">
-									<em>${Changes you make here won't affect the running site.}</em>
-								</span>
-							</td>
-						</tr>
-					</table>
-				</form>
+				<div>
+					<div class="header">
+						<label class="hostHintLabel">${Hostname hint:}</label>
+					</div>
+					<div class="cell">
+						<input class="hostHint" required="required" pattern="^(?:\s*|[A-Za-z0-9-_]+)$" value="">
+						<em>${Optional; used to determine the URL where a started site can be accessed.}</em>
+						<div class="hostInvalid">${Not a valid hostname}</div>
+					</div>
+				</div>
 				
-				
+				<div>
+					<div class="header">
+						<label class="hostingStatusLabel">${Status:}</label>
+					</div>
+					<div class="cell hostingStatusArea">
+						<span class="hostingStatus"></span>
+						<span class="siteStartedWarning">
+							<em>${Changes you make here won't affect the running site.}</em>
+						</span>
+					</div>
+				</div>
 			</div>
-		</div>
+		</form>
 	</div>
 
-	<table class="siteEditorTable">
-			<tr>
-				<td>
-					<div class="mappingsGridTable"></div>
-				</td>
-			</tr>
-			
-			<tr>
-				<td>
-					<div class="convertToolbar"></div>
-				</td>
-			</tr>		
-	</table>
+	<div class="siteEditorTable">
+		<div class="mappingsGridTable"></div>
+
+		<div class="convertToolbar"></div>
+	</div>
 
 </div>

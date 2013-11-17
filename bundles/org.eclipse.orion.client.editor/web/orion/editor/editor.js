@@ -933,6 +933,7 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 				this.groupAnnotation = annotation;
 				annotation.blame = this.blame;
 				annotation.html = this.html;
+				annotation.creatorID = this.creatorID;
 				return annotation;
 			};
 			var title = function() {

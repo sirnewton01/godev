@@ -11,8 +11,10 @@
  
  /*globals define window setTimeout document*/
 
-define([ 'i18n!git/nls/gitmessages', 'orion/webui/dialogs/DirectoryPrompterDialog', 'orion/webui/dialog', 'require' ], function(messages, DirPrompter, dialog, require) {
+define([ 'i18n!git/nls/gitmessages', 'orion/webui/dialogs/DirectoryPrompterDialog', 'orion/webui/dialog', 'orion/URITemplate', 'require' ], function(messages, DirPrompter, dialog, URITemplate, require) {
 
+	var editTemplate = new URITemplate("edit/edit.html#{,resource,params*}"); //$NON-NLS-0$
+	
 	function CloneGitRepositoryDialog(options) {
 		this._init(options);
 	}
@@ -144,7 +146,7 @@ define([ 'i18n!git/nls/gitmessages', 'orion/webui/dialogs/DirectoryPrompterDialo
 
 		function makePathSegment(folder) {
 			var link = document.createElement("a"); //$NON-NLS-0$
-			link.href = require.toUrl("edit/edit.html") + "#" + folder.ChildrenLocation; //$NON-NLS-1$ //$NON-NLS-0$
+			link.href = require.toUrl(editTemplate.expand({resource: folder.ChildrenLocation}));
 			link.textContent = folder.Name;
 			return link;
 		}

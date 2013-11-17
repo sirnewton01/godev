@@ -137,9 +137,6 @@ searchUtils.convertSearchParams = function(searchParams) {
 	if(typeof searchParams.nameSearch === "string"){ //$NON-NLS-0$
 		searchParams.nameSearch = (searchParams.nameSearch.toLowerCase() === "true"); //$NON-NLS-0$
 	}
-	if(typeof searchParams.useRootLocation === "string"){ //$NON-NLS-0$
-		searchParams.useRootLocation = (searchParams.useRootLocation.toLowerCase() === "true"); //$NON-NLS-0$
-	}
 };
 
 searchUtils.copySearchParams = function(searchParams, copyReplace) {
@@ -160,10 +157,17 @@ searchUtils.generateSearchHref = function(options) {
 	var sParams = searchUtils.copySearchParams(options, true);
 	var searchLocation = sParams.resource;
 	sParams.resource = undefined;
-	var href = new URITemplate(base + "#{,resource,params*}").expand({ //$NON-NLS-0$
-		resource: searchLocation,
-		params: sParams
-	});
+	var href;
+	if(typeof sParams.keyword !== "undefined"){ //$NON-NLS-0$
+		href = new URITemplate(base + "#{,resource,params*}").expand({ //$NON-NLS-0$
+			resource: searchLocation,
+			params: sParams
+		});
+	} else {
+		href = new URITemplate(base + "#{,resource}").expand({ //$NON-NLS-0$
+			resource: searchLocation
+		});
+	}
 	return href;
 };
 

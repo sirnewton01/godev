@@ -152,7 +152,7 @@ exports.ResourceComparer = (function() {
 			},
 						
 			setInput: function(fileURI, editor) {
-				this._parsedLocation = {resource:fileURI, resourceRaw:fileURI};
+				this._parsedLocation = {resource:fileURI};
 				that._progress.progress(that._fileClient.read(fileURI, true), "Getting file metadata " + fileURI).then( //$NON-NLS-0$
 					function(metadata) {
 						this._fileMetadata = metadata;

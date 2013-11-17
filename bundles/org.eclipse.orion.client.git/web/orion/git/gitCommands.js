@@ -25,6 +25,16 @@ var exports = {};
 //this function is just a closure for the global "doOnce" flag
 (function() {
 	var doOnce = false;
+	
+	var repoTemplate = new URITemplate("git/git-repository.html#{,resource,params*}"); //$NON-NLS-0$
+	var logTemplate = new URITemplate("git/git-log.html#{,resource,params*}?page=1"); //$NON-NLS-0$
+	var logTemplateNoPage = new URITemplate("git/git-log.html#{,resource,params*}"); //$NON-NLS-0$
+	var commitTemplate = new URITemplate("git/git-commit.html#{,resource,params*}?page=1&pageSize=1"); //$NON-NLS-0$
+	var statusTemplate = new URITemplate(mGitUtil.statusUILocation + "#{,resource,params*}"); //$NON-NLS-0$
+	var editTemplate = new URITemplate("edit/edit.html#{,resource,params*}"); //$NON-NLS-0$
+	function statusURL(statusLocation) {
+		return require.toUrl(statusTemplate.expand({resource: statusLocation}));
+	}
 
 	exports.updateNavTools = function(registry, commandRegistry, explorer, toolbarId, selectionToolbarId, item, pageNavId) {
 		var toolbar = lib.node(toolbarId);
@@ -665,7 +675,7 @@ var exports = {};
 			id : "eclipse.openGitLog", //$NON-NLS-0$
 			hrefCallback : function(data) {
 				var item = data.items;
-				return require.toUrl("git/git-log.html")+"#" + item.CommitLocation + "?page=1"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				return require.toUrl(logTemplate.expand({resource: item.CommitLocation}));
 			},
 			visibleWhen : function(item) {
 				return item.Type === "Branch" || item.Type === "RemoteTrackingBranch"; //$NON-NLS-1$ //$NON-NLS-0$
@@ -680,7 +690,8 @@ var exports = {};
 			imageClass: "git-sprite-log", //$NON-NLS-0$
 			spriteClass: "gitCommandSprite", //$NON-NLS-0$
 			hrefCallback : function(data) {
-				return require.toUrl("git/git-log.html")+"#" + data.items.CommitLocation + "?page=1"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				var item = data.items;
+				return require.toUrl(logTemplate.expand({resource: item.CommitLocation}));
 			},
 			visibleWhen : function(item) {
 				// show only for a repo
@@ -690,13 +701,13 @@ var exports = {};
 			}
 		});
 		commandService.addCommand(openGitLogAll);
-
+		
 		var openGitStatus = new mCommands.Command({
 			name : messages['Git Status'],
 			tooltip: messages["Open the status for the repository"],
 			id : "eclipse.openGitStatus", //$NON-NLS-0$
 			hrefCallback : function(data) {
-				return require.toUrl(mGitUtil.statusUILocation) + "#" + data.items.StatusLocation; //$NON-NLS-0$
+				return statusURL(data.items.StatusLocation);
 			},
 			visibleWhen : function(item) {
 				if (!item.StatusLocation)
@@ -707,11 +718,11 @@ var exports = {};
 		commandService.addCommand(openGitStatus);
 
 		var openCloneContent = new mCommands.Command({
-			name : messages["Show in Navigator"],
-			tooltip: messages["Show the repository folder in the file navigator"],
+			name : messages["ShowInEditor"],
+			tooltip: messages["ShowInEditorTooltip"],
 			id : "eclipse.openCloneContent", //$NON-NLS-0$
 			hrefCallback : function(data) {
-				return require.toUrl("edit/edit.html")+"#" + data.items.ContentLocation+"?depth=1"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				return require.toUrl(editTemplate.expand({resource: data.items.ContentLocation}));
 			},
 			visibleWhen : function(item) {
 				if (!item.ContentLocation)
@@ -728,7 +739,7 @@ var exports = {};
 				var item = data.items;
 				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
 				return progress.progress(serviceRegistry.getService("orion.git.provider").getDiff(item[1].DiffLocation, item[0].Name), "Generating Diff for " + item[0].Name + " and " + item[1].Name).then(function(diffLocation) {
-					return mCompareUtils.generateCompareHref(diffLocation, {readonly: true});
+					return mCompareUtils.generateCompareHref(diffLocation.Location, {readonly: true});
 				});
 			},
 			visibleWhen : function(item) {
@@ -761,7 +772,7 @@ var exports = {};
 			imageClass: "git-sprite-open", //$NON-NLS-0$
 			spriteClass: "gitCommandSprite",
 			hrefCallback: function(data) {
-				return require.toUrl("edit/edit.html")+"#" + data.items.ContentLocation; //$NON-NLS-1$ //$NON-NLS-0$
+				return require.toUrl(editTemplate.expand({resource: data.items.ContentLocation}));
 			},
 			visibleWhen : function(item) {
 				return item.Type === "Commit" && item.ContentLocation != null && !explorer.isDirectory; //$NON-NLS-0$
@@ -1057,8 +1068,8 @@ var exports = {};
 								display.Message+= ". " + i18nUtil.formatMessage(messages['Failing paths: ${0}'], paths);
 							}
 						}
-						display.Message += i18nUtil.formatMessage(messages[". Go to ${0}."], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-							+ statusLocation +"\">"+messages["Git Status page"]+"</a>")+"</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+						display.Message += i18nUtil.formatMessage(messages[". Go to ${0}."], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-1$ //$NON-NLS-0$
+							+ "\">"+messages["Git Status page"]+"</a>")+"</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
 					} else if(result.error) {
 						var statusLocation = item.HeadLocation.replace("commit/HEAD", "status"); //$NON-NLS-1$ //$NON-NLS-0$
 						display.Severity = "Error"; //$NON-NLS-0$
@@ -1069,8 +1080,8 @@ var exports = {};
 							display.Message = result.error.message;
 						}
 						display.HTML = true;
-						display.Message ="<span>" + display.Message + i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
-							+ statusLocation + "\">"+messages['Git Status page']+"</a>")+"</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+						display.Message ="<span>" + display.Message + i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+							+ "\">"+messages['Git Status page']+"</a>")+"</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
 					}
 
 					progressService.setProgressResult(display);
@@ -1083,8 +1094,8 @@ var exports = {};
 					display.Severity = "Error"; //$NON-NLS-0$
 					display.HTML = true;
 					display.Message = "<span>" + JSON.stringify(ioArgs.xhr.responseText).DetailedMessage //$NON-NLS-0$
-					+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-					+ statusLocation +"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+					+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-0$//$NON-NLS-2$ //$NON-NLS-1$
+					+"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 					
 					serviceRegistry.getService("orion.page.message").setProgressResult(display); //$NON-NLS-0$
 					explorer.changedItem(item);
@@ -1105,7 +1116,7 @@ var exports = {};
 		var mergeSquashCommand = new mCommands.Command({
 			name : messages["Merge Squash"],
 			tooltip: messages["Squash the content of the branch to the index"],
-			imageClass: "git-sprite-merge_squash", //$NON-NLS-0$
+			imageClass: "git-sprite-merge-squash", //$NON-NLS-0$
 			spriteClass: "gitCommandSprite", //$NON-NLS-0$
 			id : "eclipse.orion.git.mergeSquash", //$NON-NLS-0$
 			callback: function(data) {
@@ -1126,8 +1137,8 @@ var exports = {};
 						display.Severity = "Warning"; //$NON-NLS-0$
 						display.HTML = true;
 						display.Message = "<span>" + result.Result //$NON-NLS-0$
-							+ i18nUtil.formatMessage(messages[". Go to ${0}."], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-							+ statusLocation +"\">"+messages["Git Status page"]+"</a>")+"</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+							+ i18nUtil.formatMessage(messages[". Go to ${0}."], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+							+"\">"+messages["Git Status page"]+"</a>")+"</span>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-0$
 					} else if(result.error) {
 						var statusLocation = item.HeadLocation.replace("commit/HEAD", "status"); //$NON-NLS-1$ //$NON-NLS-0$
 						display.Severity = "Error"; //$NON-NLS-0$
@@ -1138,8 +1149,8 @@ var exports = {};
 							display.Message = result.error.message;
 						}
 						display.HTML = true;
-						display.Message ="<span>" + display.Message + i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
-							+ statusLocation + "\">"+messages['Git Status page']+"</a>")+"</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+						display.Message ="<span>" + display.Message + i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-0$
+							+ "\">"+messages['Git Status page']+"</a>")+"</span>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-0$
 					}
 
 					progressService.setProgressResult(display);
@@ -1150,8 +1161,8 @@ var exports = {};
 					display.Severity = "Error"; //$NON-NLS-0$
 					display.HTML = true;
 					display.Message = "<span>" + JSON.stringify(ioArgs.xhr.responseText).DetailedMessage //$NON-NLS-0$
-					+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-					+ statusLocation +"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+					+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					+"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-0$
 					
 					serviceRegistry.getService("orion.page.message").setProgressResult(display); //$NON-NLS-0$
 					explorer.changedItem(item);
@@ -1200,40 +1211,40 @@ var exports = {};
 							display.HTML = true;
 							display.Message = "<span>" + jsonData.Result //$NON-NLS-0$
 								+ messages[". Some conflicts occurred. Please resolve them and continue, skip patch or abort rebasing"]
-								+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-								+ statusLocation +"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+								+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+								+"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-0$
 						}
 						else if (jsonData.Result === "FAILED_WRONG_REPOSITORY_STATE") { //$NON-NLS-0$
 							display.Severity = "Error"; //$NON-NLS-0$
 							display.HTML = true;
 							display.Message = "<span>" + jsonData.Result //$NON-NLS-0$
 								+ messages[". Repository state is invalid (i.e. already during rebasing)"]
-								+ i18nUtil.formatMessage(". Go to ${0}.", "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-								+ statusLocation +"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+								+ i18nUtil.formatMessage(". Go to ${0}.", "<a href=\"" + statusURL(statusLocation) //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+								+"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-0$
 						}
 						else if (jsonData.Result === "FAILED_UNMERGED_PATHS") { //$NON-NLS-0$
 							display.Severity = "Error"; //$NON-NLS-0$
 							display.HTML = true;
 							display.Message = "<span>" + jsonData.Result //$NON-NLS-0$
 								+ messages[". Repository contains unmerged paths"]
-								+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-	   							+ statusLocation +"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+								+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-2$ //$NON-NLS-1$
+	   							+"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-0$
 						}
 						else if (jsonData.Result === "FAILED_PENDING_CHANGES") { //$NON-NLS-0$
 							display.Severity = "Error"; //$NON-NLS-0$
 							display.HTML = true;
 							display.Message = "<span>" + jsonData.Result //$NON-NLS-0$
 								+ messages[". Repository contains pending changes. Please commit or stash them"]
-								+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-								+ statusLocation +"\">"+"Git Status page"+"</a>")+".</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+								+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+								+"\">"+"Git Status page"+"</a>")+".</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 						}
 						// handle other cases
 						else {
 							display.Severity = "Warning"; //$NON-NLS-0$
 							display.HTML = true;
 							display.Message = "<span>" + jsonData.Result //$NON-NLS-0$
-							+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-							+ statusLocation +"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+							+ i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+							+"\">"+messages['Git Status page']+"</a>")+".</span>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-0$
 						} 
 	
 						serviceRegistry.getService("orion.page.message").setProgressResult(display); //$NON-NLS-0$
@@ -1654,7 +1665,7 @@ var exports = {};
 			tooltip: messages["Show previous page of git log"],
 			id : "eclipse.orion.git.previousLogPage", //$NON-NLS-0$
 			hrefCallback : function(data) {
-				return require.toUrl("git/git-log.html") + "#" + data.items.PreviousLocation; //$NON-NLS-1$ //$NON-NLS-0$
+				return require.toUrl(logTemplateNoPage.expand({resource: data.items.PreviousLocation}));
 			},
 			visibleWhen : function(item) {
 				if(item.Type === "RemoteTrackingBranch" || (item.toRef && item.toRef.Type === "Branch") || item.RepositoryPath !== null){ //$NON-NLS-1$ //$NON-NLS-0$
@@ -1670,7 +1681,7 @@ var exports = {};
 			tooltip: messages["Show next page of git log"],
 			id : "eclipse.orion.git.nextLogPage", //$NON-NLS-0$
 			hrefCallback : function(data) {
-				return require.toUrl("git/git-log.html") + "#" + data.items.NextLocation; //$NON-NLS-1$ //$NON-NLS-0$
+				return require.toUrl(logTemplateNoPage.expand({resource: data.items.NextLocation}));
 			},
 			visibleWhen : function(item) {
 				if(item.Type === "RemoteTrackingBranch" ||(item.toRef && item.toRef.Type === "Branch") || item.RepositoryPath !== null){ //$NON-NLS-1$ //$NON-NLS-0$
@@ -1686,7 +1697,7 @@ var exports = {};
 			tooltip : messages["Show previous page of git tags"],
 			id : "eclipse.orion.git.previousTagPage",
 			hrefCallback : function(data) {
-				return require.toUrl("git/git-repository.html") + "#" + data.items.PreviousLocation;
+				return require.toUrl(repoTemplate.expand({resource: data.items.PreviousLocation}));
 			},
 			visibleWhen : function(item){
 				if(item.Type === "Tag"){
@@ -1702,7 +1713,7 @@ var exports = {};
 			tooltip : messages["Show next page of git tags"],
 			id : "eclipse.orion.git.nextTagPage",
 			hrefCallback : function(data){
-				return require.toUrl("git/git-repository.html") + "#" + data.items.NextLocation;
+				return require.toUrl(repoTemplate.expand({resource: data.items.NextLocation}));
 			},
 			visibleWhen : function(item){
 				if(item.Type === "Tag"){
@@ -1885,7 +1896,7 @@ var exports = {};
 			name : messages["Cherry-Pick"],
 			tooltip: messages["Apply the change introduced by the commit to your active branch"],
 			id : "eclipse.orion.git.cherryPick", //$NON-NLS-0$
-			imageClass: "git-sprite-cherry_pick", //$NON-NLS-0$
+			imageClass: "git-sprite-cherry-pick", //$NON-NLS-0$
 			spriteClass: "gitCommandSprite", //$NON-NLS-0$
 			callback: function(data) {
 				var item = data.items;
@@ -1913,8 +1924,8 @@ var exports = {};
 					else if (jsonData.Result === "CONFLICTING") { //$NON-NLS-0$
 						display.Severity = "Warning"; //$NON-NLS-0$
 						display.HTML = true;
-						var link = i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-						+ statusLocation +"\">"+messages['Git Status page']+"</a>")+"</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+						var link = i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-0$ //$NON-NLS-1$
+						+"\">"+messages['Git Status page']+"</a>")+"</span>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-0$
 						
 						display.Message = "<span>" + jsonData.Result + messages[". Some conflicts occurred"] + link; //$NON-NLS-0$
 						
@@ -1936,8 +1947,8 @@ var exports = {};
 								display.Message+= ". " + i18nUtil.formatMessage(messages['Failing paths: ${0}'], paths);
 								}
 						}
-						display.Message += i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-						+ statusLocation +"\">"+messages['Git Status page']+"</a>")+"</span>";					} //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+						display.Message += i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-0$ //$NON-NLS-1$
+						+"\">"+messages['Git Status page']+"</a>")+"</span>";					} //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-0$
 					// handle other cases
 					else {
 						display.Severity = "Warning"; //$NON-NLS-0$
@@ -1979,8 +1990,8 @@ var exports = {};
 					}
 					// handle special cases
 					else if (jsonData.Result === "FAILURE") { //$NON-NLS-0$
-						var link = i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + require.toUrl(mGitUtil.statusUILocation) + "#"  //$NON-NLS-2$ //$NON-NLS-1$
-						+ statusLocation +"\">"+messages['Git Status page']+"</a>")+"</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-0$
+						var link = i18nUtil.formatMessage(messages['. Go to ${0}.'], "<a href=\"" + statusURL(statusLocation) //$NON-NLS-0$ //$NON-NLS-1$
+						+"\">"+messages['Git Status page']+"</a>")+"</span>"; //$NON-NLS-0$ //$NON-NLS-2$ //$NON-NLS-0$
 					
 						display.Severity = "Warning"; //$NON-NLS-0$
 						display.HTML = true;
@@ -2127,7 +2138,7 @@ var exports = {};
 						serviceRegistry.getService("orion.page.message").setProgressMessage("Your project is being set up. This may take a minute...");
 						gitConfigPreference.getConfig().then(function(userInfo){
 							var deferred = progress.progress(gitService.cloneGitRepository(name, gitUrl, path, explorer.defaultPath, options.gitSshUsername, options.gitSshPassword, options.knownHosts, //$NON-NLS-0$
-									options.gitPrivateKey, options.gitPassphrase, userInfo), "Cloning repository " + name);
+									options.gitPrivateKey, options.gitPassphrase, userInfo, true), "Cloning repository " + name);
 							deferred.then(function(jsonData, secondArg) {
 								exports.handleProgressServiceResponse(jsonData, options, serviceRegistry, function(jsonData) {
 									gitService.getGitClone(jsonData.Location).then(
@@ -2139,7 +2150,7 @@ var exports = {};
 
 											fileClient.write(repoJson.Children[0].ContentLocation + '.git/.projectInfo', pDescContent).then(
 												function(){
-													var editLocation = require.toUrl("edit/edit.html") + "#" + repoJson.Children[0].ContentLocation + "?depth=1"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+													var editLocation = require.toUrl(editTemplate.expand({resource: repoJson.Children[0].ContentLocation}));
 													window.location = editLocation;
 												}
 											);
@@ -2163,13 +2174,9 @@ var exports = {};
 									gitService.getGitClone(p.Git.CloneLocation).then(
 										function(repoJson){
 											if (repoJson.Children[0].GitUrl === item.url){
-												var templateString = require.toUrl("edit/edit.html") + "#{,resource,params*}"; //$NON-NLS-1$ //$NON-NLS-0$
-												window.location = new URITemplate(templateString).expand({
-													resource: "", //$NON-NLS-0$
-													params: {
-														navigate: repoJson.Children[0].ContentLocation + "?depth=1"
-													}
-												});
+												window.location = require.toUrl(editTemplate.expand({
+													resource: repoJson.Children[0].ContentLocation + "?depth=1" //$NON-NLS-0$
+												}));
 											} else {
 												console.info("Folder project is used");
 											}
@@ -2488,7 +2495,7 @@ var exports = {};
 						progress.progress(gitService.removeGitRepository(item.Location), "Removing repository " + item.Name).then(
 							function(jsonData){
 								if(explorer.changedItem){
-									explorer.changedItem();
+									window.location = require.toUrl(repoTemplate.expand({})); //reset the location
 								}
 							},
 							displayErrorOnStatus);
@@ -2502,7 +2509,7 @@ var exports = {};
 			name : messages['Apply Patch'],
 			tooltip: messages["Apply a patch on the selected repository"],
 			id : "eclipse.orion.git.applyPatch", //$NON-NLS-0$
-			imageClass: "git-sprite-apply_patch", //$NON-NLS-0$
+			imageClass: "git-sprite-apply-patch", //$NON-NLS-0$
 			spriteClass: "gitCommandSprite", //$NON-NLS-0$
 			callback: function(data) {
 				var item = forceSingleItem(data.items);
@@ -2569,7 +2576,7 @@ var exports = {};
 			name : messages["Open Commit"],
 			tooltip: messages["Open the commit with the given name"],
 			id : "eclipse.orion.git.openCommitCommand", //$NON-NLS-0$
-			imageClass: "git-sprite-apply_patch", //$NON-NLS-0$
+			imageClass: "git-sprite-apply-patch", //$NON-NLS-0$
 			spriteClass: "gitCommandSprite", //$NON-NLS-0$
 			parameters: openCommitParameters,
 			callback: function(data) {
@@ -2605,7 +2612,7 @@ var exports = {};
 						findCommitLocation(repositories, data.parameters.valueFor("commitName")).then( //$NON-NLS-0$
 							function(commitLocation){
 								if(commitLocation){
-									var commitPageURL = require.toUrl("git/git-commit.html#") + commitLocation + "?page=1&pageSize=1"; //$NON-NLS-1$ //$NON-NLS-0$
+									var commitPageURL = require.toUrl(commitTemplate.expand({resource: commitLocation})); //$NON-NLS-0$
 									window.open(commitPageURL);
 								}
 								serviceRegistry.getService("orion.page.message").setProgressMessage(""); //$NON-NLS-0$

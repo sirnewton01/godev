@@ -295,6 +295,9 @@ define([
 						if (!collecting) {
 							var tooltip = new mTooltip.Tooltip({
 								node: commandInvocation.domNode,
+								afterHiding: function() {
+									this.destroy();
+								},
 								trigger: "click", //$NON-NLS-0$
 								position: ["below", "right", "above", "left"] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 							});

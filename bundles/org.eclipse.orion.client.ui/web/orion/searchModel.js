@@ -133,6 +133,7 @@ function(messages, require, Deferred, i18nUtil, mExplorer, mSearchUtils) {
     SearchResultModel.prototype.buildResultModel = function() {
         this._restoreGlobalStatus();
         this._indexedFileItems = [];
+        this.getListRoot().children = [];
         for (var i = 0; i < this._resultLocation.length; i++) {
             var childNode = {
                 parent: this.getListRoot(),

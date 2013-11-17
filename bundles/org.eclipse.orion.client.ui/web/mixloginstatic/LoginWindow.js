@@ -148,7 +148,7 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 		if (redirect !== null) {
 			redirect = decodeURIComponent(redirect);
 			if(PageUtil.validateURLScheme(redirect)) {
-				window.location = decodeURIComponent(redirect);
+				window.location = redirect;
 				return;
 			}
 		}

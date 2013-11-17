@@ -28,9 +28,10 @@ define([
 	'orion/URITemplate',
 	'orion/PageUtil',
 	'orion/Deferred',
+	'orion/widgets/filesystem/filesystemSwitcher',
 	'orion/URL-shim'
 ], function(messages, objects, lib, mExplorer, mNavigatorRenderer, mExplorerNavHandler, i18nUtil, mKeyBinding, Commands,
-		FileCommands, ProjectCommands, ExtensionCommands, Selection, EventTarget, URITemplate, PageUtil, Deferred, _) {
+		FileCommands, ProjectCommands, ExtensionCommands, Selection, EventTarget, URITemplate, PageUtil, Deferred, mFilesystemSwitcher, _) {
 	var FileExplorer = mExplorer.FileExplorer;
 	var KeyBinding = mKeyBinding.KeyBinding;
 	var NavigatorRenderer = mNavigatorRenderer.NavigatorRenderer;
@@ -227,10 +228,50 @@ define([
 			};
 			
 			if (this.fileInCurrentTree(fileMetadata)) {
-				func();
+				var outOfSync = this.outOfSync(fileMetadata);
+				if (outOfSync) {
+					this.changedItem(outOfSync, true).then(func);
+				} else {
+					func();
+				}
 			} else if (!PageUtil.matchResourceParameters().navigate) {
 				this.loadParentOf(fileMetadata, true /* reveal from the top */).then(func);
 			}
+		},
+		outOfSync: function(fileMetadata) {
+			// Determines whether the cached children is out of date since it does not contain the specified file/folder.
+			var treeRoot = this.treeRoot;
+			var metadatas = [];
+			if (fileMetadata && fileMetadata.Parents && treeRoot && treeRoot.ChildrenLocation) {
+				for (var i=0; i<fileMetadata.Parents.length; i++) {
+					if (fileMetadata.Parents[i].ChildrenLocation === treeRoot.ChildrenLocation) {
+						break;
+					}
+					metadatas.push(fileMetadata.Parents[i]);
+				}
+			}
+			metadatas.reverse();
+			metadatas.push(fileMetadata);
+			var temp = treeRoot;
+			for (var j=0; j<metadatas.length && temp; j++) {
+				var children = temp.children;
+				if (children) {
+					var found = false;
+					for (var k=0; k<children.length; k++) {
+						if (children[k].Location === metadatas[j].Location) {
+							temp = children[k];
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						return temp;
+					}
+				} else {
+					break;
+				}
+			}
+			return null;
 		},
 		scopeUp: function() {
 			var root = this.treeRoot;
@@ -334,6 +375,7 @@ define([
 		}
 	});
 
+	var uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
 	function MiniNavRenderer() {
 		NavigatorRenderer.apply(this, arguments);
 	}
@@ -344,7 +386,7 @@ define([
 		createFolderNode: function(folder) {
 			var folderNode = NavigatorRenderer.prototype.createFolderNode.call(this, folder);
 			if (this.showFolderLinks && folderNode.tagName === "A") { //$NON-NLS-0$
-				folderNode.href = new URITemplate("#{,resource,params*}").expand({resource: folder.Location}); //$NON-NLS-0$
+				folderNode.href = uriTemplate.expand({resource: folder.Location});
 				folderNode.classList.add("miniNavFolder"); //$NON-NLS-0$
 				// TODO wasteful. Should attach 1 listener to parent element, then get folder model item from nav handler
 				folderNode.addEventListener("click", this.toggleFolderExpansionState.bind(this, folder, false)); //$NON-NLS-0$
@@ -352,6 +394,8 @@ define([
 				folderNode.classList.add("nav_fakelink"); //$NON-NLS-0$
 			}
 			return folderNode;
+		},
+		emptyCallback: function() {
 		},
 		/**
 		 * @param {Object} folder
@@ -378,142 +422,6 @@ define([
 				}
 				return false;
 			}
-		}
-	});
-
-	/**
-	 * @name orion.sidebar.MiniNavViewMode.FilesystemSwitcher
-	 * @class Filesystem switcher.
-	 * @description Renders a toolbar that displays the filesystem a MiniNavExplorer is currently viewing,
-	 * and provides a menu for changing the filesystem being viewed in the explorer.
-	 * @param {orion.commands.CommandRegistry} params.commandRegistry
-	 * @param {orion.fileClient.FileClient} params.fileClient
-	 * @param {orion.sidebar.MiniNavExplorer} params.explorer
-	 * @param {Element} params.node
-	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry
-	 */
-	function FilesystemSwitcher(params) {
-		this.commandRegistry = params.commandRegistry;
-		this.explorer = params.explorer;
-		this.fileClient = params.fileClient;
-		this.node = params.node;
-		this.serviceRegistry = params.serviceRegistry;
-		var _self = this;
-		this.listener = function(event) {
-			_self.refresh(event.root);
-		};
-		this.explorer.addEventListener("rootChanged", this.listener); //$NON-NLS-0$
-		this.render();
-	}
-	objects.mixin(FilesystemSwitcher.prototype, /** @lends orion.sidebar.MiniNavViewMode.FilesystemSwitcher.prototype */ {
-		destroy: function() {
-			this.explorer.removeEventListener("rootChanged", this.listener); //$NON-NLS-0$
-			this.commandRegistry.destroy(this.node);
-			lib.empty(this.node);
-			this.explorer = this.listener = this.node = null;
-		},
-		registerCommands: function() {
-			if (!this.commandsRegistered) {
-				this.commandsRegistered = true;
-				var commandRegistry = this.commandRegistry, serviceRegistry = this.serviceRegistry;
-				var switchFsCommand = new Commands.Command({
-					name: messages["ChooseFS"],
-					imageClass: "core-sprite-openarrow", //$NON-NLS-0$
-					selectionClass: "dropdownSelection", //$NON-NLS-0$
-					tooltip: messages["ChooseFSTooltip"], //$NON-NLS-0$
-					id: "orion.nav.switchfs", //$NON-NLS-0$
-					visibleWhen: function(item) {
-						return serviceRegistry.getServiceReferences("orion.core.file").length > 1; //$NON-NLS-0$
-					},
-					choiceCallback: this._switchFsMenuCallback.bind(this)
-				});
-				commandRegistry.addCommand(switchFsCommand);
-				commandRegistry.registerCommandContribution("orion.mininav", "orion.nav.switchfs", 1); //$NON-NLS-1$ //$NON-NLS-0$
-			}
-		},
-		_switchFsMenuCallback: function(items) {
-			var serviceRegistry = this.serviceRegistry;
-			var _self = this;
-			return serviceRegistry.getServiceReferences("orion.core.file").map(function(fileServiceRef) { //$NON-NLS-0$
-				var top = fileServiceRef.getProperty("top"); //$NON-NLS-0$
-				return {
-					// TODO indicate which FS is currently active with bullet, etc
-					name: _self._fileServiceLabel(top, true),
-					callback: _self.setActiveFilesystem.bind(_self, top)
-				};
-			});
-		},
-		render: function() {
-			this.fsName = document.createElement("div"); //$NON-NLS-0$
-			this.fsName.classList.add("filesystemName"); //$NON-NLS-0$
-			this.fsName.classList.add("layoutLeft"); //$NON-NLS-0$
-			this.menu = document.createElement("ul"); //$NON-NLS-0$
-			this.menu.classList.add("filesystemSwitcher"); //$NON-NLS-0$
-			this.menu.classList.add("commandList"); //$NON-NLS-0$
-			this.menu.classList.add("layoutRight"); //$NON-NLS-0$
-			this.menu.classList.add("pageActions"); //$NON-NLS-0$
-			this.node.appendChild(this.fsName);
-			this.node.appendChild(this.menu);
-
-			this.registerCommands();
-
-			this.fsName.addEventListener("click", this._openMenu.bind(this)); //$NON-NLS-0$
-		},
-		_openMenu: function(event) {
-			var menu = lib.$(".dropdownTrigger", this.menu); //$NON-NLS-0$
-			if (menu) {
-				var click = document.createEvent("MouseEvents"); //$NON-NLS-0$
-				click.initEvent("click", true, true); //$NON-NLS-0$
-				menu.dispatchEvent(click);
-			}
-		},
-		_fileServiceHostname: function(location) {
-			var rootURL = this.fileClient.fileServiceRootURL(location);
-			if (rootURL.indexOf("filesystem:") === 0) { //$NON-NLS-0$
-				rootURL = rootURL.substr("filesystem:".length); //$NON-NLS-0$
-			}
-			var hostname = rootURL;
-			try {
-				hostname = new URL(rootURL, window.location.href).hostname;
-			} catch (e) {}
-			return hostname;
-		},
-		/**
-		 * @returns {String|DocumentFragment}
-		 */
-		_fileServiceLabel: function(location, plainText) {
-			// Assume this fileClient was not created with a service filter so it knows about every fileservice in the registry.
-			var name = this.fileClient.fileServiceName(location);
-			var hostname = this._fileServiceHostname(location);
-			if (plainText) {
-				return i18nUtil.formatMessage(messages["FSTitle"], name, hostname);
-			}
-			var fragment = document.createDocumentFragment();
-			fragment.textContent = messages["FSTitle"]; //$NON-NLS-0$
-			lib.processDOMNodes(fragment, [document.createTextNode(name), document.createTextNode(hostname)]);
-			return fragment;
-		},
-		refresh: function(location) {
-			var target = location;
-			if (location.ChildrenLocation) {
-				target = location.ChildrenLocation;
-			}
-			lib.empty(this.fsName);
-			this.fsName.appendChild(this._fileServiceLabel(target));
-
-			this.commandRegistry.destroy(this.menu);
-			this.commandRegistry.renderCommands("orion.mininav", this.menu, {}, "menu"); //$NON-NLS-1$ //$NON-NLS-0$
-		},
-		/**
-		 * @param {Object|String} location The ChildrenLocation, or an object with a ChildrenLocation field.
-		 */
-		setActiveFilesystem: function(location) {
-			var target = location;
-			if (location.ChildrenLocation) {
-				target = location.ChildrenLocation;
-			}
-			var rootURL = this.fileClient.fileServiceRootURL(target);
-			this.explorer.sidebarNavInputManager.dispatchEvent({ type: "filesystemChanged", newInput: rootURL }); //$NON-NLS-0$
 		}
 	});
 
@@ -573,9 +481,10 @@ define([
 			});
 
 			// Create switcher here
-			this.fsSwitcher = new FilesystemSwitcher({
+			this.fsSwitcher = new mFilesystemSwitcher.FilesystemSwitcher({
 				commandRegistry: this.commandRegistry,
-				explorer: this.explorer,
+				rootChangeListener: this.explorer,
+				filesystemChangeDispatcher: this.explorer.sidebarNavInputManager,
 				fileClient: this.fileClient,
 				node: this.fsToolbar,
 				serviceRegistry: this.serviceRegistry
@@ -583,14 +492,12 @@ define([
 
 			var params = PageUtil.matchResourceParameters();
 			var navigate = params.navigate, resource = params.resource;
-			if (!navigate) {
-				var root = this.lastRoot || this.fileClient.fileServiceRootURL(resource || ""); //$NON-NLS-0$
-				this.explorer.loadRoot(root).then(function(){
-					if (!_self.explorer) { return; }
-					_self.explorer.updateCommands();
-					_self.explorer.reveal(_self.editorInputManager.getFileMetadata(), true);
-				});
-			}
+			var root = params.navigate || this.lastRoot || this.fileClient.fileServiceRootURL(resource || ""); //$NON-NLS-0$
+			this.explorer.loadRoot(root).then(function(){
+				if (!_self.explorer) { return; }
+				_self.explorer.updateCommands();
+				_self.explorer.reveal(_self.editorInputManager.getFileMetadata(), true);
+			});
 		},
 		destroy: function() {
 			if (this.explorer) {

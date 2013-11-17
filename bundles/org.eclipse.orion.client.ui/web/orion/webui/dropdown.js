@@ -78,7 +78,7 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 		 * Toggle the open/closed state of the dropdown.  Return a boolean that indicates whether action was taken.
 		 */			
 		toggle: function(event) {
-			if (this._triggerNode.classList.contains("dropdownTriggerOpen")) { //$NON-NLS-0$
+			if (this.isVisible()) {
 				return this.close();
 			} else {
 				return this.open();
@@ -86,9 +86,19 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 		},
 		
 		/**
+		 * Answers whether the dropdown is visible.
+		 */			
+		isVisible: function() {
+			return this._triggerNode.classList.contains("dropdownTriggerOpen"); //$NON-NLS-0$
+		},
+		
+		/**
 		 * Open the dropdown.
 		 */			
 		open: function() {
+			if (this.isVisible()) {
+				return;
+			}
 			if (this._populate) {
 				this.empty();
 				this._populate(this._dropdownNode);
@@ -98,7 +108,19 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 				if (!this._hookedAutoDismiss) {
 					// add auto dismiss.  Clicking anywhere but trigger or a submenu item means close.
 					var submenuNodes = lib.$$(".dropdownSubMenu", this._dropdownNode); //$NON-NLS-0$
-					lib.addAutoDismiss([this._triggerNode].concat(Array.prototype.slice.call(submenuNodes)), this.close.bind(this));
+					lib.addAutoDismiss([this._triggerNode].concat(Array.prototype.slice.call(submenuNodes)), function() {
+						if (this.isVisible()) {
+							this.close();
+							// Dismiss parent menus
+							var temp = this._dropdownNode.parentNode;
+							while (temp) {
+								if (temp.dropdown && typeof temp.dropdown.close === "function") { //$NON-NLS-0$
+									temp.dropdown.close();
+								}
+								temp = temp.parentNode;
+							}
+						}
+					}.bind(this));
 					this._hookedAutoDismiss = true;
 				}
 				this._triggerNode.classList.add("dropdownTriggerOpen"); //$NON-NLS-0$
@@ -145,6 +167,9 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 		 * Close the dropdown.
 		 */			
 		close: function(restoreFocus) {
+			if (!this.isVisible()) {
+				return;
+			}
 			this._triggerNode.classList.remove("dropdownTriggerOpen"); //$NON-NLS-0$
 			if (this._selectionClass) {
 				this._triggerNode.classList.remove(this._selectionClass);

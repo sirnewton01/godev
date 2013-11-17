@@ -161,7 +161,7 @@ define(['orion/Deferred'], function(Deferred) {
 			Object.keys(headers).forEach(function(key) {
 				xhr.setRequestHeader(key, headers[key]);
 			});
-			xhr.send(data);
+			xhr.send(data || null);
 		} catch (e) {
 			d.reject(makeResult(url, options, xhr, e));
 		}

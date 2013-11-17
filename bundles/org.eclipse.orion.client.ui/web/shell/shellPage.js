@@ -21,12 +21,11 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		mPluginParamType, mServiceParamType, i18nUtil, mExtensionCommands, mContentTypes, mPluginRegistry, PageUtil, URITemplate, Deferred, mStatus, mProgress,
 		mOperationsClient, mResultWriters, _) {
 
-	var shellPageFileService, fileClient, output, fileType;
+	var shellPageFileService, fileClient, commandRegistry, output, fileType;
 	var hashUpdated = false;
 	var contentTypeService, openWithCommands = [], serviceRegistry;
 	var pluginRegistry, pluginType, preferences, serviceElementCounter = 0;
 
-	var PREFIX_PROJECTFOR = "projectfor="; //$NON-NLS-0$
 	var ROOT_ORIONCONTENT = new URL(require.toUrl("file"), window.location.href).pathname; //$NON-NLS-0$
 	var PAGE_TEMPLATE = require.toUrl("shell/shellPage.html") + "#{,resource}"; //$NON-NLS-0$
 
@@ -209,16 +208,17 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		return result.length > 0 ? result : null;
 	}
 
-	function setCWD(value, replace) {
+	function setCWD(node, replace) {
 		var template = new URITemplate(PAGE_TEMPLATE);
 		var url = template.expand({
-			resource: value
+			resource: node.Location
 		});
 		if (replace) {
 			window.location.replace(url);
 		} else {
 			window.location.href = url;
 		}
+		mGlobalCommands.setPageTarget({task: messages.Shell, serviceRegistry: serviceRegistry, commandService: commandRegistry, target: node});
 	}
 
 	/* general functions for working with file system nodes */
@@ -309,7 +309,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		var node = args.directory.value[0];
 		shellPageFileService.setCurrentDirectory(node);
 		hashUpdated = true;
-		setCWD(node.Location, false);
+		setCWD(node, false);
 		var pathString = shellPageFileService.computePathString(node);
 		return getChangedToElement(pathString, false);
 	}
@@ -861,7 +861,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		serviceRegistry = core.serviceRegistry;
 		preferences = core.preferences;
 
-		var commandRegistry = new mCommandRegistry.CommandRegistry({});
+		commandRegistry = new mCommandRegistry.CommandRegistry({});
 		fileClient = new mFileClient.FileClient(serviceRegistry);
 		var searcher = new mSearchClient.Searcher({serviceRegistry: serviceRegistry, commandService: commandRegistry, fileService: fileClient});
 		var operationsClient = new mOperationsClient.OperationsClient(serviceRegistry);
@@ -914,12 +914,10 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 
 		shell.setFocusToInput();
 
-		/* check the URL for an initial folder location to open to */
-
 		shellPageFileService = new mShellPageFileService.ShellPageFileService();
 		var defaultLocationFn = function(location, replace) {
 			var successFn = function(node) {
-				setCWD(node.Location, replace);
+				setCWD(node, replace);
 				shellPageFileService.setCurrentDirectory(node);
 				var pathString = shellPageFileService.computePathString(node);
 				shell.output(getChangedToElement(pathString, true));
@@ -935,40 +933,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 				shellPageFileService.loadWorkspace(ROOT_ORIONCONTENT).then(successFn);
 			}
 		};
-
-		if (parameters.resource && parameters.resource.indexOf(PREFIX_PROJECTFOR) === 0) {
-			/* Attempt to open to the project root of the specified resource */
-			var resourceValue = parameters.resource.substring(PREFIX_PROJECTFOR.length);
-			fileClient.read(resourceValue, true).then(
-				function(node) {
-					if (node.Directory === undefined) {
-						/*
-						 * The resource was read successfully but does not represent a file system
-						 * resource, so it cannot be used.  Revert to the default initial location.
-						 */
-						 defaultLocationFn(null, true);
-					} else if (node.Parents && node.Parents.length > 0) {
-						var projectLocation = node.Parents[node.Parents.length - 1].Location;
-						defaultLocationFn(projectLocation, true);
-					} else {
-						/*
-						 * The PREFIX_PROJECTFOR value is either a project root or is below the
-						 * level or projects, so just take it as the starting location.
-						 */
-						 defaultLocationFn(node.Location, true);
-					}
-				},
-				function(error) {
-					/*
-					 * The PREFIX_PROJECTFOR value does not refer to a valid file system
-					 * location, so open to the default location.
-					 */
-					defaultLocationFn(null, true);			
-				}
-			);
-		} else {
-			defaultLocationFn(getCWD(), true);
-		}
+		defaultLocationFn(getCWD(), true);
 
 		/* add the locally-defined types */
 		fileType = new mFileParamType.ParamTypeFile(shellPageFileService);
@@ -1211,7 +1176,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 						shellPageFileService.setCurrentDirectory(node);
 						var buffer = shellPageFileService.computePathString(node);
 						shell.output(getChangedToElement(buffer, false));
-						setCWD(node.Location, false);
+						setCWD(node, false);
 					}
 				},
 				function(error) {
@@ -1219,7 +1184,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 					 * The hash has changed to point at an invalid resource, so reset it to
 					 * the previous current directory which was valid.
 					 */
-					setCWD(shellPageFileService.getCurrentDirectory().Location, true);
+					setCWD(shellPageFileService.getCurrentDirectory(), true);
 				}
 			);
 		});

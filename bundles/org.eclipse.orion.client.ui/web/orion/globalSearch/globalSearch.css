@@ -40,7 +40,6 @@
 
 .topPanelLayout {
 	display: block;
-	position: absolute;
 	top: 0;
     overflow: auto;
 	width: 100%;

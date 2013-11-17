@@ -54,7 +54,7 @@ define(["require", "orion/Deferred", "orion/PageUtil", "orion/URITemplate", "ori
 				var d = new Deferred();
 				i18nUtil.getMessageBundle(info.nls).then(function(commandMessages) {
 					var uriTemplate = new URITemplate(info.uriTemplate);
-					var expandedHref = window.decodeURIComponent(uriTemplate.expand(locationObject));
+					var expandedHref = uriTemplate.expand(locationObject);
 					expandedHref = PageUtil.validateURLScheme(expandedHref);
 
 					info.href = expandedHref;
@@ -64,7 +64,7 @@ define(["require", "orion/Deferred", "orion/PageUtil", "orion/URITemplate", "ori
 				infos.push(d);
 			} else if (info.uriTemplate && info.name) {
 				var uriTemplate = new URITemplate(info.uriTemplate);
-				var expandedHref = window.decodeURIComponent(uriTemplate.expand(locationObject));
+				var expandedHref = uriTemplate.expand(locationObject);
 				expandedHref = PageUtil.validateURLScheme(expandedHref);
 
 				info.href = expandedHref;

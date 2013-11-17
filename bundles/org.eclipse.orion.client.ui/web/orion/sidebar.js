@@ -1,10 +1,15 @@
 /*global console define*/
 /*jslint browser:true sub:true*/
 define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', 'orion/webui/littlelib',
+		'orion/URITemplate',
+		'orion/PageUtil',
 		'orion/widgets/nav/mini-nav',
 		'orion/widgets/nav/project-nav',
 		'i18n!orion/edit/nls/messages'],
-		function(Deferred, objects, mCommands, mOutliner, lib, MiniNavViewMode, ProjectNavViewMode, messages) {
+		function(Deferred, objects, mCommands, mOutliner, lib, URITemplate, PageUtil, MiniNavViewMode, ProjectNavViewMode, messages) {
+
+	var uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
+
 	/**
 	 * @name orion.sidebar.Sidebar
 	 * @class Sidebar that appears alongside an {@link orion.editor.Editor} in the Orion IDE.
@@ -108,7 +113,14 @@ define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', '
 					sidebarNavInputManager: this.sidebarNavInputManager,
 					serviceRegistry: serviceRegistry,
 					toolbarNode: modeContributionToolbar,
-					scopeUp: function(){_self.setViewMode("nav");}
+					scopeUp: function(){
+						var input = PageUtil.matchResourceParameters();
+						var resource = input.resource;
+						delete input.navigate;
+						delete input.resource;
+						window.location.href = uriTemplate.expand({resource: resource, params: input});
+						_self.setViewMode("nav");
+					}
 				});
 				if(this.editorInputManager.getFileMetadata()){
 					this.addViewMode("project", projectViewMode);

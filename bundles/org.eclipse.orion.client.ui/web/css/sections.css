@@ -49,12 +49,14 @@
 	vertical-align: baseline;
 }
 
+/*TODO: this is wrong
 sectionAnchor {
 	line-height: 30px,
 	color: #808080,
 	font-weight: normal !important;
 	margin-top: 0 !important;
 }
+*/
 
 .displayTable {
 	padding: 10px 20px

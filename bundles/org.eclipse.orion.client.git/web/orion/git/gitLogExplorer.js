@@ -11,12 +11,16 @@
 
 /*global define console document Image */
 
-define(['i18n!git/nls/gitmessages', 'require', 'orion/explorers/explorer', 'orion/PageUtil', 'orion/webui/littlelib', 'orion/section', 'orion/i18nUtil', 'orion/globalCommands', 
+define(['i18n!git/nls/gitmessages', 'require', 'orion/explorers/explorer', 'orion/PageUtil', 'orion/URITemplate', 'orion/webui/littlelib', 'orion/section', 'orion/i18nUtil', 'orion/globalCommands', 
         'orion/git/gitCommands', 'orion/explorers/navigationUtils', 'orion/Deferred', 'orion/git/widgets/CommitTooltipDialog'], 
-		function(messages, require, mExplorer, PageUtil, lib, mSection, i18nUtil, mGlobalCommands, mGitCommands, mNavUtils, Deferred,
+		function(messages, require, mExplorer, PageUtil, URITemplate, lib, mSection, i18nUtil, mGlobalCommands, mGitCommands, mNavUtils, Deferred,
 				mCommitTooltip) {
 var exports = {};
 
+var repoTemplate = new URITemplate("git/git-repository.html#{,resource,params*}"); //$NON-NLS-0$
+var logTemplate = new URITemplate("git/git-log.html#{,resource,params*}?page=1"); //$NON-NLS-0$
+var commitTemplate = new URITemplate("git/git-commit.html#{,resource,params*}?page=1&pageSize=1"); //$NON-NLS-0$
+	
 exports.GitLogExplorer = (function() {
 	
 	/**
@@ -81,12 +85,12 @@ exports.GitLogExplorer = (function() {
 						this.registry.getService("orion.page.progress").progress(
 								gitService.getDefaultRemoteBranch(metadata.Git.RemoteLocation),
 								"Getting default branch for " + metadata.Name).then(function(defaultRemoteBranchJsonData, secondArg) {
-							seg.href = require.toUrl("git/git-log.html") + "#" + defaultRemoteBranchJsonData.Location + "?page=1"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+							seg.href = require.toUrl(logTemplate.expand({resource: defaultRemoteBranchJsonData.Location}));
 						});
 					}
 				} else {
 					if (metadata.Git) {
-						seg.href = require.toUrl("git/git-log.html") + "#" + metadata.Git.CommitLocation + "?page=1"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+						seg.href = require.toUrl(logTemplate.expand({resource: metadata.Git.CommitLocation}));
 					}
 				}
 			}, function(error) {
@@ -133,7 +137,7 @@ exports.GitLogExplorer = (function() {
 						target : item,
 						breadcrumbTarget : breadcrumbItem,
 						makeBreadcrumbLink : function(seg, location) {
-							seg.href = require.toUrl("git/git-repository.html") + (location ? "#" + location : ""); //$NON-NLS-0$
+							seg.href = require.toUrl(repoTemplate.expand({resource: location || "".Location})); //$NON-NLS-0$
 						},
 						serviceRegistry : that.registry,
 						commandService : that.commandService
@@ -153,7 +157,7 @@ exports.GitLogExplorer = (function() {
 	
 	GitLogExplorer.prototype.redisplay = function(){
 		var pageParams = PageUtil.matchResourceParameters();
-		this.display(pageParams.resourceRaw);
+		this.display(pageParams.resource);
 	};
 	
 	GitLogExplorer.prototype.changedItem = function(parent, children) {
@@ -387,7 +391,7 @@ exports.GitLogExplorer = (function() {
 						var direction = document.createElement("span");
 						horizontalBox.appendChild(direction);
 					} else {
-						var imgSpriteName = (outgoingCommit ? "git-sprite-outgoing_commit" : "git-sprite-incoming_commit");
+						var imgSpriteName = (outgoingCommit ? "git-sprite-outgoing-commit" : "git-sprite-incoming-commit");
 						var direction = document.createElement("span");
 						direction.className = "sectionIcon gitImageSprite " + imgSpriteName;
 						horizontalBox.appendChild(direction);
@@ -410,7 +414,7 @@ exports.GitLogExplorer = (function() {
 
 					var titleLink = document.createElement("a");
 					titleLink.className = "navlinkonpage";
-					titleLink.href = require.toUrl("git/git-commit.html#") + commit.Location + "?page=1&pageSize=1";
+					titleLink.href = require.toUrl(commitTemplate.expand({resource: commit.Location})); //$NON-NLS-0$
 					titleLink.textContent = commit.Message;
 					detailsView.appendChild(titleLink);
 					

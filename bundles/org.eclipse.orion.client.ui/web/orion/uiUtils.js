@@ -245,6 +245,31 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 	function createDropdownButton(parent, name, populateFunction) {
 	}
 
+	/**
+	 * Returns whether <code>element</code> is an HTML5 form element.
+	 * @param {Element} element
+	 * @function
+	 * @returns {Boolean}
+	 */
+	function isFormElement(element) {
+		switch (element.tagName.toLowerCase()) {
+			case "button": //$NON-NLS-0$
+			case "fieldset": //$NON-NLS-0$
+			case "form": //$NON-NLS-0$
+			case "input": //$NON-NLS-0$
+			case "keygen": //$NON-NLS-0$
+			case "label": //$NON-NLS-0$
+			case "legend": //$NON-NLS-0$
+			case "meter": //$NON-NLS-0$
+			case "optgroup": //$NON-NLS-0$
+			case "output": //$NON-NLS-0$
+			case "progress": //$NON-NLS-0$
+			case "select": //$NON-NLS-0$
+			case "textarea": //$NON-NLS-0$
+				return true;
+		}
+		return false;
+	}
 
 	//return module exports
 	return {
@@ -253,6 +278,7 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 		openInNewWindow: openInNewWindow,
 		followLink: followLink,
 		createButton: createButton,
-		createDropdownButton: createDropdownButton
+		createDropdownButton: createDropdownButton,
+		isFormElement: isFormElement
 	};
 });

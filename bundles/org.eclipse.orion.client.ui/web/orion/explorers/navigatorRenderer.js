@@ -63,6 +63,8 @@ define([
 			link.replaceChild(image, replace);
 		}
 	}
+	
+	var uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
 		
 	/**
 	 * Exported so that it can be used by other UI that wants to use navigator-style links. commandService and contentTypeService  are necessary to compute 
@@ -90,7 +92,7 @@ define([
 		if (item.Directory) {
 			link = document.createElement("a"); //$NON-NLS-0$
 			link.className = "navlinkonpage"; //$NON-NLS-0$
-			link.href = new URITemplate(folderPageURL + "#{,resource,params*}").expand({resource: item.ChildrenLocation}); //$NON-NLS-0$
+			link.href = !folderPageURL ? uriTemplate : new URITemplate(folderPageURL + "#{,resource,params*}").expand({resource: item.ChildrenLocation}); //$NON-NLS-0$
 			if(item.Name){
 				link.appendChild(document.createTextNode(item.Name));
 			}
@@ -130,7 +132,7 @@ define([
 				link.appendChild(document.createTextNode(item.Name));
 			}
 			var foundEditor = false;
-			var href = new URITemplate("#{,resource,params*}").expand({resource: item.Location}); //$NON-NLS-0$
+			var href = item.Location;
 			if (uriParams && typeof uriParams === "object") { //$NON-NLS-0$
 				item.params = {};
 				objects.mixin(item.params, uriParams);

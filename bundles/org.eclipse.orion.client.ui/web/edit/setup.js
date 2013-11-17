@@ -118,9 +118,10 @@ exports.setUpEditor = function(serviceRegistry, preferences, isReadOnly) {
 		return deferred;
 	}
 
+	var uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
 	var sidebarNavBreadcrumb = function(/**HTMLAnchorElement*/ segment, folderLocation, folder) {
 		var resource = folder ? folder.Location : fileClient.fileServiceRootURL(folderLocation);
-		segment.href = new URITemplate("#{,resource,params*}").expand({resource: resource}); //$NON-NLS-0$
+		segment.href = uriTemplate.expand({resource: resource});
 	};
 
 	inputManager = new mInputManager.InputManager({
@@ -161,7 +162,7 @@ exports.setUpEditor = function(serviceRegistry, preferences, isReadOnly) {
 			target = lastRoot;
 		}
 		mGlobalCommands.setPageTarget({
-			task: "Coding", //$NON-NLS-0$
+			task: "Editor", //$NON-NLS-0$
 			name: name,
 			target: target,
 			makeAlternate: function() {
@@ -207,12 +208,6 @@ exports.setUpEditor = function(serviceRegistry, preferences, isReadOnly) {
 	function SidebarNavInputManager() {
 		EventTarget.attach(this);
 	}
-	SidebarNavInputManager.prototype.processHash = function() {
-		var navigate = PageUtil.matchResourceParameters().navigate;
-		if (typeof navigate === "string" && this.setInput) { //$NON-NLS-0$
-			this.setInput(navigate);
-		}
-	};
 
 	var sidebarNavInputManager = new SidebarNavInputManager();
 	var sidebar = new Sidebar({
@@ -228,13 +223,19 @@ exports.setUpEditor = function(serviceRegistry, preferences, isReadOnly) {
 		sidebarNavInputManager: sidebarNavInputManager,
 		toolbar: sidebarToolbar
 	});
+	SidebarNavInputManager.prototype.processHash = function() {
+		var navigate = PageUtil.matchResourceParameters().navigate;
+		if (typeof navigate === "string" && this.setInput && sidebar.getActiveViewModeId() === "nav") { //$NON-NLS-1$ //$NON-NLS-0$
+			this.setInput(navigate);
+		}
+	};
 	sidebar.show();
 	sidebarNavInputManager.addEventListener("rootChanged", function(evt) { //$NON-NLS-0$
 		lastRoot = evt.root;
 	});
 	var gotoInput = function(evt) { //$NON-NLS-0$
 		var newInput = evt.newInput || ""; //$NON-NLS-0$
-		window.location = new URITemplate("#{,resource,params*}").expand({resource: newInput}); //$NON-NLS-0$
+		window.location = uriTemplate.expand({resource: newInput}); //$NON-NLS-0$
 	};
 	sidebarNavInputManager.addEventListener("filesystemChanged", gotoInput); //$NON-NLS-0$
 	sidebarNavInputManager.addEventListener("editorInputMoved", gotoInput); //$NON-NLS-0$

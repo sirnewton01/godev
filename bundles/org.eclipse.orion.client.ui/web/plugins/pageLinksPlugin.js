@@ -43,13 +43,13 @@ define([
 		nameKey: "Shell",
 		id: "orion.shell",
 		nls: "orion/nls/messages",
-		uriTemplate: "{+OrionHome}/shell/shellPage.html#projectfor={,Location}"
+		uriTemplate: "{+OrionHome}/shell/shellPage.html"
 	});
 	provider.registerService("orion.page.link", serviceImpl, {
 		nameKey: "Search",
 		id: "orion.Search",
 		nls: "orion/nls/messages",
-		uriTemplate: "{+OrionHome}/search/search.html#{,Location},useRootLocation=true"
+		uriTemplate: "{+OrionHome}/search/search.html"
 	});
 	
 	provider.registerService("orion.page.link.related", null, {
@@ -133,6 +133,33 @@ define([
 			InstallTarget: PageLinks.getOrionHome() + "/settings/settings.html",
 			OrionHome: PageLinks.getOrionHome()
 		}))
+	});
+
+	// Getting Started
+	provider.registerService("orion.page.getstarted", null, {
+		data: [
+			{
+				label:"Add",
+				image:"../images/add.png",
+				secondaryImage: "../images/add-large-dulled.png",
+				alt: "Add Content",
+				media:"../media/Create.gif"
+			},
+			{
+				label:"Modify",
+				image:"../images/modify.png",
+				secondaryImage: "../images/gear-large-dulled.png",
+				alt: "Modify Content",
+				media:"../media/Modify.gif"
+			},
+			{
+				label:"Manage",
+				image:"../images/manage.png",
+				secondaryImage: "../images/hamburger-large-dulled.png",
+				alt: "Manage Content",
+				media:"../media/Manage.gif"
+			}
+		]
 	});
 
 	provider.connect();

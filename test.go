@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"path/filepath"
+	"os"
 )
 
 type TestLog struct {
@@ -123,15 +124,25 @@ func testSocket(ws *websocket.Conn) {
 				message := result[3]
 				
 				lineNum, err := strconv.ParseInt(line,10,32)
-				location := filepath.Join("/file",pkg,file)
 				
+				if err != nil {
+					continue
+				}
+				
+				location := ""
+				// Check if this package is in the GOROOT
+				_, err = os.Stat(filepath.Join(goroot, "/src/pkg", pkg))
 				if err == nil {
-					log := TestLog{Location: location, Line: int32(lineNum), Message: message, Log: true}
-					
-					output, err := json.Marshal(log)
-					if err == nil {
-						ws.Write(output)
-					}
+					location = filepath.Join("/file/GOROOT", pkg, file)
+				} else {
+					location = filepath.Join("/file", pkg, file)
+				}
+				
+				log := TestLog{Location: location, Line: int32(lineNum), Message: message, Log: true}
+				
+				output, err := json.Marshal(log)
+				if err == nil {
+					ws.Write(output)
 				}
 			}
 		// end of tests

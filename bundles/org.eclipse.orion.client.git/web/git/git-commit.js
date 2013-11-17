@@ -15,10 +15,10 @@ var eclipse;
 
 define(['i18n!git/nls/gitmessages', 'require', 'orion/bootstrap', 'orion/status', 'orion/progress', 'orion/commandRegistry', 'orion/commands', 'orion/keyBinding', 'orion/dialogs', 'orion/selection',
 		'orion/fileClient', 'orion/operationsClient', 'orion/searchClient', 'orion/globalCommands', 'orion/git/gitCommitExplorer', 'orion/git/gitCommands', 'orion/widgets/themes/ThemePreferences', 'orion/widgets/themes/editor/ThemeData',
-		'orion/git/gitClient', 'orion/links', 'orion/contentTypes', 'orion/PageUtil'],
+		'orion/git/gitClient', 'orion/links', 'orion/contentTypes', 'orion/URITemplate', 'orion/PageUtil'],
 		function(messages, require, mBootstrap, mStatus, mProgress, CommandRegistry,
 		Commands, KeyBinding, mDialogs, mSelection, mFileClient, mOperationsClient, mSearchClient, mGlobalCommands, mGitCommitExplorer, mGitCommands, mThemePreferences, mThemeData, mGitClient, mLinks,
-		mContentTypes, PageUtil) {
+		mContentTypes, URITemplate, PageUtil) {
 
 	mBootstrap.startup().then(
 		function(core) {
@@ -65,12 +65,13 @@ define(['i18n!git/nls/gitmessages', 'require', 'orion/bootstrap', 'orion/status'
 			// object contributions
 			commandRegistry.registerCommandContribution("itemLevelCommands", "eclipse.removeTag", 1000); //$NON-NLS-1$ //$NON-NLS-0$
 
+			var editTemplate = new URITemplate("edit/edit.html#{,resource,params*}"); //$NON-NLS-0$
 			var showDiffCommand = new Commands.Command({ 
 				name: messages["Working Directory Version"],
 				tooltip: messages["View the working directory version of the file"],
 				id: "eclipse.orion.git.diff.showCurrent", //$NON-NLS-0$
 				hrefCallback: function(data) {
-					return require.toUrl("edit/edit.html") + "#" + data.items.ContentLocation; //$NON-NLS-1$ //$NON-NLS-0$
+					return require.toUrl(editTemplate.expand({resource: data.items.ContentLocation}));
 				},
 				visibleWhen: function(item) {
 					return item.Type === "Diff"; //$NON-NLS-0$
