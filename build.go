@@ -62,14 +62,14 @@ func parseBuildOutput(cmd *exec.Cmd) (compileErrors []CompileError, err error) {
 			file = filepath.Clean(file)
 
 			location := ""
-			
+
 			for _, srcDir := range srcDirs {
 				pkgLoc := strings.Index(file, srcDir)
 				if pkgLoc == 0 {
 					location = filepath.Join("/file", file[len(srcDir):])
 				}
 			}
-			
+
 			// Check the GOROOT for this error
 			if location == "" {
 				pkgLoc := strings.Index(file, goroot)

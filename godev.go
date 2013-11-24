@@ -49,7 +49,7 @@ func init() {
 	} else {
 		logger = log.New(ioutil.Discard, "godev", log.LstdFlags)
 	}
-	
+
 	goroot = runtime.GOROOT() + string(os.PathSeparator)
 
 	dirs := build.Default.SrcDirs()
@@ -295,8 +295,19 @@ func main() {
 	http.HandleFunc("/go/build/", wrapHandler(buildHandler))
 	http.HandleFunc("/go/fmt", wrapHandler(formatHandler))
 	http.HandleFunc("/go/fmt/", wrapHandler(formatHandler))
-	http.HandleFunc("/go/doc", wrapHandler(docHandler))
-	http.HandleFunc("/go/doc/", wrapHandler(docHandler))
+
+	// GODOC
+	http.HandleFunc("/godoc/pkg", wrapHandler(docHandler))
+	http.HandleFunc("/godoc/pkg/", wrapHandler(docHandler))
+	http.HandleFunc("/godoc/src", wrapHandler(docHandler))
+	http.HandleFunc("/godoc/src/", wrapHandler(docHandler))
+	http.HandleFunc("/godoc/doc", wrapHandler(docHandler))
+	http.HandleFunc("/godoc/doc/", wrapHandler(docHandler))
+	http.HandleFunc("/godoc/search", wrapHandler(docHandler))
+	http.HandleFunc("/godoc/search/", wrapHandler(docHandler))
+
+	http.HandleFunc("/redirect", wrapHandler(redirectHandler))
+	http.HandleFunc("/redirect/", wrapHandler(redirectHandler))
 	http.HandleFunc("/debug", wrapHandler(debugHandler))
 	http.HandleFunc("/debug/", wrapHandler(debugHandler))
 	http.HandleFunc("/debug/console/output/", wrapWebSocket(websocket.Handler(debugSocket)))

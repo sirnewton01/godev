@@ -7,9 +7,9 @@ package main
 import (
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
-	"path/filepath"
 )
 
 type Blob struct {
@@ -56,7 +56,7 @@ func filesearchHandler(writer http.ResponseWriter, req *http.Request, path strin
 
 		// TODO validate the input better, check for nils
 		query := values["q"][0]
-		
+
 		// TODO respect the rows, start and sort parameters
 		//rows := values["rows"][0]
 		//sort := values["sort"][0]
@@ -67,32 +67,32 @@ func filesearchHandler(writer http.ResponseWriter, req *http.Request, path strin
 		filterparts[0] = strings.Replace(filterparts[0], "\\", "", -1)
 
 		results := []Result{}
-		
+
 		searchDirs := []string{}
 		locations := []string{}
-		
+
 		if strings.HasPrefix(filterparts[1], "Location") {
 			loc := strings.Split(filterparts[1], ":")[1]
 			loc = strings.Replace(loc, "/file", "", -1)
 			// Replace any wildcards for now
-			loc = strings.Replace(loc,"*","",-1)
-			
+			loc = strings.Replace(loc, "*", "", -1)
+
 			if !strings.HasPrefix(loc, "/GOROOT") {
-				for _,srcDir := range(srcDirs) {
+				for _, srcDir := range srcDirs {
 					searchDirs = append(searchDirs, filepath.Join(srcDir, loc))
 					locations = append(locations, filepath.Join("/file", loc))
 				}
 			}
-			
+
 			loc = strings.Replace(loc, "/GOROOT", "", -1)
 			searchDirs = append(searchDirs, filepath.Join(goroot, "/src/pkg", loc))
 			locations = append(locations, filepath.Join("/file/GOROOT", loc))
 		} else {
 			searchDirs = srcDirs
-			for _,_ = range(searchDirs) {
+			for _, _ = range searchDirs {
 				locations = append(locations, "/file")
 			}
-			
+
 			searchDirs = append(searchDirs, filepath.Join(goroot, "/src/pkg"))
 			locations = append(locations, "/file/GOROOT")
 		}

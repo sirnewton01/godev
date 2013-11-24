@@ -8,19 +8,19 @@ import (
 	"bufio"
 	"code.google.com/p/go.net/websocket"
 	"encoding/json"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
-	"path/filepath"
-	"os"
 )
 
 type TestLog struct {
-	Location    string
-	Line    int32
-	Message string
-	Log     bool
+	Location string
+	Line     int32
+	Message  string
+	Log      bool
 }
 
 type TestsComplete struct {
@@ -94,7 +94,7 @@ func testSocket(ws *websocket.Conn) {
 			if err == nil {
 				ws.Write(output)
 			}
-		// end of a test (pass or fail)
+			// end of a test (pass or fail)
 		} else if strings.HasPrefix(line, "--- PASS: ") ||
 			strings.HasPrefix(line, "--- FAIL: ") {
 			info := line[10:]
@@ -114,21 +114,21 @@ func testSocket(ws *websocket.Conn) {
 					ws.Write(output)
 				}
 			}
-		// logging information
+			// logging information
 		} else if strings.HasPrefix(line, "\t") {
 			result := regex3.FindStringSubmatch(line)
-			
+
 			if result != nil {
 				file := result[1]
 				line := result[2]
 				message := result[3]
-				
-				lineNum, err := strconv.ParseInt(line,10,32)
-				
+
+				lineNum, err := strconv.ParseInt(line, 10, 32)
+
 				if err != nil {
 					continue
 				}
-				
+
 				location := ""
 				// Check if this package is in the GOROOT
 				_, err = os.Stat(filepath.Join(goroot, "/src/pkg", pkg))
@@ -137,15 +137,15 @@ func testSocket(ws *websocket.Conn) {
 				} else {
 					location = filepath.Join("/file", pkg, file)
 				}
-				
+
 				log := TestLog{Location: location, Line: int32(lineNum), Message: message, Log: true}
-				
+
 				output, err := json.Marshal(log)
 				if err == nil {
 					ws.Write(output)
 				}
 			}
-		// end of tests
+			// end of tests
 		} else if regex2.MatchString(line) {
 			result := regex2.FindStringSubmatch(line)
 			seconds, _ := strconv.ParseFloat(result[1], 32)

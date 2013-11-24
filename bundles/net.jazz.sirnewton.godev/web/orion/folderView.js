@@ -622,49 +622,6 @@ define([
 				
 				buildGoTest(this._node);
 			}
-			
-			///// GODOC
-			if (goFiles) {
-				var buildGoDoc = function (node) {
-				var div = document.createElement("div"); //$NON-NLS-0$
-				// TODO clone and customize the style class
-				div.className = "orionMarkdown";
-				var table = document.createElement("table");
-				var tr = document.createElement("tr");
-				table.appendChild(tr);
-				var td = document.createElement("th");
-				td.appendChild(document.createTextNode("Go Doc"));
-				tr.appendChild(td);
-				
-				tr = document.createElement("tr");
-				table.appendChild(tr);
-				td = document.createElement("td");
-				var content = document.createElement("pre");
-				
-				content.innerHTML = "Loading...";
-				
-				if (root.Location.length > 6) {
-					var pkg = root.Location.substring(6);
-					pkg = pkg.replace("GOROOT/", "");
-					
-					xhr("GET", "/go/doc?pkg=" + pkg,  {
-						headers: {},
-						timeout: 60000
-					}).then(function (result) {
-						content.innerHTML = result.response;
-					}, function (error) {
-						content.innerHTML = "ERROR";
-					});
-				}
-				
-				td.appendChild(content);
-				tr.appendChild(td);
-				div.appendChild(table);
-				node.appendChild(div);
-				};
-				
-				buildGoDoc(this._node);
-			}
 						
 			// END GODEV CUSTOMIZATION
 			
@@ -688,6 +645,129 @@ define([
 				this.folderNavExplorer.loadRoot(this._metadata);
 				this._node.appendChild(navNode);
 			}
+			
+			// BEGIN GODEV CUSTOMIZATION
+			
+			///// GODOC
+			if (goFiles) {
+				var buildGoDoc = function (node) {
+				
+				// First, add the special godoc style to the body
+				var linkElement = document.createElement("link");
+				linkElement.setAttribute("type", "text/css");
+				linkElement.setAttribute("ref", "stylesheet");
+				linkElement.setAttribute("href", "/godev/godoc/style.css");
+				document.body.appendChild(linkElement);
+				
+				var div = document.createElement("div"); //$NON-NLS-0$
+				// TODO clone and customize the style class
+				div.className = "orionMarkdown";
+				var table = document.createElement("table");
+				var tr = document.createElement("tr");
+				table.appendChild(tr);
+				var td = document.createElement("th");
+				
+				var godocPageLink = document.createElement("a");
+				godocPageLink.innerHTML = "Go Doc";
+				td.appendChild(godocPageLink);
+				
+				tr.appendChild(td);
+				
+				tr = document.createElement("tr");
+				table.appendChild(tr);
+				td = document.createElement("td");
+				var content = document.createElement("div");
+				
+				content.innerHTML = "Loading...";
+				
+				if (root.Location.length > 6) {
+					var pkg = root.Location.substring(6);
+					pkg = pkg.replace("GOROOT/", "");
+					
+					godocPageLink.href="/godoc/pkg/"+pkg;
+					
+					xhr("GET", "/godoc/pkg/" + pkg,  {
+						headers: {},
+						timeout: 60000
+					}).then(function (result) {
+						var resp = result.response;
+						
+						// Strip out the html header and footer
+						resp = resp.substring(resp.indexOf("<!-- BEGIN -->"));
+						resp = resp.substring(0, resp.indexOf("<!-- END -->"));
+						
+						// Convert intra-document references and anchors
+						//  to work with the fragment that the folder viewer
+						//  uses to represent the current folder.
+						var pieces = resp.split('<a href="');
+						var idx2 = -1;
+						var refs = {};
+						
+						var fragment = document.URL.substring(document.URL.indexOf("#")+1);
+						if (fragment.indexOf(",") !== -1) {
+							fragment = fragment.substring(0, fragment.indexOf(","));
+						}
+						
+						for (var idx = 1; idx < pieces.length; idx++) {
+							idx2 = pieces[idx].indexOf('"');
+							
+							var href = pieces[idx].substring(0,idx2);
+							
+							// Fragment reference
+							if (href.indexOf('#') === 0) {
+								var name = href.substring(1);
+								refs[name] = fragment + "," + name;
+								
+								pieces[idx] = "#" + refs[name] + pieces[idx].substring(idx2);
+							// Inter-godoc reference
+							} else if (href.indexOf('://') === -1 && href.charAt(0) !== '/') {
+								pieces[idx] = "/godoc/pkg/" + pkg + "/" + href + pieces[idx].substring(idx2);
+							}
+						}
+						
+						resp = pieces.join('<a href="');
+						
+						var val;
+						for (var key in refs) {
+							resp = resp.replace(new RegExp('id="' + key + '"', "g"), 'id="' + refs[key] + '"');
+						}
+						
+						content.innerHTML = resp;
+						
+						// Delete all of the uncollapsed now that they are incorporated into the
+						//  page's DOM
+						if (document.getElementsByClassName) {
+							var elements = document.getElementsByClassName('toggleButton');
+							
+							for (idx = 0; idx < elements.length; idx++) {
+								elements[idx].parentNode.removeChild(elements[idx]);
+							}
+						}
+						
+						// Navigate to the correct element in the DOM based on the
+						//  URL fragment.
+						var urlPieces = document.URL.split("#");
+						if (urlPieces.length === 2) {
+							var currentElement = document.getElementById(urlPieces[1]);
+							if (currentElement) {
+								currentElement.scrollIntoView(true);
+							}
+						}
+					}, function (error) {
+						content.innerHTML = "ERROR";
+					});
+				}
+				
+				td.appendChild(content);
+				tr.appendChild(td);
+				div.appendChild(table);
+				node.appendChild(div);
+				};
+				
+				buildGoDoc(this._node);
+			}
+			
+			// END GODEV CUSTOMIZATION
 			
 			if (readmeMd) {
 				div = document.createElement("div"); //$NON-NLS-0$

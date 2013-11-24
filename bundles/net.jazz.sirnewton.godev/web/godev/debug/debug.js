@@ -21,6 +21,15 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 		
 		mGlobalCommands.generateBanner("debug-main", serviceRegistry, commandRegistry, preferences, searcher, searcher, null, null); //$NON-NLS-0$
 
+		// Clean up the alignment of the banner
+		// TODO Figure out why this is necessary
+		var primaryNav = document.getElementById("primaryNav");
+		primaryNav.setAttribute("style", "display:inline-block;");
+		var location = document.getElementById("location");
+		location.parentNode.setAttribute("style", "display:inline-block;text-align:center;");
+		var userMenu = document.getElementById("userMenu");
+		userMenu.parentNode.setAttribute("style", "display:none;");
+
 		var executables = document.getElementById("executables");
 		var processes = document.getElementById("processes");
 		var output = document.getElementById("outputArea");
@@ -109,17 +118,21 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 				ws = new WebSocket(wsUrl);
 				
 				ws.onmessage = function(evt) {
-					outputCache[""+pid] = outputCache[""+pid] + evt.data;
-					if (pid === currentPid) {
-						var textToAdd = evt.data;
-						
-						// Turn any http/https URL's into hyperlinks
-						textToAdd = textToAdd.replace(/http:\/\/(\S+)/g,"<a href='http://$1' target='_blank'>http://$1</a>");
-						textToAdd = textToAdd.replace(/https:\/\/(\S+)/g,"<a href='https://$1' target='_blank'>https://$1</a>");
+					var textToAdd = evt.data;
+					
+					// Turn any http/https URL's into hyperlinks
+					textToAdd = textToAdd.replace(/http:\/\/(\S+)/g,"<a href='http://$1' target='_blank'>http://$1</a>");
+					textToAdd = textToAdd.replace(/https:\/\/(\S+)/g,"<a href='https://$1' target='_blank'>https://$1</a>");
+					
+					// Turn stack trace frames into hyperlinks
+					textToAdd = textToAdd.replace(/([0-9A-Za-z./]+):([0-9]+) \((0x[0-9a-f]+)\)/g, "<a href='/redirect/$1,line=$2' target='_blank'>$1:$2</a> ($3)");
 
+					if (pid === currentPid) {
 						output.innerHTML = output.innerHTML + textToAdd;
 						output.scrollIntoView(false);
 					}
+					
+					outputCache[""+pid] = outputCache[""+pid] + textToAdd;
 				};
 				ws.onclose = function(evt) {
 					output.innerHTML = output.innerHTML + "\r\nPROCESS FINISHED";

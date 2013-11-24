@@ -1,7 +1,7 @@
 // Copyright 2013 Chris McGee <sirnewton_01@yahoo.ca>. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-define(['orion/xhr', 'orion/plugin'], function (xhr, PluginProvider) {
+define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvider, form) {
     var headers = {
         name: "Go Language Core Plugin",
         version: "1.0",
@@ -11,23 +11,23 @@ define(['orion/xhr', 'orion/plugin'], function (xhr, PluginProvider) {
     var provider = new PluginProvider(headers);
     
     provider.registerServiceProvider("orion.page.link", {}, {
-        name: "Go Doc Search",
+        name: "Go Doc",
         id: "godev.godoc",
-        uriTemplate: "{OrionHome}/godev/godoc/godoc.html"
+        uriTemplate: "{+OrionHome}/godoc/pkg/"
         });
-        
-    provider.registerServiceProvider("orion.navigate.command", {}, {
-        name: "Open Go Doc",
-        id: "godev.godoc.lookup",
-        forceSingleItem: true,
-        uriTemplate: "{+OrionHome}/godev/godoc/godoc.html#location={+Location}",
-        tooltip: "Open up the go doc for this package"
-    });
+
+//    provider.registerServiceProvider("orion.navigate.command", {}, {
+//        name: "Open Go Doc",
+//        id: "godev.godoc.lookup",
+//        forceSingleItem: true,
+//        uriTemplate: "{+OrionHome}/godev/godoc/godoc.html#location={+Location}",
+//        tooltip: "Open up the go doc for this package"
+//    });
         
     provider.registerServiceProvider("orion.page.link", {}, {
         name: "Debug",
         id: "godev.debug",
-        uriTemplate: "{OrionHome}/godev/debug/debug.html"
+        uriTemplate: "{+OrionHome}/godev/debug/debug.html"
         });
 
     provider.registerServiceProvider("orion.edit.validator", {
@@ -567,6 +567,35 @@ define(['orion/xhr', 'orion/plugin'], function (xhr, PluginProvider) {
                 }
             ]
         });
+   
+	/*provider.registerService(
+		"orion.edit.command", 
+		{
+			run: function(selectedText, text) {
+				var data = {};
+				
+				data[text] = "";
+				
+				var d = xhr("POST", "http://play.golang.org/share",
+					{
+						headers: {
+							"Content-Type": "application/x-www-form-urlencoded"
+						},
+						timeout: 15000,
+						data: form.encodeFormData(data)
+					}).then(function(result) {
+						debugger;
+					});
+					
+				debugger;
+				
+				// Just give back the original text
+				return selectedText;
+			}
+		},
+		{
+			name: "Share with Playground"
+		});*/
         
         /* provider.registerService("orion.navigate.command", {
 		run : function(item) {

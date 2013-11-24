@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+{{with .Tabtitle}}
+  <title>{{html .}} - Go Doc</title>
+{{else}}
+  <title>Go Doc</title>
+{{end}}
+<link type="text/css" rel="stylesheet" href="/godev/godoc/style.css">
+<link type="text/css" rel="stylesheet" href="/godev/godoc/godoc.css">
+
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+<script type="text/javascript">window.jQuery || document.write(unescape("%3Cscript src='/godoc/doc/jquery.js' type='text/javascript'%3E%3C/script%3E"));</script>
+<script type="text/javascript" src="/godoc/doc/godocs.js"></script>
+
+<script src="/requirejs/require.js"></script>
+<script type="text/javascript">
+/*global require*/
+require({
+	  baseUrl: '/',
+	  paths: {
+		  text: 'requirejs/text',
+		  i18n: 'requirejs/i18n',
+		  domReady: 'requirejs/domReady'	    
+	  }
+	});
+
+require(["/godev/godoc/godoc.js"]);
+</script>
+
+</head>
+
+
+<body class="orionPage" id="godoc-searchResults">
+<div class="content-fixedHeight" style="overflow:auto;background-color:white;">
+
+<!-- The following BEGIN/END comments are used to pull out package summaries
+      for the godoc snippet shown in the godev folder view -->
+<!-- BEGIN -->
+<div id="page"{{if .Title}} class="wide"{{end}}>
+<div class="container">
+
+{{/* The Table of Contents is automatically inserted in this <div>.
+     Do not delete this <div>. */}}
+<div id="nav"></div>
+
+{{/* Body is HTML-escaped elsewhere */}}
+{{printf "%s" .Body}}
+<!-- END -->
+
+</div><!-- .container -->
+</div><!-- #page -->
+<div class="footer-fixed-bottom footer" id="footer"></div>
+</div><!-- contentFixedHeight -->
+</body>
+</html>

@@ -158,15 +158,16 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 			inpipe, _ := cmd.StdinPipe()
 
 			wg := sync.WaitGroup{}
-			wg.Add(1)
+			wg.Add(2)
 			wg2 := sync.WaitGroup{}
 			wg2.Add(1)
+			wg3 := sync.WaitGroup{}
+			wg3.Add(1)
 
 			outputChannel := make(chan string)
 
 			reader := func() {
 				pipe, err := cmd.StdoutPipe()
-				cmd.StderrPipe()
 
 				wg.Done()
 				wg2.Wait()
@@ -179,6 +180,7 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 					outputChannel <- string(buffer[:n])
 				}
 
+				wg3.Wait()
 				close(outputChannel)
 
 				if err != nil && err != io.EOF {
@@ -189,6 +191,31 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 			}
 
 			go reader()
+			
+			errReader := func() {
+				pipe, err := cmd.StderrPipe()
+
+				wg.Done()
+				wg2.Wait()
+
+				var buffer []byte = make([]byte, 1024, 1024)
+				var n int = -1
+				for err == nil {
+					n, err = pipe.Read(buffer)
+
+					outputChannel <- string(buffer[:n])
+				}
+
+				wg3.Done()
+
+				if err != nil && err != io.EOF {
+					fmt.Printf("ERROR: %v\n", err.Error())
+				}
+
+				processUpdates <- processUpdate{id, true}
+			}
+
+			go errReader()
 
 			wg.Wait()
 			cmd.Start()

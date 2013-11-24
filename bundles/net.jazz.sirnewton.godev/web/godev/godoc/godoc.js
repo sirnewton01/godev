@@ -19,110 +19,47 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 		var fileClient = new mFileClient.FileClient(serviceRegistry);
 		var searcher = new mSearchClient.Searcher({serviceRegistry: serviceRegistry, commandService: commandRegistry, fileService: fileClient});
 		
-		mGlobalCommands.generateBanner("godoc-searchResults", serviceRegistry, commandRegistry, preferences, searcher, searcher, null, null); //$NON-NLS-0$
+		mGlobalCommands.generateBanner("godoc-searchResults", serviceRegistry, commandRegistry, preferences, searcher); //$NON-NLS-0$
 		
-		var pkgInput = document.getElementById("pkgInput");
-		var nameInput = document.getElementById("nameInput");
-		var output = document.getElementById("outputArea");
-		var searchButton = document.getElementById("searchButton");
+		// Clean up the alignment of the banner
+		// TODO Figure out why this is necessary
+		var primaryNav = document.getElementById("primaryNav");
+		primaryNav.setAttribute("style", "display:inline-block;");
+		var location = document.getElementById("location");
+		location.parentNode.setAttribute("style", "display:inline-block;text-align:center;");
+		var userMenu = document.getElementById("userMenu");
+		userMenu.parentNode.setAttribute("style", "display:none;");
 		
-		var currentHash = window.location.hash;
-		
-		var pkg = "";
-		var name = "";
-		
-		var updateFormFromHash = function() {
-			if (currentHash.indexOf("#location=") === 0) {
-				var locationMatch = /location=([^&]+)/.exec(currentHash);
-				if (locationMatch) {
-					pkg = locationMatch[1].substring(6);
-					pkgInput.value = pkg;
-					nameInput.value = name;
-				}
+		// Display the current package at the top
+		var pkgIdx = document.URL.indexOf("/godoc/pkg/");
+		if (pkgIdx !== -1) {
+			var pkg = document.URL.substring(pkgIdx + 11);
+			var hash = pkg.indexOf("#");
+			if (hash !== -1) {
+				pkg = pkg.substring(0, hash);
 			}
 			
-			if (currentHash.indexOf("#pkg=") === 0) {
-				var pkgMatch = /pkg=([^&]+)/.exec(currentHash);
-				if (pkgMatch) {
-					pkg = pkgMatch[1];
-					pkgInput.value = pkg;
-				}
-				var nameMatch = /&name=([^&]+)/.exec(currentHash);
-				if (nameMatch) {
-					name = nameMatch[1];
-					nameInput.value = name;
-				} else {
-					name = "";
-					nameInput.value = "";
-				}
+			if (pkg[pkg.length-1] === '/') {
+				pkg = pkg.substring(0, pkg.length-1);
 			}
-		};
-		updateFormFromHash();
-		
-		var runQuery = function() {
-			if (pkg !== "") {
-				var url = "/go/doc";
-
-				pkgInput.value = pkg;
-				url = url + "?pkg="+pkg;
-				
-				if (name !== "") {
-					nameInput.value = name;
-					url = url + "&name="+name;
-				}
-				
-				if (pkg !== null) {
-					xhr("GET", url, {
-	                    headers: {},
-	                    timeout: 60000
-	                }).then(function (result) {
-	                    output.innerHTML = result.response.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-	                }, function(error) {
-	                    output.innerHTML = error.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-	                });
-				}
-			}
-		};
-		runQuery();
-		
-		var handleHashChange = function() {
-			currentHash = window.location.hash;
 			
-			updateFormFromHash();
-			runQuery();
-		};
-		
-		if (window.onhashchange) {
-			window.onhashchange = handleHashChange;
-		} else {
-			window.setInterval(function() {
-				if (window.location.hash !== currentHash) {
-					handleHashChange();
-				}
-			}, 100);
+			var locSpan = document.createElement("span");
+			locSpan.innerHTML = pkg;
+			location.appendChild(locSpan);
 		}
 		
-		var searchFunction = function(e) {            
-            var newHash = "pkg="+pkgInput.value;
-                
-            if (nameInput.value && nameInput.value !== "") {
-                newHash = newHash + "&name="+nameInput.value;
-            }
-                
-            window.location.hash = newHash;
-		};
-		
-		pkgInput.addEventListener("keyup", function(e) {
-			if (e.keyCode === 13) {
-				searchFunction(e);
-			}
-		});
-		nameInput.addEventListener("keyup", function(e) {
-			if (e.keyCode === 13) {
-				searchFunction(e);
-			}
-		});
-		searchButton.addEventListener("click", searchFunction);
+		// Add search box
+		var searchForm = document.createElement("form");
+		searchForm.setAttribute("method", "GET");
+		searchForm.setAttribute("action", "/godoc/search");
+		searchForm.setAttribute("style", "display: inline; margin: 0px 0px 0px 10px;");
+		var searchInput = document.createElement("input");
+		searchInput.setAttribute("type", "text");
+		searchInput.setAttribute("name", "q");
+		searchInput.setAttribute("placeholder", "Search");
+		searchInput.setAttribute("style", "display: inline;");
+		searchForm.appendChild(searchInput);
+		location.appendChild(searchForm);
 	});
 });
 
