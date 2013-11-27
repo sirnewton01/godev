@@ -95,6 +95,7 @@ func parseBuildOutput(cmd *exec.Cmd) (compileErrors []CompileError, err error) {
 			}
 
 			msg := strings.Join(pieces, ":")
+			location = filepath.ToSlash(location)
 			error := CompileError{Location: location, Line: lineNum,
 				Column: columnNum, Msg: msg}
 			compileErrors = append(compileErrors, error)
