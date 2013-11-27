@@ -138,6 +138,7 @@ func testSocket(ws *websocket.Conn) {
 					location = filepath.Join("/file", pkg, file)
 				}
 
+				location = filepath.ToSlash(location)
 				log := TestLog{Location: location, Line: int32(lineNum), Message: message, Log: true}
 
 				output, err := json.Marshal(log)

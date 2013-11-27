@@ -280,7 +280,17 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		info.Parents = []FileDetails{} // TODO Calculate parent and put the object in here
 		info.Attributes = make(map[string]bool)
 		info.Attributes["ReadOnly"] = false
-		info.Attributes["Executable"] = true // TODO Really calculate the execute bit
+		info.Attributes["Executable"] = (fileinfo.Mode()&os.ModePerm)&0111 != 0
+
+		// Symlink check
+		fileinfo, err = os.Lstat(filePath)
+		if err != nil {
+			ShowError(writer, 500, "Error accessing file", err)
+			return true
+		}
+
+		info.Attributes["SymbolicLink"] = (fileinfo.Mode() & os.ModeSymlink) != 0
+
 		info.ChildrenLocation = "/file" + fileRelPath + "?depth=1"
 
 		ShowJson(writer, 200, info)
@@ -361,11 +371,17 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 
 		info.Attributes = make(map[string]bool)
 		info.Attributes["ReadOnly"] = isgoroot
-		executable := false
-		if (fileinfo.Mode()&os.ModePerm)&0111 != 0 {
-			executable = true
+		info.Attributes["Executable"] = (fileinfo.Mode()&os.ModePerm)&0111 != 0
+
+		// Symlink check
+		fileinfo, err = os.Lstat(filePath)
+		if err != nil {
+			ShowError(writer, 500, "Error accessing file", err)
+			return true
 		}
-		info.Attributes["Executable"] = executable
+
+		info.Attributes["SymbolicLink"] = (fileinfo.Mode() & os.ModeSymlink) != 0
+
 		info.ChildrenLocation = "/file" + fileRelPath + "?depth=1"
 
 		_, err = os.Stat(filePath + "/.git")
@@ -387,11 +403,16 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		// TODO handle depths larger than 1
 		if info.Directory /*&& strings.HasPrefix(req.URL.RawQuery, "depth" )*/ {
 			dir, _ := os.Open(filePath)
-			childInfos, err := dir.Readdir(-1)
+			childNames, err := dir.Readdirnames(-1)
 			if err == nil {
-				children := make([]FileDetails, len(childInfos), len(childInfos))
+				children := make([]FileDetails, len(childNames), len(childNames))
 
-				for idx, fi := range childInfos {
+				for idx, childName := range childNames {
+					fi, err := os.Stat(filepath.Join(filePath, childName))
+					if err != nil {
+						continue
+					}
+
 					childInfo := FileDetails{}
 					childInfo.Name = fi.Name()
 					childInfo.Id = fi.Name()
@@ -401,12 +422,14 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 					childInfo.Parents = []FileDetails{}
 					childInfo.Attributes = make(map[string]bool)
 					childInfo.Attributes["ReadOnly"] = isgoroot
-					executable := false
-					if (fi.Mode()&os.ModePerm)&0111 != 0 {
-						executable = true
-					}
-					childInfo.Attributes["Executable"] = executable
+					childInfo.Attributes["Executable"] = (fi.Mode()&os.ModePerm)&0111 != 0
 					childInfo.ChildrenLocation = "/file" + fileRelPath + "/" + fi.Name() + "?depth=1"
+
+					// Check for symbolic link
+					fi, err = os.Lstat(filepath.Join(filePath, childName))
+					if err == nil {
+						childInfo.Attributes["SymbolicLink"] = (fi.Mode() & os.ModeSymlink) != 0
+					}
 
 					children[idx] = childInfo
 				}
