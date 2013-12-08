@@ -63,6 +63,13 @@ func definitionHandler(writer http.ResponseWriter, req *http.Request, path strin
 
 		outputStr := string(output)
 		outputColumns := strings.Split(outputStr, ":")
+		
+		// Windows path
+		if (outputStr[0] == 'C' || outputStr[0] == 'c') && outputStr[1] == ':' {
+			outputColumns[1] = string(outputStr[0]) + ":" + outputColumns[1]
+			outputColumns = outputColumns[1:]
+		}
+		
 		if len(outputColumns) == 0 || len(outputColumns) > 3 {
 			ShowJson(writer, 204, "No definition found")
 			return true
@@ -79,7 +86,7 @@ func definitionHandler(writer http.ResponseWriter, req *http.Request, path strin
 				ShowJson(writer, 204, "No definition found")
 				return true
 			}
-			pkgPath := filepath.ToSlash(outputColumns[0])
+			pkgPath := outputColumns[0]
 			ShowJson(writer, 200, pkgPath)
 			return true
 		}
@@ -104,7 +111,7 @@ func definitionHandler(writer http.ResponseWriter, req *http.Request, path strin
 				return true
 			}
 
-			filePath := filepath.ToSlash(outputColumns[0])
+			filePath := outputColumns[0]
 			ShowJson(writer, 200, filePath+":"+outputColumns[1])
 			return true
 		}

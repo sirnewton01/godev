@@ -343,9 +343,19 @@ func debugHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 			foundCommand := false
 
 			for _, gopath := range gopaths {
-				_, err := os.Stat(gopath + "/bin/" + commandName)
+				cmdPath := filepath.Join(gopath, "bin", commandName)
+				_, err := os.Stat(cmdPath)
 				if err == nil {
-					request.Cmd[0] = gopath + "/bin/" + commandName
+					request.Cmd[0] = cmdPath
+					foundCommand = true
+					break
+				}
+				
+				// Try again with windows .exe extension
+				cmdPath = filepath.Join(gopath, "bin", commandName + ".exe")
+				_, err = os.Stat(cmdPath)
+				if err == nil {
+					request.Cmd[0] = cmdPath
 					foundCommand = true
 					break
 				}

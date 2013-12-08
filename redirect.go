@@ -15,17 +15,16 @@ func redirectHandler(writer http.ResponseWriter, req *http.Request, path string,
 	switch {
 	// Start a simple proxy for many of the different types of requests (except for source code)
 	case req.Method == "GET":
-		ospath := "/" + filepath.Join(pathSegs[1:]...)
+		ospath := req.URL.Query().Get("path")
 		ospath = filepath.Clean(ospath)
-		extraArgs := ""
-
-		if strings.Index(ospath, ",") != -1 {
-			idx := strings.Index(ospath, ",")
-
-			extraArgs = ospath[idx:]
-			ospath = ospath[0:idx]
+		
+		if ospath == "" {
+			ShowError(writer, 400, "Invalid request", nil)
+			return true
 		}
-
+		
+		lineNumber := req.URL.Query().Get("line")
+		
 		gorootsrc := filepath.Join(goroot, "/src/pkg")
 
 		for _, srcDir := range append(srcDirs, gorootsrc) {
@@ -42,13 +41,18 @@ func redirectHandler(writer http.ResponseWriter, req *http.Request, path string,
 						}
 						// Switch back to URL path segments
 						relpath = strings.Replace(relpath, "\\", "/", -1)
+						
+						extraArgs := ""
+						if lineNumber != "" {
+							extraArgs = ",line="+lineNumber
+						}
 
 						http.Redirect(writer, req, "/edit/edit.html#/file/"+relpath+extraArgs, 302)
 						return true
 					}
 				}
 			} else {
-				p := filepath.Join(srcDir + ospath)
+				p := filepath.Join(srcDir, ospath)
 				_, err := os.Stat(p)
 
 				if err == nil {

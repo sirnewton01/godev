@@ -186,6 +186,8 @@ func performTransfer(info *TransferInfo, req *http.Request, writer http.Response
 			return true
 		}
 	}
+	
+	txFile.Close()
 
 	// TODO handle byte range (partial) transfers
 

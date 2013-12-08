@@ -654,12 +654,20 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
 					}).then(function(result) {
 						if (result.status === 200) {
 							var value = JSON.parse(result.response);
-							var columns = value.split(":");
+							var columns = [];
+							
+							// Windows path
+							if ((value[0] === "C" || value[0] === "c") && value[1] === ":") {
+								columns = value.substring(2).split(":");
+								columns[0] = value[0] + ":" + columns[0];
+							} else {
+								columns = value.split(":");
+							}
 							
 							if (columns.length === 1) {
 								// Package reference
 								return {
-									navigateUrl: "/redirect" + columns[0]
+									navigateUrl: "/redirect?path=" + columns[0]
 								};
 							} else if (columns.length === 2) {
 								// Check if the first parameter is a number
@@ -683,7 +691,7 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
 								} else {
 									// File and line reference
 									return {
-										navigateUrl: "/redirect" + columns[0]+",line="+columns[1]
+										navigateUrl: "/redirect?path=" + columns[0]+"&line="+columns[1]
 									};
 								}
 							}

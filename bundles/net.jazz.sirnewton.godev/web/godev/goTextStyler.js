@@ -792,7 +792,7 @@ define("godev/goTextStyler", [ //$NON-NLS-0$
 			// Potential import string
 			var match = text.match(/^"([a-zA-Z0-9\.\/]+)"$/);
 			if (match) {
-				href = "/redirect/"+match[1];
+				href = "/redirect?path="+match[1];
 			}
 			
 			if (href) {

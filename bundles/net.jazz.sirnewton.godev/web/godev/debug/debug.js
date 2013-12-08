@@ -125,7 +125,7 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 					textToAdd = textToAdd.replace(/https:\/\/(\S+)/g,"<a href='https://$1' target='_blank'>https://$1</a>");
 					
 					// Turn stack trace frames into hyperlinks
-					textToAdd = textToAdd.replace(/([0-9A-Za-z./]+):([0-9]+) \((0x[0-9a-f]+)\)/g, "<a href='/redirect/$1,line=$2' target='_blank'>$1:$2</a> ($3)");
+					textToAdd = textToAdd.replace(/([0-9A-Za-z./:]+):([0-9]+) \((0x[0-9a-f]+)\)/g, "<a href='/redirect?path=$1&line=$2' target='_blank'>$1:$2</a> ($3)");
 
 					if (pid === currentPid) {
 						output.innerHTML = output.innerHTML + textToAdd;
