@@ -54,5 +54,5 @@ a.token_singleline_comment, a.token_multiline_comment, a.token_doc_comment {
 }
 
 .line_caret {
-	background-color: #EAF2FE;
+	background-color: #D3E0F5;
 }

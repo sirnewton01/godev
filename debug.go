@@ -191,7 +191,7 @@ func manageProcesses(ap chan *ActiveProcessesRequest, gpd chan *ProcessDataReque
 			}
 
 			go reader()
-			
+
 			errReader := func() {
 				pipe, err := cmd.StderrPipe()
 

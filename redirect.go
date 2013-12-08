@@ -11,7 +11,6 @@ import (
 	"strings"
 )
 
-
 func redirectHandler(writer http.ResponseWriter, req *http.Request, path string, pathSegs []string) bool {
 	switch {
 	// Start a simple proxy for many of the different types of requests (except for source code)
@@ -19,35 +18,51 @@ func redirectHandler(writer http.ResponseWriter, req *http.Request, path string,
 		ospath := "/" + filepath.Join(pathSegs[1:]...)
 		ospath = filepath.Clean(ospath)
 		extraArgs := ""
-		
-		if strings.Index(ospath,",") != -1 {
+
+		if strings.Index(ospath, ",") != -1 {
 			idx := strings.Index(ospath, ",")
-			
+
 			extraArgs = ospath[idx:]
 			ospath = ospath[0:idx]
 		}
-		
+
 		gorootsrc := filepath.Join(goroot, "/src/pkg")
-		
-		for _,srcDir := range(append(srcDirs, gorootsrc)) {
+
+		for _, srcDir := range append(srcDirs, gorootsrc) {
 			// TODO add trailing '/' or '\' to the srcDir for the check
 			if strings.HasPrefix(ospath, srcDir) {
 				_, err := os.Stat(ospath)
-				
+
 				if err == nil {
-					relpath, err := filepath.Rel(srcDir,ospath)
-					
+					relpath, err := filepath.Rel(srcDir, ospath)
+
 					if err == nil {
 						if srcDir == gorootsrc {
 							relpath = filepath.Join("GOROOT", relpath)
 						}
 						// Switch back to URL path segments
 						relpath = strings.Replace(relpath, "\\", "/", -1)
-						
-						http.Redirect(writer,req,"/edit/edit.html#/file/"+relpath+extraArgs, 302)
+
+						http.Redirect(writer, req, "/edit/edit.html#/file/"+relpath+extraArgs, 302)
 						return true
 					}
 				}
+			} else {
+				p := filepath.Join(srcDir + ospath)
+				_, err := os.Stat(p)
+
+				if err == nil {
+					if srcDir == gorootsrc {
+						p = filepath.Join("/file/GOROOT/", ospath)
+					} else {
+						p = filepath.Join("/file/", ospath)
+					}
+					p = filepath.ToSlash(p)
+
+					http.Redirect(writer, req, "/edit/edit.html#"+p, 302)
+					return true
+				}
+
 			}
 		}
 

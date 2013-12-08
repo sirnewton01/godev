@@ -142,13 +142,6 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
 	                        
 	                        // Positions are only necessary for functions
 	                        positions = null;
-	                        
-		                    // Ellide the proposal with the existing prefix text where possible
-		                    // The user may have partially typed the result to the get the
-		                    //  assistance.
-		                    if (proposal.indexOf(context.prefix) === 0) {
-		                        proposal = proposal.substring(context.prefix.length);
-		                    }
 		                    
 		                    // This is a function, 
 		                    if (type.indexOf("func") === 0) {
@@ -159,21 +152,20 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
 			                        var parameterOffset = 0;         
 			                        positions = [];
 			                        for (var j = 0; j < parameters.length; j++) {
-			                            positions.push({offset: offset + proposal.length + 1 + parameterOffset, length: parameters[j].length});
+			                            positions.push({offset: offset + proposal.length + 1 + parameterOffset - context.prefix.length, length: parameters[j].length});
 			                            parameterOffset = parameterOffset + parameters[j].length + 1;
 			                        }
 		                        }
 		                        
 		                        proposal = proposal + "(" + signature + ")";
 		                    }
-	                        
-	                        // TODO completion to include arguments, positions, etc.
-	                        
+		                    
 		                    proposals.push({
 	                            proposal: proposal,
 	                            description: name + " " + type,
 	                            positions: positions,
-	                            escapePosition: offset + proposal.length
+	                            escapePosition: offset + proposal.length - context.prefix.length,
+	                            overwrite: true
 	                        });
                         }
 
@@ -567,6 +559,150 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
                 }
             ]
         });
+        
+	provider.registerService(
+		"orion.edit.command", 
+		{
+			run: function(selectedText, text, selection) {
+				var textToFormat = selectedText;
+				
+				if (!textToFormat || textToFormat === "") {
+					textToFormat = text;
+				}
+				
+				var d = xhr("POST", "/go/fmt/",
+					{
+						headers: {},
+						timeout: 15000,
+						data: textToFormat
+					}).then(function(result) {
+						if (selectedText && selectedText !== "") {
+							return result.response;
+						} else {
+							return {
+								text: result.response,
+								selection: selection
+							};
+						}
+					});
+				
+				return d;
+			}
+		},
+		{
+			name: "Format",
+			tooltip: "Format Go code (Ctrl-Shift-R)",
+			key: ["R", true, true],
+			contentType: ["text/x-go"]
+		});
+		
+		provider.registerService(
+		"orion.edit.command", 
+		{
+			run: function(selectedText, text, selection) {				
+				var d = xhr("POST", "/go/imports/",
+					{
+						headers: {},
+						timeout: 15000,
+						data: text
+					}).then(function(result) {
+						if (result.status === 200) {
+							return {
+								text: result.response,
+								selection: selection
+							};
+						}
+						
+						return {selection: selection};
+					}, function(error) {
+						window.alert("Error launching the import tool. Try installing it with 'go get github.com/bradfitz/goimports'");
+					});
+				
+				return d;
+			}
+		},
+		{
+			name: "Fix Imports",
+			tooltip: "Fix Imports (Ctrl-I)",
+			key: ["I", true],
+			contentType: ["text/x-go"]
+		});
+		
+		provider.registerService(
+		"orion.edit.command", 
+		{
+			run: function(selectedText, text, selection, resource) {
+				// Convert the selection offset from characters to bytes
+				var byteOffset = 0;
+				var charCode = 0;
+				for (var i = 0; i < selection.start; i++) {
+					charCode = text.charCodeAt(i);
+					
+					// Double byte character
+					if (charCode > 0x7F) {
+						byteOffset = byteOffset + 2;
+					} else {
+						byteOffset++;
+					}
+				}
+				
+				var d = xhr("POST", "/go/defs"+resource+"?o="+byteOffset,
+					{
+						headers: {},
+						timeout: 15000,
+						data: text
+					}).then(function(result) {
+						if (result.status === 200) {
+							var value = JSON.parse(result.response);
+							var columns = value.split(":");
+							
+							if (columns.length === 1) {
+								// Package reference
+								return {
+									navigateUrl: "/redirect" + columns[0]
+								};
+							} else if (columns.length === 2) {
+								// Check if the first parameter is a number
+								if (columns[0].match(/^[0-9]+$/)) {
+									var lineNum = parseInt(columns[0]);
+									var lines = text.split("\n");
+									var offset = 0;
+									
+									for (var idx = 0; idx < lineNum-1; idx++) {
+										offset = offset + lines[idx].length + 1;
+									}
+									
+									offset = offset + parseInt(columns[1]) - 1;
+									
+									return {
+										selection: {
+											start: offset,
+											end: offset
+										}
+									};
+								} else {
+									// File and line reference
+									return {
+										navigateUrl: "/redirect" + columns[0]+",line="+columns[1]
+									};
+								}
+							}
+						}
+						
+						return {selection: selection};
+					}, function(error) {
+						window.alert("Error launching the godef tool. Try installing it with 'go get code.google.com/p/rog-go/exp/cmd/godef'");
+					});
+				
+				return d;
+			}
+		},
+		{
+			name: "Open Declaration",
+			tooltip: "Open declaration of the selected text (F3)",
+			key: [114],
+			contentType: ["text/x-go"]
+		});
    
 	/*provider.registerService(
 		"orion.edit.command", 

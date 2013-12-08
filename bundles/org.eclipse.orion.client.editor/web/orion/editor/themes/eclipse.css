@@ -26,7 +26,7 @@
 	color: #444;
 }
 .eclipse .annotationLine.currentLine {
-	background-color: #EAF2FE;
+	background-color: #D3E0F5;
 }
 .eclipse .entity-name-tag {
 	color: #7f0055;
@@ -38,7 +38,7 @@
 	color: blue;
 }
 .eclipse .line_caret {
-	background-color: #EAF2FE;
+	background-color: #D3E0F5;
 }
 .eclipse .token_keyword {
 	color: #7f0055;

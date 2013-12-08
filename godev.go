@@ -291,10 +291,16 @@ func main() {
 	http.HandleFunc("/completion/", wrapHandler(completionHandler))
 	http.HandleFunc("/filesearch", wrapHandler(filesearchHandler))
 	http.HandleFunc("/filesearch/", wrapHandler(filesearchHandler))
+	http.HandleFunc("/xfer", wrapHandler(xferHandler))
+	http.HandleFunc("/xfer/", wrapHandler(xferHandler))
 	http.HandleFunc("/go/build", wrapHandler(buildHandler))
 	http.HandleFunc("/go/build/", wrapHandler(buildHandler))
+	http.HandleFunc("/go/defs", wrapHandler(definitionHandler))
+	http.HandleFunc("/go/defs/", wrapHandler(definitionHandler))
 	http.HandleFunc("/go/fmt", wrapHandler(formatHandler))
 	http.HandleFunc("/go/fmt/", wrapHandler(formatHandler))
+	http.HandleFunc("/go/imports", wrapHandler(importsHandler))
+	http.HandleFunc("/go/imports/", wrapHandler(importsHandler))
 
 	// GODOC
 	http.HandleFunc("/godoc/pkg", wrapHandler(docHandler))

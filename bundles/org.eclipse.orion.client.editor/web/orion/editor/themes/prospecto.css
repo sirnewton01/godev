@@ -26,7 +26,7 @@
 	color: silver;
 }
 .prospecto .annotationLine.currentLine {
-	background-color: #EAF2FE;
+	background-color: #D3E0F5;
 }
 .prospecto .entity-name-tag {
 	color: #CC4C07;
@@ -38,7 +38,7 @@
 	color: #446FBD;
 }
 .prospecto .line_caret {
-	background-color: #EAF2FE;
+	background-color: #D3E0F5;
 }
 .prospecto .token_keyword {
 	color: #CC4C07;

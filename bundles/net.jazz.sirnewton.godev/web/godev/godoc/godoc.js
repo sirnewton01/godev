@@ -56,10 +56,25 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 		var searchInput = document.createElement("input");
 		searchInput.setAttribute("type", "text");
 		searchInput.setAttribute("name", "q");
-		searchInput.setAttribute("placeholder", "Search");
+		searchInput.setAttribute("placeholder", "Search (Ctrl-S)");
 		searchInput.setAttribute("style", "display: inline;");
+		
+		document.addEventListener("keydown", function(e) {
+			if (e.keyCode === 83 && e.ctrlKey) {
+				searchInput.focus();
+				e.preventDefault();
+				return true;
+			}
+			
+			return false;
+		});
+		
 		searchForm.appendChild(searchInput);
 		location.appendChild(searchForm);
+		
+		// Force the content section as selected so that the user
+		//  can scroll right away as soon as the page loads.
+		document.getElementById("contentSection").focus();
 	});
 });
 

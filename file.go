@@ -26,6 +26,7 @@ type FileDetails struct {
 	Attributes       map[string]bool
 	ChildrenLocation string
 	Children         interface{} `json:",omitempty"`
+	ImportLocation   string
 	Git              *GitMeta
 }
 
@@ -116,8 +117,6 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 				ShowError(writer, 500, "Error moving file", err)
 				return true
 			}
-
-			writer.WriteHeader(201)
 		} else if strings.Contains(createOptions, "copy") {
 			oldPathSegs := strings.Split(details["Location"], "/")
 			// Two path segments are stripped off of the beginning (one for / and the other for "file")
@@ -186,15 +185,12 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 				ShowError(writer, 500, "Error copying project", err)
 				return true
 			}
-			writer.WriteHeader(201)
-			return true
 		} else if details["Directory"] == "true" {
 			err = os.Mkdir(filePath+"/"+newName, 0700)
 			if err != nil {
 				ShowError(writer, 500, "Error creating directory", err)
 				return true
 			}
-			writer.WriteHeader(201)
 		} else {
 			file, err := os.Create(filePath + "/" + newName)
 			if err != nil {
@@ -202,8 +198,46 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 				return true
 			}
 			file.Close()
-			writer.WriteHeader(201)
 		}
+
+		// In any case we return the information about this new file or folder
+		fileinfo, err := os.Stat(filepath.Join(filePath, newName))
+
+		if err != nil {
+			ShowError(writer, 500, "Error stating new file", err)
+			return true
+		}
+
+		info := FileDetails{}
+		info.Name = fileinfo.Name()
+		info.Id = fileinfo.Name()
+		info.Location = "/file" + fileRelPath + "/" + newName
+		info.Directory = fileinfo.IsDir()
+		
+		// Provide a location to import into a directory
+		if (info.Directory) {
+			info.ImportLocation = "/xfer" + info.Location
+		}
+		
+		info.LocalTimeStamp = fileinfo.ModTime().Unix() * 1000
+		info.ETag = strconv.FormatInt(fileinfo.ModTime().Unix(), 16)
+		info.Parents = []FileDetails{} // TODO Calculate parent and put the object in here
+		info.Attributes = make(map[string]bool)
+		info.Attributes["ReadOnly"] = false
+		info.Attributes["Executable"] = (fileinfo.Mode()&os.ModePerm)&0111 != 0
+
+		// Symlink check
+		fileinfo, err = os.Lstat(filePath)
+		if err != nil {
+			ShowError(writer, 500, "Error accessing file", err)
+			return true
+		}
+
+		info.Attributes["SymbolicLink"] = (fileinfo.Mode() & os.ModeSymlink) != 0
+
+		info.ChildrenLocation = info.Location + "?depth=1"
+
+		ShowJson(writer, 201, info)
 
 		return true
 	case req.Method == "DELETE" && len(pathSegs) > 1:
@@ -273,8 +307,14 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		info := FileDetails{}
 		info.Name = fileinfo.Name()
 		info.Id = fileinfo.Name()
-		info.Location = fileRelPath
+		info.Location = "/file" + fileRelPath
 		info.Directory = fileinfo.IsDir()
+		
+		// Provide a location to import into a directory
+		if (info.Directory) {
+			info.ImportLocation = "/xfer" + info.Location
+		}
+		
 		info.LocalTimeStamp = fileinfo.ModTime().Unix() * 1000
 		info.ETag = strconv.FormatInt(fileinfo.ModTime().Unix(), 16)
 		info.Parents = []FileDetails{} // TODO Calculate parent and put the object in here
@@ -350,8 +390,12 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		info.Location = "/file" + fileRelPath
 		info.Directory = fileinfo.IsDir()
 		info.ETag = strconv.FormatInt(fileinfo.ModTime().Unix(), 16)
-
 		info.LocalTimeStamp = fileinfo.ModTime().Unix() * 1000
+		
+		// Provide a location to import into a directory
+		if (info.Directory) {
+			info.ImportLocation = "/xfer" + info.Location
+		}
 
 		parentPathSegs := pathSegs[:len(pathSegs)-1]
 		info.Parents = make([]FileDetails, len(pathSegs)-2, len(pathSegs)-2)
@@ -424,6 +468,11 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 					childInfo.Attributes["ReadOnly"] = isgoroot
 					childInfo.Attributes["Executable"] = (fi.Mode()&os.ModePerm)&0111 != 0
 					childInfo.ChildrenLocation = "/file" + fileRelPath + "/" + fi.Name() + "?depth=1"
+
+					// Provide a location to import into a directory
+					if (childInfo.Directory) {
+						childInfo.ImportLocation = "/xfer" + childInfo.Location
+					}
 
 					// Check for symbolic link
 					fi, err = os.Lstat(filepath.Join(filePath, childName))

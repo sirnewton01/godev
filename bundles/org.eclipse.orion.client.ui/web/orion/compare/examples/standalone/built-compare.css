@@ -1283,7 +1283,7 @@ input {
 	border: 1px solid red;
 }
 .annotationOverview.currentLine {
-	background-color: #EAF2FE;
+	background-color: #D3E0F5;
 	border: 1px solid black;
 }
 .annotationOverview.matchingSearch {
@@ -1355,7 +1355,7 @@ input {
 .annotationLine {
 }
 .annotationLine.currentLine {
-	background-color: #EAF2FE;
+	background-color: #D3E0F5;
 }
 
 .tooltip.textview {
@@ -1441,7 +1441,7 @@ input {
 	padding: 1px 3px 0 3px;
 }
 .contentassist>div:hover {
-	background-color: #EAF2FE;
+	background-color: #D3E0F5;
 }
 .token_singleline_comment {
 	color: #3C802C;
@@ -1487,7 +1487,7 @@ a.token_singleline_comment, a.token_multiline_comment, a.token_doc_comment {
  	background-position: left center;
 }
 .line_caret {
-	background-color: #EAF2FE;
+	background-color: #D3E0F5;
 }
 
 .comment {

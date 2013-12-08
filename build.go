@@ -55,7 +55,7 @@ func parseBuildOutput(cmd *exec.Cmd) (compileErrors []CompileError, err error) {
 			// Compile Error
 			pieces := strings.Split(line, ":")
 			file := pieces[0]
-			
+
 			// Windows absolute path with a drive letter
 			if len(file) < 2 {
 				file = pieces[0] + ":" + pieces[1]

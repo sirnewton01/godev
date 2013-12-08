@@ -161,7 +161,7 @@
 	border: 1px solid red;
 }
 .annotationOverview.currentLine {
-	background-color: #EAF2FE;
+	background-color: #D3E0F5;
 	border: 1px solid black;
 }
 .annotationOverview.matchingSearch {
@@ -242,6 +242,6 @@
 .annotationLine {
 }
 .annotationLine.currentLine {
-	background-color: #EAF2FE;
+	background-color: #D3E0F5;
 }
 
