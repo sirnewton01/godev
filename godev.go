@@ -32,6 +32,7 @@ var (
 	goroot                      = ""
 	srcDirs                     = []string{}
 	bundle_root_dir             = ""
+	godev_src_dir               = flag.String("srcdir", "", "Source directory of godev if not in the standard location in GOPATH")
 	port                        = flag.String("port", defaultPort, "HTTP port number for the development server. (e.g. '2022')")
 	debug                       = flag.Bool("debug", false, "Put the development server in debug mode with detailed logging.")
 	logger          *log.Logger = nil
@@ -71,8 +72,17 @@ func init() {
 		}
 	}
 
+	// Try the location provided by the srcdir flag
+	if bundle_root_dir == "" && *godev_src_dir != "" {
+		_, err := os.Stat(*godev_src_dir + "/bundles")
+		
+		if err == nil {
+			bundle_root_dir = *godev_src_dir + "/bundles"
+		}
+	}
+	
 	if bundle_root_dir == "" {
-		log.Fatal("GOPATH variable doesn't contain the godev source.\nPlease add the location to the godev source to the GOPATH.")
+		log.Fatal("GOPATH variable doesn't contain the godev source.\nEither add the location to the godev source to your GOPATH or set the srcdir flag to the location.")
 	}
 
 	if os.Getenv("GOHOST") != "" {

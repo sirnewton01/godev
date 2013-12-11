@@ -264,7 +264,9 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 					updateProcesses();
 					updateOutput();
 				}, function(error) {
-					window.alert("POST:" + error.responseText);
+					var e = JSON.parse(error.responseText);
+					
+					window.alert("Error launching command. Check for compile errors. "+e.Message+" "+e.DetailedMessage);
 				});
 		};
 		

@@ -33,6 +33,15 @@ func init() {
 			}
 		}
 	}
+	
+	// Try again with with the srcdir parameter
+	if godoc_templates_dir == "" {
+		_,err := os.Stat(*godev_src_dir + "/godoc-templates")
+		
+		if err == nil {
+			godoc_templates_dir = *godev_src_dir + "/godoc-templates"
+		}
+	}
 
 	// Find an available port number
 	godocPort := int64(6060)
