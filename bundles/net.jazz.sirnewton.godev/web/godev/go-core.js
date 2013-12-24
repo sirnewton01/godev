@@ -354,65 +354,18 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
 
     provider.registerServiceProvider("orion.edit.outliner", {
             getOutline: function (contents, title) {
-                var outline = [];
-                var lines = contents.split(/\r?\n/);
-                for (var i = 0; i < lines.length; i++) {
-                    var line = lines[i];
-                    // Check for any functions on this line
-                    // TODO handle functions that cross lines even though this wouldn't follow style guidelines
-                    // TODO include the parameters, member type
-                    var funcMatch = /^func\s+([a-zA-Z0-9]+).*$/.exec(line);
+                var d = xhr("POST", "/go/outline", {
+                    headers: {},
+                    timeout: 60000,
+                    data: contents
+                }).then(function (result) {
+                    var outline = JSON.parse(result.response);
+                    return outline;
+                }, function (error) {
+                    // Don't show an error
+                });
 
-                    if (funcMatch) {
-                        outline.push({
-                                label: "func " + funcMatch[1],
-                                line: i + 1
-                            });
-                    }
-
-                    var methodMatch = /^func\s+\(([^)]+)\)\s+([a-zA-Z0-9]+).*$/.exec(line);
-
-                    if (methodMatch) {
-                        outline.push({
-                                label: "func " + methodMatch[1],
-                                line: i + 1
-                            });
-                    }
-
-                    // TODO handle type blocks and types whose names span multiple lines
-                    var typeMatch = /^type\s+([a-zA-Z0-9]+).*$/.exec(line);
-                    if (typeMatch) {
-                        outline.push({
-                                label: "type " + typeMatch[1],
-                                line: i + 1
-                            });
-                    }
-
-                    var varMatch = /var \(/.exec(line);
-                    if (varMatch) {
-                        outline.push({
-                                label: "VAR",
-                                line: i + 1
-                            });
-                    }
-
-                    var constMatch = /const \(/.exec(line);
-                    if (constMatch) {
-                        outline.push({
-                                label: "CONST",
-                                line: i + 1
-                            });
-                    }
-
-                    var importMatch = /import \(/.exec(line);
-                    if (importMatch) {
-                        outline.push({
-                                label: "IMPORT",
-                                line: i + 1
-                            });
-                    }
-                }
-                return outline;
+                return d;
             }
         }, {
             contentType: ["text/x-go"],
@@ -615,7 +568,7 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
 						
 						return {selection: selection};
 					}, function(error) {
-						window.alert("Error launching the import tool. Try installing it with 'go get github.com/bradfitz/goimports'");
+						window.alert("Error launching the import tool. Try installing it with 'go get code.google.com/p/go.tools/cmd/goimports'");
 					});
 				
 				return d;
@@ -710,6 +663,43 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
 			tooltip: "Open declaration of the selected text (F3)",
 			key: [114],
 			contentType: ["text/x-go"]
+		});
+		
+		
+		
+		provider.registerService(
+		"orion.edit.blamer", 
+		{
+			doBlame: function(location) {
+				// Trim any query parameters
+				var queryIdx = location.indexOf("?");
+				if (queryIdx !== -1) {
+					location = location.substring(0, queryIdx);
+				}
+				
+				var d = xhr("GET", "/blame/"+location,
+				{
+					headers: {},
+					timeout: 30000
+				}).then(function(result) {
+					if (result.status === 200) {
+						var value = JSON.parse(result.response);
+						
+						return value;
+					}
+					
+					return [];
+				}, function(error) {
+					window.alert("Error getting blame. Make sure to install the appropriate VCS tool for this project (e.g. git, hg, lscm).");
+					
+					return [];
+				});
+				
+				return d;
+			}
+		},
+		{
+			name: "Blame"
 		});
    
 	/*provider.registerService(

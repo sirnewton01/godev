@@ -128,3 +128,16 @@ Godev has an optional integration with the gocode tool to bring rich content ass
 $ go get github.com/nsf/gocode
 
 To activate content assistance you press Ctrl+Space in the editor to bring up a list of suggestions.
+
+# Import Management
+
+You can manage your imports with the goimports tool inside the godev editor. Install the tool with the following command:
+
+$ go get code.google.com/p/go.tools/cmd/goimports
+
+In the godev editor type Ctrl-I to add the imports you need and/or remove the unnecessary ones.
+
+# Blame
+
+The godev editor has the ability to show blame for each line of source code managed by Git, Mercurial and Jazz SCM. Godev works with the command-line for each type of VCS to present the blame. If you are able to "go get" it then you should have the command-line tool installed on your system.
+

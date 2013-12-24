@@ -311,6 +311,8 @@ func main() {
 	http.HandleFunc("/go/fmt/", wrapHandler(formatHandler))
 	http.HandleFunc("/go/imports", wrapHandler(importsHandler))
 	http.HandleFunc("/go/imports/", wrapHandler(importsHandler))
+	http.HandleFunc("/go/outline", wrapHandler(outlineHandler))
+	http.HandleFunc("/go/outline/", wrapHandler(outlineHandler))
 
 	// GODOC
 	http.HandleFunc("/godoc/pkg", wrapHandler(docHandler))
@@ -328,6 +330,8 @@ func main() {
 	http.HandleFunc("/debug/", wrapHandler(debugHandler))
 	http.HandleFunc("/debug/console/output/", wrapWebSocket(websocket.Handler(debugSocket)))
 	http.HandleFunc("/test", wrapWebSocket(websocket.Handler(testSocket)))
+	http.HandleFunc("/blame", wrapHandler(blameHandler))
+	http.HandleFunc("/blame/", wrapHandler(blameHandler))
 	//	http.HandleFunc("/gitapi", wrapHandler(gitapiHandler))
 	//	http.HandleFunc("/gitapi/", wrapHandler(gitapiHandler))
 
