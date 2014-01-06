@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset=utf-8>
+		<title>Implemented interface</title>
+		<link rel="stylesheet" type="text/css" href="godef.css" />
+		<script src="../../requirejs/require.js"></script>
+		<script type="text/javascript">
+		/*global require*/
+		require({
+			  baseUrl: '../..',
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["godef.js"]);
+		</script>		
+	</head>
+	<body style="background-color:white; overflow: hidden; min-width: 50px; width: 400px; height: 200px;">
+		<div class="dialogTitle">
+			<span class="dialogTitleText layoutLeft">Declaration</span>
+			<button aria-label="Close" class="dismissButton layoutRight core-sprite-close imageSprite" id="closeDialog"></button>
+		</div>
+		<div class="dialogContent layoutBlock" style="height: 150px;">
+			<div id="linkArea" style="height: 150px; margin:5px; overflow: auto;" aria-live="off"></div>
+		</div>
+	</body>	
+</html>

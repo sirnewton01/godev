@@ -1,8 +1,8 @@
 {
 	"/plugins":{
+		"plugins/authenticationPlugin.html": true,
 		"plugins/fileClientPlugin.html":true,
 		"plugins/jslintPlugin.html":true,
-		"profile/userservicePlugin.html":true,
 		"plugins/webEditingPlugin.html":true,
 		"plugins/pageLinksPlugin.html":true,
 		"plugins/preferencesPlugin.html":true,

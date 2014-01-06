@@ -28,11 +28,18 @@ define([
 	'orion/searchUtils',
 	'orion/PageUtil',
 	'orion/PageLinks',
+	// GODEV PATCH FOR https://bugs.eclipse.org/bugs/show_bug.cgi?id=424507
+	'orion/editor/annotations',
+	// END GODEV PATCH
 	'orion/blamer',
 	'orion/regex',
 	'orion/util',
 	'orion/edit/editorContext'
-], function(messages, i18nUtil, lib, openResource, DropDownMenu, Deferred, URITemplate, mCommands, mKeyBinding, mCommandRegistry, mExtensionCommands, mContentTypes, mSearchUtils, mPageUtil, PageLinks, blamer, regex, util, EditorContext) {
+], function(messages, i18nUtil, lib, openResource, DropDownMenu, Deferred, URITemplate, mCommands, mKeyBinding, mCommandRegistry, mExtensionCommands, mContentTypes, mSearchUtils, mPageUtil, PageLinks, 
+	// GODEV PATCH FOR https://bugs.eclipse.org/bugs/show_bug.cgi?id=424507
+	mAnnotations,
+	// END GODEV PATCH
+	blamer, regex, util, EditorContext) {
 
 	var exports = {};
 	
@@ -49,6 +56,11 @@ define([
 		iframe.name = options.id;
 		iframe.type = "text/html"; //$NON-NLS-0$
 		iframe.sandbox = "allow-scripts allow-same-origin"; //$NON-NLS-0$
+		// BEGIN GODEV CUSTOMIZATION
+		if (href[0] === "/") {
+			iframe.sandbox = iframe.sandbox + "  allow-top-navigation";
+		}
+		// END GODEV CUSTOMIZATION
 		iframe.frameborder = options.border !== undefined ? options.border : 1;
 		iframe.src = href;
 		iframe.className = "delegatedUI"; //$NON-NLS-0$
@@ -92,6 +104,11 @@ define([
 					}
 					window.removeEventListener("message", _messageHandler, false); //$NON-NLS-0$
 					iframe.parentNode.removeChild(iframe);
+					
+					// GODEV CUSTOMIZATION START
+					// https://bugs.eclipse.org/bugs/show_bug.cgi?id=424675
+					delegatedParent.parentNode.removeChild(delegatedParent);
+					// GODEV CUSTOMIZATION END
 				}
 			}
 		}, false);
@@ -427,15 +444,30 @@ define([
 					return blamer.isVisible(self.serviceRegistry, self.inputManager);
 				},
 				callback: function(data) {
-					blameCommand.visible = !blameCommand.visible;
-					if (data.parameters && data.parameters.valueFor('blame')) { //$NON-NLS-0$
-						blameCommand.visible = data.parameters.valueFor('blame') === "true"; //$NON-NLS-1$ //$NON-NLS-0$
+					// GODEV PATCH FOR https://bugs.eclipse.org/bugs/show_bug.cgi?id=424507
+					//blameCommand.visible = !blameCommand.visible;
+					var visible = false;
+					var annotations = editor.getAnnotationModel().getAnnotations(0, editor.getModel().getCharCount());
+					while (annotations.hasNext()) {
+						var annotation = annotations.next();
+						if (annotation.type === mAnnotations.AnnotationType.ANNOTATION_BLAME) {
+							visible = true;
+							break;
+						}
 					}
-					if (blameCommand.visible) {
+					visible = !visible;
+					
+					if (data.parameters && data.parameters.valueFor('blame')) { //$NON-NLS-0$
+						//blameCommand.visible = data.parameters.valueFor('blame') === "true"; //$NON-NLS-1$ //$NON-NLS-0$
+						visible = data.parameters.valueFor('blame') === "true"; //$NON-NLS-1$ //$NON-NLS-0$
+					}
+					//if (blameCommand.visible) {
+					if (visible) {
 						blamer.getBlame(self.serviceRegistry, self.inputManager);
 					} else{
 						editor.showBlame([]);
 					}
+					// END GODEV PATCH
 				}
 			});
 			this.commandService.addCommand(blameCommand);
@@ -518,11 +550,6 @@ define([
 								editor.setSelection(result.selection.start, result.selection.end, true /*scroll to*/);
 								editor.focus();
 							}
-							// BEGIN GODEV CUSTOMIZATION
-							if (result.navigateUrl) {
-								document.location.href = result.navigateUrl;
-							}
-							// END GODEV CUSTOMIZATION
 						} else if (typeof result === 'string') { //$NON-NLS-0$
 							editor.setText(result, selection.start, selection.end, true /*scroll to*/);
 							editor.setSelection(selection.start, selection.start + result.length);

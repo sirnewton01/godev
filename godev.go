@@ -5,7 +5,6 @@
 package main
 
 import (
-	"code.google.com/p/go.net/websocket"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -21,25 +20,31 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"code.google.com/p/go.net/websocket"
+	"sync"
 )
 
 const (
-	loopbackHost = "127.0.0.1"
-	defaultPort  = "2022"
+	loopbackHost     = "127.0.0.1"
+	defaultPort      = "2022"
+	maxRatePerSecond = 1000
 )
 
 var (
-	goroot                      = ""
-	srcDirs                     = []string{}
-	bundle_root_dir             = ""
-	godev_src_dir               = flag.String("srcdir", "", "Source directory of godev if not in the standard location in GOPATH")
-	port                        = flag.String("port", defaultPort, "HTTP port number for the development server. (e.g. '2022')")
-	debug                       = flag.Bool("debug", false, "Put the development server in debug mode with detailed logging.")
-	logger          *log.Logger = nil
-	hostName                    = loopbackHost
-	magicKey                    = ""
-	certFile                    = ""
-	keyFile                     = ""
+	goroot                       = ""
+	srcDirs                      = []string{}
+	bundle_root_dir              = ""
+	godev_src_dir                = flag.String("srcdir", "", "Source directory of godev if not in the standard location in GOPATH")
+	port                         = flag.String("port", defaultPort, "HTTP port number for the development server. (e.g. '2022')")
+	debug                        = flag.Bool("debug", false, "Put the development server in debug mode with detailed logging.")
+	remoteAccount                = flag.String("remoteAccount", "", "Email address of account that should be used to authenticate for remote access.")
+	logger           *log.Logger = nil
+	hostName                     = loopbackHost
+	magicKey                     = ""
+	certFile                     = ""
+	keyFile                      = ""
+	rateTracker                  = 0
+	rateTrackerMutex sync.Mutex
 )
 
 func init() {
@@ -75,12 +80,12 @@ func init() {
 	// Try the location provided by the srcdir flag
 	if bundle_root_dir == "" && *godev_src_dir != "" {
 		_, err := os.Stat(*godev_src_dir + "/bundles")
-		
+
 		if err == nil {
 			bundle_root_dir = *godev_src_dir + "/bundles"
 		}
 	}
-	
+
 	if bundle_root_dir == "" {
 		log.Fatal("GOPATH variable doesn't contain the godev source.\nEither add the location to the godev source to your GOPATH or set the srcdir flag to the location.")
 	}
@@ -101,6 +106,18 @@ func init() {
 		rand.Seed(time.Now().UTC().UnixNano())
 		magicKey = strconv.FormatInt(rand.Int63(), 16)
 	}
+	
+	// Clear out the rate tracker every second.
+	// The rate tracking helps to prevent anyone from 
+	//   trying to brute force the magic key.
+	go func() {
+		for {
+			<- time.After(1*time.Second)
+			rateTrackerMutex.Lock()
+			rateTracker = 0
+			rateTrackerMutex.Unlock()
+		}
+	}()
 }
 
 const (
@@ -190,13 +207,23 @@ func wrapHandler(delegate delegateFunc) handlerFunc {
 		logger.Printf("HANLDER: %v %v\n", req.Method, req.URL.Path)
 
 		if hostName != loopbackHost {
+			// Monitor the rate of requests
+			rateTrackerMutex.Lock()
+			if rateTracker > maxRatePerSecond {
+				http.Error(writer, "Too many requests", 503)
+				rateTrackerMutex.Unlock()
+				return
+			}
+			rateTracker++
+			rateTrackerMutex.Unlock()
+			
 			// Check the magic cookie
 			// Since redirection is not generally possible if the cookie is not
 			//  present then we deny the request.
 			cookie, err := req.Cookie("MAGIC" + *port)
 			if err != nil || (*cookie).Value != magicKey {
 				// Denied
-				http.Error(writer, "Permission Denied", 403)
+				http.Error(writer, "Permission Denied", 401)
 				return
 			}
 		}
@@ -219,38 +246,6 @@ func wrapHandler(delegate delegateFunc) handlerFunc {
 
 func wrapFileServer(delegate http.Handler) handlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
-		if hostName != loopbackHost {
-			// Check for the magic cookie
-			cookie, err := req.Cookie("MAGIC" + *port)
-			if err != nil || (*cookie).Value != magicKey {
-				// Check for a query parameter with the magic cookie
-				// If we find it then we redirect the user's browser to set the
-				//  cookie for all future requests.
-				// Otherwise we return permission denied.
-
-				magicValues := req.URL.Query()["MAGIC"]
-				if len(magicValues) < 1 || magicValues[0] != magicKey {
-					// Denied
-					http.Error(writer, "Permission Denied", 403)
-					return
-				}
-
-				// Redirect to the base URL setting the cookie
-				// Cookie lasts for a couple of weeks
-				cookie := &http.Cookie{Name: "MAGIC" + *port, Value: magicKey,
-					Path: "/", Domain: hostName, MaxAge: 2000000,
-					Secure: true, HttpOnly: false}
-
-				http.SetCookie(writer, cookie)
-
-				urlWithoutQuery := req.URL
-				urlWithoutQuery.RawQuery = ""
-
-				http.Redirect(writer, req, urlWithoutQuery.String(), 302)
-				return
-			}
-		}
-
 		delegate.ServeHTTP(writer, req)
 	}
 }
@@ -266,7 +261,7 @@ func wrapWebSocket(delegate http.Handler) handlerFunc {
 			cookie, err := req.Cookie("MAGIC" + *port)
 			if err != nil || (*cookie).Value != magicKey {
 				// Denied
-				http.Error(writer, "Permission Denied", 403)
+				http.Error(writer, "Permission Denied", 401)
 				return
 			}
 		}
@@ -291,6 +286,10 @@ func main() {
 	cfs := chainedFileSystem{fs: bundleFileSystems}
 
 	http.HandleFunc("/", wrapFileServer(http.FileServer(cfs)))
+	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/login/", loginHandler)
+	http.HandleFunc("/logout", logoutHandler)
+	http.HandleFunc("/logout/", logoutHandler)
 	http.HandleFunc("/workspace", wrapHandler(workspaceHandler))
 	http.HandleFunc("/workspace/", wrapHandler(workspaceHandler))
 	http.HandleFunc("/file", wrapHandler(fileHandler))
@@ -313,6 +312,8 @@ func main() {
 	http.HandleFunc("/go/imports/", wrapHandler(importsHandler))
 	http.HandleFunc("/go/outline", wrapHandler(outlineHandler))
 	http.HandleFunc("/go/outline/", wrapHandler(outlineHandler))
+	http.HandleFunc("/go/oracle", wrapHandler(oracleHandler))
+	http.HandleFunc("/go/oracle/", wrapHandler(oracleHandler))
 
 	// GODOC
 	http.HandleFunc("/godoc/pkg", wrapHandler(docHandler))
@@ -323,6 +324,8 @@ func main() {
 	http.HandleFunc("/godoc/doc/", wrapHandler(docHandler))
 	http.HandleFunc("/godoc/search", wrapHandler(docHandler))
 	http.HandleFunc("/godoc/search/", wrapHandler(docHandler))
+	http.HandleFunc("/godoc/text", wrapHandler(docHandler))
+	http.HandleFunc("/godoc/text/", wrapHandler(docHandler))
 
 	http.HandleFunc("/redirect", wrapHandler(redirectHandler))
 	http.HandleFunc("/redirect/", wrapHandler(redirectHandler))
@@ -339,7 +342,7 @@ func main() {
 		fmt.Printf("http://%v:%v\n", hostName, *port)
 		err = http.ListenAndServe(hostName+":"+*port, nil)
 	} else {
-		fmt.Printf("https://%v:%v/?MAGIC=%v\n", hostName, *port, magicKey)
+		fmt.Printf("https://%v:%v/login?MAGIC=%v\n", hostName, *port, magicKey)
 		err = http.ListenAndServeTLS(hostName+":"+*port, certFile, keyFile, nil)
 	}
 

@@ -113,6 +113,12 @@ $ export GOKEYFILE=/path/to/my/key.pem
 
 These variables can be set in the same place you set your GOPATH and PATH variables so that they are set automatically every time you run the tool.
 
+## Mozilla Persona Authentication
+
+Godev is capable of using the Mozilla Persona (https://persona.org) service to authenticate without the magic URL. This is especially useful when you decide to work on a different computer than the one where you launched godev. To activate this feature you launch godev with the "-remoteAccount" parameter and provide the email address you will use to authenticate.
+
+When you access godev from your browser you will be redirected to a login page where you can authenticate. You may need to refresh your browser page afterwards.
+
 # Debugging
 
 You can debug your applications within godev with the godbg application. Go get it so that you can debug inside your godev session.

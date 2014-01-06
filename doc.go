@@ -33,11 +33,11 @@ func init() {
 			}
 		}
 	}
-	
+
 	// Try again with with the srcdir parameter
 	if godoc_templates_dir == "" {
-		_,err := os.Stat(*godev_src_dir + "/godoc-templates")
-		
+		_, err := os.Stat(*godev_src_dir + "/godoc-templates")
+
 		if err == nil {
 			godoc_templates_dir = *godev_src_dir + "/godoc-templates"
 		}
@@ -68,7 +68,7 @@ func init() {
 func docHandler(writer http.ResponseWriter, req *http.Request, path string, pathSegs []string) bool {
 	switch {
 	// Start a simple proxy for many of the different types of requests (except for source code)
-	case req.Method == "GET" && pathSegs[1] != "src":
+	case req.Method == "GET" && pathSegs[1] != "src" && pathSegs[1] != "text":
 		delegatePath := "/" + strings.Join(pathSegs[1:], "/")
 		queryParam := req.URL.RawQuery
 
@@ -182,7 +182,27 @@ func docHandler(writer http.ResponseWriter, req *http.Request, path string, path
 		}
 
 		http.Redirect(writer, req, "/edit/edit.html#"+redirectLocation, 302)
+		return true
 
+	// Get the textual godoc for a package and optional name
+	case req.Method == "GET" && pathSegs[1] == "text":
+		pkg := req.URL.Query().Get("pkg")
+		name := req.URL.Query().Get("name")
+
+		if pkg == "" {
+			ShowError(writer, 400, "No package provided", nil)
+			return true
+		}
+		
+		cmd := exec.Command("godoc", pkg, name)
+		output, err := cmd.Output()
+		if err != nil {
+			ShowError(writer, 500, "Error invoking godoc tool", err)
+			return true
+		}
+		
+		writer.WriteHeader(200)
+		writer.Write(output)
 		return true
 	}
 

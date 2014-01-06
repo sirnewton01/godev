@@ -575,8 +575,8 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
 			}
 		},
 		{
-			name: "Fix Imports",
-			tooltip: "Fix Imports (Ctrl-I)",
+			name: "Imports",
+			tooltip: "Fix up imports by adding/removing them (Ctrl-I)",
 			key: ["I", true],
 			contentType: ["text/x-go"]
 		});
@@ -609,43 +609,31 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
 							var value = JSON.parse(result.response);
 							var columns = [];
 							
-							// Windows path
-							if ((value[0] === "C" || value[0] === "c") && value[1] === ":") {
-								columns = value.substring(2).split(":");
-								columns[0] = value[0] + ":" + columns[0];
-							} else {
-								columns = value.split(":");
+							// The definition is in the same file
+							if (value.Location === resource) {
+								var lineNum = parseInt(value.Line);
+								var lines = text.split("\n");
+								var offset = 0;
+								
+								for (var idx = 0; idx < lineNum-1; idx++) {
+									offset = offset + lines[idx].length + 1;
+								}
+								
+								offset = offset + parseInt(value.Column) - 1;
+								
+								return {
+									selection: {
+										start: offset,
+										end: offset
+									}
+								};
 							}
 							
-							if (columns.length === 1) {
-								// Package reference
-								return {
-									navigateUrl: "/redirect?path=" + columns[0]
-								};
-							} else if (columns.length === 2) {
-								// Check if the first parameter is a number
-								if (columns[0].match(/^[0-9]+$/)) {
-									var lineNum = parseInt(columns[0]);
-									var lines = text.split("\n");
-									var offset = 0;
-									
-									for (var idx = 0; idx < lineNum-1; idx++) {
-										offset = offset + lines[idx].length + 1;
-									}
-									
-									offset = offset + parseInt(columns[1]) - 1;
-									
-									return {
-										selection: {
-											start: offset,
-											end: offset
-										}
-									};
+							if (value.Location !== "") {
+								if (value.Line !== "") {
+									return {uriTemplate: "/godev/godef/godef.html?resource="+value.Location+"&sel="+selection.start+"&line="+value.Line, width: "400px", height: "200px"};
 								} else {
-									// File and line reference
-									return {
-										navigateUrl: "/redirect?path=" + columns[0]+"&line="+columns[1]
-									};
+									return {uriTemplate: "/godev/godef/godef.html?resource="+value.Location+"&sel="+selection.start, width: "400px", height: "200px"};
 								}
 							}
 						}
@@ -659,13 +647,106 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
 			}
 		},
 		{
-			name: "Open Declaration",
-			tooltip: "Open declaration of the selected text (F3)",
+			name: "Declaration",
+			id: "go.godef",
+			tooltip: "Open declaration of the selected item (F3)",
 			key: [114],
 			contentType: ["text/x-go"]
 		});
 		
+	provider.registerService(
+		"orion.edit.command", 
+		{
+			run: function(selectedText, text, selection, resource) {
+				var d = xhr("POST", "/go/defs" + resource + "?o=" + selection.start,
+				{
+					headers: {},
+					timeout: 15000,
+					data: text
+				}).then(function(result) {
+					// Could not resolve the item to a package and name
+					if (result.status === 204) {
+						return {selection: selection};
+					}
+					
+					var value = JSON.parse(result.response);
+					
+					if (value.Package === "" || value.Name === "") {
+						return {selection: selection};
+					}
+					
+					return {uriTemplate: "/godev/godoc/showgodoc.html?pkg="+value.Package+"&name="+value.Name+"&sel="+selection.start, width: "600px", height: "400px"};
+				});
+				
+				return d;
+			}
+		},
+		{
+			name: "Go Doc",
+			id: "go.showgodoc",
+			tooltip: "Show the godoc for the selected item in a frame (Ctrl-Shift-G)",
+			key: ["G", true, true],
+			contentType: ["text/x-go"]
+		});
 		
+	provider.registerService(
+		"orion.edit.command", 
+		{
+			run: function(selectedText, text, selection, resource) {				
+				return {uriTemplate: "/godev/oracle/referrers.html?resource="+resource+"&pos="+selection.start, width: "400px", height: "400px"};
+			}
+		},
+		{
+			name: "References",
+			id: "go.referrers",
+			tooltip: "Find code that references this item (F4)",
+			key: [115],
+			contentType: ["text/x-go"]
+		});
+        
+	provider.registerService(
+		"orion.edit.command", 
+		{
+			run: function(selectedText, text, selection, resource) {				
+				return {uriTemplate: "/godev/oracle/implements.html?resource="+resource+"&pos="+selection.start, width: "400px", height: "400px"};
+			}
+		},
+		{
+			name: "Implements",
+			id: "go.implements",
+			tooltip: "Find types that implement an interface (Ctrl-M)",
+			key: ["M", true],
+			contentType: ["text/x-go"]
+		});
+		
+	provider.registerService(
+		"orion.edit.command", 
+		{
+			run: function(selectedText, text, selection, resource) {				
+				return {uriTemplate: "/godev/oracle/callers.html?resource="+resource+"&pos="+selection.start, width: "400px", height: "400px"};
+			}
+		},
+		{
+			name: "Callers",
+			id: "go.callers",
+			tooltip: "Find callers of this function (Ctrl-Shift-H)",
+			key: ["H", true, true],
+			contentType: ["text/x-go"]
+		});
+		
+	provider.registerService(
+		"orion.edit.command", 
+		{
+			run: function(selectedText, text, selection, resource) {				
+				return {uriTemplate: "/godev/oracle/peers.html?resource="+resource+"&pos="+selection.start, width: "400px", height: "400px"};
+			}
+		},
+		{
+			name: "Peers",
+			id: "go.peers",
+			tooltip: "Find other locations that allocate/send/receive on the channel",
+			contentType: ["text/x-go"]
+		});
 		
 		provider.registerService(
 		"orion.edit.blamer", 
