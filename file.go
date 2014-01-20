@@ -213,12 +213,12 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		info.Id = fileinfo.Name()
 		info.Location = "/file" + fileRelPath + "/" + newName
 		info.Directory = fileinfo.IsDir()
-		
+
 		// Provide a location to import into a directory
-		if (info.Directory) {
+		if info.Directory {
 			info.ImportLocation = "/xfer" + info.Location
 		}
-		
+
 		info.LocalTimeStamp = fileinfo.ModTime().Unix() * 1000
 		info.ETag = strconv.FormatInt(fileinfo.ModTime().Unix(), 16)
 		info.Parents = []FileDetails{} // TODO Calculate parent and put the object in here
@@ -309,12 +309,12 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		info.Id = fileinfo.Name()
 		info.Location = "/file" + fileRelPath
 		info.Directory = fileinfo.IsDir()
-		
+
 		// Provide a location to import into a directory
-		if (info.Directory) {
+		if info.Directory {
 			info.ImportLocation = "/xfer" + info.Location
 		}
-		
+
 		info.LocalTimeStamp = fileinfo.ModTime().Unix() * 1000
 		info.ETag = strconv.FormatInt(fileinfo.ModTime().Unix(), 16)
 		info.Parents = []FileDetails{} // TODO Calculate parent and put the object in here
@@ -370,7 +370,9 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 			return true
 		}
 
-		if req.URL.RawQuery == "" && !fileinfo.IsDir() {
+		parts := req.URL.Query().Get("parts")
+
+		if parts != "meta" && !fileinfo.IsDir() {
 			file, err := os.Open(filePath)
 			if err != nil {
 				ShowError(writer, 400, "Unable to open file", err)
@@ -391,9 +393,9 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 		info.Directory = fileinfo.IsDir()
 		info.ETag = strconv.FormatInt(fileinfo.ModTime().Unix(), 16)
 		info.LocalTimeStamp = fileinfo.ModTime().Unix() * 1000
-		
+
 		// Provide a location to import into a directory
-		if (info.Directory) {
+		if info.Directory {
 			info.ImportLocation = "/xfer" + info.Location
 		}
 
@@ -470,7 +472,7 @@ func fileHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 					childInfo.ChildrenLocation = "/file" + fileRelPath + "/" + fi.Name() + "?depth=1"
 
 					// Provide a location to import into a directory
-					if (childInfo.Directory) {
+					if childInfo.Directory {
 						childInfo.ImportLocation = "/xfer" + childInfo.Location
 					}
 

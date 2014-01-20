@@ -17,14 +17,14 @@ func redirectHandler(writer http.ResponseWriter, req *http.Request, path string,
 	case req.Method == "GET":
 		ospath := req.URL.Query().Get("path")
 		ospath = filepath.Clean(ospath)
-		
+
 		if ospath == "" {
 			ShowError(writer, 400, "Invalid request", nil)
 			return true
 		}
-		
+
 		lineNumber := req.URL.Query().Get("line")
-		
+
 		gorootsrc := filepath.Join(goroot, "/src/pkg")
 
 		for _, srcDir := range append(srcDirs, gorootsrc) {
@@ -41,10 +41,10 @@ func redirectHandler(writer http.ResponseWriter, req *http.Request, path string,
 						}
 						// Switch back to URL path segments
 						relpath = strings.Replace(relpath, "\\", "/", -1)
-						
+
 						extraArgs := ""
 						if lineNumber != "" {
-							extraArgs = ",line="+lineNumber
+							extraArgs = ",line=" + lineNumber
 						}
 
 						http.Redirect(writer, req, "/edit/edit.html#/file/"+relpath+extraArgs, 302)

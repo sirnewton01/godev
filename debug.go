@@ -58,6 +58,7 @@ type NewProcessRequest struct {
 	// TODO Separate out package from arguments
 	Cmd             []string
 	Debug           bool
+	Race            bool
 	ResponseChannel chan int
 }
 
@@ -308,9 +309,11 @@ func debugSocket(ws *websocket.Conn) {
 func debugHandler(writer http.ResponseWriter, req *http.Request, path string, pathSegs []string) bool {
 	switch {
 	case req.Method == "POST" && len(pathSegs) == 1:
-		request := NewProcessRequest{Debug: false}
+		request := NewProcessRequest{Debug: false, Race: false}
 		dec := json.NewDecoder(req.Body)
 		err := dec.Decode(&request)
+
+		race := request.Race
 
 		if err != nil {
 			ShowError(writer, 400, "Decoder error", err)
@@ -327,10 +330,19 @@ func debugHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 			}
 		}
 
-		// build or install the command to make sure it can be compiled
+		// clean and install the command to make sure it can be compiled
 		//  and is up-to-date. Godbg will do its own installation afterwards
 		//  but this is a good check here.
+		cleanCmd := exec.Command("go", "clean", "-i", "-r", request.Cmd[0])
+		cleanCmd.Run()
+		// Ignore errors on clean because recursive clean often fails trying to delete
+		//  files from the Go installation directory, which may not be modifiable by
+		//  the current user. This is a best attempt at this stage.
+
 		installCmd := exec.Command("go", "install", request.Cmd[0])
+		if race {
+			installCmd = exec.Command("go", "install", "-race", request.Cmd[0])
+		}
 		err = installCmd.Run()
 		if err != nil {
 			ShowError(writer, 400, "Error installing command.", err)
@@ -350,9 +362,9 @@ func debugHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 					foundCommand = true
 					break
 				}
-				
+
 				// Try again with windows .exe extension
-				cmdPath = filepath.Join(gopath, "bin", commandName + ".exe")
+				cmdPath = filepath.Join(gopath, "bin", commandName+".exe")
 				_, err = os.Stat(cmdPath)
 				if err == nil {
 					request.Cmd[0] = cmdPath

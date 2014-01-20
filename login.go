@@ -30,13 +30,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	// We will limit the number of logins to one at a time to avoid DOS situations.
 	loginMutex.Lock()
 	defer loginMutex.Unlock()
-			
+
 	if hostName != loopbackHost && *remoteAccount != "" && strings.Index(r.URL.String(), "/persona") != -1 {
 		// Mozilla Persona
-		audience := "https://"+hostName+":"+*port
+		audience := "https://" + hostName + ":" + *port
 
 		assertion := r.FormValue("assertion")
-		if assertion != "" {			
+		if assertion != "" {
 			resp, err := http.PostForm("https://verifier.login.persona.org/verify", url.Values{"assertion": {assertion}, "audience": {audience}})
 
 			if err != nil {

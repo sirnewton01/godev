@@ -35,6 +35,7 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 		var output = document.getElementById("outputArea");
 		var executeButton = document.getElementById("execute");
 		var debugButton = document.getElementById("debug");
+		var raceButton = document.getElementById("race");
 		var argumentsInput = document.getElementById("argInput");
 		var killButton = document.getElementById("killButton");
 		var cmdInput = document.getElementById("cmdInput");
@@ -222,7 +223,7 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 			}
 		});
 		
-		var executeFunc = function(e, debug) {
+		var executeFunc = function(e, debug, race) {
 			if (executables.selectedIndex < 0) {
 				return;
 			}
@@ -250,6 +251,9 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 			var request = {};
 			if (debug) {
 				request.Debug = true;
+			}
+			if (race) {
+				request.Race = true;
 			}
 			
 			request.Cmd = arguments;  
@@ -289,6 +293,10 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 			}, function(error) {
 				window.alert("Debug support is not available because the godbg tool is not installed or is not on the system path. Fetch it by running 'go get github.com/sirnewton01/godbg.'");
 			});
+		});
+		
+		raceButton.addEventListener("click", function(e) {
+			executeFunc(e, false, true);
 		});
 		
 		clearButton.addEventListener("click", function(e) {

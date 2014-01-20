@@ -332,7 +332,7 @@ define([
 				refresh.setAttribute("aria-label", "Rebuild");
 				
 				var refreshImg = document.createElement("span");
-				refreshImg.setAttribute("class", "commandSprite core-sprite-refresh");
+				refreshImg.setAttribute("class", "commandSprite core-sprite-start");
 				refresh.appendChild(refreshImg);
 				tools.appendChild(refresh);
 				header.appendChild(tools);
@@ -456,14 +456,36 @@ define([
 				var tools = document.createElement("ul");
 				tools.setAttribute("class", "commmandList layoutRight");
 				
+				var race = false;
+				
+				var raceButton = document.createElement("button");
+				raceButton.setAttribute("class", "commandImage orionButton");
+				raceButton.setAttribute("title", "Enable the race detector");
+				
+				var raceButtonImg = document.createElement("span");
+				raceButtonImg.setAttribute("class", "commandSprite core-sprite-check");
+				raceButton.appendChild(raceButtonImg);
+				tools.appendChild(raceButton);
+				
+				raceButton.addEventListener("click", function(e) {
+					if (!race) {
+						raceButtonImg.setAttribute("class", "commandSprite core-sprite-check_on");
+						race = true;	
+					} else {
+						raceButtonImg.setAttribute("class", "commandSprite core-sprite-check");
+						race = false;	
+					}
+				});
+				
 				var refresh = document.createElement("button");
 				refresh.setAttribute("class", "commandImage orionButton");
 				refresh.setAttribute("aria-label", "Rebuild");
 				
 				var refreshImg = document.createElement("span");
-				refreshImg.setAttribute("class", "commandSprite core-sprite-refresh");
+				refreshImg.setAttribute("class", "commandSprite core-sprite-start");
 				refresh.appendChild(refreshImg);
 				tools.appendChild(refresh);
+				
 				header.appendChild(tools);
 				
 				tr = document.createElement("tr");
@@ -486,6 +508,10 @@ define([
 					wsUrl = wsUrl.replace("https://", "wss://");
 					wsUrl = wsUrl.substring(0, wsUrl.indexOf("/edit/edit.html#/file"));
 					wsUrl = wsUrl + "/test?pkg=" +pkg;
+					
+					if (race) {
+						wsUrl = wsUrl + "&race=true";
+					}
 					
 					var table;
 					
@@ -530,7 +556,7 @@ define([
 					websocket.onmessage = function(evt) {
 						var data = JSON.parse(evt.data);
 						
-						// Error are all strings
+						// Errors are all strings
 						if (typeof data === 'string') {
 							showError(evt.data);
 						}
@@ -603,6 +629,68 @@ define([
 							
 							if (header.getAttribute("style") === "") {
 								header.setAttribute("style", "background: darkgreen; color: white;");
+							}
+						} else if (data.length && data.length > 0 && data[0].Entries) {
+							var idx;
+							var idx2;
+							var idx3;
+							
+							var location;
+							var line;
+							
+							for (idx = 0; idx < data.length; idx++) {
+								tr = document.createElement("tr");
+								iconColumn = document.createElement("td");
+								testNameColumn = document.createElement("td");
+								durationColumn = document.createElement("td");
+								
+								icon = document.createElement("img");
+								icon.setAttribute("style", "margin-left: auto; margin-right: auto; display: block;");
+								iconColumn.appendChild(icon);
+								
+								header.setAttribute("style", "background: #F33A3A; color: white;");
+								icon.src = "/images/chequered_flag.svg";
+								icon.style.width = "30px";
+								icon.style.height = "30px";
+								
+								tr.appendChild(iconColumn);
+								tr.appendChild(testNameColumn);
+								tr.appendChild(durationColumn);
+								
+								table.appendChild(tr);
+								
+								messageDiv = document.createElement("div");
+								messageDiv.innerHTML = "DATA RACE:";
+								testNameColumn.appendChild(messageDiv);
+								
+								for (idx2=0; idx2 < data[idx].Entries.length; idx2++) {
+									messageDiv = document.createElement("div");
+									messageDiv.style.textIndent = "1em";
+									messageDiv.style.fontStyle = "italic";
+									messageDiv.innerHTML = data[idx].Entries[idx2].Summary;
+									testNameColumn.appendChild(messageDiv);
+									
+									for (idx3=0; idx3 < data[idx].Entries[idx2].Location.length; idx3++) {
+										location = data[idx].Entries[idx2].Location[idx3].split(":")[0];
+										line = data[idx].Entries[idx2].Location[idx3].split(":")[1];
+									
+										messageDiv = document.createElement("div");
+										messageDiv.style.textIndent = "2em";
+										messageDiv.style.fontStyle = "italic";
+										
+										locAnchor = document.createElement("a");
+										locAnchor.href = "/edit/edit.html#/file" + location + ",line=" + line;
+										locAnchor.target = "_blank";
+										
+										fileName = location.split("/");
+										fileName = fileName[fileName.length-1];
+										locAnchor.innerHTML = fileName + ":" + line + " ";
+										
+										messageDiv.appendChild(locAnchor);
+										
+										testNameColumn.appendChild(messageDiv);
+									}
+								}
 							}
 						}
 					};

@@ -5,6 +5,7 @@
 package main
 
 import (
+	"code.google.com/p/go.net/websocket"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -19,9 +20,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
-	"code.google.com/p/go.net/websocket"
 	"sync"
+	"time"
 )
 
 const (
@@ -106,13 +106,13 @@ func init() {
 		rand.Seed(time.Now().UTC().UnixNano())
 		magicKey = strconv.FormatInt(rand.Int63(), 16)
 	}
-	
+
 	// Clear out the rate tracker every second.
-	// The rate tracking helps to prevent anyone from 
+	// The rate tracking helps to prevent anyone from
 	//   trying to brute force the magic key.
 	go func() {
 		for {
-			<- time.After(1*time.Second)
+			<-time.After(1 * time.Second)
 			rateTrackerMutex.Lock()
 			rateTracker = 0
 			rateTrackerMutex.Unlock()
@@ -216,7 +216,7 @@ func wrapHandler(delegate delegateFunc) handlerFunc {
 			}
 			rateTracker++
 			rateTrackerMutex.Unlock()
-			
+
 			// Check the magic cookie
 			// Since redirection is not generally possible if the cookie is not
 			//  present then we deny the request.

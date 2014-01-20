@@ -6,7 +6,6 @@ package main
 
 import (
 	"bufio"
-	"code.google.com/p/go.net/websocket"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -14,6 +13,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
+
+	"code.google.com/p/go.net/websocket"
 )
 
 type TestLog struct {
@@ -40,8 +42,18 @@ type TestFinished struct {
 	Finished bool
 }
 
+type RaceDetectorDetails struct {
+	Entries []RaceDetectorEntry
+}
+
+type RaceDetectorEntry struct {
+	Summary  string
+	Location []string
+}
+
 func testSocket(ws *websocket.Conn) {
 	pkg := ws.Request().URL.Query().Get("pkg")
+	race := ws.Request().URL.Query().Get("race")
 
 	if pkg == "" {
 		ws.Write([]byte("\"No package provided\""))
@@ -57,13 +69,79 @@ func testSocket(ws *websocket.Conn) {
 	}
 
 	cmd := exec.Command("go", "test", pkg, "-test.v")
+	if race == "true" {
+		cmd = exec.Command("go", "test", "-race", pkg, "-test.v")
+	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		ws.Write([]byte("\"Broken Pipe:" + err.Error() + "\""))
 		ws.Close()
 		return
 	}
+
+	wg1 := sync.WaitGroup{}
+	wg1.Add(1)
+	wg2 := sync.WaitGroup{}
+	wg2.Add(1)
+	raceDetectorChannel := make(chan []RaceDetectorDetails)
+
+	go func() {
+		races := make([]RaceDetectorDetails, 0, 1)
+
+		stderr, err := cmd.StderrPipe()
+		wg1.Done()
+		if err != nil {
+			raceDetectorChannel <- races
+			return
+		}
+		wg2.Wait()
+
+		errReader := bufio.NewReader(stderr)
+
+		var raceDetails *RaceDetectorDetails = nil
+		var raceEntry *RaceDetectorEntry = nil
+
+		for {
+			l, _, err := errReader.ReadLine()
+
+			if err != nil {
+				break
+			}
+
+			line := string(l)
+
+			if line == "WARNING: DATA RACE" {
+				raceDetails = &RaceDetectorDetails{}
+			} else if line != "==================" && !strings.HasPrefix(line, " ") && len(line) > 0 && raceDetails != nil {
+				if raceEntry != nil {
+					raceDetails.Entries = append(raceDetails.Entries, *raceEntry)
+				}
+				raceEntry = &RaceDetectorEntry{}
+				raceEntry.Summary = line
+			} else if strings.HasPrefix(line, "      ") && raceEntry != nil {
+				location := strings.Split(line[6:], " ")[0]
+				location = getLogicalPos(location)
+				raceEntry.Location = append(raceEntry.Location, location)
+			} else if line == "==================" && raceDetails != nil {
+				if raceEntry != nil {
+					raceDetails.Entries = append(raceDetails.Entries, *raceEntry)
+					raceEntry = nil
+				}
+				races = append(races, *raceDetails)
+				raceDetails = nil
+			}
+		}
+
+		if raceDetails != nil && raceEntry != nil {
+			raceDetails.Entries = append(raceDetails.Entries, *raceEntry)
+		}
+
+		raceDetectorChannel <- races
+	}()
+
+	wg1.Wait()
 	err = cmd.Start()
+	wg2.Done()
 	if err != nil {
 		ws.Write([]byte("\"Go test failed to start: " + err.Error() + "\""))
 		ws.Close()
@@ -74,6 +152,8 @@ func testSocket(ws *websocket.Conn) {
 	regex1 := regexp.MustCompile(`^(\w+) \(([0-9.]+) seconds\)$`)
 	regex2 := regexp.MustCompile(`^(ok|FAIL)\s+\w+\s+([0-9.]+)s$`)
 	regex3 := regexp.MustCompile(`^\t(\S+?):([0-9]+): (.*)$`)
+
+	// TODO parse stack traces to report back through the socket
 
 	complete := TestsComplete{Complete: true}
 
@@ -163,5 +243,14 @@ func testSocket(ws *websocket.Conn) {
 		return
 	}
 	ws.Write(output)
+
+	output, err = json.Marshal(<-raceDetectorChannel)
+	if err != nil {
+		ws.Write([]byte(`"` + err.Error() + `"`))
+		ws.Close()
+		return
+	}
+	ws.Write(output)
+
 	ws.Close()
 }

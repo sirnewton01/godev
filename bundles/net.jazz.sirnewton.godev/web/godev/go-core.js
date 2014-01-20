@@ -10,6 +10,94 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
     
     var provider = new PluginProvider(headers);
     
+    // Declare the content type for Go files here
+    provider.registerServiceProvider("orion.core.contenttype", {}, {
+    contentTypes: [
+        {
+            id: "text/x-go",
+            name: "Go",
+            extension: ["go"],
+            "extends": "text/plain"
+        }
+    ]});
+    
+   provider.registerServiceProvider("orion.edit.highlighter",
+   {
+   }, {
+     type : "grammar",
+     contentType: ["text/x-go"],
+     grammar: {
+       patterns: [
+            // Multi-line comment
+            {
+                name: "cm-comment",
+                begin: '/\\*',
+                end: '\\*/',
+                beginCaptures: {"0": {name: "cm-comment"}},
+                endCaptures: {"0": {name: "cm-comment"}}
+            },
+
+			// Double-quote strings
+			{
+				name: "cm-string",
+				match: '""'
+			},
+			{
+				name: "cm-string",
+				match: '"(.*?)[^\\\\]"'
+			},
+
+			
+			// Single quote strings
+			{
+				name: "cm-string",
+				match: "'(.*?)[^\\\\]'"
+			},
+			
+			// Multi-line strings
+			{
+				name: "cm-string",
+				begin: "`",
+				end: "`",
+				beginCaptures: {"0": {name: "cm-string"}},
+				endCaptures: {"0": {name: "cm-string"}}
+			},
+			
+			// Single-line comment
+            {
+                name: "cm-comment",
+                match: "//(.*)$"
+            },
+           
+            // Keywords
+            {
+                captures: {"1": {name: "cm-keyword"}},
+                // Order is important here. goto was placed before go so that it would try to match
+                //  the bigger word when the smaller word is a prefix.
+                match: '^|\\s+(break|case|const|continue|default|defer|else|fallthrough|for|func|goto|go|if|import|package|range|return|select|switch|type|var)\\s+|{|\\[|\\(|$'
+            },
+            
+            // built-in types (integers, booleans, etc.)
+            {
+                captures: {"1": {name: "cm-builtin"}},
+                match: '^|[\\(\\]\\[,\\+\\-\\*=]|\\s+(bool|chan|uint8|uint16|uint32|uint64|int8|int16|int32|int64|float32|float64|complex64|complex128|byte|map|rune|uint|interface|int|uintptr|string|struct|error)[\\(\\),{\\[\\]]|\\s+|$'
+            },
+            
+            // Simple literals
+            {
+                captures: {"1": {name: "cm-atom"}},
+                match: '^|\\W|\\s+(true|false|nil)\\W|\\s+|$'
+            },
+            
+            // Built-in functions
+            {
+                captures: {"1": {name: "cm-tag"}},
+                match: '^|[\\(\\],\\+\\-\\*=]|\\s+(len|cap|new|make|append|close|copy|delete|complex|real|imag|panic|recover)\\s*\\('
+            }
+       ]
+     }
+   });
+    
     provider.registerServiceProvider("orion.page.link", {}, {
         name: "Go Doc",
         id: "godev.godoc",
@@ -30,6 +118,7 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
         uriTemplate: "{+OrionHome}/godev/debug/debug.html"
         });
 
+	// Run a build to check for compile errors
     provider.registerServiceProvider("orion.edit.validator", {
             checkSyntax: function (title, contents) {
                 // title is a relative URI for the file
@@ -67,6 +156,40 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
 		                            severity: "error"
 		                        });
 		                    }
+	                    }
+	                    return {problems: problems};
+	                });
+	
+	            return d;
+            }
+        }, {
+            contentType: ["text/x-go"]
+        });
+        
+    // Run a format to check for format warnings    
+    provider.registerServiceProvider("orion.edit.validator", {
+            checkSyntax: function (title, contents) {
+                // title is a relative URI for the file
+                
+	            var d = xhr("POST", "/go/fmt/?showLines=true", {
+	                    headers: {},
+	                    timeout: 60000,
+	                    data: contents
+	                }).then(function (result) {
+	                    var warnings = JSON.parse(result.response);
+	                    var problems = [];
+	                    var warningLine;
+	                    
+	                    for (var idx = 0; idx < warnings.length; idx++) {
+	                        warningLine = warnings[idx];
+	                        
+	                        problems.push({
+	                            description: "Formatting warning",
+	                            line: warningLine,
+	                            start: 0,
+	                            end: 80,
+	                            severity: "warning"
+	                        });
 	                    }
 	                    return {problems: problems};
 	                });

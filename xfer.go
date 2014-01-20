@@ -88,7 +88,7 @@ func xferHandler(writer http.ResponseWriter, req *http.Request, path string, pat
 			info = &TransferInfo{false, filepath.Join(containerPath, slug), tmpDir, location, source}
 		} else {
 			// Unknown transfer type
-			ShowError(writer, 500, "Unknown transfer option " + xferOption, nil)
+			ShowError(writer, 500, "Unknown transfer option "+xferOption, nil)
 			return true
 		}
 
@@ -186,7 +186,7 @@ func performTransfer(info *TransferInfo, req *http.Request, writer http.Response
 			return true
 		}
 	}
-	
+
 	txFile.Close()
 
 	// TODO handle byte range (partial) transfers
@@ -222,7 +222,7 @@ func performTransfer(info *TransferInfo, req *http.Request, writer http.Response
 					// Already exists, proceed with the next entry
 					continue
 				}
-				
+
 				err = os.Mkdir(osPath, 0700)
 				if err != nil {
 					ShowError(writer, 500, "Cannot make directory", err)

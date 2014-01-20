@@ -117,6 +117,7 @@ func buildHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 		qValues := req.URL.Query()
 		pkg := qValues.Get("pkg")
 		install := qValues.Get("install")
+		race := qValues.Get("race")
 
 		tmpFile, err := ioutil.TempFile("", "godev-build-temp")
 		if err != nil {
@@ -157,6 +158,9 @@ func buildHandler(writer http.ResponseWriter, req *http.Request, path string, pa
 
 		if install == "true" && len(compileErrors) == 0 {
 			cmd := exec.Command("go", "install", pkg)
+			if race == "true" {
+				cmd = exec.Command("go", "install", "-race", pkg)
+			}
 			err = cmd.Run()
 
 			if err != nil {

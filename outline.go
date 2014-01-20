@@ -106,7 +106,7 @@ func fileListStr(t *ast.FieldList) string {
 		if len(arg.Names) != 0 {
 			label = label + " "
 		}
-		
+
 		label = label + typeStr(arg.Type)
 
 		if argIdx != len(t.List)-1 {

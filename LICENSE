@@ -21,7 +21,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-This repository also contains Orion client and codemirror plugin. This source
+This repository also contains Orion client. This source
 code is available under the Eclipse Public License 
 (http://www.eclipse.org/legal/epl-v10.html) and Eclipse Distribution License 
 (http://www.eclipse.org/org/documents/edl-v10).

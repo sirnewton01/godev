@@ -193,14 +193,14 @@ func docHandler(writer http.ResponseWriter, req *http.Request, path string, path
 			ShowError(writer, 400, "No package provided", nil)
 			return true
 		}
-		
+
 		cmd := exec.Command("godoc", pkg, name)
 		output, err := cmd.Output()
 		if err != nil {
 			ShowError(writer, 500, "Error invoking godoc tool", err)
 			return true
 		}
-		
+
 		writer.WriteHeader(200)
 		writer.Write(output)
 		return true

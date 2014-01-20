@@ -88,12 +88,12 @@ func getWsProjects() ([]Project, []FileDetails) {
 			info.Id = fileinfo.Name()
 			info.Location = "/file/" + name
 			info.Directory = fileinfo.IsDir()
-			
+
 			// Provide a location to import into a directory
-			if (info.Directory) {
+			if info.Directory {
 				info.ImportLocation = "/xfer" + info.Location
 			}
-			
+
 			info.LocalTimeStamp = fileinfo.ModTime().Unix() * 1000
 			info.ETag = strconv.FormatInt(fileinfo.ModTime().Unix(), 16)
 			info.Parents = []FileDetails{} // TODO Calculate parent and put the object in here

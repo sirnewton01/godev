@@ -107,7 +107,7 @@ define(['examples/editor/textStyler', 'orion/editor/textMateStyler', 'orion/edit
 			// GODEV BEGIN
 			// Instantiate the modified text styler to get the bracket matching capabilities
 			if (contentType && contentType.id === "text/x-go") {
-				styler = new mGoTextStyler.GoTextStyler(textView, annotationModel);
+				styler = new mGoTextStyler.GoTextStyler(textView, annotationModel, styler);
 			}
 			// GODEV END
 			
