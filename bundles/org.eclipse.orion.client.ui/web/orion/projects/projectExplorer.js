@@ -9,8 +9,14 @@
  ******************************************************************************/
 
 /*globals define window document*/
-define(['orion/Deferred', 'orion/URITemplate', 'orion/webui/littlelib', 'orion/explorers/explorer'],
-		function(Deferred, URITemplate, lib, mExplorer){
+define([
+	'i18n!orion/edit/nls/messages',
+	'orion/Deferred',
+	'orion/URITemplate',
+	'orion/webui/littlelib',
+	'orion/explorers/explorer',
+	'orion/section'
+], function(messages, Deferred, URITemplate, lib, mExplorer, mSection){
 	
 	var editTemplate = new URITemplate("../edit/edit.html#{,resource,params*}"); //$NON-NLS-0$
 			
@@ -20,30 +26,10 @@ define(['orion/Deferred', 'orion/URITemplate', 'orion/webui/littlelib', 'orion/e
 	
 	var newActionsScope = "newProjectActions";
 	
-	ProjectsRenderer.prototype = Object.create(mExplorer.ExplorerRenderer.prototype);
+	ProjectsRenderer.prototype = new mExplorer.SelectionRenderer();
 	
-	ProjectsRenderer.prototype.renderTableHeader = function(tableNode){
-		var thead = document.createElement('thead'); //$NON-NLS-0$
-		var row = document.createElement('tr'); //$NON-NLS-0$
-		
-		var cell = document.createElement("th");
-		cell.appendChild(document.createTextNode("Projects"));
-		row.appendChild(cell);
-		
-		var cell = document.createElement("th");
-		cell.colSpan = 2;
-		
-		this.explorer.newActionsSpan = document.createElement("ul"); //$NON-NLS-0$
-		this.explorer.newActionsSpan.id = this.explorer.newActionsScope;
-		this.explorer.newActionsSpan.classList.add("commandList"); //$NON-NLS-0$
-		this.explorer.newActionsSpan.classList.add("layoutRight"); //$NON-NLS-0$
-		cell.appendChild(this.explorer.newActionsSpan);
-		
-		row.appendChild(cell);
-		
-
-		thead.appendChild(row);
-		tableNode.appendChild(thead);
+	ProjectsRenderer.prototype.getCellHeaderElement = function(){
+		return null;
 	};
 	
 	ProjectsRenderer.prototype.emptyCallback = function(bodyElement) {
@@ -52,7 +38,7 @@ define(['orion/Deferred', 'orion/URITemplate', 'orion/webui/littlelib', 'orion/e
 		td.colSpan = this.oneColumn ? 1 : 3;
 		var noProjects = document.createElement("div"); //$NON-NLS-0$
 		noProjects.classList.add("noFile"); //$NON-NLS-0$
-		noProjects.textContent = "There are no projects in your workspace, use ${0} to add projects";
+		noProjects.textContent = messages.NoProjects;
 		var plusIcon = document.createElement("span"); //$NON-NLS-0$
 		plusIcon.classList.add("core-sprite-addcontent"); //$NON-NLS-0$
 		plusIcon.classList.add("icon-inline"); //$NON-NLS-0$
@@ -62,26 +48,9 @@ define(['orion/Deferred', 'orion/URITemplate', 'orion/webui/littlelib', 'orion/e
 		tr.appendChild(td);
 		bodyElement.appendChild(tr);
 	};
-	
-	ProjectsRenderer.prototype.renderRow = function(item, tableRow) {
-		
-		var navDict = this.explorer.getNavDict();
-		if(navDict){
-			navDict.addRow(item, tableRow);
-			var self = this;
-			tableRow.addEventListener("click", function(evt) { //$NON-NLS-0$
-				if(self.explorer.getNavHandler()){
-					self.explorer.getNavHandler().onClick(item, evt);
-				}
-			}, false);
-		}
 
+	ProjectsRenderer.prototype.getCellElement = function(col_no, item, tableRow){
 		var cell = document.createElement("td");
-		var a = document.createElement("a");
-		a.appendChild(document.createTextNode(item.Name));
-		a.href = editTemplate.expand({resource: item.ContentLocation}); //$NON-NLS-0$
-		cell.appendChild(a);
-		tableRow.appendChild(cell);
 		
 		function getDescription(item){
 			if(!item.Description){
@@ -93,44 +62,62 @@ define(['orion/Deferred', 'orion/URITemplate', 'orion/webui/littlelib', 'orion/e
 			return item.Description;
 		}
 		
-		cell = document.createElement("td");
-		cell.appendChild(document.createTextNode(getDescription(item)));
-		tableRow.appendChild(cell);
-		
-		cell = document.createElement("td");
-		if(item.Url){
-			a = document.createElement("a");
-			a.appendChild(document.createTextNode(item.Url));
-			a.href = item.Url;
-			cell.appendChild(a);
-		} else {
-			cell.appendChild(document.createTextNode(" "));
+		switch(col_no){
+			case 0:
+				cell.className = "navColumnNoIcon";
+				var a = document.createElement("a");
+				a.appendChild(document.createTextNode(item.Name));
+				a.href = editTemplate.expand({resource: item.ContentLocation}); //$NON-NLS-0$
+				cell.appendChild(a);
+				return cell;
+			case 1:
+				cell.appendChild(document.createTextNode(getDescription(item)));
+				return cell;
+			case 2:
+				if(item.Url){
+					a = document.createElement("a");
+					a.appendChild(document.createTextNode(item.Url));
+					a.href = item.Url;
+					cell.appendChild(a);
+				} else {
+					cell.appendChild(document.createTextNode(" "));
+				}
+				return cell;
 		}
-		
-		tableRow.appendChild(cell);
+		return null;
 	};
-
 
 	function ProjectExplorer(parentId, serviceRegistry, selection, commandRegistry) {
 		this.registry = serviceRegistry;
 		this.selection = selection;
-		this.commandService = commandRegistry;
+		this.commandRegistry = commandRegistry;
 		this.parentId = parentId;
 		this.renderer = new ProjectsRenderer({});
 		this.renderer.explorer = this;
 		this.myTree = null;
 		this.newActionsScope = newActionsScope;
+		this.actionsSections = [this.newActionsScope];
+		this._init();
 	}
 	
 	ProjectExplorer.prototype = Object.create(mExplorer.Explorer.prototype);
 	
+	ProjectExplorer.prototype._init = function(){
+		var projectsSection = new mSection.Section(lib.node(this.parentId), {id: "projectsSection", title: "Projects", canHide: true});
+		var div = document.createElement("div");
+		div.id = "projectsExplorer";
+		projectsSection.embedExplorer(this, div);
+	};
+	
 	ProjectExplorer.prototype.loadProjects = function(projects){
+		
 		this.model = new mExplorer.SimpleFlatModel(projects, "orion.project.", function(item){
 			if(item.ContentLocation){
 				return item.ContentLocation.replace(/[\\\/]/g, "");
 			}
 		});
-		this.myTree = this.createTree(this.parentId, this.model, {noSelection: true, indent: '8px'});
+		this.myTree = this.createTree(this.parent, this.model, {indent: '8px', selectionPolicy: this.renderer.selectionPolicy});
+		this.updateCommands();
 	};
 	
 	return{

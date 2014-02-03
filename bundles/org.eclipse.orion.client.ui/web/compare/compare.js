@@ -42,8 +42,8 @@ define(['orion/browserCompatibility', 'orion/bootstrap', 'orion/status', 'orion/
 			var compareParams = PageUtil.matchResourceParameters();
 			var options = {
 				readonly: compareParams.readonly === "true", //$NON-NLS-0$
+				readonlyRight: typeof compareParams.readonlyRight === "undefined" || compareParams.readonlyRight === "true", //$NON-NLS-1$ //$NON-NLS-0$
 				generateLink: true,
-				savable: !compareParams.readonly,
 				hasConflicts: compareParams.conflict === "true", //$NON-NLS-0$
 				diffProvider: diffProvider,
 				resource: compareParams.resource,

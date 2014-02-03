@@ -19,6 +19,9 @@ define({
 	"Editor": "Editor",
 	"Filter bindings": "Filter bindings",
 	"Orion Editor": "Orion Editor",
+	"Orion Image Viewer": "Orion Image Viewer",
+	"Orion Markdown Viewer": "Orion Markdown Viewer",
+	"Orion JSON Editor": "Orion JSON Editor",
 	"View on Site": "View on Site",
 	"View this file or folder on a web site hosted by Orion": "View this file or folder on a web site hosted by Orion",
 	"Show a list of all the keybindings on this page": "Show a list of all the keybindings on this page",
@@ -81,9 +84,11 @@ define({
 	"Generate an HTML5 'Hello World' website, including JavaScript, HTML, and CSS files.": "Generate an HTML5 'Hello World' website, including JavaScript, HTML, and CSS files.",
 	"Sample Orion Plugin": "Sample Orion Plugin",
 	"Generate a sample plugin for integrating with Orion.": "Generate a sample plugin for integrating with Orion.",
-	"Raw": "Raw",
-	"Open the raw file or folder in the browser": "Open the raw file or folder in the browser",
+	"Browser": "Web Browser",
 	"OutlineProgress": "Getting outline for ${0} from ${1}",
 	"UnknownError": "An unknown error occurred.",
-	"UnknownWarning": "An unknown warning occurred."
+	"UnknownWarning": "An unknown warning occurred.",
+	"Filter": "Filter (* = any string, ? = any character)",
+	"To view the browser's context menu, trigger the context menu again.": "To view the browser's context menu, trigger the context menu again.",
+	"Edit": "Edit"
 });

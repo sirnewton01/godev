@@ -25,30 +25,53 @@ define([
 	};
 
 	var provider = new PluginProvider(headers);
-	
+
+	// Categories for primary nav links
+	provider.registerService("orion.page.link.category", null, {
+		id: "edit",
+		nameKey: "Edit",
+		nls: "orion/nls/messages",
+		imageClass: "core-sprite-cat-edit"
+	});
+	provider.registerService("orion.page.link.category", null, {
+		id: "search",
+		nameKey: "Search",
+		nls: "orion/nls/messages",
+		imageClass: "core-sprite-cat-search"
+	});
+	provider.registerService("orion.page.link.category", null, {
+		id: "sites",
+		nameKey: "Sites",
+		nls: "orion/nls/messages",
+		imageClass: "core-sprite-cat-sites"
+	});
+	provider.registerService("orion.page.link.category", null, {
+		id: "deploy",
+		nameKey: "Deploy",
+		nls: "orion/edit/nls/messages",
+		imageClass: "core-sprite-cat-deploy"
+	});
+
 	// Primary navigation links
 	provider.registerService("orion.page.link", null, {
 		nameKey: "Editor",
 		nls: "orion/nls/messages",
 		tooltip: "Edit code",
+		category: "edit",
 		uriTemplate: "{+OrionHome}/edit/edit.html"
-	});
-	provider.registerService("orion.page.link", serviceImpl, {
-		nameKey: "Sites",
-		id: "orion.sites",
-		nls: "orion/nls/messages",
-		uriTemplate: "{+OrionHome}/sites/sites.html"
 	});
 	provider.registerService("orion.page.link", serviceImpl, {
 		nameKey: "Shell",
 		id: "orion.shell",
 		nls: "orion/nls/messages",
+		category: "edit",
 		uriTemplate: "{+OrionHome}/shell/shellPage.html"
 	});
 	provider.registerService("orion.page.link", serviceImpl, {
 		nameKey: "Search",
 		id: "orion.Search",
 		nls: "orion/nls/messages",
+		category: "search",
 		uriTemplate: "{+OrionHome}/search/search.html"
 	});
 	
@@ -57,6 +80,7 @@ define([
 		nameKey: "Editor",
 		nls: "orion/nls/messages",
 		tooltip: "Open Editor page",
+		category: "edit",
 		validationProperties: [{
 			source: "ChildrenLocation|ContentLocation",
 			variableName: "EditorLocation",
@@ -70,7 +94,7 @@ define([
 		nameKey: "Help",
 		nls: "orion/widgets/nls/messages",
 		uriTemplate: require.toUrl("help/index.jsp"),
-		category: 0
+		category: "user.0"
 	});
 	
 	provider.registerService("orion.page.link.user", null, {
@@ -78,7 +102,7 @@ define([
 		nameKey: "Settings",
 		nls: "orion/widgets/nls/messages",
 		uriTemplate: "{+OrionHome}/settings/settings.html",
-		category: 1
+		category: "user.1"
 	});
 
 	var htmlHelloWorld = document.createElement('a');
@@ -129,7 +153,7 @@ define([
 	var getPluginsTemplate = "http://orion-plugins.googlecode.com/git/index.html#?target={InstallTarget}&version={Version}&OrionHome={OrionHome}";
 	provider.registerService("orion.core.getplugins", null, {
 		uri: decodeURIComponent(new URITemplate(getPluginsTemplate).expand({
-			Version: "4.0",
+			Version: "5.0",
 			InstallTarget: PageLinks.getOrionHome() + "/settings/settings.html",
 			OrionHome: PageLinks.getOrionHome()
 		}))

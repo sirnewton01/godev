@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * Copyright (c) 2010, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -21,7 +21,11 @@ define([
 			onevar: false, plusplus: false, regexp: true, strict: false, undef: true, white: false
 	};
 	var validationOptions = DEFAULT_VALIDATION_OPTIONS;
-	var isEnabled = true;
+	var isEnabledFor = {
+		'application/javascript': false,
+		'application/json': true,
+		'text/html': true
+	};
 
 	function jslint(contents) {
 		JSLINT(contents, validationOptions);
@@ -72,8 +76,12 @@ define([
 		return isBogus(error) ? null : error;
 	}
 
-	function _computeProblems(contents) {
-		if (!isEnabled) {
+	/**
+	 * @param {Object} options
+	 * @param {String} contents Text of file.
+	 */
+	function _computeProblems(options, contents) {
+		if (isEnabledFor[options.contentType] === false) {
 			return {problems: []};
 		}
 		var result = jslint(contents);
@@ -141,7 +149,8 @@ define([
 		updated: function(properties) {
 			if (properties) {
 				if (typeof properties.enabled === "boolean") {
-					isEnabled = !!properties.enabled;
+					// At the moment this setting only controls .js files
+					isEnabledFor['application/javascript'] = !!properties.enabled;
 				}
 				if (typeof properties.options === "string") {
 					var options = properties.options;
@@ -170,36 +179,9 @@ define([
 		},
 		// orion.edit.validator
 		computeProblems: function(editorContext, context) {
-			return editorContext.getText().then(_computeProblems);
+			return editorContext.getText().then(_computeProblems.bind(null, context));
 		}
 	};
-	
-	/**
-	 * Converts jslint's output to a flat outline model
-	 * @param {Object} jslintResult Result of calling JSLINT() on the file
-	 * @returns {Object[]} Outline model
-	 */
-	function jsOutline(jslintResult) {
-		var outline = [],
-		    functions = jslintResult.functions;
-		for (var i=0; i < functions.length; i++) {
-			var f = functions[i],
-			    name = f.name,
-			    isAnonymousFunction = (name[0]==='"');
-			if (isAnonymousFunction) {
-				f.name = name = name.substring(1, name.length-1);
-			}
-			name += "(" + (f.param ? f.param.join(",") : "") + ")";
-			var element = {
-				label: name,
-				children: null,
-				line: f.line,
-				text: f.name
-			};
-			outline.push(element);
-		}
-		return outline;
-	}
 
 	/**
 	 * Generates outline for an HTML document.
@@ -238,10 +220,7 @@ define([
 		computeOutline: function(editorContext, context) {
 			return editorContext.getText().then(function(contents) {
 				var contentType = context.contentType;
-				if (contentType === "application/javascript") {
-					var jslintResult = jslint(contents);
-					return jsOutline(jslintResult);
-				} else if (contentType === "text/html") {
+				if (contentType === "text/html") {
 					return htmlOutline(contents);
 				}
 			});
@@ -256,11 +235,11 @@ define([
 
 	var provider = new PluginProvider(headers);
 	provider.registerService(["orion.edit.validator", "orion.cm.managedservice"], validationService, {
-		contentType: ["application/javascript", "text/html"],
+		contentType: ["application/javascript", "application/json", "text/html"],
 		pid: "jslint.config"
 	});
 	provider.registerService("orion.edit.outliner", outlineService, {
-		contentType: ["application/javascript", "text/html"],	// TODO separate out HTML outline
+		contentType: ["text/html"],	// TODO separate out HTML outline
 		nameKey: "Flat outline",
 		nls: "orion/editor/nls/messages",
 		id: "orion.edit.outliner.jslint"

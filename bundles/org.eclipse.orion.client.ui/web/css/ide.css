@@ -4,6 +4,7 @@
 
 @import "./progress.css";
 @import "./assistance.css";
+@import "../font/font.css";
 
 html {
   cursor: default;
@@ -13,7 +14,7 @@ html {
 html, body {
 	margin: 0;
 	padding: 0;
-	font: 8pt Lucida Sans Unicode,Lucida Grande,Verdana,Arial,Helvetica,Myriad,Tahoma,clean,sans-serif; 
+	font: 9pt Arial,Helvetica,Myriad,Tahoma,clean,sans-serif, Lucida Sans Unicode,Lucida Grande,Verdana; 
 	min-width:700px;
 } 
 
@@ -237,9 +238,26 @@ textarea.parameterInput {
 	vertical-align: baseline;
 }
 
+.navColumnNoIcon {
+	padding: 6px;
+}
+
 .navRow {
 	vertical-align: baseline;
 	border-spacing: 8px;
+}
+
+.disabledNavRow > .navColumn > .mainNavColumn {
+	outline: 1px dashed lightgray;
+}
+
+.disabledNavRow > .navColumn > .mainNavColumn > * {
+	color: gray;
+	cursor: default;
+}
+
+.disabledNavRow > .navColumn > .mainNavColumn > *:hover {
+	border: none;
 }
 
 .mainNavColumn {
@@ -296,8 +314,9 @@ textarea.parameterInput {
 	margin-left: 8px; 
 	padding-right: 8px;
 	margin-right: 8px;
-	max-height: 24px;
-	max-width: 48px;
+	height: 16px;
+	width: 16px;
+	vertical-align:bottom;
 }
 
 /* less hit-area since we aren't worried about touch */
@@ -316,6 +335,7 @@ textarea.parameterInput {
 		margin-right: 2px;
 		max-height: 24px;
 		max-width: 48px;
+		vertical-align:bottom;
 	}
 	
 	.selectionCheckmarkSprite { 	
@@ -506,10 +526,11 @@ textarea.parameterInput {
 }
 
 .inputCompletionContainer {
+	border-radius:1px;
 	color: black;
 	display: block;
-	border:  1px solid #666;
-	background: white;
+	border:  1px solid #DDD;
+	background: #fefefe;
 	max-height: 300px;
 	max-width: 300px;
 	min-width: 150px;
@@ -517,7 +538,28 @@ textarea.parameterInput {
 	overflow-y: auto;
 	overflow-x: hidden;
 	padding: 2px;
+	box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
 	z-index:200;
+}
+
+.inputCompletionDismissButton {
+	background: transparent;
+	color: silver;
+    border-radius: 1px;
+	padding: 0;
+	font: 8pt Lucida Sans Unicode,Lucida Grande,Verdana,Arial,Helvetica,Myriad,Tahoma,clean,sans-serif;  /* to override user agent stylesheet */
+	vertical-align: middle;
+	min-height: 16px;
+	min-width: 16px;
+}
+
+.inputCompletionLILeftTD {
+	height: 19px;
+}
+
+.inputCompletionLIRightTD {
+	width: 19px;
+	height: 19px;
 }
 
 .inputCompletionUL {
@@ -880,7 +922,7 @@ input {
 }
 
 .projectPrimaryNavColumn {
-	background: none repeat scroll 0 0 #d6ebf0;
+	background: none repeat scroll 0 0 #bbcad2;
 	color: #000;
 }
 
@@ -898,72 +940,126 @@ input {
 	margin-top:3px;
 }
 
-.orionMarkdown h1 {
-	position: relative;
-}
-
-.orionMarkdown table, .orionProject table, .folderNav table, .sectionWrapper, .sectionTable{
+.sectionWrapper, .sectionTable{
 	text-align: left;
 	border-collapse: collapse;
 	border-spacing: 0;
-	border: 1px solid lightgrey;
 	padding: 0;
 	margin-left: 5%;
 	margin-right: 5%;
 	margin-top: 30px;
+	width: inherit;
+}
+
+.mainpane .sectionTable .treetable, .mainpane .sectionWrapper .treetable, .mainpane .sectionTable .treetable .actionsColumn{
+	min-width: inherit;
+}
+
+.fixedMinWidthText {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: block;
+	max-width: 300px;
+}
+
+.sectionTable {
+	margin-top: 0;
+	border: 1px solid;
+	border-color:#dadada;
+}
+
+.sectionWrapperClosed{
+	border-bottom: 1px solid;
+}
+
+.sectionWrapper{
+	border-top: 1px solid;
+	border-left: 1px solid;
+	border-right: 1px solid;
+	background: none repeat scroll 0 0 #f4f4f4;
+	vertical-align: middle;
+	font-weight: bold;
+	padding: 6px;
+	color: gray;
 	margin-bottom: 0;
-	border-color:#D6EBF0;
-	width: 90%;
+	border-color: #dadada;
 }
 
-.folderNav tr {
-	border-bottom: 1px solid #e6f3f6;
-	border-right: 1px solid #D6EBF0;
-	border-left: 1px solid #D6EBF0;
-	padding-left: 8px;
-	padding-right: 8px;
-	color: grey;
-}
-.folderNav tr:last-child {
-	border-bottom: 1px solid #D6EBF0;
+.sectionTable td {
+	border-bottom: 1px solid #dadada;
+	vertical-align: middle;
+	color: gray;
 }
 
-.orionMarkdown td, .orionProject td {
-	border-bottom: 1px solid #D6EBF0;
-	border: 1px solid #D6EBF0;
+.sectionTable tr:last-child td{
+	border-bottom: 0;
+}
+
+.sectionTable div.lightTreeTableRow:last-child, .sectionTable div.lightTreeTableRow:last-child{
+	border-bottom: 0;
+}
+
+.orionMarkdown {
 	padding: 8px;
-	color: grey;
+	color: gray;
+}
+
+.orionMarkdown img {
+	max-width: 100%;
+}
+
+.orionMarkdown pre, .orionMarkdown code {
+	background-color: #fafafa;
+	border: 1px solid #ddd;
+	border-radius: 3px;
+}
+
+.orionMarkdown pre {
+	padding: 6px 10px;
+	overflow: auto;
+}
+
+.orionMarkdown code {
+	padding: 0 5px;
+	margin: 0 2px;
+}
+
+.orionMarkdown pre code {
+	background-color: transparent;
+    padding: 0;
+	border: 0;
+	margin: 0;
 }
 
 .orionProject input, .orionProject textarea{
 	border: 1px solid lightgrey;
 }
 
-.folderNav th, .orionMarkdown th, .orionProject th, .sectionWrapper{
-	border-color:#D6EBF0;
-	border-bottom: 1px solid #D6EBF0;
-	border-top: 1px solid #D6EBF0;
-	background: none repeat scroll 0 0 #EAF5F7;
-	vertical-align: middle;
-	font-weight: bold;
-	padding: 6px;
+.orionProject .discreetInput {
+	border: none;
 	color: gray;
-}
-.folderNav th:first-child, .orionMarkdown th:first-child, .orionProject th:first-child {
-	padding-top: 9px;
-	padding-bottom: 9px;
-}
-
-.sectionWrapper{
-	margin-bottom: 0;
-	width: inherit;
+	font: 8pt Lucida Sans Unicode,Lucida Grande,Verdana,Arial,Helvetica,Myriad,Tahoma,clean,sans-serif;
+	width: 90%;
+	margin-left: 0;
+	min-height: 15px;
+	background-color: inherit;
 }
 
-.sectionTable{
-	margin-top: 0;
-	width: inherit;
+.orionProject .discreetInput:hover, .orionProject .discreetInput:focus {
+	border: 1px solid lightgrey;
+	color: black;
+	background-color: white;
+}
+
+.discreetInputLabel {
+	font-weight: bold;
+	padding: 8px;
+}
+
+.orionMarkdown h1 {
+	position: relative;
 }
 
 .lightTreeTableRow, .darkTreeTableRow {
-	border-bottom: 1px solid #D6EBF0;
+	border-bottom: 1px solid #dadada;
 }

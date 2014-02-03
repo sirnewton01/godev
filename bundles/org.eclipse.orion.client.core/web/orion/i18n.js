@@ -40,6 +40,11 @@ define(function() {
 				onLoad({});
 				return;
 			}
+			
+			if (parentRequire.specified && !parentRequire.specified("orion/bootstrap")) {
+				onLoad({});
+				return;
+			}
 
 			var prefix = match[1],
 				locale = match[3] ? match[2] : "",

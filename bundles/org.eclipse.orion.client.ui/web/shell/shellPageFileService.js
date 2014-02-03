@@ -261,7 +261,9 @@ define(["i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/fileClient", 
 						function(children) {
 							this._sort(children);
 							var parents = node.Parents ? node.Parents.slice(0) : [];
-							parents.unshift(node);
+							if (!node.parent || node.parent !== this.rootNode) {
+								parents.unshift(node);
+							}
 							for (var i = 0; i < children.length; i++) {
 								children[i].parent = node;
 								children[i].Parents = parents;

@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+    <head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title>JSON Editor</title>
+		<link rel="stylesheet" type="text/css" href="../edit.css" />
+		<style>
+			.typeimage {
+				padding-top: 2px;
+				padding-bottom: 2px;
+				vertical-align: middle;
+				background-repeat: no-repeat;
+				background-position: center;
+				width: 16px;
+				height: 16px;
+				display: inline-block;
+			}
+			.stringtype {
+				background-image: url("images/string.png");
+			}
+			.booleantype {
+				background-image: url("images/boolean.png");
+			}
+			.numbertype {
+				background-image: url("images/number.png");
+			}
+			.tablelabel {
+				padding-left: 4px;
+			}
+			.secondaryColumn {
+				padding-top: 0;
+				vertical-align: middle;
+			}
+			.userEditBoxPrompt {
+				margin: 0;
+				padding-top: 1px;
+				padding-bottom: 1px;
+				vertical-align: middle;
+				width: 80%;
+			}
+			body {
+				padding: 3px;
+			}
+			td {
+				padding-top: 2px;
+				padding-bottom: 2px;
+			}
+		</style>
+		<script src="../../requirejs/require.js"></script>
+		<script type="text/javascript">
+			/*global define require*/		
+			require({
+				baseUrl: '../..',
+				paths: {
+					text: 'requirejs/text',
+					i18n: 'requirejs/i18n',
+					domReady: 'requirejs/domReady'    
+				}
+			});
+			require(['jsonEditorPlugin.js']);
+		</script>
+    </head>
+	<body>
+	Loading...
+	</body>
+</html>

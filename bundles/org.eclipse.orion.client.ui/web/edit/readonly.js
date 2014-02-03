@@ -13,7 +13,8 @@
 define(['orion/bootstrap', 'edit/setup'], function(mBootstrap, mSetup) {
 	mBootstrap.startup().then(function(core) {
 		var serviceRegistry = core.serviceRegistry;
+		var pluginRegistry = core.pluginRegistry;
 		var preferences = core.preferences;
-		mSetup.setUpEditor(serviceRegistry, preferences, true);  // read only
+		mSetup.setUpEditor(serviceRegistry, pluginRegistry, preferences, true);  // read only
 	});
 });

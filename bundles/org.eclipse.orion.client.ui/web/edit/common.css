@@ -12,6 +12,29 @@
 
 .outlineExplorer {
 	overflow-y: hidden;
+	white-space:nowrap;
+}
+
+.outlineFilter {
+	border: 1px solid lightgrey;
+	margin: 4px;
+	float: left;
+	width: 65%; /* for older browsers */
+	width: -webkit-calc(100% - 42px);
+	width: calc(100% - 42px);
+}
+
+.outlineRowMatchesFilter {
+	font-weight:bold;
+}
+
+.outlineRowHidden {
+	display: none;
+}
+
+.outlineLeafIndent {
+	display: inline-block;
+	width: 16px; /*16px standard indent*/
 }
 
 .findOptionsDiv {
@@ -26,4 +49,3 @@
 	margin-bottom: -3px;
 	cursor: pointer;
 }
-

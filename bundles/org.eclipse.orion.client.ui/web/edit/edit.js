@@ -13,7 +13,8 @@
 define(['orion/browserCompatibility', 'orion/bootstrap', 'edit/setup'], function(mBrowserCompatibility, mBootstrap, mSetup) {
 	mBootstrap.startup().then(function(core) {
 		var serviceRegistry = core.serviceRegistry;
+		var pluginRegistry = core.pluginRegistry;
 		var preferences = core.preferences;
-		mSetup.setUpEditor(serviceRegistry, preferences, false);  // not read only
+		mSetup.setUpEditor(serviceRegistry, pluginRegistry, preferences, false);  // not read only
 	});
 });

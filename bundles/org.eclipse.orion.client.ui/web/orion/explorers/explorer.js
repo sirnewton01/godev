@@ -12,8 +12,8 @@
 /*global define window */
 /*jslint regexp:false browser:true forin:true*/
 
-define(['i18n!orion/nls/messages', 'require', 'orion/webui/littlelib', 'orion/webui/treetable', 'orion/explorers/explorerNavHandler', 'orion/commands', 'orion/commandRegistry'], 
-function(messages, require, lib, mTreeTable, mNavHandler, mCommands, mCommandRegistry){
+define(['i18n!orion/nls/messages', 'require', 'orion/webui/littlelib', 'orion/webui/treetable', 'orion/explorers/explorerNavHandler', 'orion/commands'], 
+function(messages, require, lib, mTreeTable, mNavHandler, mCommands){
 
 var exports = {};
 
@@ -34,12 +34,18 @@ exports.Explorer = (function() {
 		this.renderer = renderer;
 		this.selection = selection;
 		this.commandService = commandRegistry;
+		if(this.renderer){
+			this.renderer.explorer = this;
+		}
 		
 		this.myTree = null;
 	}
 	Explorer.prototype = /** @lends orion.explorer.Explorer.prototype */ {
 	
 		destroy: function() {
+			if (this._navHandler) {
+				this._navHandler.destroy();
+			}
 			if (this.model) {
 				this.model.destroy();
 			}
@@ -62,7 +68,7 @@ exports.Explorer = (function() {
 			}
 		},
 		
-		makeNewItemPlaceHolder: function(item, domId, column_no) {
+		makeNewItemPlaceHolder: function(item, domId, column_no, insertAfter) {
 			// we want to popup the name prompt underneath the parent item.
 			var refNode = this.getRow(item);
 			var tempNode;
@@ -82,7 +88,17 @@ exports.Explorer = (function() {
 				var td = document.createElement("td"); //$NON-NLS-0$
 				td.id = domId+"placeHolderCol"; //$NON-NLS-0$
 				tr.appendChild(td);
-				refNode.appendChild(tr);
+				if (insertAfter) {
+					// insert tr after refNode, i.e. right before refNode's nextSibling in the parent
+					var parentNode = refNode.parentNode;
+					var nextSibling = refNode.nextSibling;
+					parentNode.insertBefore(tr, nextSibling);
+					
+					var parentIndentation = parseInt(refNode.firstChild.style.paddingLeft); //refNode is a <tr>, we want the indentation of its <td>
+					td.style.paddingLeft = (this.myTree.getIndent() + parentIndentation) + "px";
+				} else {
+					refNode.appendChild(tr);
+				}
 				tempNode = lib.node(domId+"placeHolderRow"); //$NON-NLS-0$
 				refNode = lib.node(domId+"placeHolderCol"); //$NON-NLS-0$
 				if (tempNode && refNode) {
@@ -182,6 +198,7 @@ exports.Explorer = (function() {
 				id: treeId,
 				model: model,
 				parent: parentId,
+				onComplete: options ? options.onComplete : undefined,
 				labelColumnIndex: this.renderer.getLabelColumnIndex(),
 				renderer: this.renderer,
 				showRoot: options ? !!options.showRoot : false,  
@@ -417,6 +434,7 @@ exports.ExplorerRenderer = (function() {
 		this._init(options);
 		this._expandImageClass = "core-sprite-openarrow"; //$NON-NLS-0$
 		this._collapseImageClass = "core-sprite-closedarrow"; //$NON-NLS-0$
+		this._progressImageClass = "core-sprite-progress"; //$NON-NLS-0$
 		this._twistieSpriteClass = "modelDecorationSprite"; //$NON-NLS-0$
 	}
 	ExplorerRenderer.prototype = {
@@ -630,8 +648,10 @@ exports.ExplorerRenderer = (function() {
 		updateExpandVisuals: function(tableRow, isExpanded) {
 			var expandImage = lib.node(this.expandCollapseImageId(tableRow.id));
 			if (expandImage) {
-				expandImage.classList.add(isExpanded ? this._expandImageClass : this._collapseImageClass);
-				expandImage.classList.remove(isExpanded ? this._collapseImageClass : this._expandImageClass);
+				expandImage.classList.remove(this._expandImageClass);
+				expandImage.classList.remove(this._collapseImageClass);
+				expandImage.classList.remove(this._progressImageClass);
+				expandImage.classList.add(isExpanded === "progress" ? this._progressImageClass : isExpanded ? this._expandImageClass : this._collapseImageClass); //$NON-NLS-0$
 			}
 		},
 		
@@ -649,21 +669,26 @@ exports.ExplorerRenderer = (function() {
 			}
 			var self = this;
 			expandImage.onclick = function(evt) {
-				self.tableTree.toggle(tableRow.id);
-				var expanded = self.tableTree.isExpanded(tableRow.id);
-				if (expanded) {
-					self._expanded.push(tableRow.id);
-				} else {
-					for (var i in self._expanded) {
-						if (self._expanded[i] === tableRow.id) {
-							self._expanded.splice(i, 1);
-							break;
+				if (!self.explorer.getNavHandler().isDisabled(tableRow)) {
+					self.tableTree.toggle(tableRow.id);
+					var expanded = self.tableTree.isExpanded(tableRow.id);
+					if (expanded) {
+						self._expanded.push(tableRow.id);
+						if (self.explorer.postUserExpand) {
+							self.explorer.postUserExpand(tableRow.id);
+						}
+					} else {
+						for (var i in self._expanded) {
+							if (self._expanded[i] === tableRow.id) {
+								self._expanded.splice(i, 1);
+								break;
+							}
 						}
 					}
-				}
-				var prefPath = self._getUIStatePreferencePath();
-				if (prefPath && window.sessionStorage) {
-					self._storeExpansions(prefPath);
+					var prefPath = self._getUIStatePreferencePath();
+					if (prefPath && window.sessionStorage) {
+						self._storeExpansions(prefPath);
+					}
 				}
 			};
 			return expandImage;
@@ -778,7 +803,7 @@ exports.SelectionRenderer = (function(){
 			tableRow.appendChild(cell);
 			if (i===0) {
 				if(this.getPrimColumnStyle){
-					cell.classList.add(this.getPrimColumnStyle()); //$NON-NLS-0$
+					cell.classList.add(this.getPrimColumnStyle(item)); //$NON-NLS-0$
 				} else {
 					cell.classList.add("navColumn"); //$NON-NLS-0$
 				}

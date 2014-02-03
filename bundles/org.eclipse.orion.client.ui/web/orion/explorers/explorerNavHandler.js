@@ -13,11 +13,10 @@
 /*jslint regexp:false browser:true forin:true*/
 
 define([
-	'i18n!orion/nls/messages',
 	'orion/webui/littlelib',
 	'orion/treeModelIterator',
 	'orion/uiUtils'
-], function(messages, lib, mTreeModelIterator, UiUtils){
+], function(lib, mTreeModelIterator, UiUtils){
 
 var exports = {};
 var userAgent = navigator.userAgent;
@@ -183,18 +182,18 @@ exports.ExplorerNavHandler = (function() {
 			return this.explorer.myTree.isExpanded(this.model.getId(model));
 		},
 		
-		refreshSelection: function(noScroll){
+		refreshSelection: function(noScroll, visually){
 			var that = this;
 			if(this.explorer.selection){
 				this.explorer.selection.getSelections(function(selections) {
-					that._clearSelection();
+					that._clearSelection(visually);
 					for (var i = 0; i < selections.length; i++){
 						that._selections.push(selections[i]);
 					}
 					if(that._selections.length > 0){
 						that.cursorOn(that._selections[0], true, false, noScroll);
 					} else {//If there is no selection, we should just the first item as the cursored items.  
-						that.cursorOn();
+						that.cursorOn(null, false, false, noScroll);
 					}
 					//If shift selection anchor exists and in the refreshed selection range, we just keep it otherwise clear the anchor
 					//See https://bugs.eclipse.org/bugs/show_bug.cgi?id=419170
@@ -246,7 +245,6 @@ exports.ExplorerNavHandler = (function() {
 				}
 			}
 			this._selections = [];
-			//this._selections.splice(0, this._selections.length);
 		},
 		
 		getSelectionPolicy: function() {
@@ -431,16 +429,13 @@ exports.ExplorerNavHandler = (function() {
 			this.toggleCursor(currentModel, true);
 			var currentRowDiv = this.getRowDiv();
 			if(currentRowDiv && !noScroll) {
-				var offsetParent = currentRowDiv.parentNode;
-				while (offsetParent) {
+				var offsetParent = currentRowDiv.parentNode, documentElement = document.documentElement;
+				while (offsetParent && offsetParent !== documentElement) {
 					var style = window.getComputedStyle(offsetParent, null);
 					if (!style) { break; }
-					var overflow = style.getPropertyValue("overflow-y");
-					if (overflow === "hidden" || overflow === "auto" || overflow === "scroll") { break; }
+					var overflow = style.getPropertyValue("overflow-y"); //$NON-NLS-0$
+					if (overflow === "auto" || overflow === "scroll") { break; } //$NON-NLS-1$ //$NON-NLS-0$
 					offsetParent = offsetParent.parentNode;
-				}
-				if (!offsetParent) {
-					offsetParent = document.body;
 				}
 				var visible = true;
 				if(currentRowDiv.offsetTop <= offsetParent.scrollTop){
@@ -485,20 +480,50 @@ exports.ExplorerNavHandler = (function() {
 			return value && value.rowDomNode ? value.rowDomNode :  lib.node(modelId);
 		},
 		
-		iterate: function(forward, forceExpand, selecting)	{
-			if(this.topIterationNodes.length === 0){
+		iterate: function(forward, forceExpand, selecting, selectableOnly /* optional */)	{
+			var currentItem = null;
+			
+			if(!this.topIterationNodes || this.topIterationNodes.length === 0){
 				return;
 			}
-			if(this._modelIterator.iterate(forward, forceExpand)){
-				this.cursorOn(null, false, forward);
-				if(selecting){
-					var previousModelInSelection = this._inSelection(this._modelIterator.prevCursor());
-					var currentModelInselection = this._inSelection(this._modelIterator.cursor());
-					if(previousModelInSelection >= 0 && currentModelInselection >= 0) {
-						this.setSelection(this._modelIterator.prevCursor(), true);
-					} else {
-						this.setSelection(this.currentModel(), true);
+				
+			if (selectableOnly) {
+				var previousItem = this.currentModel();
+				
+				currentItem = this._modelIterator.iterate(forward, forceExpand);
+				if(currentItem){
+					this._setCursorOnItem(forward, selecting);
+				}
+				
+				while (currentItem && currentItem.isNotSelectable) {
+					currentItem = this._modelIterator.iterate(forward, forceExpand);
+					if(currentItem){
+						this._setCursorOnItem(forward, selecting);
 					}
+				}
+				
+				if (!currentItem) {
+					// got to the end of the list and didn't find anything selectable, iterate back
+					this.cursorOn(previousItem, true, false, true);
+					this._setCursorOnItem(forward, selecting);
+				}
+			} else {
+				currentItem = this._modelIterator.iterate(forward, forceExpand);
+				if(currentItem){
+					this._setCursorOnItem(forward, selecting);
+				}
+			}
+		},
+		
+		_setCursorOnItem: function(forward, selecting) {
+			this.cursorOn(null, false, forward);
+			if(selecting){
+				var previousModelInSelection = this._inSelection(this._modelIterator.prevCursor());
+				var currentModelInselection = this._inSelection(this._modelIterator.cursor());
+				if(previousModelInSelection >= 0 && currentModelInselection >= 0) {
+					this.setSelection(this._modelIterator.prevCursor(), true);
+				} else {
+					this.setSelection(this.currentModel(), true);
 				}
 			}
 		},
@@ -546,28 +571,32 @@ exports.ExplorerNavHandler = (function() {
 		},
 		
 		onClick: function(model, mouseEvt)	{
-			var twistieSpan = lib.node(this.explorer.renderer.expandCollapseImageId(this.model.getId(model)));
-			if(mouseEvt.target === twistieSpan){
-				return;
-			}
-			if(this.gridClickSelectionPolicy === "none" && this._onModelGrid(model, mouseEvt)){ //$NON-NLS-0$
-				return;
-			}
-			this.cursorOn(model, true, false, true);
-			if(isPad){
-				this.setSelection(model, true);
-			} else if(this._ctrlKeyOn(mouseEvt)){
-				this.setSelection(model, true, true);
-			} else if(mouseEvt.shiftKey && this._shiftSelectionAnchor){
-				var scannedSel = this._modelIterator.scan(this._shiftSelectionAnchor, model);
-				if(scannedSel){
-					this._clearSelection(true);
-					for(var i = 0; i < scannedSel.length; i++){
-						this.setSelection(scannedSel[i], true);
-					}
-				}
+			if (this.isDisabled(this.getRowDiv(model))) {
+				lib.stop(mouseEvt);
 			} else {
-				this.setSelection(model, false, true);
+				var twistieSpan = lib.node(this.explorer.renderer.expandCollapseImageId(this.model.getId(model)));
+				if(mouseEvt.target === twistieSpan){
+					return;
+				}
+				if(this.gridClickSelectionPolicy === "none" && this._onModelGrid(model, mouseEvt)){ //$NON-NLS-0$
+					return;
+				}
+				this.cursorOn(model, true, false, true);
+				if(isPad){
+					this.setSelection(model, true);
+				} else if(this._ctrlKeyOn(mouseEvt)){
+					this.setSelection(model, true, true);
+				} else if(mouseEvt.shiftKey && this._shiftSelectionAnchor){
+					var scannedSel = this._modelIterator.scan(this._shiftSelectionAnchor, model);
+					if(scannedSel){
+						this._clearSelection(true);
+						for(var i = 0; i < scannedSel.length; i++){
+							this.setSelection(scannedSel[i], true);
+						}
+					}
+				} else {
+					this.setSelection(model, false, true);
+				}
 			}
 		},
 		
@@ -580,7 +609,7 @@ exports.ExplorerNavHandler = (function() {
 		//Up arrow key iterates the current row backward. If control key is on, browser's scroll up behavior takes over.
 		//If shift key is on, it toggles the check box and iterates backward.
 		onUpArrow: function(e) {
-			this.iterate(false, false, e.shiftKey);
+			this.iterate(false, false, e.shiftKey, true);
 			if(!this._ctrlKeyOn(e) && !e.shiftKey){
 				this.setSelection(this.currentModel(), false, true);
 			}
@@ -591,7 +620,7 @@ exports.ExplorerNavHandler = (function() {
 		//Down arrow key iterates the current row forward. If control key is on, browser's scroll down behavior takes over.
 		//If shift key is on, it toggles the check box and iterates forward.
 		onDownArrow: function(e) {
-			this.iterate(true, false, e.shiftKey);
+			this.iterate(true, false, e.shiftKey, true);
 			if(!this._ctrlKeyOn(e) && !e.shiftKey){
 				this.setSelection(this.currentModel(), false, true);
 			}
@@ -654,6 +683,9 @@ exports.ExplorerNavHandler = (function() {
 			if(this.isExpandable(curModel)){
 				if(!this.isExpanded(curModel)){
 					this.explorer.myTree.expand(curModel);
+					if (this.explorer.postUserExpand) {
+						this.explorer.postUserExpand(this.model.getId(curModel));
+					}
 					e.preventDefault();
 					return false;
 				}
@@ -688,11 +720,13 @@ exports.ExplorerNavHandler = (function() {
 				}
 				return;
 			}
+			
+			var curModel = this._modelIterator.cursor();
+			if(!curModel){
+				return;
+			}
+			
 			if(this.explorer.renderer.getRowActionElement){
-				var curModel = this._modelIterator.cursor();
-				if(!curModel){
-					return;
-				}
 				var div = this.explorer.renderer.getRowActionElement(this.model.getId(curModel));
 				if(div.href){
 					if(this._ctrlKeyOn(e)){
@@ -702,7 +736,62 @@ exports.ExplorerNavHandler = (function() {
 					}
 				}
 			}
-		}
+			if(this.explorer.renderer.performRowAction){
+				this.explorer.renderer.performRowAction(e, curModel);
+				e.preventDefault();
+				return false;
+			}
+		},
+		
+		/**
+		 * Sets the isNotSelectable attribute on the specified model.
+		 * @param {Object} model
+		 * @param {Boolean} isNotSelectable true makes the this.iterate() with selectableOnly specified skip the item
+		 */
+		setIsNotSelectable: function(model, isNotSelectable) {
+			model.isNotSelectable = isNotSelectable;
+		},
+		
+		/**
+		 * Disables the specified model making it no longer respond 
+		 * to user input such as mouse click or key presses. The
+		 * CSS style of corresponding row node is also modified to
+		 * reflect its disabled state.
+		 * 
+		 * @param {Object} model
+		 */
+		disableItem: function(model) {
+			var rowDiv = this.getRowDiv(model);
+			if (this.isExpandable(model) && this.isExpanded(model)) {
+				this._modelIterator.collapse(model);
+				this.explorer.myTree.toggle(rowDiv.id); // collapse tree visually
+			}
+			rowDiv.classList.remove("checkedRow"); //$NON-NLS-0$
+			rowDiv.classList.add("disabledNavRow"); //$NON-NLS-0$
+			this.setIsNotSelectable(model, true);
+		},
+		
+		/**
+		 * Checks if the specified html row node is disabled.
+		 * @return true if the specified node's classList contains the 
+		 * 			"disabledNavRow" class, false otherwise
+		 */
+		isDisabled: function(rowDiv) {
+			return rowDiv.classList.contains("disabledNavRow"); //$NON-NLS-0$
+		},
+		
+		/**
+		 * Enables the specified model.
+		 * 
+		 * @param {Object} model
+		 */
+		enableItem: function(model) {
+			var rowDiv = this.getRowDiv(model);
+			if (rowDiv) {
+				rowDiv.classList.remove("disabledNavRow"); //$NON-NLS-0$
+				this.setIsNotSelectable(model, false);
+			}
+		},
 	};
 	return ExplorerNavHandler;
 }());

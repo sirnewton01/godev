@@ -13,6 +13,7 @@
 /*globals define Node */
 
 define('orion/editor/edit', [ //$NON-NLS-0$
+	"require", //$NON-NLS-0$
 	"orion/editor/shim", //$NON-NLS-0$
 	
 	"orion/editor/textView", //$NON-NLS-0$
@@ -39,8 +40,14 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	"orion/editor/mirror", //$NON-NLS-0$
 	"orion/editor/textMateStyler", //$NON-NLS-0$
 	"orion/editor/htmlGrammar", //$NON-NLS-0$
-	"examples/editor/textStyler" //$NON-NLS-0$
-], function(shim, mTextView, mTextModel, mTextTheme, mProjModel, mEventTarget, mKeyBinding, mRulers, mAnnotations, mTooltip, mUndoStack, mTextDND, mEditor, mEditorFeatures, mContentAssist, mCSSContentAssist, mHtmlContentAssist, mJSContentAssist, mAsyncStyler, mMirror, mTextMateStyler, mHtmlGrammar, mTextStyler) {
+	"orion/editor/textStyler", //$NON-NLS-0$
+	"orion/editor/stylers/application_javascript/syntax", //$NON-NLS-0$
+	"orion/editor/stylers/text_css/syntax", //$NON-NLS-0$
+	"orion/editor/stylers/text_html/syntax" //$NON-NLS-0$
+
+], function(require, shim, mTextView, mTextModel, mTextTheme, mProjModel, mEventTarget, mKeyBinding, mRulers, mAnnotations,
+			mTooltip, mUndoStack, mTextDND, mEditor, mEditorFeatures, mContentAssist, mCSSContentAssist, mHtmlContentAssist,
+			mJSContentAssist, mAsyncStyler, mMirror, mTextMateStyler, mHtmlGrammar, mTextStyler, mJS, mCSS, mHTML) {
 
 	/**	@private */
 	function getDisplay(window, document, element) {
@@ -130,9 +137,20 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	}
 	
 	/**	@private */
+	function getParents(document, className) {
+		if (document.getElementsByClassName) {
+			return document.getElementsByClassName(className);
+		}
+		className = className.replace(/ *$/, '');
+		if (document.querySelectorAll) {
+			return document.querySelectorAll((' ' + className).replace(/ +/g, '.')); //$NON-NLS-1$ //$NON-NLS-0$
+		}
+		return null;
+	}
+	
+	/**	@private */
 	function getHeight(node) {
-		var rect = node.getBoundingClientRect();
-		return rect.bottom - rect.top;
+		return node.clientHeight;
 	}
 	
 	/**
@@ -148,14 +166,17 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	 * @property {Number} [tabSize=4] The number of spaces in a tab.
 	 * @property {Boolean} [singleMode=false] whether or not the editor is in single line mode.
 	 * @property {Boolean} [wrapMode=false] whether or not the view wraps lines.
+	 * @property {Boolean} [wrapable=false] whether or not the view is wrappable.
 	 * @property {Function} [statusReporter] a status reporter.
 	 * @property {String} [title=""] the editor title.
 	 * @property {String} [contents=""] the editor contents.
-	 * @property {String} [lang] the styler language. Plain text by default.
+	 * @property {String} [lang] @deprecated use contentType instead
+	 * @property {String} [contentType] the type of the content (eg.- application/javascript, text/html, etc.)
 	 * @property {Boolean} [showLinesRuler=true] whether or not the lines ruler is shown.
 	 * @property {Boolean} [showAnnotationRuler=true] whether or not the annotation ruler is shown.
 	 * @property {Boolean} [showOverviewRuler=true] whether or not the overview ruler is shown.
 	 * @property {Boolean} [showFoldingRuler=true] whether or not the folding ruler is shown.
+	 * @property {Boolean} [noFocus=false] whether or not to focus the editor on creation.
 	 * @property {Number} [firstLineIndex=1] the line index displayed for the first line of text.
 	 */
 	/**
@@ -164,18 +185,21 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	 * @param {orion.editor.EditOptions} options the editor options.
 	 */
 	function edit(options) {
+		var doc = options.document || document;
 		var parent = options.parent;
 		if (!parent) { parent = "editor"; } //$NON-NLS-0$
 		if (typeof(parent) === "string") { //$NON-NLS-0$
-			parent = (options.document || document).getElementById(parent);
+			parent = doc.getElementById(parent);
 		}
 		if (!parent) {
 			if (options.className) {
-				var parents = (options.document || document).getElementsByClassName(options.className);
+				var parents = getParents(doc, options.className);
 				if (parents) {
 					options.className = undefined;
+					// Do not focus editors by default when creating multiple editors
+					if (parents.length > 1 && options.noFocus === undefined) { options.noFocus = true; }
 					var editors = [];
-					for (var i = 0; i < parents.length; i++) {
+					for (var i = parents.length - 1; i >= 0; i--) {
 						options.parent = parents[i];
 						editors.push(edit(options));
 					}
@@ -203,7 +227,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		var textViewFactory = function() {
 			return new mTextView.TextView({
 				parent: parent,
-				model: new mProjModel.ProjectionTextModel(new mTextModel.TextModel("")),
+				model: new mProjModel.ProjectionTextModel(options.model ? options.model : new mTextModel.TextModel("")),
 				tabSize: options.tabSize ? options.tabSize : 4,
 				readonly: options.readonly,
 				fullSelection: options.fullSelection,
@@ -212,7 +236,8 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 				singleMode: options.singleMode,
 				themeClass: options.themeClass,
 				theme: options.theme,
-				wrapMode: options.wrapMode
+				wrapMode: options.wrapMode,
+				wrappable: options.wrappable
 			});
 		};
 
@@ -229,29 +254,36 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 			};
 		}
 	
-		// Canned highlighters for js, java, and css. Grammar-based highlighter for html
 		var syntaxHighlighter = {
 			styler: null, 
 			
-			highlight: function(lang, editor) {
-				if (this.styler) {
+			highlight: function(contentType, editor) {
+				if (this.styler && this.styler.destroy) {
 					this.styler.destroy();
-					this.styler = null;
 				}
-				if (lang) {
-					var textView = editor.getTextView();
-					var annotationModel = editor.getAnnotationModel();
-					switch(lang) {
-						case "js": //$NON-NLS-0$
-						case "java": //$NON-NLS-0$
-						case "css": //$NON-NLS-0$
-							this.styler = new mTextStyler.TextStyler(textView, lang, annotationModel);
-							editor.setFoldingRulerVisible(options.showFoldingRuler === undefined || options.showFoldingRuler);
-							break;
-						case "html": //$NON-NLS-0$
-							this.styler = new mTextMateStyler.TextMateStyler(textView, new mHtmlGrammar.HtmlGrammar());
-							break;
-					}
+				this.styler = null;
+
+				/* to maintain backwards-compatibility convert previously-supported lang values to types */
+				if (contentType === "js") { //$NON-NLS-0$
+					contentType = "application/javascript"; //$NON-NLS-0$
+				} else if (contentType === "css") { //$NON-NLS-0$
+					contentType = "text/css"; //$NON-NLS-0$
+				} else if (contentType === "html") { //$NON-NLS-0$
+					contentType = "text/html"; //$NON-NLS-0$
+				} else if (contentType === "java") { //$NON-NLS-0$
+					contentType = "text/x-java-source"; //$NON-NLS-0$
+				}
+
+				var textView = editor.getTextView();
+				var annotationModel = editor.getAnnotationModel();
+				if (contentType) {
+					contentType = contentType.replace(/[*|:/".<>?]/g, '_');
+					require(["./stylers/" + contentType + "/syntax"], function(grammar) { //$NON-NLS-1$ //$NON-NLS-0$
+						this.styler = new mTextStyler.TextStyler(textView, annotationModel, grammar.grammars, grammar.id);
+					});
+				}
+				if (contentType === "text/css") { //$NON-NLS-0$
+					editor.setFoldingRulerVisible(options.showFoldingRuler === undefined || options.showFoldingRuler);
 				}
 			}
 		};
@@ -296,9 +328,9 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		editor.setAnnotationRulerVisible(options.showAnnotationRuler === undefined || options.showFoldingRuler);
 		editor.setOverviewRulerVisible(options.showOverviewRuler === undefined || options.showOverviewRuler);
 		editor.setFoldingRulerVisible(options.showFoldingRuler === undefined || options.showFoldingRuler);
-		editor.setInput(options.title, null, contents);
+		editor.setInput(options.title, null, contents, false, options.noFocus);
 		
-		syntaxHighlighter.highlight(options.lang, editor);
+		syntaxHighlighter.highlight(options.contentType || options.lang, editor);
 		if (contentAssist) {
 			var cssContentAssistProvider = new mCSSContentAssist.CssContentAssistProvider();
 			var htmlContentAssistProvider = new mHtmlContentAssist.HTMLContentAssistProvider();

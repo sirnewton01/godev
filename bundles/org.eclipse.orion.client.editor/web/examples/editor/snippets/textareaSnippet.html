@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Orion Editor Snippet</title>
+
+<style>
+#myEditor {
+	border: 1px solid #ddd;
+	position: relative;
+	width: 100%;
+	height: 400px;
+}
+
+textarea {
+	width: 100%;
+	height: 100%;
+}
+</style>
+
+<link rel="stylesheet" type="text/css" href="http://eclipse.org/orion/editor/releases/latest/built-editor.css"/>
+<script src="http://eclipse.org/orion/editor/releases/latest/built-editor.js"></script>
+
+<script>
+	/*globals require*/
+	require(["orion/editor/edit"], function(edit) {
+		var editor = edit({lang: "js", parent: "myEditor"});
+		editor.setSelection(33, 43);
+	});
+</script>
+</head>
+<body spellcheck="false">
+<h2>TEXTAREA snippet</h2>
+This snippet shows how to replace the contents of a TEXTAREA with an editor.
+<br>
+<br>
+<div id="myEditor"><textarea>
+function hello() {
+	console.log("Hello word");
+}
+
+function done() {
+	console.log("done");
+}
+</textarea></div>
+</body>
+</html>

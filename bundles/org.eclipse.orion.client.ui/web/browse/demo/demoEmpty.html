@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+    <head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title>View File</title>
+		<link rel="stylesheet" type="text/css" href="../browse.css" />
+		<link rel="shortcut icon" href="/file.ico" />
+		<script src="../../requirejs/require.js"></script>
+		<script type="text/javascript">
+			/*global require*/
+			require({
+				baseUrl: '../..',
+				paths: {
+					text: 'requirejs/text',
+					i18n: 'requirejs/i18n',
+					domReady: 'requirejs/domReady'    
+				}
+			});
+			require(["demoEmpty.js"]);
+		</script>
+    </head>
+
+	<body id="orion-browser" spellcheck="false" class="orionPage">
+		<div class="fileBrowserDemoTextParent">
+			<p>This is a demo for the <b>readonly</b> file system browse widget. The outer blue border represents an HTML DIV where the widget can be <b>embedded</b>. 
+			Clicking on a folder will <b>drill in</b>. Clicking on the bread crumb will <b>drill out</b>. Clicking on a <b>text</b> file will open an editor with <b>syntax highlighting</b> depending on the file type. 
+			Clicking on an <b>image</b> file will display it right in the section. If a <b>readme</b> file exists in a folder, a second section will show the readme contents below the main section.</p>
+		</div>
+		<div class="fileBrowserParent" id="fileBrowser">
+		<!--
+			<div class="localBreadCrumb">
+				<div id="localBreadCrumb"></div>
+			</div>
+			<div id="fileBrowser"></div>
+		-->
+		</div>
+	</body>
+</html>

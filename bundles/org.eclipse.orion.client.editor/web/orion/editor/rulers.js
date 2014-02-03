@@ -744,7 +744,6 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 			} else {
 				annotation.expand();
 			}
-			this._annotationModel.modifyAnnotation(annotation);
 		}
 	};
 	/** @ignore */

@@ -22,7 +22,6 @@ define([
 	'orion/webui/littlelib'
 ], function(messages, Deferred, mExplorer, mNavUtils, mExtensionCommands, objects, URITemplate, lib) {
 		
-	/* Internal */
 	function isImage(contentType) {
 		switch (contentType && contentType.id) {
 			case "image/jpeg": //$NON-NLS-0$
@@ -38,29 +37,21 @@ define([
 	
 	/* Internal */
 	function addImageToLink(contentType, link, location, replace) {
-		var image;
-		switch (contentType && contentType.id) {
-			case "image/jpeg": //$NON-NLS-0$
-			case "image/png": //$NON-NLS-0$
-			case "image/gif": //$NON-NLS-0$
-			case "image/ico": //$NON-NLS-0$
-			case "image/tiff": //$NON-NLS-0$
-			case "image/svg": //$NON-NLS-0$
-				image = document.createElement("img"); //$NON-NLS-0$
-				image.src = location;
+		if (contentType) {
+			var image, imageClass = contentType.imageClass, imageURL = contentType.image;
+			if (imageClass) {
+				image = document.createElement("span"); //$NON-NLS-0$
+				image.className += imageClass; // may be several classes in here
 				image.classList.add("thumbnail"); //$NON-NLS-0$
-				break;
-			default:
-				if (contentType && contentType.image) {
-					image = document.createElement("img"); //$NON-NLS-0$
-					image.src = contentType.image;
-					// to minimize the height/width in case of a large one
-					image.classList.add("thumbnail"); //$NON-NLS-0$
-				}
-				break;
-		}
-		if (image) {
-			link.replaceChild(image, replace);
+			} else if (imageURL) {
+				image = document.createElement("img"); //$NON-NLS-0$
+				image.src = imageURL;
+				// to minimize the height/width in case of a large one
+				image.classList.add("thumbnail"); //$NON-NLS-0$
+			}
+			if (image) {
+				link.replaceChild(image, replace);
+			}
 		}
 	}
 	
@@ -81,10 +72,11 @@ define([
 	 * @param {Object} [linkProperties] gives additional properties to mix in to the HTML anchor element.
 	 * @param {Object} [uriParams] A map giving additional parameters that will be provided to the URI template that generates the href.
 	 * @param {Object} [separateImageHolder] Separate image holder object. {holderDom: dom}. If separateImageHolder is not defined, the file icon image is rendered in the link as the first child.
+	 * @param {NavigatorRenderer} [renderer] The renderer object. Optional. If defined, renderer.updateFileNode() is called to update the file element for sub classes.
 	 * If separateImageHolder is defined with holderDom property, the file icon iamge is rendered in separateImageHolder.holderDom.
 	 * IF separateImageHolder is defined as an empty object, {}, the file icon iamge is not rendered at all.
 	 */
-	function createLink(folderPageURL, item, commandService, contentTypeService, openWithCommands, defaultEditor, linkProperties, uriParams, separateImageHolder) {
+	function createLink(folderPageURL, item, commandService, contentTypeService, openWithCommands, defaultEditor, linkProperties, uriParams, separateImageHolder, renderer) {
 		// TODO FIXME folderPageURL is bad; need to use URITemplates here.
 		// TODO FIXME refactor the async href calculation portion of this function into a separate function, for clients who do not want the <A> created.
 		item = objects.clone(item);
@@ -125,7 +117,7 @@ define([
 			}
 			if(imageHolderDom) {
 				image = document.createElement("span"); //$NON-NLS-0$
-				image.className = "core-sprite-file modelDecorationSprite"; //$NON-NLS-0$
+				image.className = "core-sprite-file modelDecorationSprite thumbnail"; //$NON-NLS-0$
 				imageHolderDom.appendChild(image);
 			}
 			if(item.Name){
@@ -153,6 +145,9 @@ define([
 					addImageToLink(contentType, imageHolderDom, item.Location, image);
 				}
 				link.href = href;
+				if(renderer && typeof renderer.updateFileNode === 'function') {
+					renderer.updateFileNode(item, link, isImage(contentType));
+				}
 			});
 		}
 		return link;
@@ -191,7 +186,7 @@ define([
 	/**
 	 * @param {Element} rowElement
 	 */
-	NavigatorRenderer.prototype.rowCallback = function(rowElement) {
+	NavigatorRenderer.prototype.rowCallback = function(rowElement, model) {
 		rowElement.setAttribute("role", "treeitem"); //$NON-NLS-1$ //$NON-NLS-0$
 	};
 	
@@ -274,7 +269,7 @@ define([
 	 * @returns {Element} The folder element.
 	 */
 	// The returned element must have an <code>id</code> property.
-	NavigatorRenderer.prototype.createFolderNode = function(folder, idPrefix) {
+	NavigatorRenderer.prototype.createFolderNode = function(folder) {
 		var itemNode;
 		if (this.showFolderLinks) { //$NON-NLS-0$
 			// TODO see https://bugs.eclipse.org/bugs/show_bug.cgi?id=400121
@@ -289,6 +284,20 @@ define([
 		}
 		return itemNode;
 	};
+
+	/**
+	* Subclasses can override this function to customize the DOM Element that is created to represent a file.
+	 * The default implementation does nothing.
+	 * @name orion.explorer.NavigatorRenderer#updateFileNode
+	 * @type {Function}
+	 * @param {Object} file The file model to update for.
+	 * @param {Element} fileNode The file node to update.
+	 * @param {Boolean} isImage The flag to indicate if the file is an image file.
+	 */
+	// The returned element must have an <code>id</code> property.
+	NavigatorRenderer.prototype.updateFileNode = function(file, fileNode, isImage) {
+	};
+
 	/**
 	 * Whether the default implementation of {@link #createFolderNode} should show folders should as links (<code>true</code>),
 	 * or just plain text (<code>false</code>).
@@ -343,7 +352,7 @@ define([
 						}
 					}
 				}
-				itemNode = createLink("", item, this.commandService, this.contentTypeService, this.openWithCommands, this.defaultEditor, { target: this.target });
+				itemNode = createLink("", item, this.commandService, this.contentTypeService, this.openWithCommands, this.defaultEditor, { target: this.target }, null, null, this);
 				span.appendChild(itemNode); //$NON-NLS-0$
 			}
 			if (itemNode) {
@@ -391,6 +400,7 @@ define([
 	//return module exports
 	return {
 		NavigatorRenderer: NavigatorRenderer,
+		isImage : isImage,
 		createLink: createLink
 	};
 });

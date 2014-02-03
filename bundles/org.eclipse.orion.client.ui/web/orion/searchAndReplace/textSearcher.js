@@ -10,14 +10,22 @@
  *	IBM Corporation - initial API and implementation
  *	Adrian Aichner - regular expression capture group support in replace
  ******************************************************************************/
-/*global define window document navigator*/
+/*global console define window document navigator*/
 /*jslint sub:true*/
 
-define(['i18n!orion/search/nls/messages', 'orion/editor/find', 'orion/commands', 'orion/objects', 'orion/webui/littlelib' ], 
-	function(messages, mFind, mCommands, objects, lib){
+define([
+	'i18n!orion/search/nls/messages', 
+	'orion/editor/find', 'orion/commands', 
+	'orion/objects', 
+	'orion/searchUtils', 
+	'orion/inputCompletion/inputCompletion', 
+	'orion/webui/littlelib' ], 
+	function(messages, mFind, mCommands, objects, mSearchUtils, mInputCompletion, lib){
 	
-	function TextSearcher(editor, cmdservice, undoStack, options) {
+	var MAX_RECENT_FIND_NUMBER = 30;
+	function TextSearcher(editor, serviceRegistry, cmdservice, undoStack, options) {
 		mFind.Find.call(this, editor, undoStack, options);
+		this._serviceRegistry = serviceRegistry;
 		this._commandService = cmdservice;
 	}
 	
@@ -48,6 +56,7 @@ define(['i18n!orion/search/nls/messages', 'orion/editor/find', 'orion/commands',
 		show: function(options) {
 			mFind.Find.prototype.show.call(this, options);
 			var findString = options.findString;
+			this._addRecentfind(findString);
 			var replaceString = options.replaceString;
 			var findDiv = document.getElementById("localSearchFindWith"); //$NON-NLS-0$
 			if (!findDiv) {
@@ -95,9 +104,15 @@ define(['i18n!orion/search/nls/messages', 'orion/editor/find', 'orion/commands',
 					return that._handleKeyDown(evt);
 				};
 				parentDiv.appendChild(searchStringInput);
-				
-				that._createButton("Next", parentDiv, function() {that.find(true);}); //$NON-NLS-0$			
-				that._createButton("Previous", parentDiv, function() {that.find(false);}); //$NON-NLS-0$
+				that._initCompletion(searchStringInput);				
+				that._createButton(messages["Next"], parentDiv, function() { //$NON-NLS-0$
+					that._addRecentfind(that.getFindString());
+					that.find(true);
+				});			
+				that._createButton(messages["Previous"], parentDiv, function() { //$NON-NLS-0$
+					that._addRecentfind(that.getFindString());
+					that.find(false);
+				});			
 				
 				var readonly = that._editor.getTextView().getOptions("readonly"); //$NON-NLS-0$
 				if (!readonly) {
@@ -176,6 +191,99 @@ define(['i18n!orion/search/nls/messages', 'orion/editor/find', 'orion/commands',
 			},
 			function(){that.hide();});
 		},
+		_storeRecentFind: function(recentFinds, eventTarget, deleting){
+			this._serviceRegistry.getService("orion.core.preference").getPreferences("/window/favorites").then(function(prefs) {  //$NON-NLS-1$ //$NON-NLS-0$
+				prefs.put("recentFind", recentFinds); //$NON-NLS-0$
+				if(eventTarget) {
+					window.setTimeout(function() {
+						eventTarget.dispatchEvent({type:"inputDataListChanged", deleting: deleting}); //$NON-NLS-0$
+					}.bind(this), 20);
+				}
+			});
+		},
+		_addRecentfind: function(findString){
+			if(typeof findString !== "string" || !findString ){ //$NON-NLS-0$
+				return;
+			}
+			//If the string is already in the input completion list, do not bother asking preference service.
+			if(this._completion && this._completion.hasValueOf(findString)){
+				return;
+			}
+			this._serviceRegistry.getService("orion.core.preference").getPreferences("/window/favorites").then(function(prefs) {  //$NON-NLS-1$ //$NON-NLS-0$
+				var i;
+				var searches = prefs.get("recentFind"); //$NON-NLS-0$
+				if (typeof searches === "string") { //$NON-NLS-0$
+					searches = JSON.parse(searches);
+				}
+				if (searches) {
+					for (i in searches) {
+						if (searches[i].name === findString) {
+							return;
+						}
+					}
+					if(searches.length >= MAX_RECENT_FIND_NUMBER){
+						var len = searches.length;
+						searches.splice(MAX_RECENT_FIND_NUMBER-1, len-MAX_RECENT_FIND_NUMBER+1);
+					}
+				} else {
+					searches = [];
+				}
+				searches.splice(0,0,{ "name": findString});//$NON-NLS-0$
+				this._storeRecentFind(searches, this._completion);
+			}.bind(this));
+		},
+		_removeRecentSearch: function( searchName, eventTarget){
+			if(typeof searchName !== "string" || !searchName ){ //$NON-NLS-0$
+				return;
+			}
+			this._serviceRegistry.getService("orion.core.preference").getPreferences("/window/favorites").then(function(prefs) {  //$NON-NLS-1$ //$NON-NLS-0$
+				var i;
+				var searches = prefs.get("recentFind"); //$NON-NLS-0$
+				if (typeof searches === "string") { //$NON-NLS-0$
+					searches = JSON.parse(searches);
+				}
+				if (searches) {
+					for (i in searches) {
+						if (searches[i].name === searchName) {
+							searches.splice(i, 1);
+							this._storeRecentFind(searches, eventTarget, true);
+							break;
+						}
+					}
+				}
+			}.bind(this));
+		},
+	    _initCompletion: function(searchStringInput) {
+			if(this._completion){
+				this._completion.setInputField(searchStringInput);
+			} else { //Create the inputCompletion lazily.
+				//Required. Reading recent&saved search from user preference. Once done call the uiCallback
+				var defaultProposalProvider = function(uiCallback){
+					this._serviceRegistry.getService("orion.core.preference").getPreferences("/window/favorites").then(function(prefs) {  //$NON-NLS-1$ //$NON-NLS-0$
+						var searches = prefs.get("recentFind"); //$NON-NLS-0$
+						if (typeof searches === "string") { //$NON-NLS-0$
+							searches = JSON.parse(searches);
+						}
+						if (searches) {
+							var fullSet = [];
+							searches.forEach(function(find) {
+								fullSet.push({type: "proposal", label: find.name, value: find.name});//$NON-NLS-0$
+							});
+							uiCallback(fullSet);
+						}
+					});
+				}.bind(this);
+				//Create and hook up the inputCompletion instance with the search box dom node.
+				//The defaultProposalProvider provides proposals from the recent and saved searches.
+				//The exendedProposalProvider provides proposals from plugins.
+				this._completion = new mInputCompletion.InputCompletion(searchStringInput, defaultProposalProvider, {serviceRegistry: this._serviceRegistry, group: "localSearch", //$NON-NLS-0$
+					onDelete: function(item, evtTarget) {
+						this._removeRecentSearch(item, evtTarget);
+					}.bind(this),
+					deleteToolTips: messages['Click or use delete key to delete the search term']
+				});
+	    	}
+	    },
 		_createButton: function(text, parent, callback) {
 			var button  = document.createElement("button"); //$NON-NLS-0$
 			button.addEventListener("click", callback.bind(this), false); //$NON-NLS-0$
@@ -223,6 +331,7 @@ define(['i18n!orion/search/nls/messages', 'orion/editor/find', 'orion/commands',
 					evt.stopPropagation(); 
 				}
 				evt.cancelBubble = true;
+				this._addRecentfind(this.getFindString());
 				if (evt.keyCode === 13) {
 					this.find(this._reverse ? evt.shiftKey : !evt.shiftKey);
 				} else {

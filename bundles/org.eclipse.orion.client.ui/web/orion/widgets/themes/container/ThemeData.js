@@ -38,6 +38,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme', 'orion/wid
 		StyleSet.prototype.navtext = '#bfbfbf';
 		StyleSet.prototype.content = '#3087B3';
 		StyleSet.prototype.search = '#444';
+		StyleSet.prototype.bannerProgress = "white";
 
 		function ThemeData(){
 		
@@ -57,6 +58,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme', 'orion/wid
 			orion.search = '#444';
 			orion.breadcrumb = '#3087B3';
 			orion.separator = '#333';
+			orion.bannerProgress = "whitesmoke";
 
 			this.styles.push( orion );			
 
@@ -75,6 +77,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme', 'orion/wid
 			eire.search = 'darkgreen';
 			eire.breadcrumb = '#3087B3';
 			eire.separator = 'seagreen';
+			eire.bannerProgress = "#F2F2F2";
 			
 			this.styles.push( eire );
 			
@@ -93,6 +96,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme', 'orion/wid
 			avril.search = 'violet';
 			avril.breadcrumb = '#3087B3';
 			avril.separator = 'plum';
+			avril.bannerProgress = "#F2F2F2";
 			
 			this.styles.push( avril );
 			
@@ -111,6 +115,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme', 'orion/wid
 			blue.search = 'royalblue';
 			blue.breadcrumb = '#3087B3';
 			blue.separator = 'cornflowerblue';
+			blue.bannerProgress = "#F2F2F2";
 			
 			this.styles.push( blue );
 			
@@ -129,6 +134,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme', 'orion/wid
 			vanilla.search = 'moccasin';
 			vanilla.breadcrumb = '#3087B3';
 			vanilla.separator = 'sandybrown';
+			vanilla.bannerProgress = "#F2F2F2";
 			
 			this.styles.push( vanilla );
 			
@@ -147,6 +153,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme', 'orion/wid
 			beetlejuice.search = '#444';
 			beetlejuice.breadcrumb = '#3087B3';
 			beetlejuice.separator = 'indigo';
+			beetlejuice.bannerProgress = "#F2F2F2";
 			
 			this.styles.push( beetlejuice );
 			
@@ -165,6 +172,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme', 'orion/wid
 			red.search = '#D85F56';
 			red.breadcrumb = 'darkred';
 			red.separator = '#CD2127';
+			red.bannerProgress = "#F2F2F2";
 			
 			this.styles.push( red );		
 		}

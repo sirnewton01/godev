@@ -49,17 +49,31 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			};
 			textView.addEventListener("ModelChanged", this._lastEditListener.onModelChanged); //$NON-NLS-0$
 
-			textView.setAction("undo", function() { //$NON-NLS-0$
+			textView.setAction("undo", function(data) { //$NON-NLS-0$
 				if (this.undoStack) {
-					this.undoStack.undo();
+					var count = 1;
+					if (data && data.count) {
+						count = data.count;
+					}
+					while (count > 0) {
+						this.undoStack.undo();
+						--count;
+					}
 					return true;
 				}
 				return false;
 			}.bind(this), {name: messages.undo});
 
-			textView.setAction("redo", function() { //$NON-NLS-0$
+			textView.setAction("redo", function(data) { //$NON-NLS-0$
 				if (this.undoStack) {
-					this.undoStack.redo();
+					var count = 1;
+					if (data && data.count) {
+						count = data.count;
+					}
+					while (count > 0) {
+						this.undoStack.redo();
+						--count;
+					}
 					return true;
 				}
 				return false;
@@ -275,7 +289,6 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 						editor.setCaretOffset(annotation.start);
 						annotation.collapse();
 					}
-					annotationModel.modifyAnnotation(annotation);
 				}
 			}
 			return true;
@@ -297,7 +310,6 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 					} else {
 						annotation.collapse();
 					}
-					annotationModel.modifyAnnotation(annotation);
 				}
 			}
 			textView.setRedraw(true);
@@ -414,6 +426,12 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			if (!annotationModel) { return true; }
 			var list = editor.getOverviewRuler() || editor.getAnnotationStyler();
 			if (!list) { return true; }
+			function ignore(annotation) {
+				return !!annotation.lineStyle ||
+					annotation.type === AT.ANNOTATION_MATCHING_BRACKET ||
+					annotation.type === AT.ANNOTATION_CURRENT_BRACKET ||
+					!list.isAnnotationTypeVisible(annotation.type);
+			}
 			var model = editor.getModel();
 			var currentOffset = editor.getCaretOffset();
 			var annotations = annotationModel.getAnnotations(forward ? currentOffset : 0, forward ? model.getCharCount() : currentOffset);
@@ -425,12 +443,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				} else {
 					if (annotation.start >= currentOffset) { continue; }
 				}
-				if (
-					annotation.lineStyle ||
-					annotation.type === AT.ANNOTATION_MATCHING_BRACKET ||
-					annotation.type === AT.ANNOTATION_CURRENT_BRACKET ||
-					!list.isAnnotationTypeVisible(annotation.type)
-				) {
+				if (ignore(annotation)) {
 					continue;
 				}
 				foundAnnotation = annotation;
@@ -439,6 +452,14 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				}
 			}
 			if (foundAnnotation) {
+				var foundAnnotations = [foundAnnotation];
+				annotations = annotationModel.getAnnotations(foundAnnotation.start, foundAnnotation.start);
+				while (annotations.hasNext()) {
+					annotation = annotations.next();
+					if (annotation !== foundAnnotation && !ignore(annotation)) {
+						foundAnnotations.push(annotation);
+					}
+				}
 				var view = editor.getTextView();
 				var nextLine = model.getLineAtOffset(foundAnnotation.start);
 				var tooltip = mTooltip.Tooltip.getTooltip(view);
@@ -454,7 +475,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 								y: view.getLocationAtOffset(model.getLineStart(nextLine)).y
 							}, "document", "page"); //$NON-NLS-1$ //$NON-NLS-0$
 							return {
-								contents: [foundAnnotation],
+								contents: foundAnnotations,
 								x: tooltipCoords.x,
 								y: tooltipCoords.y + Math.floor(view.getLineHeight(nextLine) * 1.33)
 							};
@@ -725,11 +746,10 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 							}
 						}
 					}
-
 					return false;
-				} else if (matchCommentEnd.test(lineTextBeforeCaret)) {
+				} else if (matchCommentEnd.test(lineTextBeforeCaret) && prefix.charCodeAt(prefix.length - 1) === 32) {
 					// Matches the end of a block comment. Fix the indentation for the following line.
-					text = lineText.substring(selection.start) + lineDelimiter + prefix.substring(0, prefix.length - 1);
+					text = lineDelimiter + prefix.substring(0, prefix.length - 1);
 					editor.setText(text, selection.start, selection.end);
 					editor.setCaretOffset(selection.start + text.length);
 					return true;
@@ -898,6 +918,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			var textView = editor.getTextView();
 			if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
 			var selection = editor.getSelection();
+			if (selection.start !== selection.end) { return false; }
 			var model = editor.getModel();
 			var caretOffset = editor.getCaretOffset();
 			var prevChar = (caretOffset === 0) ? "" : model.getText(selection.start - 1, selection.start); //$NON-NLS-0$

@@ -12,8 +12,8 @@
 /*global window define orion URL*/
 /*browser:true*/
 
-define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/contentTypes", "orion/URITemplate", "orion/i18nUtil", "orion/URL-shim", "orion/PageLinks"],
-	function(require, Deferred, mCommands, mRegex, mContentTypes, URITemplate, i18nUtil, _, PageLinks){
+define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/contentTypes", "orion/URITemplate", "orion/i18nUtil", "orion/URL-shim", "orion/PageLinks", "i18n!orion/edit/nls/messages"],
+	function(require, Deferred, mCommands, mRegex, mContentTypes, URITemplate, i18nUtil, _, PageLinks, messages){
 
 	/**
 	 * Utility methods
@@ -40,7 +40,23 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 	    }
 	    return temp;
 	};
-
+	
+	/*
+	 * Helper function which returns an object containing all of the specified 
+	 * serviceReference's properties.
+	 * @name _getServiceProperties
+	 * @param {orion.serviceregistry.ServiceReference} serviceReference
+	 * @returns {Object} All the properties of the given <code>serviceReference</code>.
+	 */
+	function _getServiceProperties(serviceReference){
+		var info = {};
+		var propertyNames = serviceReference.getPropertyKeys();
+		propertyNames.forEach(function(propertyName) {
+			info[propertyName] = serviceReference.getProperty(propertyName);
+		});
+		return info;
+	}
+	
 	/**
 	 * Reads <code>"orion.navigate.openWith"</code> service contributions and returns corresponding <code>orion.navigate.command<code> extensions.
 	 * @name orion.extensionCommands._getOpenWithNavCommandExtensions
@@ -68,6 +84,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 		function getEditorOpenWith(serviceRegistry, editor) {
 			var openWithReferences = serviceRegistry.getServiceReferences("orion.navigate.openWith"); //$NON-NLS-0$
 			var types = [];
+			var excludedTypes = [];
 			for (var i=0; i < openWithReferences.length; i++) {
 				var ref = openWithReferences[i];
 				if (ref.getProperty("editor") === editor.id) { //$NON-NLS-0$
@@ -77,16 +94,30 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 					} else if (ct !== null && typeof ct !== "undefined") { //$NON-NLS-0$
 						types.push(ct);
 					}
+					
+					var excludes = ref.getProperty("excludedContentTypes"); //$NON-NLS-0$
+					if (excludes instanceof Array) {
+						excludedTypes = excludedTypes.concat(excludes);
+					} else if ((excludes !== null) && (typeof excludes !== "undefined")) { //$NON-NLS-0$
+						excludedTypes.push(excludes);
+					}
 				}
 			}
-			return types;
+			if (0 === types.length) {
+				types = null;
+			}
+			if (0 === excludedTypes.length) {
+				excludedTypes = null;
+			}
+			return {contentTypes: types, excludedContentTypes: excludedTypes};
 		}
 		function getDefaultEditor(serviceRegistry) {
-			var openWithReferences = serviceRegistry.getServiceReferences("orion.navigate.openWith.default"); //$NON-NLS-0$
-			for (var i=0; i < openWithReferences.length; i++) {
-				return {editor: openWithReferences[i].getProperty("editor")}; //$NON-NLS-0$
+			var defaultEditor = null;
+			var defaultOpenWithRefs = serviceRegistry.getServiceReferences("orion.navigate.openWith.default"); //$NON-NLS-0$
+			if (0 < defaultOpenWithRefs.length) {
+				defaultEditor = _getServiceProperties(defaultOpenWithRefs[0]);
 			}
-			return null;
+			return defaultEditor;
 		}
 		
 		var editors = getEditors(), defaultEditor = getDefaultEditor(serviceRegistry);
@@ -95,23 +126,22 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 		for (var i=0; i < editors.length; i++) {
 			var editor = editors[i];
 			var isDefaultEditor = (defaultEditor && defaultEditor.editor === editor.id);
-			var editorContentTypes = getEditorOpenWith(serviceRegistry, editor);
-			if (editorContentTypes.length) {
-				var properties = {
-					name: editor.name || editor.id,
-					nameKey: editor.nameKey,
-					id: "eclipse.openWithCommand." + editor.id, //$NON-NLS-0$
-					tooltip: editor.name,
-					tooltipKey: editor.nameKey,
-					contentType: editorContentTypes,
-					uriTemplate: editor.uriTemplate,
-					nls: editor.nls,
-					forceSingleItem: true,
-					isEditor: (isDefaultEditor ? "default": "editor"), // Distinguishes from a normal fileCommand //$NON-NLS-1$ //$NON-NLS-0$
-					validationProperties: editor.validationProperties
-				};
-				fileCommands.push({properties: properties, service: {}});
-			}
+			var editorContentTypeInfo = getEditorOpenWith(serviceRegistry, editor);
+			var editorContentTypes = editorContentTypeInfo.contentTypes;
+			var excludedContentTypes = editorContentTypeInfo.excludedContentTypes;
+			var properties = {
+				name: editor.name || editor.id,
+				nameKey: editor.nameKey,
+				id: "eclipse.openWithCommand." + editor.id, //$NON-NLS-0$
+				contentType: editorContentTypes,
+				excludedContentTypes: excludedContentTypes,
+				uriTemplate: editor.uriTemplate,
+				nls: editor.nls,
+				forceSingleItem: true,
+				isEditor: (isDefaultEditor ? "default": "editor"), // Distinguishes from a normal fileCommand //$NON-NLS-1$ //$NON-NLS-0$
+				validationProperties: editor.validationProperties
+			};
+			fileCommands.push({properties: properties, service: {}});
 		}
 		return fileCommands;
 	};
@@ -250,21 +280,38 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 				}
 			}
 			// now content types
-			if (validator.info.contentType && contentTypes) {
-				var foundMatch = false;
-				var contentType = mContentTypes.getFilenameContentType(item.Name, contentTypes);
+			var showCommand = true;
+			var contentType = null;
+			if (validator.info.excludedContentTypes && contentTypes) {
+				contentType = mContentTypes.getFilenameContentType(item.Name, contentTypes);
+				if (contentType) {
+					showCommand = validator.info.excludedContentTypes.every(function(excludedContentType){
+						var filter = excludedContentType.replace(/([*?])/g, ".$1");	//$NON-NLS-0$ //convert user input * and ? to .* and .?
+						if (-1 !== contentType.id.search(filter)) {
+							// found a match, return false thereby hiding this command
+							return false;
+						}
+						return true;
+					});
+				}
+			}
+			
+			if (showCommand && validator.info.contentType && contentTypes) {
+				// the presence of validator.info.contentType means that we only 
+				// want to show the command if the contentType matches
+				showCommand = false;
+				contentType = mContentTypes.getFilenameContentType(item.Name, contentTypes);
 				if (contentType) {
 					for (var i=0; i<validator.info.contentType.length; i++) {
 						if (contentType.id === validator.info.contentType[i]) {
-							foundMatch = true;
+							showCommand = true;
 							break;
 						}
 					}
 				}
-				return foundMatch;
-			} else {	
-				return true;
 			}
+			
+			return showCommand;
 		}
 	
 		var validator = {info: info};
@@ -334,6 +381,13 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 		return validator;
 	};
 	
+	/**
+	 * Helper function which returns the id from an info object.
+	 */
+	function getIdFromInfo(info) {
+		return info.id || info.name
+	}
+	
 	// Turns an info object containing the service properties and the service (or reference) into Command options.
 	extensionCommandUtils._createCommandOptions = function(/**Object*/ info, /**Service*/ serviceOrReference, serviceRegistry, contentTypesMap, /**boolean*/ createNavigateCommandCallback, /**optional function**/ validationItemConverter) {
 		
@@ -393,7 +447,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 				var commandOptions = {
 						name: info.nameKey ? commandMessages[info.nameKey] : info.name,
 						image: info.image,
-						id: info.id || info.name,
+						id: getIdFromInfo(info),
 						tooltip: info.tooltipKey ? commandMessages[info.tooltipKey] : info.tooltip,
 						isEditor: info.isEditor,
 						showGlobally: info.showGlobally
@@ -404,7 +458,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 			var commandOptions = {
 					name: info.name,
 					image: info.image,
-					id: info.id || info.name,
+					id: getIdFromInfo(info),
 					tooltip: info.tooltip,
 					isEditor: info.isEditor,
 					showGlobally: info.showGlobally
@@ -423,10 +477,10 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 	 * @param {orion.commandregistry.CommandRegistry} commandRegistry The command registry to consult.
 	 * @returns {orion.commands.Command[]} All the "open with" commands added to the given <code>commandRegistry</code>.
 	 */
-	extensionCommandUtils.getOpenWithCommands = function(commandService) {
+	extensionCommandUtils.getOpenWithCommands = function(commandRegistry) {
 		var openWithCommands = [];
-		for (var commandId in commandService._commandList) {
-			var command = commandService._commandList[commandId];
+		for (var commandId in commandRegistry._commandList) {
+			var command = commandRegistry._commandList[commandId];
 			if (command.isEditor) {
 				openWithCommands.push(command);
 			}
@@ -449,33 +503,30 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 	 * @param {Function} visibleWhen
 	 * @returns {orion.Promise}
 	 */
-	extensionCommandUtils.createAndPlaceFileCommandsExtension = function(serviceRegistry, commandService, toolbarId, position, commandGroup, isNavigator) {
+	extensionCommandUtils.createAndPlaceFileCommandsExtension = function(serviceRegistry, commandRegistry, toolbarId, position, commandGroup, isNavigator) {
 		var navCommands = (isNavigator ? "all" : undefined); //$NON-NLS-0$
 		var openWithCommands = !!isNavigator;
-		return extensionCommandUtils.createFileCommands(serviceRegistry, null, navCommands, openWithCommands).then(function(fileCommands) {
-			commandService._addedOpenWithCommands = openWithCommands;
-			var extensionGroupCreated = false;
-			var openWithGroupCreated = false;
+		return extensionCommandUtils.createFileCommands(serviceRegistry, null, navCommands, openWithCommands, commandRegistry).then(function(fileCommands) {
+			if (commandGroup && (0 < fileCommands.length)) {
+				commandRegistry.addCommandGroup(toolbarId, "eclipse.openWith", 1000, messages["OpenWith"], commandGroup, null, null, null, "dropdownSelection"); ///$NON-NLS-1$ //$NON-NLS-0$
+				commandRegistry.addCommandGroup(toolbarId, "eclipse.fileCommandExtensions", 1000, messages["Extensions"], commandGroup); //$NON-NLS-0$
+			}
 			fileCommands.forEach(function(command) {
-				commandService.addCommand(command);
-				if (commandGroup && !extensionGroupCreated) {
-					extensionGroupCreated = true;
-					commandService.addCommandGroup(toolbarId, "eclipse.fileCommandExtensions", 1000, null, commandGroup); //$NON-NLS-0$
+				var group = null;	
+				if (commandGroup) {
+					if (command.isEditor) {
+						group = commandGroup + "/eclipse.openWith"; //$NON-NLS-0$
+					} else {
+						group = commandGroup + "/eclipse.fileCommandExtensions"; //$NON-NLS-0$
+					}
 				}
-				if (commandGroup && !openWithGroupCreated) {
-					openWithGroupCreated = true;
-					commandService.addCommandGroup(toolbarId, "eclipse.openWith", 1000, "Open With", commandGroup + "/eclipse.fileCommandExtensions"); //$NON-NLS-1$ //$NON-NLS-0$
-				}
-				if (this.isEditor) {
-					commandService.registerCommandContribution(toolbarId, command.id, position + this.index, commandGroup ? commandGroup + "/eclipse.fileCommandExtensions/eclipse.openWith" : null); //$NON-NLS-0$
-				} else {
-					commandService.registerCommandContribution(toolbarId, command.id, position + this.index, commandGroup ? commandGroup + "/eclipse.fileCommandExtensions" : null); //$NON-NLS-0$
-				}
+				
+				commandRegistry.registerCommandContribution(toolbarId, command.id, position, group); //$NON-NLS-0$
 			});
 			return {};
 		});
 	};
-
+		
 	/**
 	 * Reads file commands from extensions (<code>"orion.navigate.command"</code> and <code>"orion.navigate.openWith"</code>), and converts them into
 	 * instances of {@link orion.commands.Command}.
@@ -491,9 +542,10 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 	 * <dt><code>"none"</code></dt> <dd>Include no nav commands.</dd>
 	 * </dl>
 	 * @param {Boolean} [includeOpenWithCommands=true] Whether to include commands derived from <code>orion.navigate.openWith</code> in the list of returned file commands.
+	 * @param {orion.commandregistry.CommandRegistry} commandRegistry
 	 * @returns {orion.Promise} A promise resolving to an {@link orion.commands.Command[]} giving an array of file commands.
 	 */
-	extensionCommandUtils.createFileCommands = function(serviceRegistry, contentTypeRegistry, includeFileCommands, includeOpenWithCommands) {
+	extensionCommandUtils.createFileCommands = function(serviceRegistry, contentTypeRegistry, includeFileCommands, includeOpenWithCommands, commandRegistry) {
 		includeFileCommands = (includeFileCommands === undefined) ? "global" : includeFileCommands;
 		includeOpenWithCommands = (includeOpenWithCommands === undefined) ? true : includeOpenWithCommands;
 
@@ -521,30 +573,23 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 		//        arguments passed to run: (itemOrItems)
 		//          itemOrItems (object or array) - an array of items to which the item applies, or a single item if the info.forceSingleItem is true
 		//        the run function is assumed to perform all necessary action and the return is not used.
-		var commandsReferences = serviceRegistry.getServiceReferences("orion.navigate.command"); //$NON-NLS-0$
-
 		var fileCommands = [];
-		if (includeFileCommands === "all" || includeFileCommands === "global") { //$NON-NLS-1$ //$NON-NLS-0$
-			for (var i=0; i<commandsReferences.length; i++) {
-				// Exclude any navigation commands themselves, since we are the navigator.
-				var id = commandsReferences[i].getProperty("id"); //$NON-NLS-0$
-				if (id !== "orion.navigateFromMetadata") { //$NON-NLS-0$
-					var impl = serviceRegistry.getService(commandsReferences[i]);
-					var info = {};
-					var propertyNames = commandsReferences[i].getPropertyKeys();
-					for (var j = 0; j < propertyNames.length; j++) {
-						info[propertyNames[j]] = commandsReferences[i].getProperty(propertyNames[j]);
-					}
-					// If we are processing commands for the navigator, include all command declarations.
-					// If we are not the navigator, include only those marked "showGlobally"
-					// see https://bugs.eclipse.org/bugs/show_bug.cgi?id=402447
-					if (includeFileCommands === "all" || (info.forceSingleItem && info.showGlobally)) { //$NON-NLS-0$
-						fileCommands.push({properties: info, service: impl});
-					}
-				}
-			}
+		
+		if (!extensionCommandUtils._cachedFileCommands) {
+			extensionCommandUtils._createCachedFileCommands(serviceRegistry);
 		}
-
+		
+		//we have already created the file commands, only select applicable ones based on function parameters	
+		if (includeFileCommands === "all" || includeFileCommands === "global") { //$NON-NLS-1$ //$NON-NLS-0$
+			extensionCommandUtils._cachedFileCommands.forEach(function(fileCommand) {
+				var properties = fileCommand.properties;
+				// see https://bugs.eclipse.org/bugs/show_bug.cgi?id=402447
+				if ((includeFileCommands === "all") || (properties.forceSingleItem && properties.showGlobally)) { //$NON-NLS-0$
+					fileCommands.push(fileCommand);
+				}
+			});
+		}
+				
 		function getContentTypes() {
 			var contentTypes = serviceRegistry.getService("orion.core.contentTypeRegistry") || contentTypeRegistry;
 			return contentTypesCache || Deferred.when(contentTypes.getContentTypes(), function(ct) { //$NON-NLS-0$
@@ -552,23 +597,33 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 				return contentTypesCache;
 			});
 		}
-
+				
 		return Deferred.when(getContentTypes(), function() {
 			// If we are processing commands for the navigator, also include the open with command.  If we are not in the navigator, we only want the
 			// commands we processed before.
 			// see https://bugs.eclipse.org/bugs/show_bug.cgi?id=402447
-			fileCommands = includeOpenWithCommands ? fileCommands.concat(extensionCommandUtils._getOpenWithNavCommandExtensions(serviceRegistry, contentTypesCache)) : fileCommands;
-
-			var commandDeferreds = fileCommands.map(function(fileCommand, i) {
+			if (includeOpenWithCommands) {
+				if (!extensionCommandUtils._cachedOpenWithExtensions) {
+					extensionCommandUtils._cachedOpenWithExtensions = extensionCommandUtils._getOpenWithNavCommandExtensions(serviceRegistry, contentTypesCache);
+				}
+				//add _cachedOpenWithExtensions to fileCommands
+				fileCommands = fileCommands.concat(extensionCommandUtils._cachedOpenWithExtensions);
+				commandRegistry._addedOpenWithCommands = includeOpenWithCommands;
+			}
+						
+			var commandDeferreds = fileCommands.map(function(fileCommand) {
 				var commandInfo = fileCommand.properties;
 				var service = fileCommand.service;
-				return extensionCommandUtils._createCommandOptions(commandInfo, service, serviceRegistry, contentTypesCache, true).then(function(commandOptions) {
-					var command = new mCommands.Command(commandOptions);
-					if (commandInfo.isEditor) {
-						command.isEditor = commandInfo.isEditor;
-					}
-					return command;
-				});
+				var cachedCommand = commandRegistry.findCommand(getIdFromInfo(commandInfo));
+				if (cachedCommand) {
+					return new Deferred().resolve(cachedCommand);
+				} else {
+					return extensionCommandUtils._createCommandOptions(commandInfo, service, serviceRegistry, contentTypesCache, true).then(function(commandOptions) {
+						var command = new mCommands.Command(commandOptions);
+						commandRegistry.addCommand(command);
+						return command;
+					});
+				}
 			});
 			return Deferred.all(commandDeferreds, function(error) {
 				return {_error: error};
@@ -578,6 +633,42 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 		});
 	};
 
+	extensionCommandUtils._createCachedFileCommands = function(serviceRegistry) {
+		var commandsReferences = serviceRegistry.getServiceReferences("orion.navigate.command"); //$NON-NLS-0$
+		extensionCommandUtils._cachedFileCommands = [];
+
+		for (var i=0; i<commandsReferences.length; i++) {
+			// Exclude any navigation commands themselves, since we are the navigator.
+			var id = commandsReferences[i].getProperty("id"); //$NON-NLS-0$
+			if (id !== "orion.navigateFromMetadata") { //$NON-NLS-0$
+				var service = serviceRegistry.getService(commandsReferences[i]);
+				var properties = _getServiceProperties(commandsReferences[i]);
+				extensionCommandUtils._cachedFileCommands.push({properties: properties, service: service});
+			}
+		}
+	};
+	
+	/**
+	 * Reads the cached non-openWith file commands from extensions, and 
+	 * returns an array containing their ids. If the cached commands haven't
+	 * been created an exception will be thrown.
+	 * 
+	 * @name orion.extensionCommands.getFileCommandIds
+	 * @function
+	 * @returns {Array} An array containing the {String} ids of the cached non-openWith file commands
+	 */
+	extensionCommandUtils.getFileCommandIds = function() {
+		var ids = [];
+		if (!extensionCommandUtils._cachedFileCommands) {
+			throw "extensionCommandUtils._cachedFileCommands is not initialized"; //$NON-NLS-0$
+		} else if (extensionCommandUtils._cachedFileCommands.length) {
+			ids = extensionCommandUtils._cachedFileCommands.map(function(command){
+				return command.properties.id;
+			});
+		}
+		return ids;
+	};
+	
 	/**
 	 * Reads <code>"orion.navigate.openWith"</code> extensions, and converts them into instances of {@link orion.commands.Command}.
 	 * @name orion.extensionCommands.createOpenWithCommands
@@ -592,7 +683,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 			// already processed by #createAndPlaceFileCommandsExtension
 			return new Deferred().resolve(extensionCommandUtils.getOpenWithCommands(commandRegistry));
 		}
-		return extensionCommandUtils.createFileCommands(serviceRegistry, contentTypeService, "none", true);
+		return extensionCommandUtils.createFileCommands(serviceRegistry, contentTypeService, "none", true, commandRegistry);
 	};
 
 	return extensionCommandUtils;

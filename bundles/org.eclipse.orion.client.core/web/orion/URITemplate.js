@@ -119,7 +119,8 @@ define(function(){
 				var value = params[name];
 				var valueType = typeof(value);
 				if (valueType !== "undefined" && value !== null) { //$NON-NLS-0$
-					var resultText = result.length === 0 ? this._operator.first: this._operator.sep;				
+					var sep = result.length === 0 ? this._operator.first: this._operator.sep;
+					var resultText = sep;				
 					if (valueType === "string") { //$NON-NLS-0$
 						if (this._operator.named) {
 							resultText += encodeString(name, "U+R"); //$NON-NLS-0$
@@ -153,7 +154,9 @@ define(function(){
 					} else {
 						throw new Error("bad param type: " + name + " : " + valueType); //$NON-NLS-1$ //$NON-NLS-0$
 					}
-					result.push(resultText);
+					if (resultText !== sep || i < this._varSpecList.length - 1) {
+						result.push(resultText);
+					}
 				}
 			}
 			return result.join("");

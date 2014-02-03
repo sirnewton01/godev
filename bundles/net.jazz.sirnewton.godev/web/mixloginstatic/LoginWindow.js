@@ -1,11 +1,11 @@
 /*******************************************************************************
  * @license
  * Copyright (c) 2011, 2012 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
+ *
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
@@ -153,7 +153,7 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 			}
 		}
 		window.close();
-		
+
 	}
 
 	function createOpenIdLink(openid) {
@@ -166,20 +166,20 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 			}
 		}
 	}
-	
+
 	/* handleSelectionEvent - centralize decision making criteria for the key press,
 	   click, gesture etc that we respect as a user choice */
-	
+
 	function handleSelectionEvent( event ){
-	
+
 		var outcome = false;
-		
+
 		if( event.type === 'click' || event.keyCode === 13 ){
 			outcome = true;
 		}
-		
+
 		event.stopPropagation();
-		
+
 		return outcome;
 	}
 
@@ -193,7 +193,7 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 	function addPersonaHandler(button) {
 		var currentUser = null;
 		navigator.id.watch({
-			loggedInUser: currentUser, 
+			loggedInUser: currentUser,
 			onlogin: function(assertion) {
 				if (personaLoginClicked) {
 					xhr("POST", "../login/persona", {
@@ -217,12 +217,12 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 
 	function confirmLogin(login, password) {
 		if (!login) {
-			login = document.getElementById('login').value;
+			login = document.getElementById('login').value.trim();
 			password = document.getElementById('password').value;
 		}
-		
-		if( login.length > 0 && password.length > 0 ){ 
-		
+
+		if( login.length > 0 && password.length > 0 ){
+
 			var mypostrequest = new XMLHttpRequest();
 			mypostrequest.onreadystatechange = function() {
 				if (mypostrequest.readyState === 4) {
@@ -234,7 +234,7 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 					}
 				}
 			};
-	
+
 			var parameters = "login=" + encodeURIComponent(login) + "&password=" + encodeURIComponent(password);
 			mypostrequest.open("POST", "../login/form", true);
 			mypostrequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
@@ -251,11 +251,11 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 		hideErrorMessage();
 		return true;
 	}
-	
+
 	function hideRegistration() {
 		document.getElementById('newUserHeaderShown').style.visibility = 'hidden';
 		document.getElementById('orionOpen').style.visibility = '';
-		
+
 		if (userCreationEnabled || registrationURI) {
 			document.getElementById('orionRegister').style.visibility = '';
 		}
@@ -299,17 +299,17 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 
 	function revealRegistration( event ) {
 		// If registrationURI is set and userCreation is not, open the URI in a new window
-		
+
 		if( handleSelectionEvent( event ) ){
-		
+
 			if (!userCreationEnabled && registrationURI) {
 				window.open(registrationURI);
 				return;
 			}
-		
+
 			document.getElementById('orionOpen').style.visibility = 'hidden';
 			document.getElementById('orionRegister').style.visibility = 'hidden';
-		
+
 			document.getElementById('orionLoginForm').style.visibility = 'hidden';
 			document.getElementById('orionRegister').style.visibility = 'hidden';
 			document.getElementById('newUserHeaderShown').style.visibility = '';
@@ -337,21 +337,21 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 		document.getElementById('newUserHeaderShown').style.display = '';
 		document.getElementById('orionReset').style.visibility = 'hidden';
 	}
-	
+
 	function revealLogin( event ){
 		if( handleSelectionEvent( event ) ){
 			event.stopPropagation();
 			document.getElementById('orionOpen').style.visibility = 'hidden';
-			document.getElementById('orionRegister').style.visibility = 'hidden';		
+			document.getElementById('orionRegister').style.visibility = 'hidden';
 			document.getElementById('orionLoginForm').style.visibility = '';
 			document.getElementById("login").focus();
 		}
 	}
-	
+
 	function hideLogin(){
 		document.getElementById('orionLoginForm').style.visibility = 'hidden';
 		document.getElementById('orionOpen').style.visibility = '';
-		
+
 		if (userCreationEnabled || registrationURI) {
 			document.getElementById('orionRegister').style.visibility = '';
 		}
@@ -388,7 +388,7 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 						formatForNoUserCreation();
 					}
 					document.getElementById("login-window").style.display = '';
-					//document.getElementById("orionLogin").focus();
+					document.getElementById("orionLogin").focus();
 				}
 			}
 		};
@@ -512,6 +512,7 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 
 		document.getElementById("hideRegisterButton").addEventListener("click", hideRegistration);
 
+		// FIX the hrefs of the various forms here.
 		//document.getElementById("googleLoginLink").href = createOpenIdLink("https://www.google.com/accounts/o8/id");
 		//document.getElementById("googleLogin").addEventListener("keydown", googleLogin);
 		

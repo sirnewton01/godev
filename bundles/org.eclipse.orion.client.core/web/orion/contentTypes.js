@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2011, 2012 IBM Corporation and others.
+ * Copyright (c) 2011, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define */
+/*jslint amd:true*/
 define([], function() {
 	var SERVICE_ID = "orion.core.contentTypeRegistry"; //$NON-NLS-0$
 	var EXTENSION_ID = "orion.core.contenttype"; //$NON-NLS-0$
@@ -54,49 +54,76 @@ define([], function() {
 		return best;
 	}
 
+	function array(obj) {
+		if (obj === null || typeof obj === "undefined") { return []; } //$NON-NLS-0$
+			return (Array.isArray(obj)) ? obj : [obj];
+		}
+
+	function arrayLowerCase(obj) {
+		return array(obj).map(function(str) { return String.prototype.toLowerCase.call(str); });
+	}
+
+	function process(contentTypeData) {
+		return {
+			id: contentTypeData.id,
+			name: contentTypeData.name,
+			image: contentTypeData.image,
+			imageClass: contentTypeData.imageClass,
+			"extends": contentTypeData["extends"], //$NON-NLS-1$ //$NON-NLS-0$
+			extension: arrayLowerCase(contentTypeData.extension),
+			filename: array(contentTypeData.filename)
+		};
+	}
+
+	function buildMap(contentTypeDatas) {
+		var map = Object.create(null);
+		contentTypeDatas.map(process).forEach(function(contentType) {
+			if (!Object.prototype.hasOwnProperty.call(map, contentType.id)) {
+				map[contentType.id] = contentType;
+			}
+		});
+		return map;
+	}
+
+	function buildMapFromServiceRegistry(serviceRegistry) {
+		var serviceReferences = serviceRegistry.getServiceReferences(EXTENSION_ID).concat(
+				serviceRegistry.getServiceReferences(OLD_EXTENSION_ID));
+		var contentTypeDatas = [];
+		for (var i=0; i < serviceReferences.length; i++) {
+			var serviceRef = serviceReferences[i], types = array(serviceRef.getProperty("contentTypes")); //$NON-NLS-0$
+			for (var j=0; j < types.length; j++) {
+				contentTypeDatas.push(types[j]);
+			}
+		}
+		return buildMap(contentTypeDatas);
+	}
+
 	/**
 	 * @name orion.core.ContentTypeRegistry
 	 * @class A service for querying {@link orion.core.ContentType}s.
-	 * @description A service for querying {@link orion.core.ContentType}s. Clients should request the <code>"orion.core.contentTypeRegistry"</code>
-	 * service from the {@link orion.serviceregistry.ServiceRegistry} rather than instantiate this class directly. This constructor is 
-	 * intended for use only by page initialization code.
-	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry The service registry to use for looking up registered content types
-	 * and for registering this service.
+	 * @description A registry that provides information about {@link orion.core.ContentType}s.
+	 *
+	 * <p>If a {@link orion.serviceregistry.ServiceRegistry} is available, clients should request the service with
+	 * objectClass <code>"orion.core.contentTypeRegistry"</code> from the registry rather than instantiate this 
+	 * class directly. This constructor is intended for use only by page initialization code.</p>
+	 *
+	 * @param {orion.serviceregistry.ServiceRegistry|orion.core.ContentType[]} dataSource The service registry
+	 * to use for looking up available content types and for registering this ContentTypeRegistry.
+	 * 
+	 * <p>Alternatively, an array of ContentType data may be passed instead, which allows clients to use this
+	 * ContentTypeRegistry without a service registry.</p>
 	 */
-	function ContentTypeRegistry(serviceRegistry) {
-		function buildMap(serviceRegistry) {
-			function array(obj) {
-				if (obj === null || typeof obj === "undefined") { return []; } //$NON-NLS-0$
-				return (Array.isArray(obj)) ? obj : [obj];
-			}
-			function arrayLowerCase(obj) {
-				return array(obj).map(function(str) { return String.prototype.toLowerCase.call(str); });
-			}
-			var serviceReferences = serviceRegistry.getServiceReferences(EXTENSION_ID).concat(
-					serviceRegistry.getServiceReferences(OLD_EXTENSION_ID));
-			var contentTypes = {};
-			for (var i=0; i < serviceReferences.length; i++) {
-				var serviceRef = serviceReferences[i], types = array(serviceRef.getProperty("contentTypes")); //$NON-NLS-0$
-				for (var j=0; j < types.length; j++) {
-					var type = types[j];
-					if (!contentTypes[type.id]) {
-						contentTypes[type.id] = {
-							id: type.id,
-							name: type.name,
-							image: type.image,
-							"extends": type["extends"], //$NON-NLS-1$ //$NON-NLS-0$
-							extension: arrayLowerCase(type.extension),
-							filename: array(type.filename)
-						};
-					}
-				}
-			}
-			return contentTypes;
+	function ContentTypeRegistry(dataSource) {
+		if (dataSource && dataSource.registerService) {
+			this.serviceRegistry = dataSource;
+			this.map = buildMapFromServiceRegistry(dataSource);
+			dataSource.registerService(SERVICE_ID, this);
+		} else if (Array.isArray(dataSource)) {
+			this.serviceRegistry = null;
+			this.map = buildMap(dataSource);
+		} else {
+			throw new Error("Invalid parameter"); //$NON-NLS-0$
 		}
-		
-		this.serviceRegistry = serviceRegistry;
-		this.map = buildMap(serviceRegistry);
-		serviceRegistry.registerService(SERVICE_ID, this);
 	}
 	ContentTypeRegistry.prototype = /** @lends orion.core.ContentTypeRegistry.prototype */ {
 		/**

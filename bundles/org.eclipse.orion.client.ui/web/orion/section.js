@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -9,7 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  /*global define window document*/
-define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'orion/commonHTMLFragments'], function(lib, mSelection, mCommands, mHTMLFragments){
+define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'orion/commonHTMLFragments', 'orion/objects', 	'orion/selection'], function(lib, mSelection, mCommands, mHTMLFragments, objects, Selection){
 	
 	/**
 	 * Generates a section
@@ -20,6 +20,7 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 	 * @param {String} options.id id of the section header
 	 * @param {String} options.title title (in HTML) of the section
 	 * @param {orion.preferences.PreferencesService} [options.preferenceService] used to store the hidden/shown state of the section if specified
+	 * @param {String|Array} [options.headerClass] a class or array of classes to use in the section header, in addition to the default header classes
 	 * @param {String|Array} [options.iconClass] a class or array of classes to use in the icon decorating section, no icon displayed if not provided
 	 * @param {Function} [options.getItemCount] function to return the count of items in the section. If not provided, no count is shown.
 	 * @param {String|DomNode} [options.content] HTML or DOM node giving the Section's initial contents. May be set later using {@link #setContent()}
@@ -62,7 +63,7 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 			this.twistie = document.createElement("span"); //$NON-NLS-0$
 			this.twistie.classList.add("modelDecorationSprite"); //$NON-NLS-0$
 			this.twistie.classList.add("layoutLeft"); //$NON-NLS-0$
-			this.twistie.classList.add("sectionTitle"); //$NON-NLS-0$
+			this.twistie.classList.add("sectionTitleTwistie"); //$NON-NLS-0$
 			this.domNode.style.cursor = "pointer"; //$NON-NLS-0$
 			this.domNode.appendChild(this.twistie);
 			this.domNode.tabIndex = 0; //$NON-NLS-0$
@@ -77,15 +78,22 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 				}
 			}, false);
 		}
-
+		var classes;
 		if(options.iconClass){
 			var icon = document.createElement("span"); //$NON-NLS-0$
 			icon.classList.add("sectionIcon"); //$NON-NLS-0$
 			this.domNode.appendChild(icon);
-			var classes = Array.isArray(options.iconClass) ? options.iconClass : [options.iconClass];
+			classes = Array.isArray(options.iconClass) ? options.iconClass : [options.iconClass];
 			classes.forEach(function(aClass) {
 				icon.classList.add(aClass);
 			});
+		}
+		
+		if(options.headerClass){
+			classes = Array.isArray(options.headerClass) ? options.headerClass : [options.headerClass];
+			classes.forEach(function(aClass) {
+				this.domNode.classList.add(aClass);
+			}.bind(this));
 		}
 		
 		this.titleNode = document.createElement("div"); //$NON-NLS-0$
@@ -160,6 +168,7 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 		this._preferenceService = options.preferenceService;
 		// initially style as hidden until we determine what needs to happen
 		this._contentParent.style.display = "none"; //$NON-NLS-0$
+		this.domNode.classList.add("sectionWrapperClosed");
 		// should we consult a preference?
 		if (this._preferenceService) {
 			var self = this;
@@ -173,6 +182,7 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 
 				if (!self.hidden) {
 					self._contentParent.style.display = "block"; //$NON-NLS-0$
+					self.domNode.classList.remove("sectionWrapperClosed");
 				}
 				
 				self._updateExpandedState(!self.hidden, false);
@@ -180,6 +190,7 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 		} else {
 			if (!this.hidden) {
 				this._contentParent.style.display = "block"; //$NON-NLS-0$
+				this.domNode.classList.remove("sectionWrapperClosed");
 			}
 			this._updateExpandedState(!this.hidden, false);
 		}
@@ -196,6 +207,22 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 		 */
 		setTitle: function(title){
 			this.titleNode.textContent = title;
+		},
+		
+		/**
+		 * Get the header DOM node
+		 * @returns {DomNode} The dom node that holds the section header.
+		 */
+		getHeaderElement: function(title){
+			return this.domNode;
+		},
+		
+		/**
+		 * Get the title DOM node
+		 * @returns {DomNode} The dom node that holds the section title.
+		 */
+		getTitleElement: function(title){
+			return this.titleNode;
 		},
 		
 		/**
@@ -216,6 +243,100 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 		 */
 		getContentElement: function() {
 			return this._contentParent;
+		},
+		
+		embedExplorer: function(explorer, parent, noSelection){
+			this._contentParent.innerHTML = ""; //NON-NLS-0$
+			if(!explorer.parent){
+				explorer.parent = parent;
+			}
+			this._contentParent.appendChild(explorer.parent);
+			explorer.section = this;
+			objects.mixin(explorer, {
+				createActionSections: function(){
+					if(this.actionsSections)
+					this.actionsSections.forEach(function(id) {
+						if (!lib.node(id)) {
+							var elem = document.createElement("ul"); //$NON-NLS-0$
+							elem.id = id;
+							elem.classList.add("commandList"); //$NON-NLS-0$
+							elem.classList.add("layoutRight"); //$NON-NLS-0$
+							this.section.actionsNode.appendChild(elem);
+						}
+					}.bind(this));
+				},
+				getCommandsVisible: function() {
+					return this.section.actionsNode.style.visibility!=="hidden";
+				},
+				setCommandsVisible: function(visible) {
+					this.section.actionsNode.style.visibility = visible ? "" : "hidden";
+					var selectionPolicy = visible ? null : "cursorOnly"; //$NON-NLS-0$
+					this.renderer.selectionPolicy = selectionPolicy;
+					var navHandler = this.getNavHandler();
+					if (navHandler) {
+						navHandler.setSelectionPolicy(selectionPolicy);
+					}
+					if (visible) {
+						this.updateCommands();
+					} else {
+						if(this.actionsSections)
+						this.actionsSections.forEach(function(id) {
+							if(lib.node(id)) this.commandRegistry.destroy(id);
+						}.bind(this));
+					}
+				},
+				destroy: function(){
+					Object.getPrototypeOf(this).destroy.call(this);
+					var _self = this;
+					if(!this.actionsSections){
+						return;
+					}
+					this.actionsSections.forEach(function(id) {
+						delete _self[id];
+					});
+					delete this.actionsSections;
+				},
+				updateCommands: function(selections){
+					if (!this.section.actionsNode || !this.getCommandsVisible()) {
+						return;
+					}
+					this.createActionSections();
+					Object.getPrototypeOf(this).updateCommands.call(this, selections);
+				},
+				loaded: function(){
+					var self = this;
+					if(!this.selection && !noSelection){
+						if(this.serviceRegistry || this.registry){
+							this.selection = new Selection.Selection(this.serviceRegistry || this.registry, this.parent.id + "Selection"); //$NON-NLS-0$
+							this.selection.addEventListener("selectionChanged", function(event) { //$NON-NLS-0$
+								self.updateCommands(event.selections);
+							});
+						} else {
+							window.console.error("Could not create a Selection for the explorer because of lack of serviceRegistry");
+						}
+					}
+					var commandsRegistered = this.registerCommands();
+					if(!commandsRegistered || !commandsRegistered.then){
+						self.updateCommands();
+					} else {
+						commandsRegistered.then(function() {
+							self.updateCommands();
+						});
+					}
+				}
+			});
+			if(explorer.renderer){
+				explorer.renderer.section = this;
+				objects.mixin(explorer.renderer, {
+					getCellHeaderElement: function(col_no){
+						var firstHeader = Object.getPrototypeOf(this).getCellHeaderElement.call(this, col_no);
+						if(firstHeader){
+							this.section.setTitle(firstHeader.innerHTML);
+						}
+						return null;
+					}
+				});
+			}
 		},
 
 		createProgressMonitor: function(){
@@ -254,9 +375,11 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 			// TODO we could use classes with CSS transitions to animate				
 			if (!this.hidden){
 				this._contentParent.style.display = "none"; //$NON-NLS-0$
+				this.domNode.classList.add("sectionWrapperClosed");
 				this.hidden = true;
 			} else {
 				this._contentParent.style.display = "block"; //$NON-NLS-0$
+				this.domNode.classList.remove("sectionWrapperClosed");
 				this.hidden = false;
 			}
 			

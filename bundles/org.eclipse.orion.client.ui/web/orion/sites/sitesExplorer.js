@@ -111,50 +111,50 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 
 					commandService.registerCommandContribution(that.pageActionsWrapperId, 'orion.site.create', 100); //$NON-NLS-0$
 					
-					commandService.registerCommandContribution(that.selectionActionsWrapperId, 'orion.site.start', 20); //$NON-NLS-0$
-					commandService.registerCommandContribution(that.selectionActionsWrapperId, 'orion.site.stop', 30); //$NON-NLS-0$
-					commandService.registerCommandContribution(that.selectionActionsWrapperId, 'orion.site.delete', 40, null, false, new mKeyBinding.KeyBinding(lib.KEY.DEL)); //$NON-NLS-0$
-					
 					commandService.registerCommandContribution(that.defaultActionWrapperId, 'orion.site.start', 20); //$NON-NLS-0$
 					commandService.registerCommandContribution(that.defaultActionWrapperId, 'orion.site.stop', 30); //$NON-NLS-0$
+					commandService.registerCommandContribution(that.defaultActionWrapperId, 'orion.site.delete', 40, null, false); //$NON-NLS-0$
 					
+
+					var areConfigurations = false;
 					for (var i=0; i<siteConfigurations.length; i++){
-						var siteServiceId = siteConfigurations[i].siteService._id;
-						if	(siteConfigurations.length > 1){
-							var titleWrapper = new mSection.Section(document.getElementById(that.parentId), {
-								id: siteServiceId + "_Section", //$NON-NLS-0$
-								title: siteConfigurations[i].siteService._name,
-								content: '<div id="' + siteServiceId + '_Node" class="mainPadding"></list>', //$NON-NLS-1$ //$NON-NLS-0$
-								canHide: true
-							});
-						} else {
-							var contentParent = document.createElement("div"); //$NON-NLS-0$
-							contentParent.setAttribute("role", "region"); //$NON-NLS-1$ //$NON-NLS-0$
-							contentParent.classList.add("sectionTable"); //$NON-NLS-0$
-							document.getElementById(that.parentId).appendChild(contentParent);
-							var div = document.createElement("div"); //$NON-NLS-0$
-							div.id = siteServiceId + '_Node';
-							div.classList.add("mainPadding"); //$NON-NLS-0$
-							contentParent.appendChild(div);
+						if (siteConfigurations[i].siteConfigurations && siteConfigurations[i].siteConfigurations.length > 0){
+							areConfigurations = true;
+							break;
 						}
-					
-						that.createTree(siteServiceId + "_Node", new SiteTreeModel(siteConfigurations[i].siteConfigurations), {setFocus: true});
+					}
+
+					// If there are no configurations, put up an info box					
+					if (!areConfigurations){
+						that.renderNoSites(document.getElementById(that.parentId), siteServiceRefs[0]);
+					} else {				
+						for (var i=0; i<siteConfigurations.length; i++){
+							var siteServiceId = siteConfigurations[i].siteService._id;
+							// If there are multiple site config types, organize them into a tree
+							if	(siteConfigurations.length > 1){
+								var titleWrapper = new mSection.Section(document.getElementById(that.parentId), {
+									id: siteServiceId + "_Section", //$NON-NLS-0$
+									title: siteConfigurations[i].siteService._name,
+									content: '<div id="' + siteServiceId + '_Node" class="mainPadding siteGroup"></list>', //$NON-NLS-1$ //$NON-NLS-0$
+									canHide: true
+								});
+							// If there are sites of just one config type, put them in a table
+							} else {
+								var contentParent = document.createElement("div"); //$NON-NLS-0$
+								contentParent.setAttribute("role", "region"); //$NON-NLS-1$ //$NON-NLS-0$
+								document.getElementById(that.parentId).appendChild(contentParent);
+								var div = document.createElement("div"); //$NON-NLS-0$
+								div.id = siteServiceId + '_Node';
+								div.classList.add("mainPadding"); //$NON-NLS-0$
+								contentParent.appendChild(div);
+							}
+						
+							that.createTree(siteServiceId + "_Node", new SiteTreeModel(siteConfigurations[i].siteConfigurations), {setFocus: false, noSelection: true});
+						}
 					}
 					
 					// TODO should show Create per each site service
 					that._updatePageActions(that.registry, siteServiceRefs[0]); //$NON-NLS-1$ //$NON-NLS-0$
-					
-					if (!that.doOnce){
-						that.registry.getService("orion.page.selection").addEventListener("selectionChanged", function(event) { //$NON-NLS-1$ //$NON-NLS-0$
-							var selectionTools = document.getElementById(that.selectionActionsWrapperId);
-							if (selectionTools) {
-								commandService.destroy(selectionTools);						
-								commandService.renderCommands(that.selectionActionsWrapperId, selectionTools, event.selections, that, "button", that.getRefreshHandler()); //$NON-NLS-1$ //$NON-NLS-0$
-							}
-						});
-						
-						that.doOnce = true;
-					}
 					
 					loadingDeferred.resolve();
 					progressService.setProgressMessage("");
@@ -176,13 +176,54 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 
 			this._getSiteConfigurations(this.siteClients).then(
 				function(siteConfigurations){
+					// TODO Code is very similar to initial tree display				
+					var areConfigurations = false;
 					for (var i=0; i<siteConfigurations.length; i++){
+						// Remove deleted sites
 						var siteServiceId = siteConfigurations[i].siteService._id + "_Node";
 						lib.empty(lib.node(siteServiceId));
-						that.createTree(siteServiceId, new SiteTreeModel(siteConfigurations[i].siteConfigurations), {setFocus: true});
+						
+						// Check if there are any configurations left and create the tree
+						if (siteConfigurations[i].siteConfigurations && siteConfigurations[i].siteConfigurations.length > 0){
+							areConfigurations = true;
+							that.createTree(siteServiceId, new SiteTreeModel(siteConfigurations[i].siteConfigurations), {setFocus: false, noSelection: true});
+						}
+					}
+					
+					// If there are no sites defined, tell the user with a button to create a site
+					if (!areConfigurations){
+						var siteServiceRefs = that.registry.getServiceReferences('orion.site'); //$NON-NLS-0$
+						that.renderNoSites(document.getElementById(that.parentId), siteServiceRefs[0]);
 					}
 				}
 			);
+		};
+		
+		/**
+		 * @name renderNoSites
+		 * @description Generates an explorer showing the sites on each site service.
+		 * @private
+		 * 
+		 * @param DOM element that the no sites content should be rendered in
+		 * @param Site service reference to use to create the commands
+		 */
+		SiteServicesExplorer.prototype.renderNoSites = function(parentElement, siteServiceRef){
+			// If there are no sites defined, tell the user with a button to create a site
+			var that = this;
+			var noSites = document.createElement("div"); //$NON-NLS-0$
+			noSites.className = "sitesPanel sectionWrapper sectionTitle";
+			
+			// Insert the create action into the no sites text
+			var actions = document.createElement("span"); //$NON-NLS-0$
+			that.commandService.renderCommands(that.pageActionsWrapperId, actions, siteServiceRef, that, "button", that.getRefreshHandler());
+			noSites.appendChild(actions);
+			
+			var textNode = document.createElement("span");  //$NON-NLS-0$
+			textNode.textContent = messages["SitesExplorer.NoSitesText"];
+			lib.processDOMNodes(textNode, [actions]);
+			
+			noSites.appendChild(textNode);
+			parentElement.appendChild(noSites);
 		};
 		
 		return SiteServicesExplorer;
@@ -206,68 +247,67 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 			this.commandService = options.commandService;
 		}
 		
-		SitesRenderer.prototype.getCellElement = function(col_no, item, tableRow){					
-			switch(col_no){
-				case 0:
-					var td = document.createElement("td"); //$NON-NLS-0$
-					var div = document.createElement( "div"); //$NON-NLS-0$
-					div.classList.add("sectionTableItem"); //$NON-NLS-0$
-					td.appendChild(div); //$NON-NLS-0$
+		SitesRenderer.prototype.render = function(item, tableRow){
+			// The explorer enters inline style info to remove padding, create a filler item
+			var filler = document.createElement("div"); //$NON-NLS-0$
+			tableRow.appendChild(filler);
+			
+			// Title area
+			var siteTitle = document.createElement("div"); //$NON-NLS-0$
+			siteTitle.className = "sectionWrapper toolComposite sitesPanel"; //$NON-NLS-0$
+			tableRow.appendChild(siteTitle);
+			
+			var sectionAnchor = document.createElement("div"); //$NON-NLS-0$
+			sectionAnchor.className = "sectionAnchor sectionTitle layoutLeft"; //$NON-NLS-0$
+			siteTitle.appendChild(sectionAnchor);
+			
+			var title = document.createElement("span"); //$NON-NLS-0$
+			sectionAnchor.appendChild(title);
+			
+			var href = mSiteUtils.generateEditSiteHref(item);
+			var nameLink = document.createElement("a"); //$NON-NLS-0$
+			nameLink.href = href;
+			title.appendChild(nameLink);
+			
+			nameLink.appendChild(document.createTextNode(item.Name));
+			
+			var actionsArea = document.createElement("div"); //$NON-NLS-0$
+			actionsArea.className = "layoutRight sectionActions"; //$NON-NLS-0$
+			actionsArea.id = "siteActionsArea"; //$NON-NLS-0$
+			siteTitle.appendChild(actionsArea);
+			
+			this.commandService.renderCommands("DefaultActionWrapper", actionsArea, item, this.explorer, "button", this.explorer.getRefreshHandler()); //$NON-NLS-1$ //$NON-NLS-0$			
+				
+			// Content area
+			var repoSectionContent = document.createElement("div"); //$NON-NLS-0$
+			repoSectionContent.className = "sectionTable sectionTableItem"; //$NON-NLS-0$
+			tableRow.appendChild(repoSectionContent);
+									
+			var detailsView = document.createElement("div"); //$NON-NLS-0$
+			detailsView.className = "stretch"; //$NON-NLS-0$
+			repoSectionContent.appendChild(detailsView);
+			
+			var statusField = document.createElement("div"); //$NON-NLS-0$
+			detailsView.appendChild(statusField);
+			
+			var status = item.HostingStatus;
+			if (typeof status === "object") { //$NON-NLS-0$
+				if (status.Status === "started") { //$NON-NLS-0$
+					var link = document.createElement("a"); //$NON-NLS-0$
+					link.textContent = status.URL;
+					link.href = status.URL;
+					statusField.appendChild(link);
 					
-					var navGridHolder = this.explorer.getNavDict() ? this.explorer.getNavDict().getGridNavHolder(item, true) : null;
-					
-					// Site config column
-					var href = mSiteUtils.generateEditSiteHref(item);
-					var nameLink = document.createElement("a"); //$NON-NLS-0$
-					nameLink.href = href;
-					div.appendChild(nameLink);
-					
-					nameLink.appendChild(document.createTextNode(item.Name));
-					mNavUtils.addNavGrid(this.explorer.getNavDict(), item, nameLink);
-					
-					var statusField = document.createElement("span"); //$NON-NLS-0$
-					statusField.classList.add("statusField"); //$NON-NLS-0$
-					div.appendChild(statusField);
-					
-					// Status, URL columns
-					var status = item.HostingStatus;
-					if (typeof status === "object") { //$NON-NLS-0$
-						if (status.Status === "started") { //$NON-NLS-0$
-							statusField.appendChild(document.createTextNode("(" + messages["Started"] + " ")); //TODO NLS fragment (
-							
-							var link = document.createElement("a");
-							link.textContent = status.URL;
-							statusField.appendChild(link);
-							mNavUtils.addNavGrid(this.explorer.getNavDict(), item, link);
-
-							statusField.appendChild(document.createTextNode(")")); //TODO NLS fragment )
-							
-							var inlineAction = document.createElement("span"); //$NON-NLS-0$
-							inlineAction.classList.add("inlineAction"); //$NON-NLS-0$
-							statusField.appendChild(inlineAction);
-							this.commandService.renderCommands("DefaultActionWrapper", inlineAction, item, this.explorer, "button", this.explorer.getRefreshHandler(), navGridHolder); //$NON-NLS-1$ //$NON-NLS-0$
-							
-							var statusString = "this site.";
-							statusField.appendChild(document.createTextNode(statusString));
-							
-							link.href = status.URL;
-						} else {
-							var statusString = "(" + status.Status.substring(0,1).toUpperCase() + status.Status.substring(1) + ")";
-							statusField.appendChild(document.createTextNode(statusString));
-							
-							var inlineAction = document.createElement("span"); //$NON-NLS-0$
-							inlineAction.classList.add("inlineAction"); //$NON-NLS-0$
-							statusField.appendChild(inlineAction);
-							this.commandService.renderCommands("DefaultActionWrapper", inlineAction, item, this.explorer, "button", this.explorer.getRefreshHandler(), navGridHolder); //$NON-NLS-1$ //$NON-NLS-0$
-							
-							statusField.appendChild(document.createTextNode("this site"));
-						}
-					} else {
-						statusField.appendChild(document.createTextNode(messages["Unknown"]));
-					}
-	
-					return td;
-				break;
+					var startedNode = document.createElement("span"); //$NON-NLS-0$
+					startedNode.textContent = messages["Started"];
+					lib.processDOMNodes(startedNode, [link]);
+					statusField.appendChild(startedNode);
+				} else {
+					var statusString = status.Status.substring(0,1).toUpperCase() + status.Status.substring(1);
+					statusField.appendChild(document.createTextNode(statusString));
+				}
+			} else {
+				statusField.appendChild(document.createTextNode(messages["Unknown"]));
 			}
 		};
 				

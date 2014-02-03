@@ -9,36 +9,13 @@
 	<script type="text/javascript">
 	/*global window console eclipse orion*/
 		window.onload = function() {
-			function trace(implementation) {
-				var method;
-				var traced = {};
-				for (method in implementation) {
-					if (typeof implementation[method] === 'function') {
-						traced[method] = function(methodName) {
-							return function() {
-								console.log("*" + methodName);
-								var arg;
-								for (arg in arguments) {
-									console.log(" [" + arg + "] " + arguments[arg]);
-								}
-								var result = implementation[methodName].apply(implementation, Array.prototype.slice.call(arguments));
-								orion.Deferred.when(result, function(json) {
-									console.log(json);
-								});
-								return result;
-							};
-						}(method);
-					}
-				}
-				return traced;
-			}
 			var provider = new orion.PluginProvider();
 			window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
 			if (window.requestFileSystem) {
 				window.requestFileSystem(window.TEMPORARY, 10*1024*1024 , function(fs) {
 					var base = fs.root.toURL();
 					var service = new eclipse.HTML5LocalFileServiceImpl(fs);
-					provider.registerService("orion.core.file", trace(service), {Name:'HTML5 Local File contents', top:base, pattern:base});
+					provider.registerService("orion.core.file", service, {Name:'HTML5 Local File contents', top:base, pattern:base});
 					provider.connect();
 				}, function(error) {
 					console.log(error);

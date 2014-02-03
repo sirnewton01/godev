@@ -10,7 +10,7 @@
  ******************************************************************************/
 /*global window define document */
 
-define(['require', 'orion/webui/littlelib'], function(require, lib) {
+define(['require', 'orion/webui/littlelib', 'orion/EventTarget'], function(require, lib, EventTarget) {
 
 	/**
 	 * Attaches dropdown behavior to a given node.  Assumes the triggering node and dropdown node
@@ -35,10 +35,19 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 	 * @param options.dropdown The node for the dropdown presentation.  Required.
 	 * @param options.populate A function that should be called to populate the dropdown before it
 	 * opens each time.  Optional.
+	 * @param options.triggerNode The node which will listen for events that trigger the 
+	 * opening of this drop down. If it is not specified the parent of the dropdown node will be searched
+	 * for a node containing the dropdownTrigger class. Optional.
+	 * @param options.parentDropdown The Dropdown that is the parent of this one if this is a sub-dropdown. Optional.
+	 * @param options.positioningNode The Node that the dropdown uses so that it always renders under the positioningNode's left bottom corner. Optional.
+	 * @param options.skipTriggerEventListeners A boolean indicating whether or not to skip adding event
+	 * listeners to the triggerNode. Optional.
+	 * 
 	 * @name orion.webui.dropdown.Dropdown
 	 *
 	 */
 	function Dropdown(options) {
+		EventTarget.attach(this);
 		this._init(options);		
 	}
 	Dropdown.prototype = /** @lends orion.webui.dropdown.Dropdown.prototype */ {
@@ -46,42 +55,62 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 		_init: function(options) {
 			this._dropdownNode = lib.node(options.dropdown);
 			if (!this._dropdownNode) { throw "no dom node for dropdown found"; } //$NON-NLS-0$
-			this._triggerNode = lib.$(".dropdownTrigger", this._dropdownNode.parentNode); //$NON-NLS-0$
-			if (!this._triggerNode) { throw "no dom node for dropdown trigger found"; } //$NON-NLS-0$
 			this._populate = options.populate;
 			this._selectionClass = options.selectionClass;
-			var self = this;
+			this._parentDropdown = options.parentDropdown;
+			this._positioningNode = options.positioningNode;
 			
-			// click on trigger opens.
-			this._triggerNode.addEventListener("click", function(event) { //$NON-NLS-0$
-				if (self.toggle())  {
-					lib.stop(event);
+			if (!this._parentDropdown) {
+				//if a parentDropdown isn't specified move up in dom tree looking for one
+				var parentNode = this._dropdownNode.parentNode;
+				while(parentNode && (document !== parentNode)) {
+					if (parentNode.classList && parentNode.classList.contains("dropdownMenu")) { //$NON-NLS-0$
+						this._parentDropdown = parentNode.dropdown;
+						break;
+					}
+					parentNode = parentNode.parentNode;
 				}
-			}, false);
+			}
+
+			if (options.triggerNode) {
+				this._triggerNode = options.triggerNode;
+			} else {
+				this._triggerNode = lib.$(".dropdownTrigger", this._dropdownNode.parentNode); //$NON-NLS-0$	
+			}
+			if (!this._triggerNode) { throw "no dom node for dropdown trigger found"; } //$NON-NLS-0$
 			
-			// if trigger node is not key enabled...
-			if (this._triggerNode.tagName.toLowerCase() === "span") { //$NON-NLS-0$
-				this._triggerNode.addEventListener("keydown", function(event) { //$NON-NLS-0$
-					if (event.keyCode === lib.KEY.ENTER || event.keyCode === lib.KEY.SPACE) {
-						self.toggle();
+			if (!options.skipTriggerEventListeners) {
+				var self = this;
+				// click on trigger opens.
+				this._triggerNode.addEventListener("click", function(event) { //$NON-NLS-0$
+					if (self.toggle(event))  {
 						lib.stop(event);
 					}
 				}, false);
+					
+				// if trigger node is not key enabled...
+				if (this._triggerNode.tagName.toLowerCase() === "span") { //$NON-NLS-0$
+					this._triggerNode.addEventListener("keydown", function(event) { //$NON-NLS-0$
+						if (event.keyCode === lib.KEY.ENTER || event.keyCode === lib.KEY.SPACE) {
+							self.toggle();
+							lib.stop(event);
+						}
+					}, false);
+				}
 			}
 						
 			// keys
 			this._dropdownNode.addEventListener("keydown", this._dropdownKeyDown.bind(this), false); //$NON-NLS-0$
-			
 		},
 		
 		/**
 		 * Toggle the open/closed state of the dropdown.  Return a boolean that indicates whether action was taken.
 		 */			
-		toggle: function(event) {
+		toggle: function(mouseEvent /* optional */) {
 			if (this.isVisible()) {
 				return this.close();
 			} else {
-				return this.open();
+				return this.open(mouseEvent);
 			}
 		},
 		
@@ -89,54 +118,86 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 		 * Answers whether the dropdown is visible.
 		 */			
 		isVisible: function() {
-			return this._triggerNode.classList.contains("dropdownTriggerOpen"); //$NON-NLS-0$
+			return this._isVisible;
 		},
 		
 		/**
 		 * Open the dropdown.
 		 */			
-		open: function() {
-			if (this.isVisible()) {
-				return;
-			}
-			if (this._populate) {
-				this.empty();
-				this._populate(this._dropdownNode);
-			}
-			var items = this.getItems();
-			if (items.length > 0) {
-				if (!this._hookedAutoDismiss) {
-					// add auto dismiss.  Clicking anywhere but trigger or a submenu item means close.
-					var submenuNodes = lib.$$(".dropdownSubMenu", this._dropdownNode); //$NON-NLS-0$
-					lib.addAutoDismiss([this._triggerNode].concat(Array.prototype.slice.call(submenuNodes)), function() {
-						if (this.isVisible()) {
-							this.close();
-							// Dismiss parent menus
-							var temp = this._dropdownNode.parentNode;
-							while (temp) {
-								if (temp.dropdown && typeof temp.dropdown.close === "function") { //$NON-NLS-0$
-									temp.dropdown.close();
-								}
-								temp = temp.parentNode;
-							}
+		open: function(mouseEvent /* optional */) {
+			var actionTaken = false;
+			if (!this.isVisible()) {
+				this.dispatchEvent({type: "triggered", dropdown: this, event: mouseEvent}); //$NON-NLS-0$
+				lib.setFramesEnabled(false);
+				if (this._populate) {
+					this.empty();
+					this._populate(this._dropdownNode);
+				}
+				var items = this.getItems();
+				if (items.length > 0) {
+					if (!this._hookedAutoDismiss) {
+						if (this._boundAutoDismiss) {
+							lib.removeAutoDismiss(this._boundAutoDismiss);
+						} else {
+							this._boundAutoDismiss = this._autoDismiss.bind(this);
 						}
-					}.bind(this));
-					this._hookedAutoDismiss = true;
+						// add auto dismiss.  Clicking anywhere but trigger or a submenu item means close.
+						var submenuNodes = lib.$$array(".dropdownSubMenu", this._dropdownNode); //$NON-NLS-0$
+						lib.addAutoDismiss([this._triggerNode].concat(submenuNodes), this._boundAutoDismiss);
+						this._hookedAutoDismiss = true;
+					}
+					this._triggerNode.classList.add("dropdownTriggerOpen"); //$NON-NLS-0$
+					if (this._selectionClass) {
+						this._triggerNode.classList.add(this._selectionClass);
+					}
+					this._dropdownNode.classList.add("dropdownMenuOpen"); //$NON-NLS-0$
+					this._isVisible = true;
+					
+					this._positionDropdown(mouseEvent);
+					
+					items[0].focus();
+					actionTaken = true;
+					
+					if (this._parentDropdown) {
+						this._parentDropdown.submenuOpen(this);
+					}
 				}
-				this._triggerNode.classList.add("dropdownTriggerOpen"); //$NON-NLS-0$
-				if (this._selectionClass) {
-					this._triggerNode.classList.add(this._selectionClass);
-				}
-				this._dropdownNode.classList.add("dropdownMenuOpen"); //$NON-NLS-0$
-				this._positionDropdown();
-				items[0].focus();
-				return true;
 			}
-			return false;
+			return actionTaken;
 		},
 		
-		_positionDropdown: function() {
+		_autoDismiss: function(event) {
+			if (this.close(false)) {
+				// only trigger dismissal of parent menus if
+				// this dropdown's node contains the event.target
+				if (this._dropdownNode.contains(event.target)) {
+					// Dismiss parent menus
+					var temp = this._parentDropdown;
+					while (temp) {
+						temp.close(false);
+						temp = temp._parentDropdown;
+					}
+				}
+			}
+		},
+		
+		/**
+		 * This method positions the dropdown menu.
+		 * The specified mouseEvent is ignored. However, subclasses 
+		 * can override this method if they wish to take the mouse 
+		 * position contained in the mouse event into account.
+		 * 
+		 * @param {MouseEvent} mouseEvent
+		 */
+		_positionDropdown: function(mouseEvent) {
 			this._dropdownNode.style.left = "";
+			this._dropdownNode.style.top = "";
+			
+			if(this._positioningNode) {
+				this._dropdownNode.style.left = this._positioningNode.offsetLeft + "px";
+				return;
+			}
+			
 			var bounds = lib.bounds(this._dropdownNode);
 			var bodyBounds = lib.bounds(document.body);
 			if (bounds.left + bounds.width > (bodyBounds.left + bodyBounds.width)) {
@@ -147,6 +208,12 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 					var triggerBounds = lib.bounds(this._triggerNode);
 					this._dropdownNode.style.left = (triggerBounds.left  - totalBounds.left - bounds.width + triggerBounds.width) + "px"; //$NON-NLS-0$
 				}
+			}
+			
+			//ensure menu fits on page vertically
+			var overflowY = (bounds.top + bounds.height) - (bodyBounds.top + bodyBounds.height);
+			if (0 < overflowY) {
+				this._dropdownNode.style.top = Math.floor(this._dropdownNode.style.top - overflowY) + "px"; //$NON-NLS-0$
 			}
 		},
 		
@@ -167,18 +234,22 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 		 * Close the dropdown.
 		 */			
 		close: function(restoreFocus) {
-			if (!this.isVisible()) {
-				return;
+			var actionTaken = false;
+			if (this.isVisible()) {
+				this._triggerNode.classList.remove("dropdownTriggerOpen"); //$NON-NLS-0$
+				if (this._selectionClass) {
+					this._triggerNode.classList.remove(this._selectionClass);
+				}
+				this._dropdownNode.classList.remove("dropdownMenuOpen"); //$NON-NLS-0$
+				lib.setFramesEnabled(true);
+				if (restoreFocus) {
+					this._triggerNode.focus();
+				}
+				
+				this._isVisible = false;
+				actionTaken = true;
 			}
-			this._triggerNode.classList.remove("dropdownTriggerOpen"); //$NON-NLS-0$
-			if (this._selectionClass) {
-				this._triggerNode.classList.remove(this._selectionClass);
-			}
-			this._dropdownNode.classList.remove("dropdownMenuOpen"); //$NON-NLS-0$
-			if (restoreFocus) {
-				this._triggerNode.focus();
-			}
-			return true;
+			return actionTaken;
 		},
 		
 		/**
@@ -193,6 +264,21 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 			items.forEach(function(item) {
 				if (item.parentNode.parentNode === self._dropdownNode) {
 					filtered.push(item);
+				}
+			});
+			
+			//add handler to close open submenu when other items in the parent menu are hovered
+			filtered.forEach(function(item){
+				if (!item._hasDropdownMouseover) {
+					item.addEventListener("mouseover", function(e){ //$NON-NLS-0$
+						if (item.dropdown) {
+							item.dropdown.open(e);
+						} else {
+							self._closeSelectedSubmenu();
+							lib.stop(e);
+						}
+					});
+					item._hasDropdownMouseover = true;
 				}
 			});
 			return filtered;
@@ -210,6 +296,8 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 					item.parentNode.removeChild(item);
 				}
 			});
+			
+			this._hookedAutoDismiss = false; //the autoDismiss nodes need to be recalculated
 		},
 		
 		 
@@ -246,6 +334,34 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 			} else if (event.keyCode === lib.KEY.ESCAPE) {
 				this.close(true);
 				lib.stop(event);
+			}
+		 },
+		 
+		 /**
+		  * Closes this._selectedSubmenu, and its children, if it is open.
+		  * Sets the this._selectedSubmenu to the one that's passed in.
+		  * @param submenu The submenu that was opened and should be set as the next this._selectedSubmenu
+		  */
+		submenuOpen: function(submenu) {
+			if (submenu !== this._selectedSubmenu) {
+				//close the current menu and all its children
+				this._closeSelectedSubmenu();
+				this._selectedSubmenu = submenu;
+			}
+		 },
+		 
+		_closeSelectedSubmenu: function() {
+			var currentSubmenu = this._selectedSubmenu;
+			while(currentSubmenu) {
+				currentSubmenu.close();
+				currentSubmenu = currentSubmenu._selectedSubmenu;
+			}
+		 },
+		 
+		 destroy: function() {
+			this.empty();
+			if (this._boundAutoDismiss) {
+				lib.removeAutoDismiss(this._boundAutoDismiss);
 			}
 		 }
 	};

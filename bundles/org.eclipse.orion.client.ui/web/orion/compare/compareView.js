@@ -81,6 +81,24 @@ exports.CompareView = (function() {
 			}
 		},
 		/** @private */
+		_loadImageFile: function(imageURL, parentDiv, createSeparator){
+			var image = document.createElement("img"); //$NON-NLS-0$
+			image.src = imageURL;
+			var deferred = new Deferred();
+			image.onload = function(){
+				parentDiv.appendChild(image);
+				if(createSeparator) {
+					var hr = document.createElement("hr"); //$NON-NLS-0$
+					parentDiv.appendChild(hr);
+				}
+				deferred.resolve(image.height);
+			};
+			image.onerror = function(){
+				deferred.resolve(0);
+			};
+			return deferred;
+		},
+		/** @private */
 		_initSyntaxHighlighter: function(targetArray){
 			this._syntaxHighlighters = null;
 			if(this.options.highlighters && this.options.highlighters.length > 0){
@@ -157,6 +175,12 @@ exports.CompareView = (function() {
 				Object.keys(options).forEach(function(option) {
 					this.options[option] = options[option];
 				}.bind(this));
+			}
+			//TODO : improve this the twoway comapre API
+			if(options.newFileOnRight){
+				var optNewFile = this.options.newFile;
+				this.options.newFile = this.options.oldFile;
+				this.options.oldFile = optNewFile;
 			}
 		},
 		getOptions: function() {
@@ -242,11 +266,20 @@ exports.CompareView = (function() {
 		/**
 		 * An abstract function that should be overridden by a subclass.
 		 * <p>
-		 * The subclass implementation, inline or twoWay, should create the editor instances with an initial string or just leave it empty.
+		 * The subclass implementation, inline or twoWay, should create the text editor instances with an initial string or just leave it empty.
 		 * </p>
 		 * @param {String} initString the initial string that will dispaly when the editors are created. Optional.
 		 */
 		initEditors: function(initString){
+		},
+		/**
+		 * An abstract function that should be overridden by a subclass.
+		 * <p>
+		 * The subclass implementation, inline or twoWay, should destroy the text editor instances.
+		 * </p>
+		 * @param {String} initString the initial string that will dispaly when the editors are created. Optional.
+		 */
+		initImageMode: function(){
 		}
 	};
 	return CompareView;
@@ -306,6 +339,24 @@ exports.TwoWayCompareView = (function() {
 				}
 			}
 		}.bind(this);
+	};
+	
+	TwoWayCompareView.prototype.initImageMode = function(){
+		if(this._editors){
+			this._editors.forEach(function(editor) {
+				editor.destroy();
+			});
+			this._editors = null;
+		}
+		this._uiFactory.getEditorParentDiv(true).classList.add("compareEditorParentImageMode"); //$NON-NLS-0$
+		this._uiFactory.getEditorParentDiv().classList.add("compareEditorParentImageMode"); //$NON-NLS-0$
+		this._uiFactory.disableTitle();
+		this._uiFactory.disableLineStatus();
+		this._imageMode = true;
+	};
+	
+	TwoWayCompareView.prototype.getImageMode = function(){
+		return this._imageMode;
 	};
 	
 	TwoWayCompareView.prototype.getEditors = function(){
@@ -476,20 +527,31 @@ exports.TwoWayCompareView = (function() {
 	};
 	
 	TwoWayCompareView.prototype.refresh = function(refreshEditors){	
+		if(this._imageMode){
+			if(this.options.commandProvider){
+				this.options.commandProvider.renderCommands(this);
+			}
+			var that = this;
+			return this._loadImageFile(this.options.newFile.URL, this._uiFactory.getEditorParentDiv(true)).then(function(height){
+				return that._loadImageFile(that.options.oldFile.URL, that._uiFactory.getEditorParentDiv()).then(function(height1){
+					return new Deferred().resolve(height > height1 ? height : height1);
+				});
+			});
+		}
 		var input = this.options.oldFile.Content;
 		var output = this.options.newFile.Content;
 		var diff = this.options.diffContent;
 		
 		var result;
-		if(typeof output === "string") {
+		if(typeof output === "string") { //$NON-NLS-0$
 			result = this._generateMapper(input , output, diff , this.options.hasConflicts);
 		} else {
 			result = this._generateMapper(input , output, diff , this.options.hasConflicts);
 			output = result.output;
 		}
 		
-		var rFeeder = new mDiffTreeNavigator.TwoWayDiffBlockFeeder(this._editors[0].getTextView().getModel(), result.mapper, 1);
-		var lFeeder = new mDiffTreeNavigator.TwoWayDiffBlockFeeder(this._editors[1].getTextView().getModel(), result.mapper, 0);
+		var rFeeder = new mDiffTreeNavigator.TwoWayDiffBlockFeeder(this._editors[0].getTextView().getModel(), result.mapper, 1, this.options.newFileOnRight);
+		var lFeeder = new mDiffTreeNavigator.TwoWayDiffBlockFeeder(this._editors[1].getTextView().getModel(), result.mapper, 0, this.options.newFileOnRight);
 		this._diffNavigator.initAll(this.options.charDiff ? "char" : "word", this._editors[0], this._editors[1], rFeeder, lFeeder, this._overviewRuler, this._curveRuler); //$NON-NLS-1$ //$NON-NLS-0$
 		this._curveRuler.init(result.mapper ,this._editors[1], this._editors[0], this._diffNavigator);
 		if(refreshEditors) {
@@ -507,18 +569,27 @@ exports.TwoWayCompareView = (function() {
 		if(this._viewLoadedCounter === 2){
 			this._diffNavigator.gotoBlock(this.options.blockNumber-1, this.options.changeNumber-1);
 		}
-		
-		var newFileTitleNode = this._uiFactory.getTitleDiv(true);
-		var oldFileTitleNode = this._uiFactory.getTitleDiv(false);
-		if(oldFileTitleNode && newFileTitleNode){
-			lib.empty(oldFileTitleNode);
-			lib.empty(newFileTitleNode);
-			oldFileTitleNode.appendChild(document.createTextNode(this.options.oldFile.Name));
-			newFileTitleNode.appendChild(document.createTextNode(this.options.newFile.Name));
-		}
+		this.refreshTitle(0);
+		this.refreshTitle(1);
 		var leftViewHeight = this._editors[1].getTextView().getModel().getLineCount() * this._editors[1].getTextView().getLineHeight() + 5;
 		var rightViewHeight = this._editors[0].getTextView().getModel().getLineCount() * this._editors[0].getTextView().getLineHeight() +5;
 		return leftViewHeight > rightViewHeight ? leftViewHeight : rightViewHeight;
+	};
+	
+	TwoWayCompareView.prototype.refreshTitle = function(editorIndex, dirty){	
+		if(editorIndex === 1){
+			var newFileTitleNode = this._uiFactory.getTitleDiv(true);
+			if(newFileTitleNode){
+				lib.empty(newFileTitleNode);
+				newFileTitleNode.appendChild(document.createTextNode(dirty || this._editors[editorIndex].isDirty() ? this.options.newFile.Name + "*" : this.options.newFile.Name)); //$NON-NLS-0$
+			}
+		} else {
+			var oldFileTitleNode = this._uiFactory.getTitleDiv(false);
+			if(oldFileTitleNode){
+				lib.empty(oldFileTitleNode);
+				oldFileTitleNode.appendChild(document.createTextNode(dirty || this._editors[editorIndex].isDirty() ? this.options.oldFile.Name + "*" : this.options.oldFile.Name)); //$NON-NLS-0$
+			}
+		}
 	};
 	return TwoWayCompareView;
 }());
@@ -600,7 +671,7 @@ exports.InlineCompareView = (function() {
 			
 		this._textView = this._editor.getTextView();
 			
-		this._rulerOrigin = new mCompareRulers.LineNumberCompareRuler(this._diffNavigator, 1,"left", {styleClass: "ruler lines"}, {styleClass: "rulerLines odd"}, {styleClass: "rulerLines even"}); //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		this._rulerOrigin = new mCompareRulers.LineNumberCompareRuler(this._diffNavigator, 1,"left", {styleClass: "ruler lines inlineRulerLeft"}, {styleClass: "rulerLines odd"}, {styleClass: "rulerLines even"}); //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		this._rulerNew = new mCompareRulers.LineNumberCompareRuler(this._diffNavigator, 0,"left", {styleClass: "ruler lines"}, {styleClass: "rulerLines odd"}, {styleClass: "rulerLines even"}); //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		this._overviewRuler  = new mCompareRulers.CompareOverviewRuler("right", {styleClass: "ruler overview"} , null, //$NON-NLS-1$ //$NON-NLS-0$
                 function(lineIndex, ruler){this._diffNavigator.matchPositionFromOverview(lineIndex);}.bind(this));
@@ -619,6 +690,19 @@ exports.InlineCompareView = (function() {
 		}.bind(this)); 
 	};
 
+	InlineCompareView.prototype.initImageMode = function(){
+		if(this._editor) {
+			this._editor.destroy();
+			this._editor = null;
+		}
+		lib.node(this._editorDiv).classList.add("compareEditorParentImageMode"); //$NON-NLS-0$
+		this._imageMode = true;
+	};
+	
+	InlineCompareView.prototype.getImageMode = function(){
+		return this._imageMode;
+	};
+	
 	InlineCompareView.prototype._initDiffPosition = function(textView){
 		var model = textView.getModel();
 		if(model && model.getAnnotations){
@@ -634,6 +718,17 @@ exports.InlineCompareView = (function() {
 	};
 	
 	InlineCompareView.prototype.refresh = function(){
+		if(this._imageMode){
+			if(this.options.commandProvider){
+				this.options.commandProvider.renderCommands(this);
+			}
+			var that = this;
+			return this._loadImageFile(this.options.newFile.URL, lib.node(this._editorDiv), true).then(function(height){
+				return that._loadImageFile(that.options.oldFile.URL, lib.node(that._editorDiv)).then(function(height1){
+					return new Deferred().resolve(height +  height1 + 20);
+				});
+			});
+		}
 		var input = this.options.oldFile.Content;
 		var output = this.options.newFile.Content;
 		var diff = this.options.diffContent;
@@ -697,11 +792,18 @@ exports.toggleableCompareView = (function() {
 			this._widget.startup();
 		},
 		
+		initImageMode: function(){
+			this._imageMode = true;
+			this._widget.initImageMode();
+		},
+	
 		toggle: function(){
 			var options = this._widget.options;
-			var diffPos = this._widget.getCurrentDiffPos();
-			options.blockNumber = diffPos.block;
-			options.changeNumber = diffPos.change;
+			if(!this._imageMode){
+				var diffPos = this._widget.getCurrentDiffPos();
+				options.blockNumber = diffPos.block;
+				options.changeNumber = diffPos.change;
+			}
 			this._widget.destroy();
 			lib.empty(lib.node(options.parentDivId));
 			if(this._widget.type === "inline"){ //$NON-NLS-0$
@@ -709,7 +811,11 @@ exports.toggleableCompareView = (function() {
 			} else {
 				this._widget = new exports.InlineCompareView(options);
 			}
-			this._widget.initEditors();
+			if(this._imageMode){
+				this._widget.initImageMode();
+			} else {
+				this._widget.initEditors();
+			}
 			this._widget.refresh(true);
 		},
 		

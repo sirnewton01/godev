@@ -33,6 +33,7 @@ function createFile(entry) {
 		result.LocalTimeStamp = metadata.modificationTime.getTime();
 		result.Directory = entry.isDirectory;
 		if (result.Directory) {
+			result.Location = result.Location.slice(-1) === "/" ? result.Location : result.Location + "/";
 			result.ChildrenLocation = result.Location;
 		}
 		deferred.resolve(result);
@@ -96,10 +97,12 @@ eclipse.HTML5LocalFileServiceImpl= (function() {
 			
 			function handleParent(parent) {
 				if (parent.fullPath !== rootFullPath) {
+					var location = parent.toURL();
+					location = location.slice(-1) === "/" ? location : location + "/";
 					result.push({
 						Name: parent.name,
-						Location: parent.toURL(),
-						ChildrenLocation: parent.toURL()
+						Location: location,
+						ChildrenLocation: location
 					});
 					parent.getParent(handleParent, deferred.reject);
 				} else {
@@ -185,7 +188,12 @@ eclipse.HTML5LocalFileServiceImpl= (function() {
 		 * @param {Boolean} create If true, the project is created on the server file system if it doesn't already exist
 		 */
 		createProject: function(url, projectName, serverPath, create) {
-			return this.createFolder(url, projectName);
+			var d = new orion.Deferred();
+			this.createFolder(url, projectName).then(function(project) {
+				project.ContentLocation = project.Location;
+				d.resolve(project);
+			}, d.reject);
+			return d;
 		},
 		/**
 		 * Creates a folder.
@@ -194,9 +202,10 @@ eclipse.HTML5LocalFileServiceImpl= (function() {
 		 * @return {Object} JSON representation of the created folder
 		 */
 		createFolder: function(parentLocation, folderName) {
+			var that = this;
 			return this._getEntry(parentLocation).then(function(dirEntry) {
 				var d = new orion.Deferred();
-				dirEntry.getDirectory(folderName, {create:true}, function() {d.resolve();}, d.reject);
+				dirEntry.getDirectory(folderName, {create:true}, function() {d.resolve(that.read(parentLocation + "/" + folderName, true));}, d.reject);
 				return d;
 			});
 		},
@@ -208,9 +217,10 @@ eclipse.HTML5LocalFileServiceImpl= (function() {
 		 * @return {Object} A deferred that will provide the new file object
 		 */
 		createFile: function(parentLocation, fileName) {
+			var that = this;
 			return this._getEntry(parentLocation).then(function(dirEntry) {
 				var d = new orion.Deferred();
-				dirEntry.getFile(fileName, {create:true}, function() {d.resolve();}, d.reject);
+				dirEntry.getFile(fileName, {create:true}, function() {d.resolve(that.read(parentLocation + "/" + fileName, true));}, d.reject);
 				return d;
 			});
 		},
@@ -242,7 +252,7 @@ eclipse.HTML5LocalFileServiceImpl= (function() {
 			return this._getEntry(sourceLocation).then(function(entry) {
 				return that._getEntry(targetLocation).then(function(parent) {
 					var d = new orion.Deferred();
-					entry.moveTo(parent, name, function() {d.resolve(that.read(targetLocation + "/" + name, true));}, d.reject);
+					entry.moveTo(parent, name, function() {d.resolve(that.read(targetLocation + "/" + (name || entry.name), true));}, d.reject);
 					return d;
 				});
 			});
@@ -263,7 +273,7 @@ eclipse.HTML5LocalFileServiceImpl= (function() {
 			return this._getEntry(sourceLocation).then(function(entry) {
 				return that._getEntry(targetLocation).then(function(parent) {
 					var d = new orion.Deferred();
-					entry.copyTo(parent, name, function() {d.resolve(that.read(targetLocation + "/" + name, true));}, d.reject);
+					entry.copyTo(parent, name, function() {d.resolve(that.read(targetLocation + "/" + (name || entry.name), true));}, d.reject);
 					return d;
 				});
 			});

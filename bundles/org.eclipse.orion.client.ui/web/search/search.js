@@ -38,7 +38,7 @@ define(['i18n!orion/search/nls/messages', 'require', 'orion/browserCompatibility
 					searchBuilder.loadSearchParams(searchParams);
 					searchResultsGenerator.loadResults(searchParams);
 			} else {
-				progress.progress(fileClient.read(searchLoc, true), "Loading file metadata " + searchLoc).then( //$NON-NLS-0$
+				(progress ? progress.progress(fileClient.read(searchLoc, true), "Loading file metadata " + searchLoc) : fileClient.read(searchLoc, true)).then( //$NON-NLS-0$
 					function(metadata) {
 						mGlobalCommands.setPageTarget({task: "Search", title: title, target: metadata, serviceRegistry: serviceRegistry,  //$NON-NLS-0$
 							fileService: fileClient, commandService: commandService, searchService: searcher, breadcrumbRootName: "Search", //$NON-NLS-0$

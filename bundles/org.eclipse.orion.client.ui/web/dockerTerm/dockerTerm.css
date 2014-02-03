@@ -1,0 +1,19 @@
+@import "../css/layout.css";
+@import "../css/ide.css";
+@import "../css/images.css";
+@import "../css/theme.css";
+
+html,body {
+	height: 100%;
+}
+
+.terminal {
+	font-size: 11pt;
+	margin-left: 5px;
+	margin-top: 3px;
+}
+
+.terminal-cursor {
+	color: #000000;
+	background: #f0f0f0;
+}

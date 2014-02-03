@@ -212,6 +212,7 @@ define([
 						var label = document.createElement("span"); //$NON-NLS-0$
 						label.classList.add("parameterPrompt"); //$NON-NLS-0$
 						label.textContent = message;
+						
 						parent.appendChild(label);
 						var yesButton = document.createElement("button"); //$NON-NLS-0$
 						yesButton.addEventListener("click", function(event) { //$NON-NLS-0$
@@ -482,6 +483,7 @@ define([
 						if (!parentTable[segment]) {
 							// empty slot with children
 							parentTable[segment] = {position: 0, children: {}};
+							parentTable.sortedContributions = null;
 						} 
 						parentTable = parentTable[segment].children;
 					}
@@ -550,6 +552,33 @@ define([
 				}
 			}
 			// get rid of sort cache because we have a new contribution
+			parentTable.sortedContributions = null;
+		},
+		
+		unregisterCommandContribution: function(scopeId, commandId, parentPath){
+			if (!this._contributionsByScopeId[scopeId]) {
+				// scope does not exist
+				return;
+			}
+			delete this._commandList[commandId];
+			delete this._activeBindings[commandId];
+			delete this._urlBindings[commandId];
+			delete this._pendingBindings[commandId];
+			var parentTable = this._contributionsByScopeId[scopeId];
+			if(parentPath){
+				var segments = parentPath.split("/"); //$NON-NLS-0$
+				segments.forEach(function(segment) {
+					if (segment.length > 1) {
+						if (!parentTable[segment]) {
+							// command does not exist in given path
+							return;
+						} 
+						parentTable = parentTable[segment].children;
+					}
+				});
+			}
+			delete parentTable[commandId];
+			
 			parentTable.sortedContributions = null;
 		},
 
@@ -732,37 +761,39 @@ define([
 							}
 
 							// render the children asynchronously
-							window.setTimeout(function() {
-								self._render(contribution.children, created.menu, items, handler, "menu", userData, domNodeWrapperList);  //$NON-NLS-0$
-								// special post-processing when we've created a menu in an image bar.  We want to get rid 
-								// of a trailing separator in the menu first, and then decide if our menu is necessary
-								self._checkForTrailingSeparator(created.menu, "menu", true);  //$NON-NLS-0$
-								// now determine if we actually needed the menu or not
-								if (created.menu.childNodes.length === 0) {
-									if (contribution.emptyGroupMessage) {
-										if (!created.menuButton.emptyGroupTooltip) {
-											created.menuButton.emptyGroupTooltip = new mTooltip.Tooltip({
-												node: created.menuButton,
-												text: contribution.emptyGroupMessage,
-												trigger: "click", //$NON-NLS-0$
-												position: ["below", "right", "above", "left"] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-											});
+							if (created) {
+								window.setTimeout(function() {
+									self._render(contribution.children, created.menu, items, handler, "menu", userData, domNodeWrapperList);  //$NON-NLS-0$
+									// special post-processing when we've created a menu in an image bar.  We want to get rid 
+									// of a trailing separator in the menu first, and then decide if our menu is necessary
+									self._checkForTrailingSeparator(created.menu, "menu", true);  //$NON-NLS-0$
+									// now determine if we actually needed the menu or not
+									if (created.menu.childNodes.length === 0) {
+										if (contribution.emptyGroupMessage) {
+											if (!created.menuButton.emptyGroupTooltip) {
+												created.menuButton.emptyGroupTooltip = new mTooltip.Tooltip({
+													node: created.menuButton,
+													text: contribution.emptyGroupMessage,
+													trigger: "click", //$NON-NLS-0$
+													position: ["below", "right", "above", "left"] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+												});
+											}
+										} else {
+											if(domNodeWrapperList){
+												mNavUtils.removeNavGrid(domNodeWrapperList, created.menuButton);
+											}
+											if (created.menu.parentNode) {
+												created.menu.parentNode.removeChild(created.menu);
+											}
+											if (created.destroyButton && created.destroyButton.parentNode) {
+												created.destroyButton.parentNode.removeChild(created.destroyButton);
+											}
 										}
 									} else {
-										if(domNodeWrapperList){
-											mNavUtils.removeNavGrid(domNodeWrapperList, created.menuButton);
-										}
-										if (created.menu.parentNode) {
-											created.menu.parentNode.removeChild(created.menu);
-										}
-										if (created.destroyButton && created.destroyButton.parentNode) {
-											created.destroyButton.parentNode.removeChild(created.destroyButton);
-										}
+										created.menuButton.style.visibility = "visible";  //$NON-NLS-0$
 									}
-								} else {
-									created.menuButton.style.visibility = "visible";  //$NON-NLS-0$
-								}
-							}, 0);
+								}, 0);
+							}
 						} else {  
 							// rendering a group using a separator on each end. We do it synchronously because order matters with
 							// non grouped items.
@@ -865,7 +896,7 @@ define([
 							var populateFunction = function(menu) {
 								command.populateChoicesMenu(menu, items, handler, userData, self);
 							};
-							self._createDropdownMenu(menuParent, command.name, nested, populateFunction.bind(command), command.imageClass, command.tooltip || command.title, command.selectionClass);
+							self._createDropdownMenu(menuParent, command.name, nested, populateFunction.bind(command), command.imageClass, command.tooltip || command.title, command.selectionClass, command.positioningNode);
 						} else {
 							// Rendering atomic commands as buttons or menus
 							invocation.handler = invocation.handler || this;
@@ -892,7 +923,7 @@ define([
 		/*
 		 * private.  Parent must exist in the DOM.
 		 */
-		_createDropdownMenu: function(parent, name, nested, populateFunction, icon, tooltip, selectionClass) {
+		_createDropdownMenu: function(parent, name, nested, populateFunction, icon, tooltip, selectionClass, positioningNode) {
 			parent = lib.node(parent);
 			// We create dropdowns asynchronously so it's possible that the parent has been removed from the document 
 			// by the time we are called.  If so, don't bother building a submenu for an orphaned menu.
@@ -911,7 +942,7 @@ define([
 				destroyButton = parent.lastChild;
 				newMenu = destroyButton.lastChild;
 				menuButton = newMenu.previousSibling;
-				menuButton.dropdown = new mDropdown.Dropdown({dropdown: newMenu, populate: populateFunction});
+				menuButton.dropdown = new mDropdown.Dropdown({dropdown: newMenu, populate: populateFunction, parentDropdown: parent.dropdown});
 				newMenu.dropdown = menuButton.dropdown;
 			} else {
 				if (parent.nodeName.toLowerCase() === "ul") { //$NON-NLS-0$
@@ -925,7 +956,7 @@ define([
 					tooltip = tooltip || name; // No text and no tooltip => fallback to name
 				}
 				tooltip = icon ? (tooltip || name) : tooltip;
-				var created = Commands.createDropdownMenu(menuParent, name, populateFunction, buttonCss, icon, false, selectionClass);
+				var created = Commands.createDropdownMenu(menuParent, name, populateFunction, buttonCss, icon, false, selectionClass, positioningNode);
 				menuButton = created.menuButton;
 				newMenu = created.menu;
 				if (tooltip) {
@@ -1009,6 +1040,21 @@ define([
 	};
 	URLBinding.prototype.constructor = URLBinding;
 	
+	/**
+	 * A CommandEventListener defines an (optional) UI event listener.
+	 * 
+	 * @param {String} name the name of the event
+	 * @param {Function} handler the event handler function. The handler is provided two parameters on invocation, i. e.
+	 * 			the DOM event and the undergoing commandInvocation objects.
+	 * @param {Boolean} [capture] the (optional) flag used to determine whether to caputre the event or not
+	 */
+	function CommandEventListener (event, handler, capture) {
+		this.event = event;
+		this.handler = handler;
+		this.capture = capture || false;
+	}
+	CommandEventListener.prototype.constructor = CommandEventListener;
+	
 	
 	/**
 	 * A CommandParameter defines a parameter that is required by a command.
@@ -1018,16 +1064,20 @@ define([
 	 * @param {String} [label] the (optional) label that should be used when showing the parameter
 	 * @param {String} [value] the (optional) default value for the parameter
 	 * @param {Number} [lines] the (optional) number of lines that should be shown when collecting the value.  Valid for type "text" only.
+	 * @param {Object|Array} [eventListeners] the (optional) array or single command event listener
 	 * 
 	 * @name orion.commands.CommandParameter
 	 * @class
 	 */
-	function CommandParameter (name, type, label, value, lines) {
+	function CommandParameter (name, type, label, value, lines, eventListeners) {
 		this.name = name;
 		this.type = type;
 		this.label = label;
 		this.value = value;
 		this.lines = lines || 1;
+		
+		this.eventListeners = (Array.isArray(eventListeners)) ?
+			eventListeners : (eventListeners ? [eventListeners] : []);
 	}
 	CommandParameter.prototype = /** @lends orion.commands.CommandParameter.prototype */ {
 		/**
@@ -1176,7 +1226,7 @@ define([
 		 makeCopy: function() {
 			var parameters = [];
 			this.forEach(function(parm) {
-				var newParm = new CommandParameter(parm.name, parm.type, parm.label, parm.value, parm.lines);
+				var newParm = new CommandParameter(parm.name, parm.type, parm.label, parm.value, parm.lines, parm.eventListeners);
 				parameters.push(newParm);
 			});
 			var copy = new ParametersDescription(parameters, this._options, this.getParameters);
@@ -1199,6 +1249,7 @@ define([
 		CommandRegistry: CommandRegistry,
 		URLBinding: URLBinding,
 		ParametersDescription: ParametersDescription,
-		CommandParameter: CommandParameter
+		CommandParameter: CommandParameter,
+		CommandEventListener: CommandEventListener
 	};
 });

@@ -40,21 +40,18 @@
 .adelante .line_caret {
 	background-color: #9e937b;
 }
-.adelante .token_keyword {
+.adelante .keyword {
 	color: #AF473B;
 }
-.adelante .token_string {
+.adelante .string {
 	color: #DE5D3B;
 }
-.adelante .token_singleline_comment {
+.adelante .comment {
 	color: #5D774E;
 }
-.adelante .token_multiline_comment {
+.adelante .comment.block.documentation {
 	color: #5D774E;
 }
-.adelante .token_doc_comment {
-	color: #5D774E;
-}
-.adelante .token_doc_html_markup {
+.adelante .keyword.other.documentation.markup {
 	color: #5D774E;
 }

@@ -24,8 +24,10 @@ define([
 	'orion/URITemplate',
 	'orion/webui/littlelib',
 	'orion/objects',
-	'orion/projects/projectView'
-], function(messages, mGlobalCommands, mExplorerTable, mNavigatorRenderer, Selection, FileCommands, ExtensionCommands, mKeyBinding, mMarkdownView, mProjectEditor, PageUtil, URITemplate, lib, objects, mProjectView) {
+	'orion/Deferred',
+	'orion/projects/projectView',
+	'orion/section'
+], function(messages, mGlobalCommands, mExplorerTable, mNavigatorRenderer, Selection, FileCommands, ExtensionCommands, mKeyBinding, mMarkdownView, mProjectEditor, PageUtil, URITemplate, lib, objects, Deferred, mProjectView, mSection) {
 	
 	var FileExplorer = mExplorerTable.FileExplorer;
 	var KeyBinding = mKeyBinding.KeyBinding;
@@ -34,11 +36,13 @@ define([
 	var uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
 	function FolderNavRenderer() {
 		NavigatorRenderer.apply(this, arguments);
-		this.selectionPolicy = this.explorer.getCommandsVisible() ? null : "cursorOnly"; //$NON-NLS-0$
 	}
 	FolderNavRenderer.prototype = Object.create(NavigatorRenderer.prototype);
 	objects.mixin(FolderNavRenderer.prototype, {
 		showFolderImage: true,
+		/**
+		 * override NavigatorRenderer's prototype
+		 */
 		createFolderNode: function(folder) {
 			var folderNode = mNavigatorRenderer.NavigatorRenderer.prototype.createFolderNode.call(this, folder);
 			if (this.showFolderLinks && folderNode.tagName === "A") { //$NON-NLS-0$
@@ -48,9 +52,35 @@ define([
 			folderNode.classList.add("navlink"); //$NON-NLS-0$
 			folderNode.classList.add("targetSelector"); //$NON-NLS-0$
 			folderNode.classList.remove("navlinkonpage"); //$NON-NLS-0$
+			if (this.explorer.readonly && this.explorer.clickHandler) { //$NON-NLS-0$
+				folderNode.href = "javascript:void(0)";
+				folderNode.addEventListener("click", function(){this.explorer.clickHandler(folder.Location);}.bind(this)
+				, false);
+			}
 			return folderNode;
 		},
+		/**
+		 * override NavigatorRenderer's prototype
+		 */
+		updateFileNode: function(file, fileNode, isImage) {
+			mNavigatorRenderer.NavigatorRenderer.prototype.updateFileNode.call(this, file, fileNode, isImage);
+			if (this.explorer.readonly && fileNode.tagName === "A") { //$NON-NLS-0$
+				if(this.explorer.clickHandler){
+					fileNode.href = "javascript:void(0)";
+					fileNode.addEventListener("click", function(){this.explorer.clickHandler(file.Location);}.bind(this)
+					, false);
+				} else {
+					fileNode.href = uriTemplate.expand({resource: file.Location});
+				}
+			}
+		},
+		/**
+		 * override NavigatorRenderer's prototype
+		 */
 		getCellHeaderElement: function(col_no) {
+			if(this.explorer.breadCrumbMaker) {
+				return null;
+			}
 			var td;
 			if (col_no === 0) {
 				td = document.createElement("th"); //$NON-NLS-0$
@@ -58,26 +88,27 @@ define([
 				var root = this.explorer.treeRoot;
 				td.appendChild(document.createTextNode(root.Parents ? root.Name : this.explorer.fileClient.fileServiceName(root.Location)));
 				return td;
-			} else if (col_no === 1) {
-				td = document.createElement("th"); //$NON-NLS-0$
-				td.colSpan = 2;
-				var span = document.createElement("span"); //$NON-NLS-0$
-				span.id = this.explorer.toolbarId;
-				td.appendChild(span);
-				window.setTimeout(function() {
-					this.explorer.updateCommands();
-				}.bind(this), 0);
-				return td;
 			}
 			return null;
 		},
+		/**
+		 * override NavigatorRenderer's prototype
+		 */
+		emptyCallback: function(bodyElement) {
+			if (this.explorer.readonly) {
+				return;
+			}
+			mNavigatorRenderer.NavigatorRenderer.prototype.emptyCallback.call(this, bodyElement);
+		},
+		/**
+		 * override NavigatorRenderer's prototype
+		 */
 		getExpandImage: function() {
 			return null;
 		}
 	});
 	
 	function FolderNavExplorer(options) {
-		var self = this;
 		options.setFocus = false;   // do not steal focus on load
 		options.cachePrefix = null; // do not persist table state
 		options.dragAndDrop = FileCommands.uploadFile;
@@ -94,49 +125,24 @@ define([
 		this.fileClient = options.fileClient;
 		this.commandRegistry = options.commandRegistry;
 		this.contentTypeRegistry = options.contentTypeRegistry;
+		this.readonly = options.readonly;
+		this.breadCrumbMaker = options.breadCrumbMaker;
+		this.clickHandler = options.clickHandler;
 		this.treeRoot = {};
-		var parent = lib.node(this.parentId);	
-		this.toolbarId = parent.id + "Tool"; //$NON-NLS-0$
-		this.newActionsScope = parent.id + "New"; //$NON-NLS-0$
-		this.selectionActionsScope = parent.id + "Selection"; //$NON-NLS-0$
-		this.selection = new Selection.Selection(this.serviceRegistry, "folderNavFileSelection"); //$NON-NLS-0$
-		this.selection.addEventListener("selectionChanged", function(event) { //$NON-NLS-0$
-			self.updateCommands(event.selections);
-		});
+		this.parent = lib.node(options.parentId);	
+		this.toolbarId = this.parent.id + "Tool"; //$NON-NLS-0$
+		this.newActionsScope = this.parent.id + "NewScope"; //$NON-NLS-0$
+		this.selectionActionsScope = this.parent.id + "SelectionScope"; //$NON-NLS-0$
+		this.actionsSections = [this.newActionsScope, this.selectionActionsScope];
 	}
 	FolderNavExplorer.prototype = Object.create(FileExplorer.prototype);
 	objects.mixin(FolderNavExplorer.prototype, /** @lends orion.FolderNavExplorer.prototype */ {
 		loadRoot: function(root) {
-			var self = this;
-			function loaded() {
-				self.registerCommands().then(function() {
-					self.updateCommands();
-				});
-			}
 			if (root) {
-				this.load(root, "Loading " + root.Name).then(loaded);
+				this.load(root, "Loading " + root.Name).then(this.loaded.bind(this));
 			} else {
-				this.loadResourceList(PageUtil.matchResourceParameters().resource + "?depth=1", false).then(loaded); //$NON-NLS-0$
+				this.loadResourceList(PageUtil.matchResourceParameters().resource + "?depth=1", false).then(this.loaded.bind(this)); //$NON-NLS-0$
 			}
-		},
-		destroy: function() {
-			FileExplorer.prototype.destroy.call(this);
-			var _self = this;
-			[this.newActionsScope, this.selectionActionsScope].forEach(function(id) {
-				delete _self[id];
-			});
-		},
-		createActionSections: function(toolbar) {
-			[this.newActionsScope, this.selectionActionsScope].forEach(function(id) {
-				if (!lib.node(id)) {
-					var elem = document.createElement("ul"); //$NON-NLS-0$
-					elem.id = id;
-					elem.classList.add("commandList"); //$NON-NLS-0$
-					elem.classList.add("layoutRight"); //$NON-NLS-0$
-//					elem.classList.add("pageActions"); //$NON-NLS-0$
-					toolbar.appendChild(elem);
-				}
-			});
 		},
 		// Returns a deferred that completes once file command extensions have been processed
 		registerCommands: function() {
@@ -177,33 +183,15 @@ define([
 			commandRegistry.registerCommandContribution(selectionActionsScope, "eclipse.downloadFile" + this.commandsId, 3, "orion.folderNavSelectionGroup/orion.importExportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
 			commandRegistry.registerCommandContribution(selectionActionsScope, "orion.importSFTP" + this.commandsId, 4, "orion.folderNavSelectionGroup/orion.importExportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
 			commandRegistry.registerCommandContribution(selectionActionsScope, "eclipse.exportSFTPCommand" + this.commandsId, 5, "orion.folderNavSelectionGroup/orion.importExportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
-			FileCommands.createFileCommands(serviceRegistry, commandRegistry, this, fileClient);
-			return ExtensionCommands.createAndPlaceFileCommandsExtension(serviceRegistry, commandRegistry, selectionActionsScope, 0, "orion.folderNavSelectionGroup", true, this.commandsVisibleWhen, this.commandsId);
-		},
-		getCommandsVisible: function() {
-			return mGlobalCommands.getMainSplitter().splitter.isClosed();
-		},
-		setCommandsVisible: function(visible) {
-			if (visible) {
-				this.updateCommands();
-			} else {
-				this.commandRegistry.destroy(this.newActionsScope);
-				this.commandRegistry.destroy(this.selectionActionsScope);
+			if(serviceRegistry) {
+				FileCommands.createFileCommands(serviceRegistry, commandRegistry, this, fileClient);
 			}
-			var selectionPolicy = visible ? null : "cursorOnly"; //$NON-NLS-0$
-			this.renderer.selectionPolicy = selectionPolicy;
-			var navHandler = this.getNavHandler();
-			if (navHandler) {
-				navHandler.setSelectionPolicy(selectionPolicy);
-			}
+			return serviceRegistry ? ExtensionCommands.createAndPlaceFileCommandsExtension(serviceRegistry, commandRegistry, selectionActionsScope, 0, "orion.folderNavSelectionGroup", true, this.commandsVisibleWhen, this.commandsId) : new Deferred().resolve();
 		},
 		updateCommands: function(selections) {
-			var toolbar = lib.node(this.toolbarId);
-			if (!toolbar || !this.getCommandsVisible()) {
-				return;
+			if(this.serviceRegistry) {
+				FileCommands.updateNavTools(this.serviceRegistry, this.commandRegistry, this, this.newActionsScope, this.selectionActionsScope, this.treeRoot, true);
 			}
-			this.createActionSections(toolbar);
-			FileCommands.updateNavTools(this.registry, this.commandRegistry, this, this.newActionsScope, this.selectionActionsScope, this.treeRoot, true);
 		}
 	});
 	
@@ -215,24 +203,32 @@ define([
 	 */
 	function FolderView(options) {
 		this._parent = options.parent;
-		this._input = options.input;
 		this._metadata = options.metadata;
 		this.fileClient = options.fileService;
-		this.progress = options.progress;
+		this.progress = options.progressService;
 		this.serviceRegistry = options.serviceRegistry;
-		this.commandService = options.commandService;
+		this.commandRegistry = options.commandRegistry;
 		this.contentTypeRegistry = options.contentTypeRegistry;
-		this.showProjectView = true;
+		this.preferences = options.preferences;
+		this.readonly = typeof options.readonly === 'undefined' ? false : options.readonly;
+		this.showProjectView = typeof options.showProjectView === 'undefined' ? true : options.showProjectView;
 		this.showFolderNav = true;
+		this.readmeHeaderClass = options.readmeHeaderClass;
+		this.editorView = options.editorView;
+		this._maxEditorHeight = options.maxEditorHeight;
+		this.imageView = options.imageView;
+		this.breadCrumbMaker = options.breadCrumbMaker;
+		this.clickHandler = options.clickHandler;
 		this._init();
 	}
 	FolderView.prototype = /** @lends orion.FolderView.prototype */ {
 		_init: function(){
-			if(this.serviceRegistry.getServiceReferences("orion.projects").length===0){
+			if(this.serviceRegistry && this.serviceRegistry.getServiceReferences("orion.projects").length===0){
 				this.showProjectView = false;
 			}
 			this.markdownView = new mMarkdownView.MarkdownView({
 				fileClient : this.fileClient,
+				canHide: !this.readonly,
 				progress : this.progress
 			});
 			if(this.showProjectView){
@@ -240,22 +236,33 @@ define([
 					fileClient : this.fileClient,
 					progress : this.progress,
 					serviceRegistry: this.serviceRegistry,
-					commandService: this.commandService
+					commandRegistry: this.commandRegistry,
+					preferences: this.preferences
 				});
 				this.projectView = new mProjectView.ProjectView({
 					fileClient : this.fileClient,
 					progress : this.progress,
 					serviceRegistry: this.serviceRegistry,
-					commandService: this.commandService
+					commandRegistry: this.commandRegistry
 				});
 			}
-			mGlobalCommands.getMainSplitter().splitter.addEventListener("toggle", this._splitterToggleListener = function(e) { //$NON-NLS-0$
-				[this.markdownView, this.projectEditor, this.projectView, this.folderNavExplorer].forEach(function(view) {
-					if (view && view.setCommandsVisible) {
-						view.setCommandsVisible(e.closed);
-					}
-				});
-			}.bind(this));
+			var mainSplitter = mGlobalCommands.getMainSplitter();
+			if(mainSplitter) {
+				mGlobalCommands.getMainSplitter().splitter.addEventListener("toggle", this._splitterToggleListener = function(e) { //$NON-NLS-0$
+					[this.markdownView, this.projectEditor, this.projectView, this.folderNavExplorer].forEach(function(view) {
+						if (view && view.setCommandsVisible) {
+							view.setCommandsVisible(e.closed);
+						}
+					});
+				}.bind(this));
+			}
+		},
+		_isCommandsVisible: function() {
+			var mainSplitter = mGlobalCommands.getMainSplitter();
+			if(mainSplitter) {
+				return mainSplitter.splitter.isClosed();
+			}
+			return !this.readonly;
 		},
 		displayWorkspaceView: function(){
 			var _self = this;
@@ -268,60 +275,117 @@ define([
 				var div = document.createElement("div"); //$NON-NLS-0$
 				_self._node.appendChild(div);
 				this.projectView.display(this._metadata, div);
+				this.projectView.setCommandsVisible(this._isCommandsVisible());
 			}
 		},
 		displayFolderView: function(root){
 			var children = root.Children;
 			var projectJson;
 			var readmeMd;
-			for (var i=0; i<children.length; i++) {
-				var child = children[i];
-				if (!child.Directory && child.Name === "project.json") { //$NON-NLS-0$
-					projectJson = child;
+			if(children) {
+				for (var i=0; i<children.length; i++) {
+					var child = children[i];
+					if (!child.Directory && child.Name === "project.json") { //$NON-NLS-0$
+						projectJson = child;
+					}
+					if (!child.Directory && child.Name && child.Name.toLowerCase() === "readme.md") { //$NON-NLS-0$
+						readmeMd = child;
+					}
+	
 				}
-				if (!child.Directory && child.Name && child.Name.toLowerCase() === "readme.md") { //$NON-NLS-0$
-					readmeMd = child;
-				}
-
 			}
 			var div;
 			if(!this._node){
 				this._node = document.createElement("div"); //$NON-NLS-0$
 			}
 			this._parent.appendChild(this._node);
-				
-			if(projectJson && this.showProjectView){
-				div = document.createElement("div"); //$NON-NLS-0$
-				this.projectEditor.displayContents(div, this._metadata);
-				this._node.appendChild(div);
+			
+			function renderSections(sectionsOrder){
+				sectionsOrder.forEach(function(sectionName){
+					if(sectionName === "project"){
+						if(projectJson && this.showProjectView){
+							div = document.createElement("div"); //$NON-NLS-0$
+							this.projectEditor.displayContents(div, this._metadata);
+							this._node.appendChild(div);
+						}
+					} else if(sectionName === "folderNav") {
+						if (this.showFolderNav) {
+							var navNode = document.createElement("div"); //$NON-NLS-0$
+							navNode.id = "folderNavNode"; //$NON-NLS-0$
+							var foldersSection = new mSection.Section(this._node, {id: "folderNavSection", title: "Files", canHide: !this.readonly});
+							if(this.editorView) {//To embed an orion editor in the section
+								foldersSection.setContent(this.editorView.getParent());
+								this.editorView.create();
+								var textView = this.editorView. editor.getTextView();
+								textView.getModel().addEventListener("Changed", this._editorViewModelChangedListener = function(e){ //$NON-NLS-0$
+									var textViewheight = textView.getLineHeight() * textView.getModel().getLineCount() + 20;
+									if(this._maxEditorHeight && this._maxEditorHeight > 0 && textViewheight >this._maxEditorHeight) {
+										textViewheight = this._maxEditorHeight;
+									}
+									this.editorView.getParent().style.height = textViewheight + "px"; //$NON-NLS-0$
+								}.bind(this));
+								this.editor = this.editorView.editor;
+							} else if(this.imageView) {
+								foldersSection.setContent(this.imageView.image);
+							} else {
+								this.folderNavExplorer = new FolderNavExplorer({
+									parentId: navNode,
+									readonly: this.readonly,
+									breadCrumbMaker: this.breadCrumbMaker,
+									clickHandler: this.clickHandler,
+									serviceRegistry: this.serviceRegistry,
+									fileClient: this.fileClient,
+									commandRegistry: this.commandRegistry,
+									contentTypeRegistry: this.contentTypeRegistry
+								});
+								foldersSection.embedExplorer(this.folderNavExplorer);
+								this.folderNavExplorer.setCommandsVisible(this._isCommandsVisible());
+								this.folderNavExplorer.loadRoot(this._metadata);
+							}
+							if(this.breadCrumbMaker) {
+								var tileNode = foldersSection.getTitleElement();
+								if(tileNode) {
+									lib.empty(tileNode);
+									var bcNode = document.createElement("div"); //$NON-NLS-0$
+									tileNode.appendChild(bcNode);
+									this.breadCrumbMaker(bcNode, foldersSection.getHeaderElement().offsetWidth - 24);
+								}
+							}
+						}
+					} else if(sectionName === "readme"){
+						if (readmeMd) {
+							div = document.createElement("div"); //$NON-NLS-0$
+							this.markdownView.displayInFrame(div, readmeMd, this.readmeHeaderClass);
+							this._node.appendChild(div);
+						}
+					}
+				}.bind(this));
 			}
 			
-			if (this.showFolderNav) {
-				var navNode = document.createElement("div"); //$NON-NLS-0$
-				navNode.className = "folderNav"; //$NON-NLS-0$
-				navNode.id = "folderNavNode"; //$NON-NLS-0$
-				this.folderNavExplorer = new FolderNavExplorer({
-					parentId: navNode,
-					serviceRegistry: this.serviceRegistry,
-					fileClient: this.fileClient,
-					commandRegistry: this.commandService,
-					contentTypeRegistry: this.contentTypeRegistry
-				});
-				this.folderNavExplorer.loadRoot(this._metadata);
-				this._node.appendChild(navNode);
-			}
-			
-			if (readmeMd) {
-				div = document.createElement("div"); //$NON-NLS-0$
-				this.markdownView.displayInFrame(div, readmeMd);
-				this._node.appendChild(div);
+			var sectionsOrder = ["project", "folderNav", "readme"];
+			if(this.editorView) {
+				renderSections.apply(this, [sectionsOrder]);
+			} else {
+				if(this.preferences) {
+					this.preferences.getPreferences("/sectionsOrder").then(function(sectionsOrderPrefs){
+						sectionsOrder = sectionsOrderPrefs.get("folderView") || sectionsOrder;
+						renderSections.apply(this, [sectionsOrder]);
+					}.bind(this), function(error){
+						renderSections.apply(this, [sectionsOrder]);
+						window.console.error(error);
+					}.bind(this));
+				} else {
+					renderSections.apply(this, [sectionsOrder]);
+				}
 			}
 		},
 		create: function() {
 			if(this._metadata.Projects){ //this is a workspace root
 				this.displayWorkspaceView();
 			}
-			if(this._metadata.Children){
+			if(this.editorView || this.imageView) {
+				this.displayFolderView(this._metadata);
+			} else if(this._metadata.Children){
 				this.displayFolderView(this._metadata);
 			} else if(this._metadata.ChildrenLocation){
 				this.progress.progress(this.fileClient.fetchChildren(this._metadata.ChildrenLocation), "Fetching children of " + this._metadata.Name).then(function(children) {
@@ -331,13 +395,27 @@ define([
 			}
 		},
 		destroy: function() {
-			mGlobalCommands.getMainSplitter().splitter.removeEventListener("toggle", this._splitterToggleListener); //$NON-NLS-0$
+			if(this.editorView) {
+				this.editorView. editor.getTextView().getModel().removeEventListener("Changed", this._editorViewModelChangedListener); //$NON-NLS-0$
+				this.editorView.destroy();
+				this.editor = null;
+			}
+			var mainSplitter = mGlobalCommands.getMainSplitter();
+			if(mainSplitter) {
+				mainSplitter.splitter.removeEventListener("toggle", this._splitterToggleListener); //$NON-NLS-0$
+			}
 			if (this.folderNavExplorer) {
 				this.folderNavExplorer.destroy();
 			}
 			this.folderNavExplorer = null;
 			if (this._node && this._node.parentNode) {
 				this._node.parentNode.removeChild(this._node);
+			}
+			if(this.projectView) {
+				this.projectView.destroy();
+			}
+			if(this.projectEditor){
+				this.projectEditor.destroy();
 			}
 			this._node = null;
 		}

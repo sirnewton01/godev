@@ -1,0 +1,12 @@
+@font-face {
+  font-family: 'Orion Icon Font';
+  src: url('OrionIconFont-Regular.eot'); /* IE9 Compat Modes */
+  src: url('OrionIconFont-Regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('OrionIconFont-Regular.woff') format('woff'), /* Modern Browsers */
+       url('OrionIconFont-Regular.ttf')  format('truetype'), /* Safari, Android, iOS */
+       url('OrionIconFont-Regular.svg#04b530a8db6e0f4a0fdb83697b7ace5f') format('svg'); /* Legacy iOS */
+       
+  font-style:   normal;
+  font-weight:  400;
+}
+

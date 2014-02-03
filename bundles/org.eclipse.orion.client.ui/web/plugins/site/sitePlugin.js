@@ -9,7 +9,11 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 /*global define document eclipse parent window*/
-define(['orion/plugin', 'plugins/site/siteServiceImpl'], function(PluginProvider, siteImpl) {
+define([
+	'orion/plugin',
+	'plugins/site/siteServiceImpl',
+	'plugins/site/selfHostingRules'
+], function(PluginProvider, siteImpl, mSelfHostingRules) {
 	function qualify(url) {
 		var a = document.createElement('a');
 		a.href = url;
@@ -54,12 +58,21 @@ define(['orion/plugin', 'plugins/site/siteServiceImpl'], function(PluginProvider
 	var host = document.createElement('a');
 	host.href = '/';
 
+	provider.registerService("orion.page.link", null, {
+		nameKey: "Sites",
+		id: "orion.sites",
+		nls: "orion/nls/messages",
+		category: "sites",
+		uriTemplate: "{+OrionHome}/sites/sites.html"
+	});
+
 	provider.registerService('orion.navigate.command', null, {
 		id: 'orion.site.' + host.hostname + '.viewon',
 		nameKey: 'View on Site',
 		tooltipKey: 'View this file or folder on a web site hosted by Orion',
 		nls: 'orion/nls/messages',
 		forceSingleItem: true,
+		category: 'sites',
 		validationProperties: filesAndFoldersOnService(fileBase),
 		uriTemplate: '{+OrionHome}/sites/view.html#,file={,Location}'
 	});
@@ -69,17 +82,28 @@ define(['orion/plugin', 'plugins/site/siteServiceImpl'], function(PluginProvider
 		nameKey: 'View on Site',
 		tooltipKey: 'View this file or folder on a web site hosted by Orion',
 		nls: 'orion/nls/messages',
+		category: 'sites',
 		validationProperties: filesAndFoldersOnService(fileBase),
 		uriTemplate: '{+OrionHome}/sites/view.html#,file={,Location}'
 	});
 
 	provider.registerService('orion.site',
-		new siteImpl.SiteImpl(fileBase, workspaceBase),
-		{	id: 'orion.site.' + host.hostname,
+		new siteImpl.SiteImpl(fileBase, workspaceBase, mSelfHostingRules),
+		{
+			id: 'orion.site.' + host.hostname,
 			name: 'Orion Sites at ' + host.hostname,
-			canSelfHost: true,
 			pattern: siteBase,
-			filePattern: fileBase
+			filePattern: fileBase,
+			canSelfHost: true,
+			selfHostingConfig: {
+				folders: [
+					{
+						name: "org.eclipse.orion.client",
+						labelKey: "orionClientLabel",
+						nls: "orion/sites/nls/messages"
+					}
+				]
+			}
 		});
 
 	provider.connect();

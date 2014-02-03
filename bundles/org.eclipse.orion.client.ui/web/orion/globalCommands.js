@@ -12,16 +12,16 @@
 /*global window document define login logout localStorage orion */
 /*jslint browser:true sub:true */
 define([
-		'i18n!orion/nls/messages', 'require', 'orion/commonHTMLFragments', 'orion/keyBinding', 'orion/commandRegistry', 'orion/commands',
+		'i18n!orion/nls/messages', 'require', 'orion/commonHTMLFragments', 'orion/keyBinding', 'orion/EventTarget', 'orion/commandRegistry', 'orion/commands',
 		'orion/parameterCollectors', 'orion/extensionCommands', 'orion/uiUtils', 'orion/keyBinding', 'orion/breadcrumbs', 'orion/webui/littlelib',
-		'orion/webui/splitter', 'orion/webui/dropdown', 'orion/webui/tooltip', 'orion/contentTypes', 'orion/URITemplate',
+		'orion/webui/splitter', 'orion/webui/dropdown', 'orion/webui/tooltip', 'orion/contentTypes', 'orion/URITemplate', 'orion/keyAssist',
 		'orion/PageUtil', 'orion/widgets/themes/ThemePreferences', 'orion/widgets/themes/container/ThemeData', 'orion/Deferred',
 		'orion/widgets/UserMenu', 'orion/PageLinks', 'orion/webui/dialogs/OpenResourceDialog', 'text!orion/banner/banner.html',
 		'text!orion/banner/footer.html', 'text!orion/banner/toolbar.html', 'orion/widgets/input/DropDownMenu', 'orion/widgets/input/GroupedContent',
 		'orion/util', 'orion/customGlobalCommands', 'orion/fileClient'
 	],
-	function (messages, require, commonHTML, KeyBinding, mCommandRegistry, mCommands, mParameterCollectors, mExtensionCommands, mUIUtils, mKeyBinding,
-		mBreadcrumbs, lib, mSplitter, mDropdown, mTooltip, mContentTypes, URITemplate, PageUtil, mThemePreferences, mThemeData, Deferred,
+	function (messages, require, commonHTML, KeyBinding, EventTarget, mCommandRegistry, mCommands, mParameterCollectors, mExtensionCommands, mUIUtils, mKeyBinding,
+		mBreadcrumbs, lib, mSplitter, mDropdown, mTooltip, mContentTypes, URITemplate, mKeyAssist, PageUtil, mThemePreferences, mThemeData, Deferred,
 		mUserMenu, PageLinks, openResource, BannerTemplate, FooterTemplate, ToolbarTemplate, DropDownMenu, GroupedContent, util, mCustomGlobalCommands, mFileClient) {
 	/**
 	 * This class contains static utility methods. It is not intended to be instantiated.
@@ -385,6 +385,8 @@ define([
 	 * @param {Object} options The target options object.
 	 * @param {String} options.task the name of the user task that the page represents.
 	 * @param {Object} options.target the metadata describing the page resource target. Optional.
+	 * @param {String|DomNode} options.breadCrumbContainer the dom node or id of the bread crumb container. Optional. If not defined, 'location' is used as 
+	 * the bread crumb container id, which is always in the page banner.
 	 * @param {String} options.name the name of the resource that is showing on the page. Optional. If a target parameter is supplied, the
 	 * target metadata name will be used if a name is not specified in the options.
 	 * @param {String} options.title the title to be used for the page. Optional. If not specified, a title will be constructed using the task
@@ -442,7 +444,7 @@ define([
 		}
 		window.document.title = title;
 		customGlobalCommands.afterSetPageTarget.apply(this, arguments);
-		var locationNode = lib.node("location"); //$NON-NLS-0$
+		var locationNode = options.breadCrumbContainer ? lib.node(options.breadCrumbContainer) : lib.node("location"); //$NON-NLS-0$
 		if (locationNode) {
 			lib.empty(locationNode);
 			var fileClient = serviceRegistry && new mFileClient.FileClient(serviceRegistry);
@@ -454,6 +456,7 @@ define([
 				rootSegmentName: breadcrumbRootName,
 				workspaceRootSegmentName: fileSystemRootName,
 				workspaceRootURL: workspaceRootURL,
+				makeFinalHref: options.makeBreadcrumFinalLink,
 				makeHref: options.makeBreadcrumbLink
 			});
 		}
@@ -541,6 +544,17 @@ define([
 	function getMainSplitter() {
 		return mainSplitter;
 	}
+	
+	var keyAssist = null;
+	function getKeyAssist() {
+		return keyAssist;
+	}
+	
+	var globalEventTarget = new EventTarget();
+	function getGlobalEventTarget() {
+		return globalEventTarget;
+	}
+	
 
 	/**
 	 * Generates the banner at the top of a page.
@@ -554,7 +568,7 @@ define([
 	 * @param prefsService
 	 * @param searcher
 	 * @param handler
-	 * @param editor
+	 * @param editor - no longer used
 	 * @param {Boolean} closeSplitter true to make the splitter's initial state "closed".
 	 */
 	function generateBanner(parentId, serviceRegistry, commandRegistry, prefsService, searcher, handler, /* optional */ editor, closeSplitter) {
@@ -628,9 +642,9 @@ define([
 		// generate primary nav links.
 		var primaryNav = lib.node("navigationlinks"); //$NON-NLS-0$
 		if (primaryNav) {
-			PageLinks.createPageLinks(serviceRegistry, "orion.page.link").then(function (links) { //$NON-NLS-0$
-				links.forEach(function (link) {
-					var li = document.createElement('li');
+			PageLinks.getPageLinksInfo(serviceRegistry, "orion.page.link").then(function(pageLinksInfo) {
+				pageLinksInfo.createLinkElements().forEach(function (link) {
+					var li = document.createElement('li'); //$NON-NLS-0$
 					li.appendChild(link);
 					primaryNav.appendChild(li);
 				});
@@ -663,16 +677,7 @@ define([
 					}
 				});
 				commandRegistry.addCommand(toggleSidePanelCommand);
-				commandRegistry.registerCommandContribution("pageActions", "orion.toggleSidePane", 1, null, true, new KeyBinding.KeyBinding('o', true)); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-
-				// editor behavior if needed
-				if (editor) {
-					mainSplitter.splitter.addResizeListener(function (node) {
-						if (editor && node === main) {
-							editor.resize();
-						}
-					});
-				}
+				commandRegistry.registerCommandContribution("pageActions", "orion.toggleSidePane", 1, null, true, new KeyBinding.KeyBinding('l', util.isMac ? false : true, true, false, util.isMac ? true : false)); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			}
 		}
 
@@ -680,8 +685,7 @@ define([
 
 		// open resource
 		var showingResourceDialog = false;
-		var openResourceDialog = function (searcher, serviceRegistry, /* optional */
-			editor) {
+		var openResourceDialog = function (searcher, serviceRegistry) {
 			if (showingResourceDialog) {
 				return;
 			}
@@ -692,9 +696,6 @@ define([
 				searchRenderer: searcher.defaultRenderer,
 				onHide: function () {
 					showingResourceDialog = false;
-					if (editor) {
-						editor.focus();
-					}
 				}
 			});
 			window.setTimeout(function () {
@@ -706,14 +707,14 @@ define([
 		var openResourceCommand = new mCommands.Command({
 			name: messages["Find File Named..."],
 			tooltip: messages["Choose a file by name and open an editor on it"],
-			id: "eclipse.openResource", //$NON-NLS-0$
+			id: "orion.openResource", //$NON-NLS-0$
 			callback: function (data) {
-				openResourceDialog(searcher, serviceRegistry, editor);
+				openResourceDialog(searcher, serviceRegistry);
 			}
 		});
 
 		commandRegistry.addCommand(openResourceCommand);
-		commandRegistry.registerCommandContribution("globalActions", "eclipse.openResource", 100, null, true, new KeyBinding.KeyBinding('f', true, true)); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		commandRegistry.registerCommandContribution("globalActions", "orion.openResource", 100, null, true, new KeyBinding.KeyBinding('f', true, true)); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 
 		// Toggle trim command
 		var toggleBanner = new mCommands.Command({
@@ -724,7 +725,8 @@ define([
 				var header = lib.node("banner"); //$NON-NLS-0$
 				var footer = lib.node("footer"); //$NON-NLS-0$
 				var content = lib.$(".content-fixedHeight"); //$NON-NLS-0$
-				if (header.style.visibility === "hidden") { //$NON-NLS-0$
+				var maximized = header.style.visibility === "hidden"; //$NON-NLS-0$
+				if (maximized) {
 					header.style.visibility = "visible"; //$NON-NLS-0$
 					footer.style.visibility = "visible"; //$NON-NLS-0$
 					content.classList.remove("content-fixedHeight-maximized"); //$NON-NLS-0$
@@ -733,9 +735,7 @@ define([
 					footer.style.visibility = "hidden"; //$NON-NLS-0$
 					content.classList.add("content-fixedHeight-maximized"); //$NON-NLS-0$
 				}
-				if (editor) {
-					editor.resize();
-				}
+				getGlobalEventTarget().dispatchEvent({type: "toggleTrim", maximized: !maximized}); //$NON-NLS-0$
 				return true;
 			}
 		});
@@ -769,280 +769,13 @@ define([
 		commandRegistry.registerCommandContribution("globalActions", "orion.backgroundOperations", 100, null, true, new KeyBinding.KeyBinding('o', true, true)); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 
 		// Key assist
-		function KeyAssistPanel() {
-			this.create();
-			this._filterString = "";
-		}
-		KeyAssistPanel.prototype = {
-			create: function () {
-				var keyAssistDiv = this._keyAssistDiv = document.createElement("div"); //$NON-NLS-0$
-				keyAssistDiv.id = "keyAssist"; //$NON-NLS-0$
-				keyAssistDiv.style.display = "none"; //$NON-NLS-0$
-				keyAssistDiv.classList.add("keyAssistFloat"); //$NON-NLS-0$
-				keyAssistDiv.setAttribute("role", "menu"); //$NON-NLS-1$ //$NON-NLS-0$
-				var keyAssistInput = this._keyAssistInput = document.createElement("input"); //$NON-NLS-0$
-				keyAssistInput.classList.add("keyAssistInput"); //$NON-NLS-0$
-				keyAssistInput.type = "text"; //$NON-NLS-0$
-				keyAssistInput.placeholder = messages["Filter bindings"];
-				keyAssistDiv.appendChild(keyAssistInput);
-				var keyAssistContents = this._keyAssistContents = document.createElement("div"); //$NON-NLS-0$
-				keyAssistContents.classList.add("keyAssistContents"); //$NON-NLS-0$
-				if (util.isIOS || util.isAndroid) {
-					keyAssistContents.style.overflowY = "auto"; //$NON-NLS-0$
-				}
-				keyAssistDiv.appendChild(keyAssistContents);
-				var keyAssistTable = this._keyAssistTable = document.createElement('table'); //$NON-NLS-0$
-				keyAssistTable.tabIndex = 0;
-				keyAssistTable.classList.add("keyAssistList"); //$NON-NLS-0$
-				keyAssistContents.appendChild(keyAssistTable);
-				document.body.appendChild(keyAssistDiv);
-				keyAssistInput.addEventListener("keydown", function (e) { //$NON-NLS-0$
-					this._keyDown(e);
-				}.bind(this));
-				keyAssistTable.addEventListener("keydown", function (e) { //$NON-NLS-0$
-					this._keyDown(e);
-				}.bind(this));
-				keyAssistInput.addEventListener("input", function (e) { //$NON-NLS-0$
-					this.filterChanged();
-				}.bind(this));
-				keyAssistContents.addEventListener(util.isFirefox ? "DOMMouseScroll" : "mousewheel", function (e) { //$NON-NLS-1$ //$NON-NLS-0$
-					this._scrollWheel(e);
-				}.bind(this));
-				document.addEventListener("keydown", function (e) { //$NON-NLS-0$
-					if (e.keyCode === lib.KEY.ESCAPE) {
-						this.hide();
-					}
-				}.bind(this));
-				lib.addAutoDismiss([keyAssistDiv], function () {
-					this.hide();
-				}.bind(this));
-			},
-			createContents: function () {
-				var table = this._keyAssistTable;
-				lib.empty(table);
-				this._selectedIndex = -1;
-				this._selectedRow = null;
-				this._keyAssistContents.scrollTop = 0;
-				this._idCount = 0;
-
-				if (editor && editor.getTextView && editor.getTextView()) {
-					var textView = editor.getTextView();
-					// Remove actions without descriptions
-					var editorActions = textView.getActions(true).filter(function (element) {
-						var desc = textView.getActionDescription(element);
-						return desc && desc.name;
-					});
-					editorActions.sort(function (a, b) {
-						return textView.getActionDescription(a).name.localeCompare(textView.getActionDescription(b).name);
-					});
-					this.createHeader(messages["Editor"]);
-					var execute = function (actionID) {
-						return function () {
-							textView.focus();
-							return textView.invokeAction(actionID);
-						};
-					};
-					var scopes = {}, binding;
-					for (var i = 0; i < editorActions.length; i++) {
-						var actionID = editorActions[i];
-						var actionDescription = textView.getActionDescription(actionID);
-						var bindings = textView.getKeyBindings(actionID);
-						for (var j = 0; j < bindings.length; j++) {
-							binding = bindings[j];
-							var bindingString = mUIUtils.getUserKeyString(binding);
-							if (binding.scopeName) {
-								if (!scopes[binding.scopeName]) {
-									scopes[binding.scopeName] = [];
-								}
-								scopes[binding.scopeName].push({bindingString: bindingString, name: actionDescription.name, execute: execute(actionID)});
-							} else {
-								this.createItem(bindingString, actionDescription.name, execute(actionID));
-							}
-						}
-					}
-					for (var scopedBinding in scopes) {
-						if (scopes[scopedBinding].length) {
-							this.createHeader(scopedBinding);
-							for (var k = 0; k < scopes[scopedBinding].length; k++) {
-								binding = scopes[scopedBinding][k];
-								this.createItem(binding.bindingString, binding.name, binding.execute);
-							}
-						}	
-					}
-				}
-				this.createHeader(messages["Global"]);
-				commandRegistry.showKeyBindings(this);
-			},
-			createItem: function (bindingString, name, execute) {
-				if (this._filterString) {
-					var s = this._filterString.toLowerCase(),
-						insensitive;
-					if (s !== this._filterString) {
-						s = this._filterString;
-						insensitive = function (str) {
-							return str;
-						};
-					} else {
-						insensitive = function (str) {
-							return str.toLowerCase();
-						};
-					}
-					if (insensitive(name).indexOf(s) === -1 && insensitive(bindingString).indexOf(s) === -1 && insensitive(this._lastHeader).indexOf(s) === -1) {
-						return;
-					}
-				}
-				var row = this._keyAssistTable.insertRow(-1);
-				row.id = "keyAssist-keyBinding-" + this._idCount++; //$NON-NLS-0$
-				row.setAttribute("role", "menuitem"); //$NON-NLS-1$ //$NON-NLS-0$
-				row._execute = execute;
-				row.classList.add("keyAssistItem"); //$NON-NLS-0$
-				row.addEventListener("click", function (e) { //$NON-NLS-0$
-					this._selectedRow = row;
-					this.execute();
-					e.preventDefault();
-				}.bind(this));
-				var column = row.insertCell(-1);
-				column.classList.add("keyAssistName"); //$NON-NLS-0$
-				column.appendChild(document.createTextNode(name));
-				column = row.insertCell(-1);
-				column.classList.add("keyAssistAccel"); //$NON-NLS-0$
-				column.appendChild(document.createTextNode(bindingString));
-			},
-			createHeader: function (name) {
-				this._lastHeader = name;
-				var row = this._keyAssistTable.insertRow(-1);
-				row.classList.add("keyAssistSection"); //$NON-NLS-0$
-				var column = row.insertCell(-1);
-				var heading = document.createElement("h2"); //$NON-NLS-0$
-				heading.appendChild(document.createTextNode(name));
-				column.appendChild(heading);
-			},
-			execute: function () {
-				window.setTimeout(function () {
-					this.hide();
-					var row = this._selectedRow;
-					this._selectedRow = null;
-					if (row && row._execute) {
-						row._execute();
-					}
-				}.bind(this), 0);
-			},
-			filterChanged: function () {
-				if (this._timeout) {
-					window.clearTimeout(this._timeout);
-				}
-				this._timeout = window.setTimeout(function () {
-					this._timeout = null;
-					var value = this._keyAssistInput.value;
-					if (this._filterString !== value) {
-						this._filterString = value;
-						this.createContents();
-					}
-				}.bind(this), 100);
-			},
-			hide: function () {
-				if (!this.isVisible()) {
-					return;
-				}
-				var activeElement = document.activeElement;
-				var keyAssistDiv = this._keyAssistDiv;
-				var hasFocus = keyAssistDiv === activeElement || (keyAssistDiv.compareDocumentPosition(activeElement) & 16) !== 0;
-				keyAssistDiv.style.display = "none"; //$NON-NLS-0$
-				if (hasFocus && document.compareDocumentPosition(this._previousActiveElement) !== 1) {
-					this._previousActiveElement.focus();
-				}
-				this._previousActiveElement = null;
-			},
-			isVisible: function () {
-				return this._keyAssistDiv.style.display === "block"; //$NON-NLS-0$
-			},
-			select: function (forward) {
-				var rows = this._keyAssistTable.querySelectorAll(".keyAssistItem"), row; //$NON-NLS-0$
-				if (rows.length === 0) {
-					this._selectedIndex = -1;
-					return;
-				}
-				var selectedIndex = this._selectedIndex;
-				selectedIndex += forward ? 1 : -1;
-				selectedIndex %= rows.length;
-				if (selectedIndex < 0) {
-					selectedIndex = rows.length - 1;
-				}
-				if (this._selectedIndex !== -1) {
-					row = rows[this._selectedIndex];
-					row.classList.remove("selected"); //$NON-NLS-0$
-					this._selectedRow = null;
-				}
-				this._selectedIndex = selectedIndex;
-				if (this._selectedIndex !== -1) {
-					this._selectedRow = row = rows[this._selectedIndex];
-					row.classList.add("selected"); //$NON-NLS-0$
-					this._keyAssistTable.setAttribute("aria-activedescendant", row.id); //$NON-NLS-0$
-					this._keyAssistTable.focus();
-					var rowRect = row.getBoundingClientRect();
-					var parent = this._keyAssistContents;
-					var rect = parent.getBoundingClientRect();
-					if (row.offsetTop < parent.scrollTop) {
-						if (selectedIndex === 0) {
-							parent.scrollTop = 0;
-						} else {
-							row.scrollIntoView(true);
-						}
-					} else if (rowRect.bottom > rect.bottom) {
-						row.scrollIntoView(false);
-					}
-				}
-			},
-			show: function () {
-				if (this.isVisible()) {
-					return;
-				}
-				this._previousActiveElement = document.activeElement;
-				this.createContents();
-				this._keyAssistContents.style.height = Math.floor(this._keyAssistDiv.parentNode.clientHeight * 0.75) + "px"; //$NON-NLS-0$
-				this._keyAssistDiv.style.display = "block"; //$NON-NLS-0$
-				this._keyAssistInput.value = this._filterString;
-				this._keyAssistInput.focus();
-				this._keyAssistInput.select();
-			},
-			_keyDown: function (e) {
-				if (e.keyCode === 40) {
-					this.select(true);
-				} else if (e.keyCode === 38) {
-					this.select(false);
-				} else if (e.keyCode === 13) {
-					this.execute();
-				} else {
-					return;
-				}
-				e.preventDefault();
-			},
-			_scrollWheel: function (e) {
-				var pixelY = 0;
-				if (util.isIE || util.isOpera) {
-					pixelY = -e.wheelDelta;
-				} else if (util.isFirefox) {
-					pixelY = e.detail * 40;
-				} else {
-					pixelY = -e.wheelDeltaY;
-				}
-				var parent = this._keyAssistContents;
-				var scrollTop = parent.scrollTop;
-				parent.scrollTop += pixelY;
-				if (scrollTop !== parent.scrollTop) {
-					if (e.preventDefault) {
-						e.preventDefault();
-					}
-					return false;
-				}
-			}
-		};
-		var keyAssist = new KeyAssistPanel();
-
+		keyAssist = new mKeyAssist.KeyAssistPanel({
+			commandRegistry: commandRegistry
+		});
 		var keyAssistCommand = new mCommands.Command({
 			name: messages["Show Keys"],
 			tooltip: messages["Show a list of all the keybindings on this page"],
-			id: "eclipse.keyAssist", //$NON-NLS-0$
+			id: "orion.keyAssist", //$NON-NLS-0$
 			callback: function () {
 				if (keyAssist.isVisible()) {
 					keyAssist.hide();
@@ -1053,18 +786,7 @@ define([
 			}
 		});
 		commandRegistry.addCommand(keyAssistCommand);
-		commandRegistry.registerCommandContribution("globalActions", "eclipse.keyAssist", 100, null, true, new KeyBinding.KeyBinding(191, false, true)); //$NON-NLS-1$ //$NON-NLS-0$
-		var addKeyAssistAction = function () {
-			editor.getTextView().setKeyBinding(new KeyBinding.KeyBinding(191, false, true, !util.isMac, util.isMac), keyAssistCommand.id);
-			editor.getTextView().setAction(keyAssistCommand.id, keyAssistCommand.callback, keyAssistCommand);
-		};
-		if (editor && editor.getTextView) {
-			if (editor.getTextView()) {
-				addKeyAssistAction();
-			} else {
-				editor.addEventListener("TextViewInstalled", addKeyAssistAction); //$NON-NLS-0$
-			}
-		}
+		commandRegistry.registerCommandContribution("globalActions", "orion.keyAssist", 100, null, true, new KeyBinding.KeyBinding(191, false, true)); //$NON-NLS-1$ //$NON-NLS-0$
 
 		renderGlobalCommands(commandRegistry);
 
@@ -1100,7 +822,7 @@ define([
 						setTarget(target);
 					}
 				}, {
-					pid: "nav.config"
+					pid: "nav.config" //$NON-NLS-0$
 				}); //$NON-NLS-0$
 		}
 		window.setTimeout(function () {
@@ -1115,6 +837,8 @@ define([
 		generateBanner: generateBanner,
 		getToolbarElements: getToolbarElements,
 		getMainSplitter: getMainSplitter,
+		getKeyAssist: getKeyAssist,
+		getGlobalEventTarget: getGlobalEventTarget,
 		layoutToolbarElements: layoutToolbarElements,
 		setPageTarget: setPageTarget,
 		setDirtyIndicator: setDirtyIndicator,

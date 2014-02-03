@@ -18,7 +18,7 @@ define(['orion/widgets/themes/ThemeClass'],
 		var button = '#777777';
 		var location = '#EFEFEF';
 		var selection = 'FEC';
-		var sidepanel = '#FBFBFB';
+		var sidepanel = '#F7F7F7';
 		var mainpanel = 'white';
 		var navtext = '#bfbfbf';
 		var content = '#3087B3';
@@ -73,6 +73,7 @@ define(['orion/widgets/themes/ThemeClass'],
 			navlink.style.display = 'inline-block';
 			navlink.style.padding = '2px';
 			navlink.style.color = this.content;
+			navlink.style.verticalAlign = 'bottom';
 			
 			styles.push( navlink );
 
@@ -191,16 +192,16 @@ define(['orion/widgets/themes/ThemeClass'],
 			
 			var navlinkonpage = new ThemeClass.ThemeClass( 'navlinkonpage' );
 			navlinkonpage.style.color = this.content;
+			navlinkonpage.style.verticalAlign = 'middle';
 			
 			styles.push( navlinkonpage );
 			
-			var progressIndicator = new ThemeClass.ThemeClass( 'progressPane_running' );
-			progressIndicator.style.background = 'url(../images/progress_running_dark.gif) no-repeat center';
-			progressIndicator.style.width = '16px';
-			progressIndicator.style.height = '16px';
+			if (this.bannerProgress) {
+				var progressIndicator = new ThemeClass.ThemeClass( 'topRowBanner .progressPane_running' );
+				progressIndicator.style.borderColor = this.bannerProgress;
+				styles.push( progressIndicator );
+			}	
 			
-			styles.push( progressIndicator );
-						
 			for( var s in styles ){
 				styleBlock = styleBlock + styles[s].toString();
 			}
@@ -224,7 +225,7 @@ define(['orion/widgets/themes/ThemeClass'],
 			commandButton.style.border = '1px solid #dedede'; // see https://bugs.eclipse.org/bugs/show_bug.cgi?id=386702#c2 
 			commandButton.style.backgroundColor = '#ddd';//this.button;
 			commandButton.style.textAlign = 'center';
-			commandButton.style.verticalAlign = 'baseline';
+			commandButton.style.verticalAlign = 'middle';
 			commandButton.style.cursor = 'pointer';
 		    commandButton.style.display = 'inline-block';
 		    commandButton.style.padding = '4px 6px';
@@ -335,11 +336,8 @@ define(['orion/widgets/themes/ThemeClass'],
 			mainToolbar.style.background = this.toolpanel;
 			mainToolbar.style.height = '32px';
 			mainToolbar.style.borderBottom = '1px solid #ebebeb';
-			mainToolbar.style.paddingTop = '3px';
-			
 			styles.push( mainToolbar );
-		
-
+	
 			for( var s in styles ){
 				styleBlock = styleBlock + styles[s].toString();
 			}
@@ -371,6 +369,7 @@ define(['orion/widgets/themes/ThemeClass'],
 				this.search = settings.search.value;
 				this.content = settings.content.value;
 				this.toolpanel = settings.toolpanel.value;
+				this.bannerProgress = settings.bannerProgress.value;
 			}else{
 				this.navbar = settings.navbar;
 				this.button = settings.button;
@@ -382,6 +381,7 @@ define(['orion/widgets/themes/ThemeClass'],
 				this.search = settings.search;
 				this.content = settings.content;
 				this.toolpanel = settings.toolpanel;
+				this.bannerProgress = settings.bannerProgress;
 			}
 			
 			var sheet = this.writeNavigationStyle() + this.writeLocationStyle() + this.writeMainStyle() + this.writeButtonStyle();

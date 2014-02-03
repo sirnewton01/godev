@@ -110,13 +110,16 @@ define([
 		},
 		
 		/*
-		Category 0
-			[Contributed extension links]
-			Keyboard Shortcuts
-		Separator
-		Category 1
-			[Contributed extension links]
-			[Service sign-out links]
+		Category user.0 [
+		                [ <Contributed links>
+		                [ Keyboard Shortcuts
+		---Separator---
+		Category user.1 [
+		                [ <Contributed links>
+		                [ <Service sign-out links>
+		[...]
+		Category user.N [
+		                [< Contributed links>
 		*/
 		renderServices: function(){
 			var doc = document;
@@ -128,7 +131,7 @@ define([
 				return categories[number];
 			}
 			var serviceRegistry = this._serviceRegistry;
-			PageLinks.getPageLinksInfo(serviceRegistry, "orion.page.link.user").then(function(linkInfos) { //$NON-NLS-0$
+			PageLinks.getPageLinksInfo(serviceRegistry, "orion.page.link.user").then(function(pageLinksInfo) { //$NON-NLS-0$
 				if(this._dropdown) {
 					this._dropdown.empty();
 				} else if(this._dropdownNode) {
@@ -136,8 +139,14 @@ define([
 				}
 
 				// Read extension-contributed links
-				linkInfos.forEach(function(item) {
-					var categoryNumber = typeof item.category === "number" ? item.category : 1; //$NON-NLS-0$
+				pageLinksInfo.getAllLinks().forEach(function(item) {
+					var categoryNumber, match;
+					if (item.category && (match = /user\.(\d+)/.exec(item.category))) {
+						categoryNumber = parseInt(match[1], 10);
+					}
+					if (typeof categoryNumber !== "number" || isNaN(categoryNumber)) { //$NON-NLS-0$
+						categoryNumber = 1;
+					}
 					var category = getCategory(categoryNumber);
 
 					var li = doc.createElement("li");//$NON-NLS-0$

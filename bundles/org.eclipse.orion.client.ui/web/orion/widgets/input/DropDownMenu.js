@@ -71,6 +71,7 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 		click: function() {
 			if( this._dropdownMenu.style.display === 'none' ){ //$NON-NLS-0$
 				this.updateContent ( this.getContentNode() , function () {
+					lib.setFramesEnabled(false);
 					this._dropdownMenu.style.display = '';
 					this._positionDropdown();
 					if (this.selectionClass) {
@@ -89,6 +90,7 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 		clearPanel: function(){
 			if (!this.isVisible()) { return; }
 			this._dropdownMenu.style.display = 'none'; //$NON-NLS-0$
+			lib.setFramesEnabled(true);
 			if (this.selectionClass) {
 				this._triggerNode.classList.remove(this.selectionClass);
 			}
@@ -113,16 +115,23 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 		},
 
 		_positionDropdown: function() {
-			this._dropdownMenu.style.left = "";
+			this._dropdownMenu.style.right = "";
 			var bounds = lib.bounds(this._dropdownMenu);
-			var totalBounds = lib.bounds(this._boundingNode(this._parent));
-			if (bounds.left + bounds.width > (totalBounds.left + totalBounds.width)) {
-				this._dropdownMenu.style.right = 0;
+			var bodyBounds = lib.bounds(document.body);
+			if (bounds.left + bounds.width > (bodyBounds.left + bodyBounds.width)) {
+				var totalBounds = lib.bounds(this._boundingNode(this._triggerNode));
+				var triggerBounds = lib.bounds(this._triggerNode);
+				this._dropdownMenu.style.right = (totalBounds.width - ((triggerBounds.left - totalBounds.left) + triggerBounds.width)) + "px"; //$NON-NLS-0$
 			}
 		},
 		
 		_boundingNode: function(node) {
-			if (node.style.right !== "" || node.style.position === "absolute" || !node.parentNode || !node.parentNode.style) { //$NON-NLS-1$ //$NON-NLS-0$
+			var style = window.getComputedStyle(node, null);
+			if (style === null) {
+				return node;
+			}
+			var position = style.getPropertyValue("position"); //$NON-NLS-0$
+			if (position === "absolute" || !node.parentNode || node === document.body) { //$NON-NLS-0$
 				return node;
 			}
 			return this._boundingNode(node.parentNode);
@@ -142,6 +151,7 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 
 		destroy: function() {
 			if (this._parent) {
+				lib.setFramesEnabled(true);
 				lib.empty(this._parent);
 				this._parent = this.select = null;
 			}

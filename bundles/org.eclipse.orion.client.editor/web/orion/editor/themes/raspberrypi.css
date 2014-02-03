@@ -40,21 +40,18 @@
 .raspberrypi .line_caret {
 	background-color: #F5B1AE;
 }
-.raspberrypi .token_keyword {
+.raspberrypi .keyword {
 	color: #E73E36;
 }
-.raspberrypi .token_string {
+.raspberrypi .string {
 	color: darkorange;
 }
-.raspberrypi .token_singleline_comment {
+.raspberrypi .comment {
 	color: #66B32F;
 }
-.raspberrypi .token_multiline_comment {
+.raspberrypi .comment.block.documentation {
 	color: #66B32F;
 }
-.raspberrypi .token_doc_comment {
-	color: #66B32F;
-}
-.raspberrypi .token_doc_html_markup {
+.raspberrypi .keyword.other.documentation.markup {
 	color: #66B32F;
 }

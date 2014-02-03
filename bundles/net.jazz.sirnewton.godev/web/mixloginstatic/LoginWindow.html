@@ -26,7 +26,7 @@ require(["LoginWindow.js"]);
 <body style="margin: 0; padding: 0;" tabindex="-1">
 	<div class="orion-banner">
 		<div class="orion-nav-bar">
-			<!--<header class="orion-logo" role="banner"></header>-->
+			<header class="orion-logo" role="banner"></header>
 			<nav role="navigation">
 				<!-- BEGIN GODEV CUSTOMIZATION
 				<a class="orion-rss-link" href="http://planetorion.org/news/" target="_blank" title="Orion News" alt="Orion News" tabindex="100"></a>
@@ -39,14 +39,14 @@ require(["LoginWindow.js"]);
 		<div class="orion-landing-area" role="main">
 			<aside id="orionInfoArea" class="orion-info" style="visibility: hidden;" tabindex="0" role="complementary" aria-atomic="true" aria-live="assertive">
 					<div id="orionInfoMessage" class="orion-info-message">&nbsp;</div>
-					<div id="orionInfoLink" class="orion-info-link"><a href="/mixloginstatic/ServerStatus.html"> [more info...]</a></div>	
+					<div id="orionInfoLink" class="orion-info-link"><a href="/mixloginstatic/ServerStatus.html"> [more info...]</a></div>
 			</aside>
 			<div id="errorWin" class="orion-error" style="visibility: hidden;" aria-atomic="true" aria-live="assertive">
 					<div id="errorMessage">&nbsp;</div>
 			</div>
 
 			<div class="orion-welcome-area-disable"><img src="../images/godev-logo-large.jpg" width="320px" height="320px"></div>
-			<div class="orion-login" id="orionLoginForm" role="form" aria-labelledby="orion-login-header" style="visibility: hidden;">
+			<div class="orion-login" id="orionLoginForm" style="visibility: hidden;">
 				<div id="orion-login-header" class="orion-form-header">Log in</div>
 				<form>
 					<div class="orion-input-holder">
@@ -61,14 +61,14 @@ require(["LoginWindow.js"]);
 					<div class="orion-login-button-holder">
 						<input type="button" id="cancelLoginButton" class="orion-cancel-button" value="Cancel" tabindex="0">
 					</div>
-					
+
 					<div class="orion-login-forgot-holder">
 						<a id="resetUserLink" class="orion-forgot-password">Forgot password?</a>
 					</div>
 				</form>
 			</div>
 
-			<div class="orion-signup" id="newUserHeaderShown" role="form" aria-labelledby="orion-signup-header" style="visibility: hidden;">
+			<div class="orion-signup" id="newUserHeaderShown" style="visibility: hidden;">
 				<div id="orion-signup-header" class="orion-form-header">Create an account</div>
 				<form>
 					<div class="orion-register-input-holder">
@@ -94,7 +94,7 @@ require(["LoginWindow.js"]);
 				</form>
 			</div>
 
-			<div class="orion-reset" id="orionReset" role="form" aria-labelledby="orion-reset-header" style="visibility: hidden;">
+			<div class="orion-reset" id="orionReset" style="visibility: hidden;">
 				<div id="orion-reset-header" class="orion-form-header">Reset Orion account</div>
 				<div class="orion-reset-note">Provide your username or email to reset your password.</div>
 				<form>
@@ -117,28 +117,27 @@ require(["LoginWindow.js"]);
 				<div id="existingAccountLogin" class="orion-sheet-header" tabindex="-1">Sign in to access this godev server:</div>
 				<div class="orion-open-images" tabindex="-1">
 					<!-- BEGIN GODEV CUSTOMIZATION
-					<a id="orionLoginLink" class="loginWindow" aria-labelledby="existingAccountLogin orionLogin" tabindex="-1"> 
-						<div id="orionLogin" class="loginIcon orionLoginIcon" tabindex="0" role="button" alt="Sign in with existing Orion account" title="Sign in with existing Orion account"></div> 
+					<a id="orionLogin" href="#orionLoginForm" class="loginIcon orionLoginIcon" tabindex="0">
+						Sign in with existing Orion account
 					</a>
-				
-					<a id="googleLoginLink" class="loginWindow" aria-labelledby="existingAccountLogin googleLogin" tabindex="-1"> 
-						<div id="googleLogin" class="loginIcon googleIcon" tabindex="0" role="button" alt="Sign in with associated Google account" title="Sign in with associated Google account"></div>
+					<a id="googleLogin" class="loginIcon googleIcon" tabindex="0">
+						Sign in with associated Google account
 					</a>
 					END GODEV CUSTOMIZATION--> 
 					
-					<a id="personaLoginLink" class="loginWindow" aria-labelledby="existingAccountLogin personaLogin" tabindex="-1"> 
-						<div id="personaLogin" class="loginIcon  personaIcon" tabindex="0" role="button" alt="Sign in with associated Mozilla Persona account" title="Sign in with associated Mozilla Persona account"></div> 
-					</a> 
+					<a id="personaLogin" class="loginIcon personaIcon" tabindex="0">
+						Sign in with associated Mozilla Persona account
+					</a>
 				</div>
-			</div>	
-			
-			<div class="orion-register" id="orionRegister" role="form" aria-labelledby="orion-register-header">
+			</div>
+
+			<div class="orion-register" id="orionRegister">
 				<div id="orion-register-header" class="orion-sheet-header">Need an account?</div>
 				<form>
 					<input id="registerButton" type="button" class="orion-register-button" value="Create a new account" tabindex="0">
 				</form>
 			</div>
-			
+
 		</div>
 	</div>
 </body>

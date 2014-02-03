@@ -58,31 +58,48 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 		_expandedStyle: {styleClass: "annotation expanded"}, //$NON-NLS-0$
 		_collapsedHTML: "<div class='annotationHTML collapsed'></div>", //$NON-NLS-0$
 		_collapsedStyle: {styleClass: "annotation collapsed"}, //$NON-NLS-0$
+		_collapse: function() {
+			if (!this.expanded) { return false; }
+			this.expanded = false;
+			this.html = this._collapsedHTML;
+			this.style = this._collapsedStyle;
+			if (this._annotationModel) {
+				this._annotationModel.modifyAnnotation(this);
+			}
+			return true;
+		},
+		_expand: function() {
+			if (this.expanded) { return false; }
+			this.expanded = true;
+			this.html = this._expandedHTML;
+			this.style = this._expandedStyle;
+			if (this._annotationModel) {
+				this._annotationModel.modifyAnnotation(this);
+			}
+			return true;
+		},
 		/**
 		 * Collapses the annotation.
 		 */
 		collapse: function () {
-			if (!this.expanded) { return; }
-			this.expanded = false;
-			this.html = this._collapsedHTML;
-			this.style = this._collapsedStyle;
-			var projectionModel = this._projectionModel;
-			var baseModel = projectionModel.getBaseModel();
-			this._projection = {
-				start: baseModel.getLineStart(baseModel.getLineAtOffset(this.start) + 1),
-				end: baseModel.getLineEnd(baseModel.getLineAtOffset(this.end), true)
-			};
-			projectionModel.addProjection(this._projection);
+			if (this._collapse()) {
+				var projectionModel = this._projectionModel;
+				var baseModel = projectionModel.getBaseModel();
+				this._projection = {
+					annotation: this,
+					start: baseModel.getLineStart(baseModel.getLineAtOffset(this.start) + 1),
+					end: baseModel.getLineEnd(baseModel.getLineAtOffset(this.end), true)
+				};
+				projectionModel.addProjection(this._projection);
+			}
 		},
 		/**
 		 * Expands the annotation.
 		 */
 		expand: function () {
-			if (this.expanded) { return; }
-			this.expanded = true;
-			this.html = this._expandedHTML;
-			this.style = this._expandedStyle;
-			this._projectionModel.removeProjection(this._projection);
+			if (this._expand()) {
+				this._projectionModel.removeProjection(this._projection);
+			}
 		}
 	};
 	 
@@ -417,6 +434,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			var annotations = this._annotations;
 			var index = this._binarySearch(annotations, annotation.start);
 			annotations.splice(index, 0, annotation);
+			annotation._annotationModel = this;
 			var e = {
 				type: "Changed", //$NON-NLS-0$
 				added: [annotation],
@@ -531,6 +549,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 					if (annotation.type === type) {
 						annotations.splice(i, 1);
 						removed.splice(0, 0, annotation);
+						annotation._annotationModel = null;
 					}
 				}
 			} else {
@@ -557,6 +576,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			if (!annotation) { return; }
 			var index = this._getAnnotationIndex(annotation);
 			if (index < 0) { return; }
+			annotation._annotationModel = null;
 			var e = {
 				type: "Changed", //$NON-NLS-0$
 				removed: this._annotations.splice(index, 1),
@@ -582,6 +602,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 					annotation = remove[i];
 					index = this._getAnnotationIndex(annotation);
 					if (index < 0) { continue; }
+					annotation._annotationModel = null;
 					annotations.splice(index, 1);
 					removed.splice(0, 0, annotation);
 				}
@@ -590,6 +611,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			for (i = 0; i < add.length; i++) {
 				annotation = add[i];
 				index = this._binarySearch(annotations, annotation.start);
+				annotation._annotationModel = this;
 				annotations.splice(index, 0, annotation);
 			}
 			var e = {
@@ -663,17 +685,25 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			for (i = startIndex; i < annotations.length; i++) {
 				var annotation = annotations[i];
 				if (annotation.start >= end) {
+					annotation._oldStart = annotation.start;
+					annotation._oldEnd = annotation.end;
 					annotation.start += changeCount;
 					annotation.end += changeCount;
 					e.changed.push(annotation);
 				} else if (annotation.end <= start) {
 					//nothing
 				} else if (annotation.start < start && end < annotation.end) {
+					annotation._oldStart = annotation.start;
+					annotation._oldEnd = annotation.end;
 					annotation.end += changeCount;
 					e.changed.push(annotation);
 				} else {
 					annotations.splice(i, 1);
 					e.removed.push(annotation);
+					annotation._annotationModel = null;
+					if (annotation.expand) {
+						annotation.expand();
+					}
 					i--;
 				}
 			}
@@ -807,30 +837,32 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			return ranges;
 		},
 		_onAnnotationModelChanged: function(e) {
-			if (e.textModelChangedEvent) {
-				return;
-			}
 			var view = this._view;
 			if (!view) { return; }
 			var self = this;
 			var model = view.getModel();
-			function redraw(changes) {
+			function redrawRange(start, end) {
+				if (model.getBaseModel) {
+					start = model.mapOffset(start, true);
+					end = model.mapOffset(end, true);
+				}
+				if (start !== -1 && end !== -1) {
+					view.redrawRange(start, end);
+				}
+			}
+			function redraw(changes, changed) {
 				for (var i = 0; i < changes.length; i++) {
 					if (!self.isAnnotationTypeVisible(changes[i].type)) { continue; }
-					var start = changes[i].start;
-					var end = changes[i].end;
-					if (model.getBaseModel) {
-						start = model.mapOffset(start, true);
-						end = model.mapOffset(end, true);
-					}
-					if (start !== -1 && end !== -1) {
-						view.redrawRange(start, end);
+					var change = changes[i];
+					redrawRange(change.start, change.end);
+					if (changed && change._oldStart !== undefined && change._oldEnd) {
+						redrawRange(change._oldStart, change._oldEnd);
 					}
 				}
 			}
 			redraw(e.added);
 			redraw(e.removed);
-			redraw(e.changed);
+			redraw(e.changed, true);
 		},
 		_onDestroy: function(e) {
 			this.destroy();

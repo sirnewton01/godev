@@ -9,7 +9,6 @@
  *
  * Contributors: 
  *     IBM Corporation - initial API and implementation
- *     Andrew Eisenberg - rename jsContentAssist to jsTemplateContentAssist
  *******************************************************************************/
 /*global window define*/
 /*jslint browser:true devel:true*/

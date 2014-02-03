@@ -225,9 +225,10 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 			 * the operation completes.
 			 * @param deferred {orion.Deferred} Deferred to track
 			 * @param message {String} Message to display
+			 * @param avoidDisplayError Do not display error when deferred is rejected
 			 * @returns {orion.Promise}
 			 */
-			showWhile: function(deferred, message){
+			showWhile: function(deferred, message, avoidDisplayError){
 				if(message) {
 					this._serviceRegistry.getService("orion.page.message").setProgressMessage(message); //$NON-NLS-0$
 				}
@@ -236,7 +237,11 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 				deferred.then(function(jsonResult){
 					that._serviceRegistry.getService("orion.page.message").setProgressMessage(""); //$NON-NLS-0$
 				}, function(jsonError){
-					that.setProgressResult.bind(that)(jsonError);
+					if(avoidDisplayError){
+						that._serviceRegistry.getService("orion.page.message").setProgressMessage(""); //$NON-NLS-0$
+					} else {
+						that.setProgressResult.bind(that)(jsonError);
+					}
 					return jsonError;
 				});
 				return this.progress(deferred, message);

@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2011, 2012 IBM Corporation and others.
+ * Copyright (c) 2011, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -20,8 +20,9 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 	'orion/Deferred', //$NON-NLS-0$
 	'orion/objects', //$NON-NLS-0$
 	'orion/editor/util', //$NON-NLS-0$
-	'orion/util' //$NON-NLS-0$
-], function(messages, mKeyBinding, mKeyModes, mEventTarget, Deferred, objects, textUtil, util) {
+	'orion/util', //$NON-NLS-0$
+	'orion/webui/littlelib' //$NON-NLS-0$
+], function(messages, mKeyBinding, mKeyModes, mEventTarget, Deferred, objects, textUtil, util, lib) {
 	/**
 	 * @name orion.editor.ContentAssistProvider
 	 * @class Interface defining a provider of content assist proposals.
@@ -82,18 +83,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 	 * @name orion.editor.ContentAssist#ProposalsComputedEvent
 	 * @event
 	 */
-
-	/**
-	 * Flattens an array of arrays into a one-dimensional array.
-	 * @param {Array[]} array
-	 * @returns {Array}
-	 */
-	function flatten(array) {
-		return array.reduce(function(prev, curr) {
-			return Array.isArray(curr) ? prev.concat(curr) : prev;
-		}, []);
-	}
-
+		
 	// INACTIVE --Ctrl+Space--> ACTIVE --ModelChanging--> FILTERING
 	var State = {
 		INACTIVE: 1,
@@ -102,10 +92,13 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 	};
 	
 	var STYLES = {
-		selected : " selected", //$NON-NLS-0$
+		selected : "selected", //$NON-NLS-0$
 		hr : "proposal-hr", //$NON-NLS-0$
 		emphasis : "proposal-emphasis", //$NON-NLS-0$
 		noemphasis : "proposal-noemphasis", //$NON-NLS-0$
+		noemphasis_keyword : "proposal-noemphasis-keyword", //$NON-NLS-0$
+		noemphasis_title : "proposal-noemphasis-title", //$NON-NLS-0$
+		noemphasis_title_keywords : "proposal-noemphasis-title-keywords", //$NON-NLS-0$
 		dfault : "proposal-default" //$NON-NLS-0$
 	};
 
@@ -117,33 +110,35 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 	// END GODEV EDIT
 		this.textView = textView;
 		this.state = State.INACTIVE;
-		this.providers = [];
+		this.resetProviderInfoArray();
 	// BEGIN GODEV EDIT
 		this.editor = editor;
 	// END GODEV EDIT
 		var self = this;
 		this.contentAssistListener = {
-			onModelChanging: function(event) {
-				if (self.isDeactivatingChange(event)) {
-					self.setState(State.INACTIVE);
+			onModelChanging: (function(event) {
+				this._latestModelChangingEvent = event;
+			}).bind(this),
+			onSelection: (function(event) {
+				if (this.isDeactivatingChange(this._latestModelChangingEvent, event)) {
+					this.setState(State.INACTIVE);
 				} else {
-					if (self.state === State.ACTIVE) {
-						self.setState(State.FILTERING);
+					if (this.isActive()) {
+						if (this.state === State.ACTIVE) {
+							this.setState(State.FILTERING);
+						}
+						this.filterProposals(event);
 					}
 				}
-			},
-			onScroll: function(event) {
-				self.setState(State.INACTIVE);
-			},
-			onSelection: function(event) {
-				var state = self.state;
-				if (state === State.ACTIVE || state === State.FILTERING) {
-					self.computeProposals();
-					self.setState(State.FILTERING);
-				}
-			}
+				this._latestModelChangingEvent = null;
+			}).bind(this),
+			onScroll: (function(event) {
+				this.setState(State.INACTIVE);
+			}).bind(this)
 		};
+		
 		textView.setKeyBinding(util.isMac ? new mKeyBinding.KeyBinding(' ', false, false, false, true) : new mKeyBinding.KeyBinding(' ', true), "contentAssist"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		textView.setKeyBinding(util.isMac ? new mKeyBinding.KeyBinding(' ', false, false, true, true) : new mKeyBinding.KeyBinding(' ', true, false, true), "contentAssist"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		textView.setAction("contentAssist", function() { //$NON-NLS-0$
 			if (!textView.getOptions("readonly")) { //$NON-NLS-0$
 				self.activate();
@@ -167,7 +162,8 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			// if overwrite is truthy, then also replace the prefix
 			var view = this.textView;
 			var sel = view.getSelection();
-			var start = Math.min(sel.start, sel.end), mapStart = start;
+			var start = this._initialCaretOffset;
+			var mapStart = start;
 			var end = Math.max(sel.start, sel.end), mapEnd = end;
 			var model = view.getModel();
 			if (model.getBaseModel) {
@@ -175,6 +171,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 				mapEnd = model.mapOffset(mapEnd);
 				model = model.getBaseModel();
 			}
+			
 			if (proposal.overwrite) {
 				start = this.getPrefixStart(model, mapStart);
 			}
@@ -190,9 +187,10 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			this.dispatchEvent({type: "ProposalApplied", data: data}); //$NON-NLS-0$
 			return true;
 		},
-		activate: function() {
+		activate: function(providerInfoArray, autoTriggered) {
 			if (this.state === State.INACTIVE) {
-				this.setState(State.ACTIVE);
+				this._autoTriggered = autoTriggered ? true : false;
+				this.setState(State.ACTIVE, providerInfoArray);
 			}
 		},
 		deactivate: function() {
@@ -207,25 +205,35 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			return this.state === State.ACTIVE || this.state === State.FILTERING;
 		},
 		/** @returns {Boolean} <code>true</code> if the event describes a change that should deactivate content assist. */
-		isDeactivatingChange: function(/**orion.editor.ModelChangingEvent*/ event) {
-			var deletion = event.removedCharCount > 0 && event.addedCharCount === 0,
-			    view = this.textView,
-			    overWhitespace = (event.start+1 <= view.getModel().getCharCount()) && /^\s*$/.test(view.getText(event.start, event.start+1));
-			return event.removedLineCount > 0 || event.addedLineCount > 0 || (deletion && overWhitespace);
+		isDeactivatingChange: function(/**orion.editor.ModelChangingEvent*/ event, selectionEvent) {
+			var isDeactivating = false;
+			
+			var isPriorToInitialCaretOffset = selectionEvent.newValue.start < this._initialCaretOffset;
+			
+			if (isPriorToInitialCaretOffset) {
+				isDeactivating = true;
+			} else if (event) {
+				isDeactivating = (event.removedLineCount > 0) || (event.addedLineCount > 0);
+			}
+			
+			return isDeactivating;
 		},
 		/** @private */
-		setState: function(state) {
+		setState: function(state, /* Optional. Array of providers to pass to dispatched event.*/ providerInfoArray) {
 			var eventType;
 			if (state === State.ACTIVE) {
+				this._filterText = "";
 				eventType = "Activating"; //$NON-NLS-0$
 				if (this._mode) { this._mode.setActive(true); }
 				
 			} else if (state === State.INACTIVE) {
 				eventType = "Deactivating"; //$NON-NLS-0$
 				if (this._mode) { this._mode.setActive(false); }
+				this._initialCaretOffset = -1;
+				this._filterText = "";
 			}
 			if (eventType) {
-				this.dispatchEvent({type: eventType});
+				this.dispatchEvent({type: eventType, providerInfoArray: providerInfoArray});
 			}
 			this.state = state;
 			this.onStateChange(state);
@@ -237,6 +245,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		onStateChange: function(state) {
 			if (state === State.INACTIVE) {
 				if (this.listenerAdded) {
+					this._latestModelChangingEvent = null;
 					this.textView.removeEventListener("ModelChanging", this.contentAssistListener.onModelChanging); //$NON-NLS-0$
 					this.textView.removeEventListener("Scroll", this.contentAssistListener.onScroll); //$NON-NLS-0$
 					this.textView.removeEventListener("Selection", this.contentAssistListener.onSelection); //$NON-NLS-0$
@@ -257,10 +266,19 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		 */
 		computeProposals: function() {
 			var self = this;
+			
+			// figure out initial offset, it should be the minimum between 
+			// the beginning of the selection and the current caret offset
 			var offset = this.textView.getCaretOffset();
-			this._computeProposals(offset).then(function(proposals) {
+			var sel = this.textView.getSelection();
+			var selectionStart = Math.min(sel.start, sel.end);			
+			this._initialCaretOffset = Math.min(offset, selectionStart);
+			
+			this._computeProposals(this._initialCaretOffset).then(function(proposals) {
+				self._computedProposals = proposals;
 				if (!self.isActive()) { return; }
-				self.dispatchEvent({type: "ProposalsComputed", data: {proposals: proposals}}); //$NON-NLS-0$
+				var displayProposals = self._flatten(proposals);
+				self.dispatchEvent({type: "ProposalsComputed", data: {proposals: displayProposals}, autoApply: !self._autoTriggered}); //$NON-NLS-0$
 			});
 		},
 		/** @private */
@@ -284,7 +302,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		 * @returns {Deferred} A promise that will provide the proposals.
 		 */
 		_computeProposals: function(offset) {
-			var providers = this.providers;
+			var providerInfoArray = this._providerInfoArray;
 			var textView = this.textView;
 			var sel = textView.getSelection();
 			var model = textView.getModel(), mapOffset = offset;
@@ -302,7 +320,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			var indentation = line.substring(0, index);
 			var options = textView.getOptions("tabSize", "expandTab"); //$NON-NLS-1$ //$NON-NLS-0$
 			var tab = options.expandTab ? new Array(options.tabSize + 1).join(" ") : "\t"; //$NON-NLS-1$ //$NON-NLS-0$
-			var context = {
+			var params = {
 				line: line,
 				offset: mapOffset,
 				prefix: model.getText(this.getPrefixStart(model, mapOffset), mapOffset),
@@ -312,23 +330,25 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 				indentation: indentation
 			};
 
-			// BEGIN GODEV EDIT - set the title in the context for the content assist
+			// BEGIN GODEV EDIT - set th title in the context for the content assist
 			if (this.editor) {
-				context.title = this.editor.getTitle();
+				params.title = this.editor.getTitle();
 			}
 			// END GODEV EDIT
 
 			var self = this;
-			var promises = providers.map(function(provider) {
+			var promises = providerInfoArray.map(function(providerInfo) {
+				var provider = providerInfo.provider;
 				var proposals;
 				try {
 					var func, promise;
 					if ((func = provider.computeContentAssist)) {
-						var editorContext = self.editorContextProvider && self.editorContextProvider();
-						promise = func.apply(provider, [editorContext, context]);
+						var ecProvider = self.editorContextProvider, editorContext = ecProvider.getEditorContext();
+						params = objects.mixin(params, ecProvider.getOptions());
+						promise = func.apply(provider, [editorContext, params]);
 					} else if ((func = provider.getProposals || provider.computeProposals)) {
 						// old API
-						promise = func.apply(provider, [model.getText(), mapOffset, context]);
+						promise = func.apply(provider, [model.getText(), mapOffset, params]);
 					}
 					proposals = self.progress ? self.progress.progress(promise, "Generating content assist proposal") : promise; //$NON-NLS-0$
 				} catch (e) {
@@ -336,31 +356,317 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 				}
 				return Deferred.when(proposals);
 			});
-			return Deferred.all(promises, this.handleError).then(flatten);
+			return Deferred.all(promises, this.handleError);
 		},
 
+		filterProposals: function(event) {
+			var text = "";
+			var removedCharCount = 0;
+			if (this._latestModelChangingEvent) {
+				text = this._latestModelChangingEvent.text;
+				removedCharCount = this._latestModelChangingEvent.removedCharCount;
+			} else {
+				// the selection was changed but not the model, do nothing for now
+				return;
+			}
+			
+			// update this._filterText based on the modification info
+			// contained in the event
+			if (removedCharCount) {
+				var lastIndex = this._filterText.length - removedCharCount;
+				this._filterText = this._filterText.substring(0, lastIndex);
+			}
+			if (text) {
+				this._filterText = this._filterText.concat(text);
+			}
+			
+			var model = this.textView.getModel();
+			if (model.getBaseModel) {
+				model = model.getBaseModel();
+			}
+			
+			var prefixStart = this.getPrefixStart(model, this._initialCaretOffset);
+			var prefixText = this.textView.getText(prefixStart, this._initialCaretOffset);
+			
+			// filter proposals based on prefixes and _filterText
+			var proposals = []; //array of arrays of proposals
+			this._computedProposals.forEach(function(proposalArray) {
+				var includedProposals = proposalArray.filter(function(proposal) {
+					if ((STYLES[proposal.style] === STYLES.hr)
+						|| (STYLES[proposal.style] === STYLES.noemphasis_title)) {
+						return true;
+					}
+					
+					var proposalString = "";
+					if (proposal.overwrite) {
+						if (proposal.name) {
+							proposalString = proposal.name;
+						} else if (proposal.proposal) {
+							proposalString = proposal.proposal;
+						} else {
+							return false; // unknown format
+						}
+	
+						return (0 === proposalString.indexOf(prefixText + this._filterText));
+						
+					} else if (proposal.name || proposal.proposal) {
+						var activated = false;
+						// try matching name
+						if (proposal.name) {
+							activated = (0 === proposal.name.indexOf(prefixText + this._filterText));	
+						}
+						
+						// try matching proposal text
+						if (!activated && proposal.proposal) {
+							activated = (0 === proposal.proposal.indexOf(this._filterText));
+						}
+						
+						return activated;
+					} else if (typeof proposal === "string") { //$NON-NLS-0$
+						return 0 === proposal.indexOf(this._filterText);
+					} else {
+						return false;
+					}
+				}, this);
+				
+				if (includedProposals.length > 0) {
+					proposals.push(includedProposals);	
+				}
+			}, this);
+			
+			// filter out extra separators and titles
+			proposals = this._removeExtraUnselectableElements(proposals);
+			
+			var displayProposals = this._flatten(proposals);
+			
+			this.dispatchEvent({type: "ProposalsComputed", data: {proposals: displayProposals}, autoApply: false}); //$NON-NLS-0$
+		},
+		
 		/**
-		 * Sets the editor context factory that this ContentAssist will invoke to generate an <code>{@link orion.edit.EditorContext}</code>.
-		 * The EditorContext is passed to providers that implement the v4.0 content assist API.
-		 * @param {Function} editorContextProvider A function that returns an {@link orion.edit.EditorContext}.
+		 * Helper method which removes extra separators and titles from
+		 * an array containing arrays of proposals from the various providers.
+		 * @param{Array[]} proposals An array with each element containing an array of proposals
 		 */
-		setEditorContextFactory: function(editorContextFactory) {
-			this.editorContextProvider = editorContextFactory;
+		_removeExtraUnselectableElements: function(proposals) {
+			// get rid of extra separators and titles
+			var mappedProposals = proposals.map(function(proposalArray) {
+				var element = proposalArray.filter(function(proposal, index) {
+					var keepElement = true;
+					if (STYLES[proposal.style] === STYLES.hr) {
+						if ((0 === index) || ((proposalArray.length - 1) === index)) {
+							keepElement = false; // remove separators at first or last element
+						} else if (STYLES.hr === STYLES[proposalArray[index - 1].style]) {
+							keepElement = false; // remove separator preceeded by another separator
+						}
+					} else if (STYLES[proposal.style] === STYLES.noemphasis_title) {
+						var nextProposal = proposalArray[index + 1];
+						if (nextProposal) {
+							// remove titles that preceed other titles, all of their subelements have already been filtered out
+							if (STYLES[nextProposal.style] === STYLES.noemphasis_title) {
+								keepElement = false;
+							}
+						} else {
+							keepElement = false; //remove titles that are at the end of the array
+						}
+					}
+					return keepElement;
+				});
+				return element;
+			});
+			
+			return mappedProposals;
 		},
-
+		
+		/**
+		 * Sets the provider that will be invoked to generate the Editor Context service and options to any
+		 * content assist providers that implement the v4.0 content assist API.
+		 * @param {Object} editorContextProvider
+		 */
+		setEditorContextProvider: function(editorContextProvider) {
+			this.editorContextProvider = editorContextProvider;
+		},
+		
+		/**
+		 * Helper method used to generate a unique ID for a provider.
+		 * Note that the uniqueness of the ID is only guaranteed for the life of this
+		 * object and if all of the other IDs are also generated using this method.
+		 */
+		_generateProviderId: function() {
+			if (this._uniqueProviderIdCounter) {
+				this._uniqueProviderIdCounter++;
+			} else {
+				this._uniqueProviderIdCounter = 0;
+			}
+			return "ContentAssistGeneratedID_" +  this._uniqueProviderIdCounter;
+		},
+		
+		/**
+		 * Sets whether or not automatic content assist triggering is enabled.
+		 * @param {Boolean} enableAutoTrigger
+		 */
+		setAutoTriggerEnabled: function(enableAutoTrigger) {
+			this._autoTriggerEnabled = enableAutoTrigger;
+			this._updateAutoTriggerListenerState();
+		},
+		
 		/**
 		 * Sets the content assist providers that this ContentAssist will consult to obtain proposals.
 		 * @param {orion.editor.ContentAssistProvider[]} providers The providers.
 		 */
 		setProviders: function(providers) {
-			this.providers = providers.slice(0);
+			var providerInfoArray = providers.map(function(provider){
+				return {
+					provider: provider,
+					id: this._generateProviderId()
+				}
+			}, this);
+			
+			this.setProviderInfoArray(providerInfoArray);
 		},
+		
+		/**
+		 * Sets the array of content assist provider info that this ContentAssist will 
+		 * consult to obtain proposals and automatic triggers.
+		 * @param {Array { provider: orion.editor.ContentAssistProvider, 
+		 * 				   id: {String},
+		 * 				   charTriggers: {RegExp},
+		 * 				   excludedStyles: {RegExp}
+		 * 				  }
+		 * 		 } providers The providers.
+		 */
+		setProviderInfoArray: function(providerInfoArray) {
+			this.resetProviderInfoArray();
+			
+			this._providerInfoArray = providerInfoArray;
+			this._charTriggersInstalled = providerInfoArray.some(function(info){
+				return info.charTriggers;
+			});
+			this._updateAutoTriggerListenerState();
+		},
+		
+		resetProviderInfoArray: function() {
+			this._providerInfoArray = [];
+			this._charTriggersInstalled = false;
+			this._updateAutoTriggerListenerState();
+		},
+
 		
 		/**
 		 * Sets the progress handler that will display progress information, if any are generated by content assist providers.
 		 */
 		setProgress: function(progress){
 			this.progress = progress;
+		},
+		
+		setStyleAccessor: function(styleAccessor) {
+			this._styleAccessor = styleAccessor;
+		},
+		
+		/**
+		 * Flattens an array of arrays into a one-dimensional array.
+		 * @param {Array[]} array
+		 * @returns {Array}
+		 */
+		_flatten: function(arrayOrObjectArray) {
+			
+			return arrayOrObjectArray.reduce(function(prev, curr) {
+				var returnValue = prev;
+				
+				// add current proposal array to flattened array
+				// skip current elements that are not arrays
+				if (Array.isArray(curr) && curr.length > 0) {		
+					var first = curr;
+					var last = prev;
+					
+					if (curr[0].style && (0 === STYLES[curr[0].style].indexOf(STYLES.noemphasis))) {
+						// the style of the first element starts with noemphasis
+						// add these proposals to the end of the array
+						first = prev;
+						last = curr;
+					}
+					
+					if (first.length > 0) {
+						if (first[first.length - 1].style && (STYLES.hr !== STYLES[first[first.length - 1].style])) {
+							// add separator between proposals from different providers 
+							// if the previous array didn't already end with a separator
+							first = first.concat({
+								proposal: '',
+								name: '',
+								description: '---------------------------------', //$NON-NLS-0$
+								style: 'hr', //$NON-NLS-0$
+								unselectable: true
+							});
+						}
+					}
+					
+					returnValue = first.concat(last);
+				}
+				
+				return returnValue;
+			}, []);
+		},
+		
+		_triggerListener: function(event) {
+			if (this._styleAccessor) {
+				var caretOffset = this.textView.getCaretOffset();
+				var stylesAtOffset = null;
+				var providerInfosToActivate = [];
+				
+				if (this._charTriggersInstalled) {
+					var currentChar = this.textView.getText(caretOffset - 1, caretOffset);
+					
+					this._providerInfoArray.forEach(function(info) {
+						// check if the charTriggers RegExp matches the currentChar
+						// we're assuming that this will fail much more often than
+						// the excludedStyles test so do this first for better performance
+						var charTriggers = info.charTriggers;
+						if (charTriggers && charTriggers.test(currentChar)) {
+							var isExcluded = false;
+							var excludedStyles = info.excludedStyles;
+							if (excludedStyles) {
+								if (!stylesAtOffset) {
+									// lazily initialize this variable to avoid getting the styles
+									// for every model modification, only ones that may trigger
+									stylesAtOffset = this._styleAccessor.getStyles(caretOffset);
+								}
+								// check if any of the styles match the excludedStyles RegExp
+								isExcluded = stylesAtOffset.some(function (element) {
+									return excludedStyles.test(element.style);
+								});
+							}
+							if (!isExcluded) {
+								providerInfosToActivate.push(info);
+							}
+						}
+					}, this);
+					
+					if (providerInfosToActivate.length > 0) {
+						this.activate(providerInfosToActivate, true);
+					}
+				}
+			}
+		},
+		
+		/**
+		 * Private helper to install/uninstall the automatic trigger
+		 * listener based on the state of the relevant booleans
+		 */
+		_updateAutoTriggerListenerState: function() {
+			if (!this._boundTriggerListener) {
+				this._boundTriggerListener = this._triggerListener.bind(this);
+			}
+			
+			if (this._triggerListenerInstalled) {
+				// uninstall the listener if necessary
+				if (!this._autoTriggerEnabled || !this._charTriggersInstalled) {
+					this.textView.removeEventListener("Modify", this._boundTriggerListener); //$NON-NLS-0$
+					this._triggerListenerInstalled = false;
+				}
+			} else if (this._autoTriggerEnabled && this._charTriggersInstalled){
+				// install the listener if necessary
+				this.textView.addEventListener("Modify", this._boundTriggerListener); //$NON-NLS-0$
+				this._triggerListenerInstalled = true;
+			}
 		}
 	};
 	mEventTarget.EventTarget.addMixin(ContentAssist.prototype);
@@ -388,7 +694,35 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 				self.selectedIndex = -1;
 				self.cancel();
 			} else {
-				self.selectedIndex = 0;	
+				self.selectedIndex = 0;
+				while(self.proposals[self.selectedIndex] && self.proposals[self.selectedIndex].unselectable) {
+					self.selectedIndex++;
+				}
+				if (self.proposals[self.selectedIndex]) {
+					if (self.widget) {
+						var showWidget = true;
+						
+						if (event.autoApply) {
+							var nextIndex = self.selectedIndex + 1;
+							while (self.proposals[nextIndex] && self.proposals[nextIndex].unselectable) {
+								nextIndex++;
+							}
+							if (!self.proposals[nextIndex]) {
+								// if there is only one selectable proposal apply it automatically
+								showWidget = false;
+								self.contentAssist.apply(self.proposals[self.selectedIndex]);
+							}
+						}
+						
+						if (showWidget) {
+							self.widget.show();
+							self.widget.selectNode(self.selectedIndex);
+						}
+					}
+				} else {
+					self.selectedIndex = -1; // didn't find any selectable items
+					self.cancel();
+				}
 			}
 		});
 		textView.setAction("contentAssistApply", function() { //$NON-NLS-0$
@@ -409,9 +743,22 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		textView.setAction("contentAssistPreviousPage", function() { //$NON-NLS-0$
 			return this.pageUp();
 		}.bind(this));
+		textView.setAction("contentAssistHome", function() { //$NON-NLS-0$
+			if (this.widget) {
+				this.widget.scrollIndex(0, true);
+			}
+			return this.lineDown(0); // select first selectable element starting at the top and moving downwards
+		}.bind(this));
+		textView.setAction("contentAssistEnd", function() { //$NON-NLS-0$
+			return this.lineUp(this.proposals.length - 1); // select first selectable element starting at the bottom and moving up
+		}.bind(this));
 		textView.setAction("contentAssistTab", function() { //$NON-NLS-0$
 			return this.tab();
 		}.bind(this));
+		
+		if (this.widget) {
+			this.widget.setContentAssistMode(this);
+		}
 	}
 	ContentAssistMode.prototype = new mKeyModes.KeyMode();
 	objects.mixin(ContentAssistMode.prototype, {
@@ -424,6 +771,8 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			bindings.push({actionID: "contentAssistPreviousProposal", keyBinding: new KeyBinding(38)}); //$NON-NLS-0$
 			bindings.push({actionID: "contentAssistNextPage", keyBinding: new KeyBinding(34)}); //$NON-NLS-0$
 			bindings.push({actionID: "contentAssistPreviousPage", keyBinding: new KeyBinding(33)}); //$NON-NLS-0$
+			bindings.push({actionID: "contentAssistHome", keyBinding: new KeyBinding(lib.KEY.HOME)}); //$NON-NLS-0$
+			bindings.push({actionID: "contentAssistEnd", keyBinding: new KeyBinding(lib.KEY.END)}); //$NON-NLS-0$
 			bindings.push({actionID: "contentAssistTab", keyBinding: new KeyBinding(9)}); //$NON-NLS-0$
 			return bindings;
 		},
@@ -433,6 +782,9 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		/** @private */
 		getContentAssist: function() {
 			return this.contentAssist;
+		},
+		getProposals: function() {
+			return this.proposals;	
 		},
 		isActive: function() {
 			return this.getContentAssist().isActive();
@@ -444,42 +796,104 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 				this.contentAssist.textView.removeKeyMode(this);
 			}
 		},
-		lineUp: function() {
-			var newSelected = (this.selectedIndex === 0) ? this.proposals.length - 1 : this.selectedIndex - 1;
-			return this._lineUp(newSelected);
+		/**
+		 * Selects a selectable item in the content assist widget
+		 * iterating backwards for .
+		 * 
+		 * @param index {number} Optional. The index of the item to try and select. 
+		 */
+		lineUp: function(index, noWrap) {
+			return this.selectNew(index, noWrap, false);
 		},
-		_lineUp: function(newSelected) {
-			while (this.proposals[newSelected].unselectable && newSelected > 0) {
-				newSelected--;
+		/**
+		 * Selects the item at the specified index or the next
+		 * selectable item
+		 */
+		lineDown: function(index, noWrap) {
+			return this.selectNew(index, noWrap, true);
+		},
+		selectNew: function(index, noWrap, forward) {
+			var newIndex = index;
+			
+			if (forward) {
+				if (undefined === newIndex) {
+					newIndex = this.selectedIndex + 1;
+				}
+				// handle wrap around
+				if (newIndex >= this.proposals.length) {
+					if (noWrap) {
+						return true; // do nothing
+					} else {
+						newIndex = 0;	
+					}
+				}
+			} else {
+				if (undefined === newIndex) {
+					newIndex = this.selectedIndex - 1;
+				}
+				// handle wrap around
+				if (0 > newIndex) {
+					if (noWrap) {
+						return true; // do nothing
+					} else {
+						newIndex = this.proposals.length - 1;	
+					}
+				}
 			}
-			this.selectedIndex = newSelected;
+			
+			var startIndex = newIndex;
+			while (this.proposals[newIndex] && this.proposals[newIndex].unselectable) {
+				if (forward) {
+					newIndex++;
+					// handle wrap around
+					if (newIndex >= this.proposals.length) {
+						if (noWrap) {
+							return true; // do nothing
+						} else {
+							newIndex = 0;	
+						}
+					}
+				} else {
+					newIndex--;
+					// handle wrap around
+					if (0 > newIndex) {
+						if (noWrap) {
+							return true; // do nothing
+						} else {
+							newIndex = this.proposals.length - 1;	
+						}
+					}
+				}
+				
+				if (newIndex === startIndex) {
+					// looped through all nodes and didn't find any that were selectable
+					newIndex = -1;
+					break;
+				}
+			}
+			
+			this.selectedIndex = newIndex;
+			
 			if (this.widget) {
-				this.widget.setSelectedIndex(this.selectedIndex);
+				this.widget.selectNode(newIndex);
 			}
 			return true;
 		},
-		lineDown: function() {
-			var newSelected = (this.selectedIndex === this.proposals.length - 1) ? 0 : this.selectedIndex + 1;
-			return this._lineDown(newSelected);
-		},
-		_lineDown: function(newSelected) {
-			while (this.proposals[newSelected].unselectable && newSelected < this.proposals.length-1) {
-				newSelected++;
-			}
-			this.selectedIndex = newSelected;
-			if (this.widget) {
-				this.widget.setSelectedIndex(this.selectedIndex);
-			}
-			return true;
-		},
+		
 		pageUp: function() {
+			//TODO find out why this doesn't always go to the very top
 			if (this.widget) {
 				var newSelected = this.widget.getTopIndex();
 				if (newSelected === this.selectedIndex) {
 					this.widget.scrollIndex(newSelected, false);
 					newSelected = this.widget.getTopIndex();
 				}
-				return this._lineUp(newSelected);
+				if (0 === newSelected) {
+					// if we're attempting to select the first item in the list
+					// move down to the next one if it is not selectable
+					return this.lineDown(newSelected, true);	
+				}
+				return this.lineUp(newSelected, true);
 			} else {
 				return this.lineUp();
 			}
@@ -491,7 +905,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 					this.widget.scrollIndex(newSelected, true);
 					newSelected = this.widget.getBottomIndex();
 				}
-				return this._lineDown(newSelected);
+				return this.lineDown(newSelected, true);
 			} else {
 				return this.lineDown();
 			}
@@ -537,6 +951,11 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 				throw new Error("parentNode is required"); //$NON-NLS-0$
 			}
 		}
+		
+		// BEGIN Patch for bugzilla 426672
+		this.parentNode.addEventListener("scroll", this.onScroll.bind(this)); //$NON-NLS-0$
+		// END Patch
+		
 		var self = this;
 		this.textViewListener = {
 			onMouseDown: function(event) {
@@ -548,22 +967,8 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 				// the click is handled by the onClick() function
 			}
 		};
-		this.contentAssist.addEventListener("ProposalsComputed", function(event) { //$NON-NLS-0$
-			self.setProposals(event.data.proposals);
-			self.show();
-			if (!self.textViewListenerAdded) {
-				self.textView.addEventListener("MouseDown", self.textViewListener.onMouseDown); //$NON-NLS-0$
-				self.textViewListenerAdded = true;
-			}
-		});
 		this.contentAssist.addEventListener("Deactivating", function(event) { //$NON-NLS-0$
-			self.setProposals([]);
 			self.hide();
-			if (self.textViewListenerAdded) {
-				self.textView.removeEventListener("MouseDown", self.textViewListener.onMouseDown); //$NON-NLS-0$
-				self.textViewListenerAdded = false;
-			}
-			self.textViewListenerAdded = false;
 		});
 		this.scrollListener = function(e) {
 			if (self.isShowing) {
@@ -580,22 +985,28 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			this.textView.focus();
 		},
 		/** @private */
-		createDiv: function(proposal, isSelected, parent, itemIndex) {
+		onScroll: function(e) {
+			if (this.previousCloneNode && !this.preserveCloneThroughScroll) {
+				this._removeCloneNode();
+				this.previousSelectedNode.classList.add(STYLES.selected);
+			}
+			this.preserveCloneThroughScroll = false;
+		},
+		/** @private */
+		createDiv: function(proposal, parent, itemIndex) {
 			var document = parent.ownerDocument;
 			var div = util.createElement(document, "div"); //$NON-NLS-0$
 			div.id = "contentoption" + itemIndex; //$NON-NLS-0$
 			div.setAttribute("role", "option"); //$NON-NLS-1$ //$NON-NLS-0$
+			div.className = STYLES[proposal.style] ? STYLES[proposal.style] : STYLES.dfault;
 			var node;
 			if (proposal.style === "hr") { //$NON-NLS-0$
 				node = util.createElement(document, "hr"); //$NON-NLS-0$
 			} else {
-				div.className = this.calculateClasses(proposal.style, isSelected);
-				node = document.createTextNode(this.getDisplayString(proposal));
-				if (isSelected) {
-					this.parentNode.setAttribute("aria-activedescendant", div.id); //$NON-NLS-0$
-				}
+				node = this._createDisplayNode(div, proposal, itemIndex);
+				div.contentAssistProposalIndex = itemIndex; // make div clickable
 			}
-			div.appendChild(node, div);
+			div.appendChild(node);
 			parent.appendChild(div);
 		},
 		/** @private */
@@ -620,39 +1031,62 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			this._isAccessible = true;
 		},
 		/** @private */
-		calculateClasses : function(style, isSelected) {
-			var cssClass = STYLES[style];
-			if (!cssClass) {
-				cssClass = STYLES.dfault;
+		_createDisplayNode: function(div, proposal, index) {
+			var node = null;
+			var plainString = null;
+			
+			if (typeof proposal === "string") { //$NON-NLS-0$
+				//for simple string content assist, the display string is just the proposal
+				plainString = proposal;
+			} else if (proposal.description && typeof proposal.description === "string") { //$NON-NLS-0$
+				if (proposal.name && typeof proposal.name === "string") { //$NON-NLS-0$
+					var nameNode = this._createNameNode(proposal.name);
+					nameNode.contentAssistProposalIndex = index;
+					
+					node = document.createElement("span"); //$NON-NLS-0$
+					node.appendChild(nameNode);
+					
+					var descriptionNode = document.createTextNode(proposal.description);
+					node.appendChild(descriptionNode);
+					div.setAttribute("title", proposal.name + proposal.description); //$NON-NLS-0$
+				} else {
+					plainString = proposal.description;
+				}
+			} else {
+				//by default return the straight proposal text
+				plainString = proposal.proposal;
 			}
-			return isSelected ? cssClass + STYLES.selected : cssClass;
+			
+			if (plainString) {
+				node = this._createNameNode(plainString);
+				div.setAttribute("title", plainString); //$NON-NLS-0$
+			}
+			
+			node.contentAssistProposalIndex = index;
+			
+			return node;
 		},
 		/** @private */
-		getDisplayString: function(proposal) {
-			//for simple string content assist, the display string is just the proposal
-			if (typeof proposal === "string") { //$NON-NLS-0$
-				return proposal;
-			}
-			//return the description if applicable
-			if (proposal.description && typeof proposal.description === "string") { //$NON-NLS-0$
-				return proposal.description;
-			}
-			//by default return the straight proposal text
-			return proposal.proposal;
+		_createNameNode: function(name) {
+			var node = document.createElement("span"); //$NON-NLS-0$
+			node.classList.add("proposal-name"); //$NON-NLS-0$
+			node.appendChild(document.createTextNode(name));
+			return node;
 		},
 		/**
 		 * @private
 		 * @returns {Object} The proposal represented by the given node.
 		 */
 		getProposal: function(/**DOMNode*/ node) {
-			var nodeIndex = 0;
-			for (var child = this.parentNode.firstChild; child !== null; child = child.nextSibling) {
-				if (child === node) {
-					return this.proposals[nodeIndex] || null;
-				}
-				nodeIndex++;
+			var proposal = null;
+			
+			var nodeIndex = node.contentAssistProposalIndex;
+			
+			if (undefined !== nodeIndex){
+				proposal = this._contentAssistMode.getProposals()[nodeIndex] || null;
 			}
-			return null;
+			
+			return proposal;
 		},
 		/** @private */
 		getTopIndex: function() {
@@ -679,49 +1113,116 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		/** @private */
 		scrollIndex: function(index, top) {
 			this.parentNode.childNodes[index].scrollIntoView(top);
+			this.preserveCloneThroughScroll = true;
 		},
-		/** Sets the index of the currently selected proposal. */
-		setSelectedIndex: function(/**Number*/ index) {
-			this.selectedIndex = index;
-			this.selectNode(this.parentNode.childNodes[this.selectedIndex]);
-		},
-		/** @private */
-		selectNode: function(/**DOMNode*/ node) {
-			var nodes = this.parentNode.childNodes;
-			for (var i=0; i < nodes.length; i++) {
-				var child = nodes[i];
-				var selIndex = child.className.indexOf(STYLES.selected);
-				if (selIndex >= 0) {
-					child.className = child.className.substring(0, selIndex) + 
-							child.className.substring(selIndex + STYLES.selected.length);
-				}
-				if (child === node) {
-					child.className = child.className + STYLES.selected;
-					this.parentNode.setAttribute("aria-activedescendant", child.id); //$NON-NLS-0$
-					child.focus();
-					if (child.offsetTop < this.parentNode.scrollTop) {
-						child.scrollIntoView(true);
-					} else if ((child.offsetTop + child.offsetHeight) > (this.parentNode.scrollTop + this.parentNode.clientHeight)) {
-						child.scrollIntoView(false);
-					}
-				}
+		/**
+		 * Visually selects the node at the specified nodeIndex
+		 * by updating its CSS class and scrolling it into view
+		 * if necessary.
+		 * @param{Number} nodeIndex The index of the node to select
+		 */
+		selectNode: function(nodeIndex) {
+			var node = null;
+			
+			if (this.previousSelectedNode) {
+				this.previousSelectedNode.classList.remove(STYLES.selected);
 			}
+			
+			this.previousSelectedNode = null;
+			if (this.previousCloneNode) {
+				this._removeCloneNode();
+			}
+			
+			if (-1 !== nodeIndex) {
+				node = this.parentNode.childNodes[nodeIndex];
+				node.classList.add(STYLES.selected);
+				this.parentNode.setAttribute("aria-activedescendant", node.id); //$NON-NLS-0$
+				node.focus();
+				if (node.offsetTop < this.parentNode.scrollTop) {
+					node.scrollIntoView(true);
+					this.preserveCloneThroughScroll = true;
+				} else if ((node.offsetTop + node.offsetHeight) > (this.parentNode.scrollTop + this.parentNode.clientHeight)) {
+					node.scrollIntoView(false);
+					this.preserveCloneThroughScroll = true;
+				}
+				
+				var textNode = node.firstChild || node;  
+				var textBounds = lib.bounds(textNode);
+				var parentBounds = lib.bounds(this.parentNode);
+				var parentStyle = window.getComputedStyle(this.parentNode);
+				var nodeStyle = window.getComputedStyle(node);
+				var allPadding = parseInt(parentStyle.paddingLeft) + parseInt(parentStyle.paddingRight) + parseInt(nodeStyle.paddingLeft) + parseInt(nodeStyle.paddingRight);
+				if (textBounds.width >= (parentBounds.width - allPadding)) {
+					var parentTop = parseInt(parentStyle.top);
+				           
+					// create clone node
+					var clone = node.cloneNode(true); // deep clone
+					clone.classList.add("cloneProposal"); //$NON-NLS-0$
+					clone.style.top = parentTop + node.offsetTop - this.parentNode.scrollTop + "px"; //$NON-NLS-0$
+					clone.style.left = parentStyle.left;
+					clone.setAttribute("id", clone.id + "_clone"); //$NON-NLS-1$ //$NON-NLS-0$
+				           
+					// try to fit clone node on page horizontally
+					var viewportWidth = document.documentElement.clientWidth;
+					var horizontalOffset = (textBounds.left + textBounds.width) - parseInt(viewportWidth);
+					if (horizontalOffset > 0) {
+						var cloneLeft = parseInt(parentStyle.left) - horizontalOffset;
+						if (0 > cloneLeft) {
+							cloneLeft = 0;
+						}
+						clone.style.left = cloneLeft + "px";
+					}
+				 
+					// create wrapper parent node (to replicate css class hierarchy)
+					var parentClone = document.createElement("div");
+					parentClone.id = "clone_contentassist";  //$NON-NLS-0$
+					parentClone.classList.add("contentassist"); //$NON-NLS-0$
+					parentClone.classList.add("cloneWrapper"); //$NON-NLS-0$
+					parentClone.appendChild(clone);
+					parentClone.onclick = this.parentNode.onclick;
+					this.parentNode.parentNode.insertBefore(parentClone, this.parentNode);
+				           
+					// make all the cloned nodes clickable by setting their contentAssistProposalIndex
+					var recursiveSetIndex = function(cloneNode){
+						cloneNode.contentAssistProposalIndex = node.contentAssistProposalIndex;
+						if (cloneNode.hasChildNodes()) {
+							for (var i = 0 ; i < cloneNode.childNodes.length ; i++){
+								recursiveSetIndex(cloneNode.childNodes[i]);
+							}
+						}
+					};
+					recursiveSetIndex(parentClone);
+				           
+					node.classList.remove(STYLES.selected);
+				           
+					this.previousCloneNode = parentClone;    
+				}
+           
+			}
+			
+			this.previousSelectedNode = node;
 		},
-		setProposals: function(/**Object[]*/ proposals) {
-			this.proposals = proposals;
+		setContentAssistMode: function(mode) {
+			this._contentAssistMode = mode;
 		},
 		show: function() {
-			if (this.proposals.length === 0) {
+			var proposals = this._contentAssistMode.getProposals();
+			if (proposals.length === 0) {
 				this.hide();
-				return;
+			} else {
+				this.parentNode.innerHTML = "";
+				for (var i = 0; i < proposals.length; i++) {
+					this.createDiv(proposals[i], this.parentNode, i);
+				}
+				this.position();
+				this.parentNode.onclick = this.onClick.bind(this);
+				this.isShowing = true;
+				
+				if (!this.textViewListenerAdded) {
+					this.textView.addEventListener("MouseDown", this.textViewListener.onMouseDown); //$NON-NLS-0$
+					this.textViewListenerAdded = true;
+				}
 			}
-			this.parentNode.innerHTML = "";
-			for (var i = 0; i < this.proposals.length; i++) {
-				this.createDiv(this.proposals[i], i===0, this.parentNode, i);
-			}
-			this.position();
-			this.parentNode.onclick = this.onClick.bind(this);
-			this.isShowing = true;
 		},
 		hide: function() {
 			if(this.parentNode.ownerDocument.activeElement === this.parentNode) {
@@ -730,6 +1231,19 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			this.parentNode.style.display = "none"; //$NON-NLS-0$
 			this.parentNode.onclick = null;
 			this.isShowing = false;
+			
+			if (this.textViewListenerAdded) {
+				this.textView.removeEventListener("MouseDown", this.textViewListener.onMouseDown); //$NON-NLS-0$
+				this.textViewListenerAdded = false;
+			}
+		 
+			if (this.previousSelectedNode) {
+				this.previousSelectedNode = null;
+				if (this.previousCloneNode) {
+					this._removeCloneNode();
+				}
+			}
+			
 		},
 		position: function() {
 			var contentAssist = this.contentAssist;
@@ -763,6 +1277,13 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			if (caretLocation.x + this.parentNode.offsetWidth > viewportWidth) {
 				this.parentNode.style.left = (viewportWidth - this.parentNode.offsetWidth) + "px"; //$NON-NLS-0$
 			}
+			
+		},
+		_removeCloneNode: function(){
+			if (this.parentNode.parentNode.contains(this.previousCloneNode)) {
+				this.parentNode.parentNode.removeChild(this.previousCloneNode);  
+			}
+ 			this.previousCloneNode = null;
 		}
 	};
 	return {

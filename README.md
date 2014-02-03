@@ -11,7 +11,7 @@ There are certain advantages of a web UI in this case
 
 
 Where possible godev aims to reuse existing tools to provide an integrated experience. Not every tool needs to be installed in order to get a basic editing, 
-navigation and execution environment. This helps to keep the IDE bloat to a minimum as well as promote existing standalone tools.
+navigation and execution environment. This helps to keep the IDE bloat to a minimum as well as promote existing standalone tools. Third party extensions to GoDev can be created and installed easily (more details below).
 
 # The Plan
 
@@ -147,3 +147,26 @@ In the godev editor type Ctrl-I to add the imports you need and/or remove the un
 
 The godev editor has the ability to show blame for each line of source code managed by Git, Mercurial and Jazz SCM. Godev works with the command-line for each type of VCS to present the blame. If you are able to "go get" it then you should have the command-line tool installed on your system.
 
+# Extensions
+
+Godev has a number of third party extensions to further enhance the environment. To install an extension you simply "go get" it like any other Go command or library. Run the following command to add the Go Oracle extension to find references, implementers, callers and channel peers of selections in the editor:
+
+$ go get github.com/sirnewton01/godev-oracle
+
+For more information about writing extension check out the design document (https://github.com/sirnewton01/godev/wiki/GoDev-Extensions). The godev-oracle project is itself a relatively simple demonstration of a GoDev extension.
+
+# Troubleshooting
+
+Having problems with godev? Try these couple of steps before raising an issue or defect:
+
+  + Clear your browser cache
+  + In Firefox: History -> Clear Recent History (pick "Everything", "Cache" and "Offline Website Data")
+  + In Chrome: Tools -> Clear Browsing Data (pick "the beginning of time", "Empty the cache")
+  + Clear out old godev plugins
+  + In the godev top-right menu -> Settings -> Plugins
+  + Look for any plugins that have an 'x' action to the right of them
+  + Click 'x' to delete each of the the unnecessary plugins
+  + Click "Reload all" at the top-right of the page
+  + Reload your godev browser pages
+  
+If you are still having problems after running these steps then please raise either an issue on github or a defect on jazzhub.

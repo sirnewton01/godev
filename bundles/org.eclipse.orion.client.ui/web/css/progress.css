@@ -51,10 +51,20 @@
 	visibility: hidden;  /* accessibility.  don't tab here when invisible */
 }
 
-/* we don't sprite an animated gif */
 .progressPane_running {
-	background: url(../images/progress_running.gif) no-repeat center;  
-	width: 16px; height: 16px;
+	/* defined in images.css */
+}
+
+.progressWarning .progressPane_running, .progressWarning .core-sprite-progress {
+	border-color: #c09853; 
+}
+
+.progressError .progressPane_running, .progressError .core-sprite-progress {
+	border-color: #b94a48; 
+}
+
+.progressNormal .progressPane_running, .progressNormal .core-sprite-progress {
+	border-color: #468847; 
 }
 
 .progressPane_running_dialog {

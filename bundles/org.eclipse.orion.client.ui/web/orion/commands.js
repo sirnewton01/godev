@@ -91,8 +91,34 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 				}
 			}
 		}
-
-		window.document.addEventListener("keydown", function (evt){ //$NON-NLS-0$
+		
+		function getKeyBindings() {
+			var allBindings = {};
+			
+			if (getBindings) {
+				var i, keys, objectKey;
+				keys = Object.keys(localKeyBindings);
+				for (i=0; i<keys.length; i++) {
+					objectKey = keys[i];
+					allBindings[objectKey] = localKeyBindings[objectKey];
+				}
+				var otherBindings = getBindings();
+				keys = Object.keys(otherBindings);
+				for (i=0; i<keys.length; i++) {
+					objectKey = keys[i];
+					allBindings[objectKey] = otherBindings[objectKey];
+				}
+			} else {
+				allBindings = localKeyBindings;
+			}
+			return allBindings;
+		}
+		
+		function processKey(evt) {
+			_processKey(evt, getKeyBindings());
+		}
+		
+		function handleKeyEvent(evt, processKeyFunc) {
 			function isContentKey(e) {
 				// adapted from handleKey in http://git.eclipse.org/c/platform/eclipse.platform.swt.git/plain/bundles/org.eclipse.swt/Eclipse%20SWT%20Custom%20Widgets/common/org/eclipse/swt/custom/StyledText.java
 				if (util.isMac) {
@@ -103,6 +129,9 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 						if (!e.shiftKey && !e.ctrlKey && (e.keyCode === 65 || e.keyCode === 67 || e.keyCode === 86 || e.keyCode === 88 || e.keyCode === 90)) {
 							return true;
 						}
+						return false;
+					}
+					if (e.ctrlKey) {
 						return false;
 					}
 				} else {
@@ -173,27 +202,51 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 					return;
 				}
 			}
-			var allBindings = {};
-			
-			if (getBindings) {
-				var i, keys, objectKey;
-				keys = Object.keys(localKeyBindings);
-				for (i=0; i<keys.length; i++) {
-					objectKey = keys[i];
-					allBindings[objectKey] = localKeyBindings[objectKey];
-				}
-				var otherBindings = getBindings();
-				keys = Object.keys(otherBindings);
-				for (i=0; i<keys.length; i++) {
-					objectKey = keys[i];
-					allBindings[objectKey] = otherBindings[objectKey];
-				}
+			if (processKeyFunc) {
+				processKeyFunc(evt);
 			} else {
-				allBindings = localKeyBindings;
+				processKey(evt);
 			}
-			
-			_processKey(evt, allBindings);
-		}, false);
+		};
+		
+		function CommandsProxy() {
+			this._init();
+		}
+		CommandsProxy.prototype = {
+			setProxy: function(proxy) {
+				this.proxy = proxy;
+			},
+			setKeyBindings: function(bindings) {
+				this.bindings = bindings;
+			},
+			_init: function() {
+				var self = this;
+				document.addEventListener("keydown", function(evt) { //$NON-NLS-0$
+					return handleKeyEvent(evt, function(evt) {
+						var proxy = self.proxy;
+						var bindings = self.bindings;
+						if (!bindings || !proxy) {
+							return;
+						}
+						for (var i=0; i<bindings.length; i++) {
+							if (bindings[i].match(evt)) {
+								proxy.processKey({
+									type: evt.type,
+									keyCode: evt.keyCode,
+									altKey: evt.altKey,
+									ctrlKey: evt.ctrlKey,
+									metaKey: evt.metaKey,
+									shiftKey: evt.shiftKey
+								});
+								lib.stop(evt);
+							}
+						}
+					});
+				});
+			}
+		};
+
+		window.document.addEventListener("keydown", handleKeyEvent, false); //$NON-NLS-0$
 
 	function _addImageToElement(command, element, name) {
 		element.classList.add("commandImage"); //$NON-NLS-0$
@@ -218,7 +271,7 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 		return node;
 	}
 
-	function createDropdownMenu(parent, name, populateFunction, buttonClass, buttonIconClass, showName, selectionClass) {
+	function createDropdownMenu(parent, name, populateFunction, buttonClass, buttonIconClass, showName, selectionClass, positioningNode) {
 		parent = lib.node(parent);
 		if (!parent) {
 			throw "no parent node was specified"; //$NON-NLS-0$
@@ -248,7 +301,8 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 		menuButton.dropdown = new Dropdown.Dropdown({
 			dropdown: newMenu, 
 			populate: populateFunction,
-			selectionClass: selectionClass
+			selectionClass: selectionClass,
+			positioningNode: positioningNode
 		});
 		newMenu.dropdown = menuButton.dropdown;
 		return {menuButton: menuButton, menu: newMenu, dropdown: menuButton.dropdown};
@@ -382,13 +436,6 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 					}
 				}, false);
 			}
-		}
-		if (command.tooltip) {
-			element.commandTooltip = new Tooltip.Tooltip({
-				node: element,
-				text: command.tooltip,
-				position: ["right", "left", "above", "below"] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-			});
 		}
 		element.className = "dropdownMenuItem"; //$NON-NLS-0$
 		element.role = "menuitem";  //$NON-NLS-0$
@@ -534,19 +581,21 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 		_init: function(options) {
 			this.id = options.id;  // unique id
 			this.name = options.name;
-			this.tooltip = options.tooltip || options.name;
+			this.tooltip = options.tooltip;
 			this.callback = options.callback; // optional callback that should be called when command is activated (clicked)
 			this.hrefCallback = options.hrefCallback; // optional callback that returns an href for a command link
 			this.choiceCallback = options.choiceCallback; // optional callback indicating that the command will supply secondary choices.  
 														// A choice is an object with a name, callback, and optional image
-			this.image = options.image || require.toUrl("images/none.png"); //$NON-NLS-0$
+			this.positioningNode = options.positioningNode; // optional positioning node choice command.
+			this.image = options.image || (require.toUrl && require.toUrl("images/none.png")); //$NON-NLS-0$
 			this.imageClass = options.imageClass;   // points to the location in a sprite
 			this.addImageClassToElement = options.addImageClassToElement; // optional boolean if true will add the image class to the 
 																		// element's class list
 			this.selectionClass = options.selectionClass;
 			this.spriteClass = options.spriteClass || "commandSprite"; // defines the background image containing sprites //$NON-NLS-0$
 			this.visibleWhen = options.visibleWhen;
-			this.parameters = options.parameters;  // only used when a command is used in the command registry.  
+			this.parameters = options.parameters;  // only used when a command is used in the command registry. 
+			this.isEditor = options.isEditor;
 		},
 		
 		/**
@@ -633,6 +682,9 @@ define(['require', 'orion/util', 'orion/webui/littlelib', 'orion/webui/dropdown'
 		executeBinding: executeBinding,
 		setKeyBindingProvider: setKeyBindingProvider,
 		localKeyBindings: localKeyBindings,
+		CommandsProxy: CommandsProxy,
+		getKeyBindings: getKeyBindings,
+		processKey: processKey,
 		_testMethodProcessKey: _processKey  // only exported for test cases
 	};
 });

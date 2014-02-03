@@ -110,8 +110,8 @@ define(['orion/Deferred'], function(Deferred) {
 		return deferred;
 	};
 
-	NonNlsSearch.prototype.parseFile = function(contents) {
-		function getExcluded(exlRegExp) {
+	function getExcluded(contents) {
+		function getExcludedForRegex(exlRegExp) {
 			var ret = [];
 			var match = exlRegExp.exec(contents);
 			while (match) {
@@ -120,21 +120,28 @@ define(['orion/Deferred'], function(Deferred) {
 			}
 			return ret;
 		}
-
-		function isInExcluded(excluded, match, offset) {
+		function Exclusions(contents) {
+			var excluded = getExcludedForRegex(new RegExp("/\\x2a[^\\x2a]*\\x2a+(?:[^\\x2a/][^\\x2a]*\\x2a+)*/", "gm"))
+				.concat(getExcludedForRegex(new RegExp("//.*\\r?\\n*", "gm"))) //$NON-NLS-0$
+				.concat(getExcludedForRegex(new RegExp("define\\(\\[[^\\]]*\\]", "gm"))) //$NON-NLS-1$ //$NON-NLS-0$
+				.concat(getExcludedForRegex(new RegExp("define\\([\"\'][^\"\']*[\"\'], *\\[[^\\]]*\\]", "gm"))) //$NON-NLS-1$ //$NON-NLS-0$
+				.concat(getExcludedForRegex(new RegExp("messages\\[[^\\]]*\\]", "gmi"))); //$NON-NLS-1$ //$NON-NLS-0$
+			this.excluded = excluded;
+		}
+		Exclusions.prototype.contains = function(match, offset) {
+			var excluded = this.excluded;
 			for (var i = 0; i < excluded.length; i++) {
 				if ((match.index + offset) > excluded[i].index && (match.index + offset) < (excluded[i].index + excluded[i][0].length)) {
 					return true;
 				}
 			}
 			return false;
-		}
+		};
+		return new Exclusions(contents);
+	}
 
-		var excluded = getExcluded(new RegExp("/\\x2a((\\x2a[^/]*)|[^*/]|[^*]/)*\\x2a/", "gm"), contents); //$NON-NLS-1$ //$NON-NLS-0$
-		excluded = excluded.concat(getExcluded(new RegExp("//.*\\r?\\n*", "gm")), contents); //$NON-NLS-0$
-		excluded = excluded.concat(getExcluded(new RegExp("define\\(\\[[^\\]]*\\]", "gm")), contents); //$NON-NLS-1$ //$NON-NLS-0$
-		excluded = excluded.concat(getExcluded(new RegExp("define\\([\"\'][^\"\']*[\"\'], *\\[[^\\]]*\\]", "gm")), contents); //$NON-NLS-1$ //$NON-NLS-0$
-		excluded = excluded.concat(getExcluded(new RegExp("messages\\[[^\\]]*\\]", "gmi")), contents); //$NON-NLS-1$ //$NON-NLS-0$
+	NonNlsSearch.prototype.parseFile = function(contents) {
+		var exclusions = getExcluded(contents);
 
 		var nonnlsstrings = [];
 		var stringRegExp = /("(\\"|[^"])+")|('(\\'|[^'])+')/g; //$NON-NLS-1$ //$NON-NLS-0$
@@ -147,7 +154,7 @@ define(['orion/Deferred'], function(Deferred) {
 			var realStringNum = 0;
 			while (match) {
 				match.realNum = realStringNum++;
-				if (!isInExcluded(excluded, match, lineOffset)) {
+				if (!exclusions.contains(match, lineOffset)) {
 					strings.push(match);
 				}
 				match = stringRegExp.exec(line);
@@ -445,6 +452,7 @@ define(['orion/Deferred'], function(Deferred) {
 	}
 
 	return {
+		getExcluded: getExcluded,
 		NonNlsSearch: NonNlsSearch,
 		replaceNls: replaceNls,
 		writeMessagesFile: writeMessagesFile

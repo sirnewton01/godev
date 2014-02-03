@@ -58,7 +58,7 @@ define(['require', 'orion/URITemplate', 'orion/URL-shim', 'orion/serviceTracker'
 						project: project,
 						OrionHome: OrionHome,
 						templates: {
-							navigate: (OrionHome + '/edit/edit.html#{Location}?depth=1'),
+							navigate: (OrionHome + '/edit/edit.html#{,Location},navigate={,Location}?depth=1'),
 							edit: (OrionHome + '/edit/edit.html#{,Location,params*}'),
 							shell: (OrionHome + '/shell/shellPage.html#{Location}')
 						}

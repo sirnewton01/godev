@@ -40,21 +40,18 @@
 .nimbus .line_caret {
 	background-color: #aabfbb;
 }
-.nimbus .token_keyword {
+.nimbus .keyword {
 	color: darkorange;
 }
-.nimbus .token_string {
+.nimbus .string {
 	color: cornflowerblue;
 }
-.nimbus .token_singleline_comment {
+.nimbus .comment {
 	color: darkseagreen;
 }
-.nimbus .token_multiline_comment {
+.nimbus .comment.block.documentation {
 	color: darkseagreen;
 }
-.nimbus .token_doc_comment {
-	color: darkseagreen;
-}
-.nimbus .token_doc_html_markup {
+.nimbus .keyword.other.documentation.markup {
 	color: darkseagreen;
 }

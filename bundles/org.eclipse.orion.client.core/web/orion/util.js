@@ -15,7 +15,7 @@ define(function() {
 	var userAgent = navigator.userAgent;
 	var isIE = (userAgent.indexOf("MSIE") !== -1 || userAgent.indexOf("Trident") !== -1) ? document.documentMode : undefined; //$NON-NLS-1$ //$NON-NLS-0$
 	var isFirefox = parseFloat(userAgent.split("Firefox/")[1] || userAgent.split("Minefield/")[1]) || undefined; //$NON-NLS-1$ //$NON-NLS-0$
-	var isOpera = userAgent.indexOf("Opera") !== -1; //$NON-NLS-0$
+	var isOpera = userAgent.indexOf("Opera") !== -1 ? parseFloat(userAgent.split("Version/")[1]) : undefined; //$NON-NLS-0$
 	var isChrome = parseFloat(userAgent.split("Chrome/")[1]) || undefined; //$NON-NLS-0$
 	var isSafari = userAgent.indexOf("Safari") !== -1 && !isChrome; //$NON-NLS-0$
 	var isWebkit = parseFloat(userAgent.split("WebKit/")[1]) || undefined; //$NON-NLS-0$

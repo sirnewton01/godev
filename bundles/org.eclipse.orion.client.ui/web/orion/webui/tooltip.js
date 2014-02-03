@@ -196,6 +196,12 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 				}
 			}
 			
+			if (this._tail && (this._tail.previousPosition !== position)) {
+				//position has changed, tail needs to be modified
+				this._tip.removeChild(this._tail);
+				this._tail = null;
+			}
+			
 			if (!this._tail) {
 				this._tail = document.createElement("span"); //$NON-NLS-0$
 				this._tail.classList.add("tooltipTailFrom"+position); //$NON-NLS-0$
@@ -208,6 +214,7 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 				if (position === 'left') { //$NON-NLS-0$
 					this._tail.style.left = tipRect.width + "px"; //$NON-NLS-0$
 				}
+				this._tail.previousPosition = position;
 			}
 			this._tip.style.top = top + "px"; //$NON-NLS-0$
 			this._tip.style.left = left + "px"; //$NON-NLS-0$ 
@@ -226,26 +233,31 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 			if (this._tip && this._tip.classList.contains("tooltipShowing")) { //$NON-NLS-0$
 				return;
 			}
-			var self = this;
 			if (this._timeout) {
 				window.clearTimeout(this._timeout);
 				this._timeout = null;
 			}
-			this._timeout = window.setTimeout(function() {
-				var positioned = false;
-				var index = 0;
-				while (!positioned && index < self._position.length) {
-					positioned = self._positionTip(self._position[index]);
-					index++;
-				}
-				if (!positioned) {
-					self._positionTip(self._position[0], true);  // force it in, it doesn't fit anywhere
-				}
-				self._tip.classList.add("tooltipShowing"); //$NON-NLS-0$
-				if (self._afterShowing) {
-					self._afterShowing();
-				}
-			}, this._showDelay);
+			if (this._showDelay) {
+				this._timeout = window.setTimeout(this._showImmediately.bind(this), this._showDelay);	
+			} else {
+				this._showImmediately();
+			}
+		},
+		
+		_showImmediately: function() {
+			var positioned = false;
+			var index = 0;
+			while (!positioned && index < this._position.length) {
+				positioned = this._positionTip(this._position[index]);
+				index++;
+			}
+			if (!positioned) {
+				this._positionTip(this._position[0], true);  // force it in, it doesn't fit anywhere
+			}
+			this._tip.classList.add("tooltipShowing"); //$NON-NLS-0$
+			if (this._afterShowing) {
+				this._afterShowing();
+			}
 		},
 		
 		/**

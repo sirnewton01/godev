@@ -1,0 +1,126 @@
+
+@import "../css/layout.css";
+
+@import "../css/images.css";
+
+@import "../css/sections.css"; 
+
+@import "../orion/editor/editor.css";
+
+@import "../css/theme.css";
+
+@import "../font/font.css";
+
+@import "widgetCommon.css";
+
+.localBreadCrumb{
+	border: 1px solid;
+	vertical-align: middle;
+	font-weight: bold;
+	padding: 3px;
+	color: gray;
+	height: 24px;
+	margin-bottom: -20px;
+	border-color: #dadada;
+	overflow: hidden;
+	background-color: white;
+	text-align: left;
+	margin-left: 5%;
+	margin-right: 5%;
+	margin-top: 12px;
+}
+
+.readonlyImage {
+	padding-left: 10px;
+	padding-top: 10px;
+	padding-bottom: 5px;
+}
+
+.sectionWrapper, .sectionTable{
+	margin-left: 2px;
+	margin-right: 2px;
+	margin-top: 2px;
+}
+
+.sectionTable{
+	margin-top: 0;
+}
+
+.readmeHeader{
+	margin-top: 24px;
+	padding-bottom: 5px;
+	padding-top: 3px;
+}
+
+.browserBranchName {
+	font-weight: bold;
+	margin-left: 4px;
+	padding-top: 2px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: calc(100% - 6px - 4px - 24px);
+	max-width: -webkit-calc(100% - 6px - 4px - 24px);
+	-moz-user-select: -moz-none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	color:#444;
+}
+
+.brSelectorContainer {
+	height: 21px; 
+	width: 150px; 
+	margin-top: -2px;
+	background-color: white;
+	display: inline-block;
+}
+
+.breadCrumbContainer {
+	vertical-align: top;
+	margin-top: 1px;
+	display: inline-block;
+	padding-left: 6px;
+}
+
+.dropdownMenuOpen {
+	max-height: 175px;/*holds 8 drop down items*/
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+.currentLocation {
+	vertical-align: top;
+	padding-top:1px;
+	font-weight: bold;
+	font-size: 8pt;
+	color: #444;
+	text-decoration: none;
+	line-height: 10pt;
+	white-space:nowrap;
+}
+
+a.currentLocation:hover {
+	font-weight: bold;
+	font-size: 8pt;
+	color: #F58B0F;
+ 	text-decoration: none;
+	border-bottom: 1px dotted;
+}
+
+.imageViewTable {
+    width:100%;
+    height:100%;
+    text-align:center; 
+    vertical-align:middle;
+}
+
+.browserParentDome {
+	min-height: 215px !important;
+}
+.tooltip {
+	font: 9pt Arial,Helvetica,Myriad,Tahoma,clean,sans-serif, Lucida Sans Unicode,Lucida Grande,Verdana; 
+}
+.browse_inner_container {
+	font: 9pt Arial,Helvetica,Myriad,Tahoma,clean,sans-serif, Lucida Sans Unicode,Lucida Grande,Verdana; 
+}

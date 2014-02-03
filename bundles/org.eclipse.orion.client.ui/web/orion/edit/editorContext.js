@@ -1,6 +1,6 @@
 /******************************************************************************* 
  * @license
- * Copyright (c) 2013 IBM Corporation and others.
+ * Copyright (c) 2013, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation 
  ******************************************************************************/
-/*global define*/
+/*jslint amd:true*/
 define([
 ], function() {
 
@@ -20,15 +20,15 @@ define([
 	 */
 
 	/**
-	 * @name orion.edit.editorContext.getEditorContext
+	 * Gets the editor context service.
+	 * @name orion.edit.EditorContext.getEditorContext
 	 * @function
-	 * @namespace orion.edit.editorContext
 	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry The service registry to consult.
 	 * @returns {orion.edit.EditorContext}
 	 */
 	function getEditorContext(serviceRegistry) {
-		var editorContext = {};
-		serviceRegistry.getServiceReferences("orion.edit.context").forEach(function(serviceRef) { //$NON-NLS-0$
+		var editorContext = Object.create(null);
+		getReferences(serviceRegistry).forEach(function(serviceRef) { 
 			var service = serviceRegistry.getService(serviceRef);
 			Object.keys(service).forEach(function(key) {
 				if (typeof service[key] === "function") { //$NON-NLS-0$
@@ -39,7 +39,30 @@ define([
 		return editorContext;
 	}
 
+	/**
+	 * Gets the editor context "options" object.
+	 * @name orion.edit.EditorContext.getOptions
+	 * @function
+	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry The service registry to consult.
+	 * @returns {Object}
+	 */
+	function getOptions(serviceRegistry) {
+		var options = Object.create(null);
+		getReferences(serviceRegistry).forEach(function(serviceRef) {
+			serviceRef.getPropertyKeys().forEach(function(key) {
+				if (key !== "service.id" && key !== "service.names" && key !== "objectClass") //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					options[key] = serviceRef.getProperty(key);
+			});
+		});
+		return options;
+	}
+
+	function getReferences(serviceRegistry) {
+		return serviceRegistry.getServiceReferences("orion.edit.context"); //$NON-NLS-0$
+	}
+
 	return {
-		getEditorContext: getEditorContext
+		getEditorContext: getEditorContext,
+		getOptions: getOptions
 	};
 });

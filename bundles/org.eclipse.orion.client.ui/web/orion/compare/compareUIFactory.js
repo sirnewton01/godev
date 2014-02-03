@@ -39,6 +39,11 @@ orion.TwoWayCompareUIFactory = (function() {
 			this._rightEditorWrapperDiv = lib.node("right_editor_wrapper_id"); //$NON-NLS-0$
 			this._rightEditorWrapperDiv.id = prefix + "right_editor_wrapper_id"; //$NON-NLS-0$
 			
+			this._leftActionDiv = lib.node("left_action_id"); //$NON-NLS-0$
+			this._leftActionDiv.id = prefix + "left_action_id"; //$NON-NLS-0$
+			this._rightActionDiv = lib.node("right_action_id"); //$NON-NLS-0$
+			this._rightActionDiv.id = prefix + "right_action_id"; //$NON-NLS-0$
+			
 			this._leftTitleDiv = lib.node("left_title_id"); //$NON-NLS-0$
 			this._leftTitleDiv.id = prefix + "left_title_id"; //$NON-NLS-0$
 			this._rightTitleDiv = lib.node("right_title_id"); //$NON-NLS-0$
@@ -55,16 +60,10 @@ orion.TwoWayCompareUIFactory = (function() {
 			this._splitterId = prefix+"orion_splitter"; //$NON-NLS-0$
 			
 			if(!this._showTitle){
-				this._leftEditorParentDiv.style.top = "0px"; //$NON-NLS-0$
-				this._rightEditorWrapperDiv.style.top = "0px"; //$NON-NLS-0$
-				this._leftTitleDiv.style.height = "0px"; //$NON-NLS-0$
-				this._rightTitleDiv.style.height = "0px"; //$NON-NLS-0$
+				this.disableTitle();
 			}
 			if(!this._showLineStatus){
-				this._leftEditorParentDiv.style.marginBottom = "0px"; //$NON-NLS-0$
-				this._rightEditorWrapperDiv.style.marginBottom = "0px"; //$NON-NLS-0$
-				this._leftStatusDiv.style.height = "0px"; //$NON-NLS-0$
-				this._rightStatusDiv.style.height = "0px"; //$NON-NLS-0$
+				this.disableLineStatus();
 			}
 		},
 		
@@ -104,6 +103,10 @@ orion.TwoWayCompareUIFactory = (function() {
 			return (left ? this._leftTitleDiv : this._rightTitleDiv);
 		},
 		
+		getActionDivId: function(left){
+			return (left ? this._leftActionDiv.id : this._rightActionDiv.id);
+		},
+		
 		getStatusDiv: function(left){
 			return (left ? this._leftStatusDiv : this._rightStatusDiv);
 		},
@@ -114,8 +117,21 @@ orion.TwoWayCompareUIFactory = (function() {
 		
 		getDiffCanvasDiv: function(){
 			return this._diffCanvasDiv;
-		}
+		},
+		
+		disableTitle: function() {
+			this._leftEditorParentDiv.style.top = "0px"; //$NON-NLS-0$
+			this._rightEditorWrapperDiv.style.top = "0px"; //$NON-NLS-0$
+			this._leftTitleDiv.style.height = "0px"; //$NON-NLS-0$
+			this._rightTitleDiv.style.height = "0px"; //$NON-NLS-0$
+		},
 
+		disableLineStatus: function() {
+			this._leftEditorParentDiv.style.marginBottom = "0px"; //$NON-NLS-0$
+			this._rightEditorWrapperDiv.style.marginBottom = "0px"; //$NON-NLS-0$
+			this._leftStatusDiv.style.height = "0px"; //$NON-NLS-0$
+			this._rightStatusDiv.style.height = "0px"; //$NON-NLS-0$
+		}
 	};
 	return TwoWayCompareUIFactory;
 }());

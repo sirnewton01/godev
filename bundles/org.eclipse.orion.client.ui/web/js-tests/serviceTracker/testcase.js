@@ -52,5 +52,61 @@ define([
 
 		assert.equal(tracker.getServiceReferences().length, 1);
 	};
+	tests.test_serviceRemoved = function() {
+		var serviceRegistry = new ServiceRegistry();
+		var serviceRegistration = serviceRegistry.registerService("someObjectClass", { foo: function() {} }, { hello: "there" });
+		var tracker = new ServiceTracker(serviceRegistry, "someObjectClass");
+		tracker.open();
+
+		var called = false;
+		tracker.removedService = function(serviceRef, service) {
+			assert.equal(serviceRef.getProperty("hello"), "there");
+			assert.equal(typeof service.foo, "function");
+			called = true;
+		};
+		serviceRegistration.unregister();
+		assert.equal(called, true);
+	};
+	tests.test_addingService = function() {
+		var serviceRegistry = new ServiceRegistry();
+		serviceRegistry.registerService("someObjectClass", { foo: function() {} }, { prop: "A" });
+		var tracker = new ServiceTracker(serviceRegistry, "someObjectClass");
+
+		var callCount = 0;
+		tracker.addingService = function(serviceRef) {
+			callCount++;
+			if (callCount === 1)
+				assert.equal(serviceRef.getProperty("prop"), "A");
+			else
+				assert.equal(serviceRef.getProperty("prop"), "B");
+		};
+
+		tracker.open();
+		assert.equal(callCount, 1); // called once due to open()
+		serviceRegistry.registerService("someObjectClass", { bar: function() {} }, { prop: "B" });
+		assert.equal(callCount, 2); // called again
+	};
+	tests.test_onServiceAdded = function() {
+		var serviceRegistry = new ServiceRegistry();
+		serviceRegistry.registerService("someObjectClass", { foo: function() {} }, { prop: "A" });
+		var tracker = new ServiceTracker(serviceRegistry, "someObjectClass");
+
+		var callCount = 0;
+		tracker.onServiceAdded = function(serviceRef, service) {
+			callCount++;
+			if (callCount === 1) {
+				assert.equal(typeof service.foo, "function");
+				assert.equal(serviceRef.getProperty("prop"), "A");
+			} else {
+				assert.equal(typeof service.bar, "function");
+				assert.equal(serviceRef.getProperty("prop"), "B");
+			}
+		};
+
+		tracker.open();
+		assert.equal(callCount, 1); // called once due to open()
+		serviceRegistry.registerService("someObjectClass", { bar: function() {} }, { prop: "B" });
+		assert.equal(callCount, 2); // called again
+	};
 	return tests;
 });

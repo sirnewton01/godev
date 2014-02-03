@@ -1,0 +1,281 @@
+.navlink {
+	display: inline-block;
+	padding: 2px;
+}
+
+.nav_fakelink:hover {
+	cursor: pointer;
+}
+
+.navlinkonpage, .nav_fakelink {
+	text-decoration: none;
+	padding: 2px;
+}
+
+.navlinkonpage:active {
+	text-decoration: none;
+}
+
+.navlinkonpage:hover {
+	text-decoration: none;
+	border-bottom: 1px dotted;
+}
+
+.navTableHeading {
+	color: #404040;
+	border-bottom: 1px solid #404040;
+}
+
+.navColumn {
+	min-width: 150px;
+	vertical-align: baseline;
+}
+
+.navColumnNoIcon {
+	padding: 6px;
+}
+
+.navRow {
+	vertical-align: baseline;
+	border-spacing: 8px;
+}
+
+.disabledNavRow > .navColumn > .mainNavColumn {
+	outline: 1px dashed lightgray;
+}
+
+.commandList > li {
+	float: left;
+	margin-left: 2px;
+	margin-right: 1px;
+}
+
+.disabledNavRow > .navColumn > .mainNavColumn > * {
+	color: gray;
+	cursor: default;
+}
+
+.disabledNavRow > .navColumn > .mainNavColumn > *:hover {
+	border: none;
+}
+
+.mainNavColumn {
+	display: inline-block;
+	padding: 2px;
+	vertical-align: baseline;
+	white-space: nowrap;
+}
+
+.singleNavColumn {
+	width: 100%;
+	white-space: nowrap;
+}
+
+.auxPadding {
+	padding-left: 8px;
+	padding-top: 2px;
+    padding-bottom: 8px;
+}
+ 
+.treetable {
+	border-spacing: 0;
+	width:100%;
+}
+
+.secondaryColumn {
+	color: #666666;	
+	padding-right: 8px;
+	padding-top: 8px;
+	vertical-align:top;
+}
+
+.primaryColumn {
+	color: #3087B3;
+	text-decoration: none;
+	vertical-align:top;
+}
+
+.checkColumn {
+	padding: 0;
+}
+
+.selectionModelContainer {
+	outline: none;
+	padding-top:1px;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: -moz-none; /*-moz-none allows override in children*/
+	-ms-user-select: none;
+	user-select: none;
+}
+
+.treeIterationCursor {
+	outline: #AAA 1px dotted !important;
+	border-radius:4px;
+}
+
+.treeIterationCursorRow {
+	background-color: #f3f6fe;
+}
+
+.treeIterationCursorRow_Dotted {
+	outline: skyblue 1px dotted !important;
+	background-color: #f3f6fe;
+}
+
+.dropDownContainer{
+	border-radius:1px;
+	background:#fefefe;
+	border: 1px solid #DDD;
+	padding:10px;
+	margin-top: 5px;
+	outline: none;
+	position:absolute;
+	z-index:100;
+	box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+
+.dropDownContainer ul {
+	list-style: none;
+	padding:0;
+}
+
+.dropDownContainer ul li a {
+	display: block;
+	padding: 5px 15px;
+	color:#3087B3;
+	line-height: 1;
+}
+
+.dropDownContainer ul li a:focus,
+.dropDownContainer ul li a:hover {
+	color:#F58B0F;
+}
+
+.dropDownContainer ul li a:active {
+	background: #ddd;
+}	
+
+.navigationBreadcrumb{
+	font-family: sans-serif;
+	padding-bottom:5px;
+}
+
+.noFile {
+	padding: 10px;
+	vertical-align: middle;
+}
+
+.sectionWrapper, .sectionTable{
+	text-align: left;
+	border-collapse: collapse;
+	border-spacing: 0;
+	padding: 0;
+	margin-left: 5%;
+	margin-right: 5%;
+	margin-top: 30px;
+	width: inherit;
+}
+
+.mainpane .sectionTable .treetable, .mainpane .sectionWrapper .treetable, .mainpane .sectionTable .treetable .actionsColumn{
+	min-width: inherit;
+}
+
+.sectionTable {
+	margin-top: 0;
+	border: 1px solid;
+	border-color:#dadada;
+}
+
+.sectionWrapperClosed{
+	border-bottom: 1px solid;
+}
+
+.sectionWrapper{
+	border-top: 1px solid;
+	border-left: 1px solid;
+	border-right: 1px solid;
+	background: none repeat scroll 0 0 #f4f4f4;
+	vertical-align: middle;
+	font-weight: bold;
+	padding: 1px;
+	color: gray;
+	margin-bottom: 0;
+	border-color: #dadada;
+}
+
+.sectionTable td {
+	border-bottom: 1px solid #dadada;
+	vertical-align: middle;
+	color: gray;
+}
+
+.sectionTable tr:last-child td{
+	border-bottom: 0;
+}
+
+.sectionTable div.lightTreeTableRow:last-child, .sectionTable div.lightTreeTableRow:last-child{
+	border-bottom: 0;
+}
+
+.orionMarkdown {
+	padding: 8px;
+	color: gray;
+}
+
+.orionMarkdown img {
+	max-width: 100%;
+}
+
+.orionMarkdown pre, .orionMarkdown code {
+	background-color: #fafafa;
+	border: 1px solid #ddd;
+	border-radius: 3px;
+}
+
+.orionMarkdown pre {
+	padding: 6px 10px;
+	overflow: auto;
+}
+
+.orionMarkdown code {
+	padding: 0 5px;
+	margin: 0 2px;
+}
+
+.orionMarkdown pre code {
+	background-color: transparent;
+    padding: 0;
+	border: 0;
+	margin: 0;
+	font-size: 100%;
+}
+
+.orionMarkdown h1 {
+	font-size:1.5em;
+	font-weight: bold;
+	color: #6d6d6d;
+	line-height: 36px;
+	top:0;
+	bottom:0;
+	margin:auto;
+	position: relative;
+}
+
+.orionMarkdown h2 {
+	font-size: 1.1em;
+	font-weight: bold;
+	color: #6d6d6d;
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+.orionMarkdown body {
+	font: 9pt Arial,Helvetica,Myriad,Tahoma,clean,sans-serif, Lucida Sans Unicode,Lucida Grande,Verdana; 
+} 
+
+.lightTreeTableRow, .darkTreeTableRow {
+	border-bottom: 1px solid #dadada;
+}

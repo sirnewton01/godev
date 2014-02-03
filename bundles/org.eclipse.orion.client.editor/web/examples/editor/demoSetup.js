@@ -130,7 +130,6 @@ define(["require",
 				var a = iter.next();
 				if (a.type === AnnotationType.ANNOTATION_FOLDING) {
 					a.collapse();
-					annotationModel.modifyAnnotation(a);
 				}
 			}
 			view.setRedraw(true);
@@ -146,7 +145,6 @@ define(["require",
 				var a = iter.next();
 				if (a.type === AnnotationType.ANNOTATION_FOLDING) {
 					a.expand();
-					annotationModel.modifyAnnotation(a);
 				}
 			}
 			view.setRedraw(true);

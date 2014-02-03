@@ -432,7 +432,7 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
         var spanHolder = onSpan ? onSpan : lib.node(this.getLocationSpanId(item));
         _empty(spanHolder);
         var scopeParams = this.explorer.model.getScopingParams(item);
-        var link = _createLink('navlinkonpage', null, scopeParams.href, spanHolder, this.explorer.model._filterText ? null: scopeParams.name); //$NON-NLS-0$
+        var link = _createLink('navlink', null, scopeParams.href, spanHolder, this.explorer.model._filterText ? null: scopeParams.name); //$NON-NLS-0$
         link.title = scopeParams.tooltip;
         mNavUtils.addNavGrid(this.explorer.getNavDict(), item, link);
         var that = this;
@@ -453,8 +453,12 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
         }
     };
 
-    SearchResultRenderer.prototype.getPrimColumnStyle = function() {
-        return "search_primaryColumn"; //$NON-NLS-0$
+    SearchResultRenderer.prototype.getPrimColumnStyle = function(item) {
+        if(item && item.type === "file") { //$NON-NLS-0$
+        	return "search_primaryColumn"; //$NON-NLS-0$
+        } else {
+        	return  "search_primaryColumn_Details"; //$NON-NLS-0$
+        }
     };
 
     SearchResultRenderer.prototype.getSecondaryColumnStyle = function() {
@@ -1149,12 +1153,13 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
             var options = {
                 readonly: true,
                 hasConflicts: false,
-                newFile: {
+                newFileOnRight: true,
+                oldFile: {
                     Name: fileItem.location,
                     Type: fType,
                     Content: that.model.getFileContents(fileItem)
                 },
-                oldFile: {
+                newFile: {
                     Name: fileItem.location,
                     Type: fType,
                     Content: replacedContents
@@ -1457,6 +1462,9 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
     SearchResultExplorer.prototype._startUp = function() {
 		var filterBox = _empty("filterBox");
 		var pagingParams = this.model.getPagingParams();
+		if(this.model._provideSearchHelper){
+			window.document.title = this.model._provideSearchHelper().displayedSearchTerm + " - " +  i18nUtil.formatMessage(messages["${0} matches"], pagingParams.totalNumber);//$NON-NLS-0$
+		}
 		if (pagingParams.numberOnPage === 0) {
 	        if(filterBox){
 				filterBox.style.visibility = "hidden"; //$NON-NLS-0$

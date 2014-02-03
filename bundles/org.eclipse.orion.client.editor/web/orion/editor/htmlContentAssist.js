@@ -31,33 +31,45 @@ define("orion/editor/htmlContentAssist", ['orion/editor/templates'], function(mT
 	var templates = [
 		{
 			prefix: "<img", //$NON-NLS-0$
-			description: "<img> - HTML image element",
+			name: "<img>", //$NON-NLS-0$
+			description: " - HTML image element", //$NON-NLS-0$
 			template: "<img src=\"${cursor}\" alt=\"${Image}\"/>" //$NON-NLS-0$
 		},
 		{
 			prefix: "<a", //$NON-NLS-0$
-			description: "<a> - HTML anchor element",
+			name: "<a>", //$NON-NLS-0$
+			description: " - HTML anchor element", //$NON-NLS-0$
 			template: "<a href=\"${cursor}\"></a>" //$NON-NLS-0$
 		},
 		{
 			prefix: "<ul", //$NON-NLS-0$
-			description: "<ul> - HTML unordered list",
+			name: "<ul>", //$NON-NLS-0$
+			description: " - HTML unordered list",  //$NON-NLS-0$
 			template: "<ul>\n\t<li>${cursor}</li>\n</ul>" //$NON-NLS-0$
 		},
 		{
 			prefix: "<ol", //$NON-NLS-0$
-			description: "<ol> - HTML ordered list",
+			name: "<ol>", //$NON-NLS-0$
+			description: " - HTML ordered list", //$NON-NLS-0$
 			template: "<ol>\n\t<li>${cursor}</li>\n</ol>" //$NON-NLS-0$
 		},
 		{
 			prefix: "<dl", //$NON-NLS-0$
-			description: "<dl> - HTML definition list",
+			name: "<dl>", //$NON-NLS-0$
+			description: " - HTML definition list", //$NON-NLS-0$
 			template: "<dl>\n\t<dt>${cursor}</dt>\n\t<dd></dd>\n</dl>" //$NON-NLS-0$
 		},
 		{
 			prefix: "<table", //$NON-NLS-0$
-			description: "<table> - basic HTML table",
+			name: "<table>", //$NON-NLS-0$
+			description: " - basic HTML table", //$NON-NLS-0$
 			template: "<table>\n\t<tr>\n\t\t<td>${cursor}</td>\n\t</tr>\n</table>" //$NON-NLS-0$
+		},
+		{
+			prefix: "<!--", //$NON-NLS-0$
+			name: "<!-- -->", //$NON-NLS-0$
+			description: " - HTML comment", //$NON-NLS-0$
+			template: "<!-- ${cursor} -->" //$NON-NLS-0$
 		}
 	];
 
@@ -121,14 +133,16 @@ define("orion/editor/htmlContentAssist", ['orion/editor/templates'], function(mT
 	HTMLContentAssistProvider.prototype = new mTemplates.TemplateContentAssist([], templates);
 
 	HTMLContentAssistProvider.prototype.getPrefix = function(buffer, offset, context) {
+		var prefix = "";
 		var index = offset;
-		while (index && /[A-Za-z0-9<]/.test(buffer.charAt(index - 1))) {
+		while (index && /[A-Za-z0-9<!-]/.test(buffer.charAt(index - 1))) {
 			index--;
 			if (buffer.charAt(index) === "<") { //$NON-NLS-0$
+				prefix = buffer.substring(index, offset);
 				break;
 			}
 		}
-		return index ? buffer.substring(index, offset) : "";
+		return prefix;
 	};
 	
 	HTMLContentAssistProvider.prototype.computeProposals = function(buffer, offset, context) {
@@ -136,7 +150,22 @@ define("orion/editor/htmlContentAssist", ['orion/editor/templates'], function(mT
 		if (buffer.length === 0) {
 			return [simpleDocTemplate.getProposal("", offset, context)];
 		}
-		return mTemplates.TemplateContentAssist.prototype.computeProposals.call(this, buffer, offset, context);
+		var proposals = mTemplates.TemplateContentAssist.prototype.computeProposals.call(this, buffer, offset, context);
+		
+		// sort and then return proposals
+		return proposals.sort(function(l,r) {
+			var leftString = l.prefix || l.proposal;
+			var rightString = r.prefix || r.proposal;
+			
+			// handle titles
+			if (!leftString) {
+				return -1;
+			} else if (!rightString) {
+				return 1;
+			}
+			
+			return leftString.toLowerCase().localeCompare(rightString.toLowerCase());
+		});
 	};
 
 	return {

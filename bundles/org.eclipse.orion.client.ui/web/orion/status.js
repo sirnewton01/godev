@@ -70,7 +70,6 @@ define([
 		
 		close: function(){
 			window.clearTimeout(this._timer);
-			this.setProgressMessage(""); 
 			var closeButton = lib.node("closeNotifications"); //$NON-NLS-0$
 			if(this._cancelMsg && this._cancelFunc && closeButton) {
 				closeButton.innerHTML = "";
@@ -80,6 +79,8 @@ define([
 				closeButton.classList.add("imageSprite"); //$NON-NLS-0$
 				this._cancelFunc();
 				this._cancelMsg = null;
+			} else {
+				this.setProgressMessage(""); 
 			}
 		},
 		
@@ -181,9 +182,7 @@ define([
 			this._init();
 			this.currentMessage = message;
 			var image = document.createElement("span"); //$NON-NLS-0$
-			image.classList.add("imageSprite"); //$NON-NLS-0$
 			image.classList.add("progressIcon"); //$NON-NLS-0$
-			image.classList.add("core-sprite-progress");  //$NON-NLS-0$
 			var node = lib.node(this.progressDomId);
 			lib.empty(node);
 			node.appendChild(image);
@@ -323,7 +322,13 @@ define([
 					closeButton.classList.remove("core-sprite-close"); //$NON-NLS-0$
 					closeButton.classList.remove("imageSprite"); //$NON-NLS-0$
 					closeButton.innerHTML = this._cancelMsg;
-				} 
+				} else {
+					closeButton.innerHTML = "";
+					closeButton.classList.remove("cancelButton"); //$NON-NLS-0$
+					closeButton.classList.add("dismissButton"); //$NON-NLS-0$
+					closeButton.classList.add("core-sprite-close"); //$NON-NLS-0$
+					closeButton.classList.add("imageSprite"); //$NON-NLS-0$
+				}
 			}
 		},
 		

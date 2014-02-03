@@ -65,6 +65,7 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 			if (!options.renderer) { throw messages["no renderer"]; }
 			this._parent = parent;
 			this._treeModel = options.model;
+			this._onComplete = options.onComplete;
 			this._renderer = options.renderer;
 			this._showRoot = options.showRoot === undefined ? false : options.showRoot;
 			this._indent = options.indent === undefined ? 16 : options.indent;
@@ -126,15 +127,15 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 			wrapper.appendChild(table);
 			this._parent.appendChild(wrapper);
 			this._rowsChanged();
+			if (this._onComplete) {
+				this._onComplete(this);
+			}
 		},
 		
 		_generateChildren: function(children, indentLevel, referenceNode) {
 			for (var i=0; i<children.length; i++) {
 				var row = document.createElement(this._tableRowElement); //$NON-NLS-0$
 				row.id = this._treeModel.getId(children[i]);
-				if (this._renderer.rowCallback) {
-					this._renderer.rowCallback(row);
-				}
 				row._depth = indentLevel;
 				// This is a perf problem and potential leak because we're bashing a dom node with
 				// a javascript object.  (Whereas above we are using simple numbers/strings). 
@@ -144,6 +145,11 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 				// generate an indent
 				var indent = this._indent * indentLevel;
 				row.childNodes[this._labelColumnIndex].style.paddingLeft = indent +"px";  //$NON-NLS-0$
+				
+				if (this._renderer.rowCallback) {
+					this._renderer.rowCallback(row, children[i]);
+				}
+				
 				if (referenceNode) {
 					this._bodyElement.insertBefore(row, referenceNode.nextSibling);
 					if (referenceNode) { //$NON-NLS-0$
@@ -181,15 +187,17 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 					// If the row should be expanded
 					if (row && (forceExpand || row._expanded)) {
 						this._removeChildRows(parentId);
-						this._renderer.updateExpandVisuals(row, true);
 						if(children){
 							row._expanded = true;
+							this._renderer.updateExpandVisuals(row, true);
 							this._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
 							this._rowsChanged();
 						} else {
 							tree = this;
+							this._renderer.updateExpandVisuals(row, "progress"); //$NON-NLS-0$
 							children = this._treeModel.getChildren(row._item, function(children) {
 								if (tree.destroyed) { return; }
+								tree._renderer.updateExpandVisuals(row, true);
 								if (!row._expanded) {
 									row._expanded = true;
 									tree._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
@@ -221,11 +229,9 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 			if (row) {
 				if (row._expanded) {
 					this.collapse(id);
-					this._renderer.updateExpandVisuals(row, false);
 				}
 				else {
 					this.expand(id);
-					this._renderer.updateExpandVisuals(row, true);
 				}
 			}
 		},
@@ -244,12 +250,16 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 			var row = lib.node(id);
 			if (row) {
 				if (row._expanded) {
+					if (postExpandFunc) {
+						postExpandFunc.apply(tree, args);
+					}
 					return;
 				}
 				var tree = this;
-				this._renderer.updateExpandVisuals(row, true);
+				this._renderer.updateExpandVisuals(row, "progress"); //$NON-NLS-0$
 				this._treeModel.getChildren(row._item, function(children) {
 					if (tree.destroyed) { return; }
+					tree._renderer.updateExpandVisuals(row, true);
 					if (!row._expanded) {
 						row._expanded = true;
 						tree._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
@@ -309,6 +319,13 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 			if(this._onCollapse){
 				this._onCollapse(row._item);
 			}
+		},
+		
+		/**
+		 * Returns this tree's indentation increment
+		 */
+		getIndent: function() {
+			return this._indent;
 		}
 	};  // end prototype
 	TableTree.prototype.constructor = TableTree;

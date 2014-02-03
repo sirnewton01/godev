@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -316,6 +316,13 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 			var idPrefix = 'pluginsettings-'; //$NON-NLS-0$
 			var sectionId = idPrefix + 'section'; //$NON-NLS-0$
 			var section = this._makeSection(parent, sectionId, settings, title);
+			
+			// Add a class name based on the category (all settings on the page have the same category currently)
+			if (settings.length > 0){
+				if(settings[0].category){
+					section.getContentElement().classList.add(settings[0].category + "SettingsTable"); //$NON-NLS-0$
+				}
+			}
 
 			this.explorer = new SettingsListExplorer(serviceRegistry);
 			this.explorer.createTree(section.getContentElement().id, new mExplorer.SimpleFlatModel(settings, 'setting-', //$NON-NLS-0$
@@ -324,7 +331,8 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 				}),
 				{	tableElement: 'div', //$NON-NLS-0$
 					tableBodyElement: 'div', //$NON-NLS-0$
-					tableRowElement: 'div' //$NON-NLS-0$
+					tableRowElement: 'div', //$NON-NLS-0$
+					noSelection: true // Until we support selection based commands, don't allow selection
 				});
 		}
 	};

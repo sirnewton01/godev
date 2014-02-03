@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="copyright" content="Copyright (c) IBM Corporation and others 2014." >
+	<meta charset="UTF-8">
+	<title>Docker Terminal</title>
+	<link rel="stylesheet" type="text/css" href="dockerTerm.css" />
+	<script src="../requirejs/require.js"></script>
+	<script>
+		/*global require*/
+		require({
+			baseUrl: "..",
+			paths: {
+				text: "requirejs/text",
+				i18n: "requirejs/i18n",
+				domReady: "requirejs/domReady"
+			}
+		});
+		require(["dockerTerm.js"]);
+	</script>
+</head>
+	<body id="orion-dockerTerminalPage" class="orionPage">
+		<div class="content-fixedHeight">
+		<div class="terminal" id="terminal"></div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer"></div>
+	</body>
+</html>

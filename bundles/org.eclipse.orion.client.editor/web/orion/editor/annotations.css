@@ -133,40 +133,40 @@
 	width: 8px;
 }
 .annotationOverview.task {
-	background-color: lightgreen;
-	border: 1px solid green;
+	background-color: #93bb7a;
+	border: 1px solid #79aa59;
 }
 .annotationOverview.breakpoint {
 	background-color: lightblue;
 	border: 1px solid blue;
 }
 .annotationOverview.bookmark {
-	background-color: yellow;
-	border: 1px solid orange;
+	background-color: #84b3cf;
+	border: 1px solid #9cc2d8;
 }
 .annotationOverview.error {
-	background-color: lightcoral;
-	border: 1px solid darkred;
+	background-color: #EFA1A7;
+	border: 1px solid #ec8a91;
 }
 .annotationOverview.warning {
-	background-color: Gold;
-	border: 1px solid black;
+	background-color: #fce1a9;
+	border: 1px solid #face70;
 }
 .annotationOverview.currentBracket {
 	background-color: lightgray;
 	border: 1px solid red;
 }
 .annotationOverview.matchingBracket {
-	background-color: lightgray;
-	border: 1px solid red;
+	background-color: #ff7f7f;
+	border: 1px solid #ff3232;
 }
 .annotationOverview.currentLine {
-	background-color: #D3E0F5;
-	border: 1px solid black;
+	background-color: #f8a852;
+	border: 1px solid #f79327;
 }
 .annotationOverview.matchingSearch {
-	background-color: #C3E1FF;
-	border: 1px solid black;
+background-color: #C3E1FF;
+border: 1px solid #afcae5;
 }
 .annotationOverview.currentSearch {
 	background-color: #53D1FF;
@@ -242,6 +242,6 @@
 .annotationLine {
 }
 .annotationLine.currentLine {
-	background-color: #D3E0F5;
+	background-color: #EAF2FE;
 }
 

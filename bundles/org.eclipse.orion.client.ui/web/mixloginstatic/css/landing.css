@@ -68,7 +68,7 @@ input[type="button"]:active {
 
 .orion-logo{
 	background: url('combined.png');
-	background-position: 0 -160px; 
+	background-position: 0 -160px;
 	float:left;
 	height:86px;
 	width:114px;
@@ -230,7 +230,7 @@ input[type="button"]:active {
 	outline: none;
 	background-color: white;
 	border: none;
-	border-radius: 3px;	
+	border-radius: 3px;
 	font-family: Verdana, Arial, Helvetica, Myriad, Tahoma, clean, sans-serif;
 	font-size: 14px;
 	color:#999;
@@ -416,7 +416,7 @@ a.loginwindow {
 .personaIcon{
 	background: url('../images/persona.png') no-repeat;
 	/* background-position: 0 -809px; */
-	width: 70px; 
+	width: 70px;
 	height: 50px;
 	/* margin-top: 6px; */
 	opacity:1;
@@ -430,7 +430,7 @@ a.loginwindow {
 .openIdIcon{
 	background: url('../images/openid.png') no-repeat;
 	/* background-position: 0 -80px; */
-	width: 50px; 
+	width: 50px;
 	height: 50px;
 	/* margin-top:2px; */
 	margin-left:10px;
@@ -439,7 +439,7 @@ a.loginwindow {
 .orionLoginIcon{
 	background: url('../images/oriongrey.png') no-repeat;
 	/* background-position: 0 -80px; */
-	width: 50px; 
+	width: 50px;
 	height: 50px;
 	/* margin-top:2px; */
 	/* margin-left:10px; */
@@ -449,7 +449,7 @@ a.loginwindow {
 	opacity:0.6;
 }
 
-.orIcon{	
+.orIcon{
 	border:#DDD;
 	border-radius:4px;
 	width: 50px;
@@ -457,7 +457,7 @@ a.loginwindow {
 	margin-left: 7px;
 }
 
-.googleIcon{	
+.googleIcon{
 	background: url('../images/google.png') no-repeat;
 	background-position: 0 0;
 	width: 50px;
@@ -483,4 +483,8 @@ a.loginwindow {
 
 .loginIcon{
 	float:left;
+	/* hide text */
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
 }

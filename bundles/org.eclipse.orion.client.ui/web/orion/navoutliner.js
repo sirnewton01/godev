@@ -19,7 +19,7 @@ function(messages, require, lib, i18nUtil, mCommands, mCommandRegistry, mKeyBind
 		this.explorer = explorer;
 		this._init(options);
 	}
-	NavOutlineRenderer.prototype = mExplorer.SelectionRenderer.prototype;
+	NavOutlineRenderer.prototype = new mExplorer.SelectionRenderer();
 	NavOutlineRenderer.prototype.constructor = NavOutlineRenderer;
 	NavOutlineRenderer.prototype.getLabelColumnIndex = function() {
 		return 0;
@@ -62,7 +62,7 @@ function(messages, require, lib, i18nUtil, mCommands, mCommandRegistry, mKeyBind
 		this.renderer.commandService = commandService;
 		this.renderer.contentTypeService = serviceRegistry.getService("orion.core.contentTypeRegistry");
 	}
-	NavOutlineExplorer.prototype = mExplorer.Explorer.prototype;	
+	NavOutlineExplorer.prototype = new mExplorer.Explorer();	
 	NavOutlineExplorer.prototype.constructor = NavOutlineExplorer;
 
 	

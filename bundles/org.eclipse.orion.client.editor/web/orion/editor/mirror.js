@@ -291,8 +291,8 @@ define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/e
 		this.initialize(model);
 	}
 	
-	var TAB = "token_tab",
-	    SPACE = "token_space",
+	var TAB = "punctuation separator tab",
+	    SPACE = "punctuation separator space",
 
 	    /* Max number of lines to immediately re-highlight after an edit. Remaining lines are handled by follow-up jobs. */
 	    MAX_REHIGHLIGHT = 500,

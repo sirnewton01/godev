@@ -27,3 +27,7 @@
 .activeBranch {
 	font-weight: bold;
 }
+
+.gitPanel .sectionWrapper {
+	margin-top: 15px;
+}

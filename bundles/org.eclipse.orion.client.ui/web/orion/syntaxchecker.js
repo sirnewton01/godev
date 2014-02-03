@@ -26,6 +26,13 @@ var SyntaxChecker = (function () {
 		this.registry = serviceRegistry;
 		this.editor = editor;
 	}
+
+	function clamp(n, min, max) {
+		n = Math.max(n, min);
+		n = Math.min(n, max);
+		return n;
+	}
+
 	SyntaxChecker.prototype = /** @lends orion.SyntaxChecker.prototype */ {
 		/**
 		 * Looks up applicable validators, calls them to obtain problems, passes problems to the marker service.
@@ -117,23 +124,35 @@ var SyntaxChecker = (function () {
 				problem.description = problem.description || problem.reason;
 				problem.severity = problem.severity || "error"; //$NON-NLS-0$
 				problem.start = (typeof problem.start === "number") ? problem.start : problem.character; //$NON-NLS-0$
-				problem.end = (typeof problem.end === "number") ? problem.end : problem.start + 1; //$NON-NLS-0$
 
 				// Range check
-				if (typeof problem.line === "number") {
+				if (typeof problem.line === "number") {//$NON-NLS-0$
 					// start, end are line offsets (1-based)
 					var lineLength = model.getLine(problem.line - 1, false).length;
-					problem.start = Math.max(1, problem.start);
-					problem.start = Math.min(problem.start, lineLength);
-					problem.end = Math.min(problem.end, lineLength);
-					problem.end = Math.max(problem.start, problem.end);
+					problem.start = clamp(problem.start, 1, lineLength - 1); // leave room for end
+					problem.end = (typeof problem.end === "number") ? problem.end : -1; //$NON-NLS-0$
+					problem.end = clamp(problem.end, problem.start + 1, lineLength);
+
+					// TODO probably need similar workaround for bug 423482 here
 				} else {
 					// start, end are document offsets (0-based)
 					var charCount = model.getCharCount();
-					problem.start = Math.max(0, problem.start);
-					problem.start = Math.min(problem.start, charCount);
-					problem.end = Math.min(problem.end, charCount);
-					problem.end = Math.max(problem.start, problem.end);
+					problem.start = clamp(problem.start, 0, charCount); // leave room for end
+					problem.end = (typeof problem.end === "number") ? problem.end : -1; //$NON-NLS-0$
+					problem.end = clamp(problem.end, problem.start, charCount);
+
+					// Workaround: if problem falls on the empty, last line in the buffer, move it to a valid line.
+					// https://bugs.eclipse.org/bugs/show_bug.cgi?id=423482
+					if (problem.end === charCount && model.getLineCount() > 1 && charCount === model.getLineStart(model.getLineCount() - 1)) {
+						var prevLine = model.getLineCount() - 2, prevLineStart = model.getLineStart(prevLine), prevLineEnd = model.getLineEnd(prevLine);
+						if (prevLineStart === prevLineEnd) {
+							// Empty range on an empty line seems to be OK, if not at EOF
+							problem.start = problem.end = prevLineEnd;
+						} else {
+							problem.start = prevLineEnd - 1;
+							problem.end = prevLineEnd;
+						}
+					}
 				}
 			}
 		}

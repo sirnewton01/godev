@@ -1,5 +1,18 @@
+/******************************************************************************* 
+ * @license
+ * Copyright (c) 2013 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * 
+ * Contributors: IBM Corporation - initial API and implementation
+ ******************************************************************************/
 /*global define document URL window confirm*/
-define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClient", "orion/ssh/sshTools", "orion/i18nUtil", "orion/Deferred", "orion/URL-shim", "domReady!"], function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil, Deferred) {
+
+define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClient", "orion/ssh/sshTools",
+ "orion/i18nUtil", "orion/Deferred", "orion/git/util", "orion/URL-shim", "domReady!"], 
+function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil, Deferred, mGitUtil) {
 	var temp = document.createElement('a');
 	temp.href = "../mixloginstatic/LoginWindow.html";
 	var serviceRegistry = new mServiceregistry.ServiceRegistry();
@@ -14,11 +27,20 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 	};
 
 	var provider = new PluginProvider(headers);
-	
+
+	// Git category for contributed links
+	provider.registerService("orion.page.link.category", null, {
+		id: "git",
+		nameKey: "Git",
+		nls: "git/nls/gitmessages",
+		imageClass: "core-sprite-cat-git"
+	});
+
 	provider.registerService("orion.page.link", {}, {
 		nameKey: "Repositories",
 		id: "orion.git.repositories",
 		nls: "git/nls/gitmessages",
+		category: "git",
 		uriTemplate: "{+OrionHome}/git/git-repository.html#"
 	});
 	
@@ -77,6 +99,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 		id: "eclipse.git.status2",
 		tooltipKey: "Go to Git Status",
 		nls: "git/nls/gitmessages",
+		category: "git",
 		validationProperties: [{
 			source: "StatusLocation|Clone:StatusLocation", 
 			variableName: "GitStatusLocation"
@@ -97,6 +120,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 		id: "eclipse.orion.git.switchToCurrentLocal",
 		tooltipKey: "Show the log for the active local branch",
 		nls: "git/nls/gitmessages",
+		category: "git",
 		validationProperties: [
 			{source: "Clone:ActiveBranch", variableName: "GitBranchLocation"},
 			{source: "toRef:Type", match: "RemoteTrackingBranch"}
@@ -110,6 +134,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 		id: "eclipse.orion.git.switchToRemote2",
 		tooltipKey: "Show the log for the corresponding remote tracking branch",
 		nls: "git/nls/gitmessages",
+		category: "git",
 		validationProperties: [
 			{source: "toRef:RemoteLocation:0:Children:0:CommitLocation", variableName: "GitRemoteLocation"}
 		],
@@ -122,6 +147,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 		id: "eclipse.git.repository2",
 		tooltipKey: "Go to the git repository",
 		nls: "git/nls/gitmessages",
+		category: "git",
 		validationProperties: [
 			{source: "CloneLocation", variableName: "GitCloneLocation"},
 			{source: "Type", match: "Commit"}
@@ -134,6 +160,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 		nameKey: "Git Repository",
 		tooltipKey: "Go to the git repository",
 		nls: "git/nls/gitmessages",
+		category: "git",
 		validationProperties: [{
 			source: "Git:CloneLocation",
 			variableName: "GitRepoLocation"
@@ -146,6 +173,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 		nameKey: "Show Repository in eclipse.org",
 		tooltipKey: "Show this repository in eclipse.org",
 		nls: "git/nls/gitmessages",
+		category: "git",
 		validationProperties: [{
 			source: "GitUrl|Clone:GitUrl", 
 			match: "git.eclipse.org/gitroot", 
@@ -160,6 +188,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 		nameKey: "Show Repository in GitHub",
 		nls: "git/nls/gitmessages",
 		tooltipKey: "Show this repository in GitHub",
+		category: "git",
 		validationProperties: [{
 			source: "GitUrl|Clone:GitUrl", 
 			match: "github\.com.*\.git", 
@@ -175,6 +204,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 		nameKey: "Show Commit in GitHub",
 		nls: "git/nls/gitmessages",
 		tooltipKey: "Show this commit in GitHub",
+		category: "git",
 		validationProperties: [{
 			source: "GitUrl", 
 			match: "github\.com.*\.git", 
@@ -193,6 +223,7 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 		nameKey: "Show Commit in eclipse.org",
 		nls: "git/nls/gitmessages",
 		tooltipKey: "Show this commit in eclipse.org",
+		category: "git",
 		validationProperties: [{
 			source: "GitUrl", 
 			match: "git.eclipse.org/gitroot", 
@@ -266,9 +297,13 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 			return {Type: "git", Location: removeUserInformation(params.url)};
 		},
 		_cloneRepository: function(gitUrl, params, workspaceLocation, isProject){
+			var self = this;
 			var deferred = new Deferred();
-			var knownHosts = sshService.getKnownHosts();
-				gitClient.cloneGitRepository(null, gitUrl, null, workspaceLocation, params.sshuser, params.sshpassword, knownHosts, null, null, null, isProject).then(function(cloneResp){
+			
+			/* parse gitURL */
+			var repositoryURL = mGitUtil.parseSshGitUrl(gitUrl);
+			sshService.getKnownHostCredentials(repositoryURL.host, repositoryURL.port).then(function(knownHosts){
+				gitClient.cloneGitRepository(null, gitUrl, null, workspaceLocation, params.sshuser, params.sshpassword, knownHosts, params.sshprivateKey, params.sshpassphrase, null, isProject).then(function(cloneResp){
 					gitClient.getGitClone(cloneResp.Location).then(function(clone){
 						if(clone.Children){
 							clone = clone.Children[0];
@@ -299,22 +334,37 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 						if(error.JsonData.HostKey){
 							if(confirm(i18nUtil.formatMessage('Would you like to add ${0} key for host ${1} to continue operation? Key fingerpt is ${2}.',
 								error.JsonData.KeyType, error.JsonData.Host, error.JsonData.HostFingerprint))){
-									sshService.addKnownHosts(error.JsonData.Host + " " + error.JsonData.KeyType + " " + error.JsonData.HostKey);
-									this._cloneRepository(gitUrl, params, workspaceLocation);
+									
+									var hostURL = mGitUtil.parseSshGitUrl(error.JsonData.Url);
+									var hostCredentials = {
+											host : error.JsonData.Host,
+											keyType : error.JsonData.KeyType,
+											hostKey : error.JsonData.HostKey,
+											port : hostURL.port
+										};
+									
+									sshService.addKnownHost(hostCredentials).then(function(){
+										self._cloneRepository(gitUrl, params, workspaceLocation).then(deferred.resolve, deferred.reject, deferred.progress);
+									});
+									
 							} else {
 								deferred.reject(error);
 							}
 							return;
 						} 
 						if(error.JsonData.Host){
-							error.retry = true;
-							error.addParamethers = [{id: "sshuser", type: "text", name: "Ssh User:"}, {id: "sshpassword", type: "password", name: "Ssh Password:"}];
+							error.Retry = {
+								addParameters : [{id: "sshuser", type: "text", name: "Ssh User:"}, {id: "sshpassword", type: "password", name: "Ssh Password:"}],
+								optionalParameters: [{id: "sshprivateKey", type: "textarea", name: "Ssh Private Key:"}, {id: "sshpassphrase", type: "password", name: "Ssh Passphrase:"}]
+							};
 							deferred.reject(error);
 							return;
 						}
 					}
 					deferred.reject(error);
-				}.bind(this), deferred.progress);
+				}.bind(this), deferred.progress);	
+			});
+			
 			return deferred;
 		},
 		initDependency: function(dependency, params, projectMetadata){
@@ -355,16 +405,16 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 				}
 				deferred.resolve([
 					{
-						name: "Git",
-						children: [
+						Name: "Git",
+						Children: [
 							{
-								name: "Git Url",
-								value: clone.GitUrl
+								Name: "Git Url",
+								Value: clone.GitUrl
 							},
 							{
-								name: "Git Status",
-								value: "Git Status",
-								href: "{+OrionHome}/git/git-status.html#" + item.Git.StatusLocation
+								Name: "Git Status",
+								Value: "Git Status",
+								Href: "{+OrionHome}/git/git-status.html#" + item.Git.StatusLocation
 							}
 						]
 					}
@@ -376,7 +426,8 @@ define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClie
 	}, {
 		id: "orion.git.projecthandler",
 		type: "git",
-		addParamethers: [{id: "url", type: "url", name: "Url:"}],
+		addParameters: [{id: "url", type: "url", name: "Url:"}],
+		optionalParameters: [{id: "sshuser", type: "text", name: "Ssh User:"}, {id: "sshpassword", type: "password", name: "Ssh Password:"},{id: "sshprivateKey", type: "textarea", name: "Ssh Private Key:"}, {id: "sshpassphrase", type: "password", name: "Ssh Passphrase:"}],
 		addDependencyName: "Add Git Repository",
 		addDependencyTooltip: "Clone git repository and add it to this project",
 		addProjectName: "Create a project from a Git Repository",

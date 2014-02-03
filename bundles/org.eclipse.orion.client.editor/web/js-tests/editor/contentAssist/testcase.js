@@ -108,6 +108,7 @@ define([
 					assert.equal(context.prefix, expectedPrefix);
 					assert.equal(context.selection.start, expectedOffset);
 					assert.equal(context.selection.end, expectedOffset);
+					assert.equal(context.__contributed, "blort");
 					deferred.resolve();
 				} catch (e) {
 					deferred.reject(e);
@@ -118,8 +119,15 @@ define([
 			var mockEditorContext = {
 				foo: function() {}
 			};
-			contentAssist.setEditorContextFactory(function() {
-				return mockEditorContext;
+			contentAssist.setEditorContextProvider({
+				getEditorContext: function() {
+					return mockEditorContext;
+				},
+				getOptions: function() {
+					return {
+						__contributed: "blort"
+					};
+				}
 			});
 			contentAssist.setProviders([ provider ]);
 			contentAssist.activate();
@@ -148,51 +156,88 @@ define([
 		});
 	};
 	
-	// Tests that active ContentAssist will call providers as we type.
+	// Tests that active ContentAssist will not call providers as we type but rather
+	// will filter the proposals itself.
 	tests.testFiltering = function() {
-		var first = new Deferred(),
+		var init = new Deferred(),
+			first = new Deferred(),
 		    second = new Deferred(),
-		    deferred = Deferred.all([first, second]);
+		    compute = new Deferred(),
+		    deferred = Deferred.all([init, first, second, compute]);
 		withData(function(view, contentAssist) {
-			var offset = setText(view, 'foo @@@');
+			setText(view, 'foo @@@');
 			var provider = {
 				computeProposals: function() {
-					return [];
+					return [{proposal: "b"}, {proposal: "ba"}, {proposal: "ab"}];
 				}
 			};
-			contentAssist.setProviders([ provider ]);
-			contentAssist.activate();
-
-			// Start filtering
-			// 'foo b'
-			offset++;
-			provider.computeProposals = function(buffer, actualOffset, context) {
+			
+			var initialComputedEvent = function(event) {
 				try {
-					assert.strictEqual(buffer, view.getText());
-					assert.strictEqual(actualOffset, view.getModel().getCharCount());
-					assert.strictEqual(context.line, 'foo b');
-					assert.strictEqual(context.prefix, getContentAssistPrefix(view, actualOffset));
+					assert.strictEqual("foo ", view.getText());
+					assert.strictEqual(view.getCaretOffset(), view.getModel().getCharCount());
+					var numUnselectable = event.data.proposals.reduce(function(previous, current){
+						if (current.unselectable) {
+							previous++;
+						}
+						return previous
+					}, 0);
+					assert.strictEqual(3, event.data.proposals.length - numUnselectable); // applicable proposals: "b", "ba", "ab"
+					init.resolve();
+				} catch (e) {
+					init.reject(e); 
+				}
+			};
+			
+			var firstFilter = function(event) {
+				try {
+					assert.strictEqual("foo b", view.getText());
+					assert.strictEqual(view.getCaretOffset(), view.getModel().getCharCount());
+					assert.strictEqual(2, event.data.proposals.length); // applicable proposals: "b", "ba"
 					first.resolve();
 				} catch (e) {
-					first.reject(e);
+					first.reject(e); 
 				}
 			};
-			view._handleKeyPress(createKeyPressEvent('b'));
+			
+			var secondFilter = function(event) {
+				try {
+					assert.strictEqual("foo ba", view.getText());
+					assert.strictEqual(view.getCaretOffset(), view.getModel().getCharCount());
+					assert.strictEqual(1, event.data.proposals.length); // applicable proposals: "b"
+					second.resolve();
+					compute.resolve(); //all passed
+				} catch (e) {
+					second.reject(e); 
+				}
+			};
+			
+			contentAssist.setProviders([ provider ]);
+			contentAssist.addEventListener('ProposalsComputed', initialComputedEvent);
+			contentAssist.activate();
 
+			// ensure computeProposals is no longer called, 
+			// filtering should be done internally by contentAssist
+			provider.computeProposals = function(buffer, actualOffset, context) {
+				compute.reject(new Error("should not be called"));
+			};
+			
+			
+			init.then(function() {
+				// 'foo '
+				contentAssist.removeEventListener('ProposalsComputed', initialComputedEvent);
+				contentAssist.addEventListener('ProposalsComputed', firstFilter);
+				
+				// Start filtering
+				// 'foo b'
+				view._handleKeyPress(createKeyPressEvent('b'));
+			});
 			first.then(function() {
+				// Continue filtering
 				// 'foo ba'
-				offset++;
-				provider.computeProposals = function(buffer, actualOffset, context) {
-					try {
-						assert.strictEqual(buffer, view.getText());
-						assert.strictEqual(actualOffset, view.getModel().getCharCount());
-						assert.strictEqual(context.line, 'foo ba');
-						assert.strictEqual(context.prefix, getContentAssistPrefix(view, actualOffset));
-						second.resolve();
-					} catch (e) {
-						second.reject(e);
-					}
-				};
+				contentAssist.removeEventListener('ProposalsComputed', firstFilter);
+				contentAssist.addEventListener('ProposalsComputed', secondFilter);
+
 				view._handleKeyPress(createKeyPressEvent('a'));
 			});
 		});
@@ -237,7 +282,13 @@ define([
 			]);
 			contentAssist.addEventListener('ProposalsComputed', function(event) {
 				try {
-					assert.strictEqual(1, event.data.proposals.length, 'Got right # of proposals');
+					var numUnselectable = event.data.proposals.reduce(function(previous, current){
+						if (current.unselectable) {
+							previous++;
+						}
+						return previous
+					}, 0);
+					assert.strictEqual(1, event.data.proposals.length - numUnselectable, 'Got right # of proposals');
 					assert.deepEqual(event.data.proposals[0], proposal);
 					d1.resolve();
 				} catch (e) { d1.reject(e); }

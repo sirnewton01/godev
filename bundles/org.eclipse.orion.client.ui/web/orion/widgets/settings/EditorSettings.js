@@ -184,6 +184,14 @@ define("orion/widgets/settings/EditorSettings", //$NON-NLS-0$
 					create: createBooleanProperty
 				}
 			},
+			languageTools: {
+				showOccurrences: {
+					create: createBooleanProperty
+				},
+				contentAssistAutoTrigger: {
+					create: createBooleanProperty
+				}
+			},
 			sourceControl: {
 				showBlame: {
 					create: createBooleanProperty
@@ -283,6 +291,21 @@ define("orion/widgets/settings/EditorSettings", //$NON-NLS-0$
 							canHide: true,
 							slideout: true
 						});
+						var infoText = document.createElement("div"); //$NON-NLS-0$
+						infoText.classList.add("setting-info"); //$NON-NLS-0$
+						infoText.textContent = messages.editorSettingsInfo;
+						var onIcon = document.createElement("span"); //$NON-NLS-0$
+						onIcon.classList.add(localIndicatorClass);
+						onIcon.classList.add(on);
+						var offIcon = document.createElement("span"); //$NON-NLS-0$
+						offIcon.classList.add(localIndicatorClass);
+						offIcon.classList.add(off);
+						var wrenchIcon = document.createElement("span"); //$NON-NLS-0$
+						wrenchIcon.classList.add("core-sprite-wrench"); //$NON-NLS-0$
+						wrenchIcon.classList.add("icon-inline"); //$NON-NLS-0$
+						wrenchIcon.classList.add("imageSprite"); //$NON-NLS-0$
+						lib.processDOMNodes(infoText, [onIcon, offIcon, wrenchIcon]);
+						sectionWidget.getContentElement().appendChild(infoText);
 					}
 					for (var subsection in sections[section]) {
 						if (sections[section].hasOwnProperty(subsection)) {

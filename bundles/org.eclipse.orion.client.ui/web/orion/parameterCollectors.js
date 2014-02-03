@@ -197,6 +197,7 @@ define(['i18n!orion/nls/messages', 'require', 'orion/webui/littlelib'],
 						field = document.createElement("input"); //$NON-NLS-0$
 						field.type = "checkbox"; //$NON-NLS-0$
 						field.id = id;
+						
 						parent.appendChild(field);
 						if (parm.value) {
 							field.checked = true;
@@ -218,6 +219,16 @@ define(['i18n!orion/nls/messages', 'require', 'orion/webui/littlelib'],
 					if (!first) {
 						first = field;
 					}
+					
+					// for more fun
+					if(parm.eventListeners.length > 0){
+						parm.eventListeners.forEach(function(listener){
+							field.addEventListener(listener.event, function(evt){
+								return listener.handler(evt, commandInvocation);
+							}, listener.capture);
+						});
+					}
+					
 					field.addEventListener("keydown", keyHandler, false); //$NON-NLS-0$
 				});
 				var parentDismiss = dismissArea;

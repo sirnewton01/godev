@@ -190,6 +190,7 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
         var _deferredLoad;
 
         var _channel;
+        var _parent;
         var _remoteServices = {};
 
         var _currentMessageId = 0;
@@ -369,7 +370,9 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
                                 headers: manifest.headers,
                                 services: manifest.services
                             }).then(function() {
-                                _deferredLoad.resolve(_this);
+                            	if (_deferredLoad) {
+                                	_deferredLoad.resolve(_this);
+                                }
                             });
                         } else if ("timeout" === message.method) {
                             if (_deferredLoad) {
@@ -544,6 +547,33 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
             return result;
         };
 
+        /**
+         * Sets the parent of this plugin.
+         * @name orion.pluginregistry.Plugin#setParent
+         * @param {DOMElement} [parent=null] the plugin parent. <code>null</code> puts the plugin in the default parent of the plugin registry
+         * @return {orion.Promise} A promise that will resolve when the plugin parent has been set.
+         * @function 
+         */
+        this.setParent = function(parent) {
+        	if (_parent !== parent) {
+        		_parent = parent;
+        		return _this.stop({
+                    "transient": true
+                }).then(function() {
+					if ("started" === _autostart) {
+		                return _this.start({
+		                    "transient": true
+		                });
+					} else if ("lazy" === _autostart) {
+                		return _this.start({	
+                    		"lazy": true,
+							"transient": true
+						});
+            		}
+				});	
+			}
+			return new Deferred().resolve();
+        };
 
         /**
          * Returns this plugin's current state.
@@ -610,7 +640,7 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
             _state = "starting";
             _internalRegistry.dispatchEvent(new PluginEvent("starting", _this));
             _deferredLoad = new Deferred();
-            _channel = _internalRegistry.connect(_url, _messageHandler);
+            _channel = _internalRegistry.connect(_url, _messageHandler, _parent);
             _deferredLoad.then(function() {
                 _deferredLoad = null;
                 _state = "active";
@@ -742,7 +772,7 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
             if (_state === "active") {
                 _internalRegistry.disconnect(_channel);
                 _deferredLoad = new Deferred();
-                _channel = _internalRegistry.connect(_url, _messageHandler);
+                _channel = _internalRegistry.connect(_url, _messageHandler, _parent);
                 _deferredLoad.then(function() {
                     _deferredLoad = null;
                 }, function() {
@@ -860,6 +890,7 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
             _storage = _asStorage(_storage);
         }
         var _state = "installed";
+        var _parent;
         var _plugins = [];
         var _channels = [];
         var _pluginEventTarget = new EventTarget();
@@ -867,7 +898,7 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
 
         var internalRegistry = {
             registerService: serviceRegistry.registerService.bind(serviceRegistry),
-            connect: function(url, handler, timeout) {
+            connect: function(url, handler, parent, timeout) {
                 var channel = {
                     handler: handler,
                     url: url
@@ -885,21 +916,23 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
                 var loadTimeout = setTimeout(sendTimeout.bind(null, "Load timeout for: " + url), timeout || 15000);
                 var iframe = document.createElement("iframe"); //$NON-NLS-0$
                 iframe.name = url + "_" + new Date().getTime();
-                if (!configuration.visible) {
-                    iframe.style.display = "none"; //$NON-NLS-0$
-                    iframe.style.visibility = "hidden"; //$NON-NLS-0$
-                }
                 iframe.src = url;
                 iframe.onload = function() {
                     clearTimeout(loadTimeout);
-                    setTimeout(sendTimeout.bind(null, "Plugin handshake timeout for: " + url), 5000);
+                    loadTimeout = setTimeout(sendTimeout.bind(null, "Plugin handshake timeout for: " + url), 5000);
                 };
-                iframe.sandbox = "allow-scripts allow-same-origin";
-                document.body.appendChild(iframe);
+                iframe.sandbox = "allow-scripts allow-same-origin"; //$NON-NLS-0$
+        		iframe.style.width = iframe.style.height = "100%"; //$NON-NLS-0$
+	        	iframe.frameBorder = 0;
+                (parent || _parent).appendChild(iframe);
                 channel.target = iframe.contentWindow;
                 channel.close = function() {
+                    clearTimeout(loadTimeout);
                     if (iframe) {
-                        document.body.removeChild(iframe);
+                    	var parent = iframe.parentNode;
+                        if (parent) {
+                        	parent.removeChild(iframe);
+                        }
                         iframe = null;
                     }
                 };
@@ -1070,6 +1103,17 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
             _plugins.sort(function(a, b) {
                 return a._getCreated() < b._getCreated() ? -1 : 1;
             });
+            
+            if (configuration.parent) {
+            	_parent = configuration.parent;
+            } else {
+	            _parent = document.createElement("div"); //$NON-NLS-0$
+	            if (!configuration.visible) {
+                    _parent.style.display = "none"; //$NON-NLS-0$
+                    _parent.style.visibility = "hidden"; //$NON-NLS-0$
+                }
+	            document.body.appendChild(_parent);
+            }
 
             if (configuration.plugins) {
                 Object.keys(configuration.plugins).forEach(function(url) {
@@ -1103,7 +1147,6 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
             if (_state !== "starting") {
                 return new Deferred().reject("Cannot start framework. Framework is already " + _state + ".");
             }
-
             var deferreds = [];
             var now = new Date().getTime();
             _plugins.forEach(function(plugin) {
@@ -1169,6 +1212,13 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
             return Deferred.all(deferreds, function(e) {
                 console.log("PluginRegistry.stop " + e);
             }).then(function() {
+				if (!configuration.parent) {
+            		var parentNode = _parent.parentNode;
+            		if (parentNode) {
+		            	parentNode.removeChild(_parent);
+            		}
+            	}
+            	_parent = null;
                 removeEventListener("message", _messageHandler);
                 _state = "resolved";
             });

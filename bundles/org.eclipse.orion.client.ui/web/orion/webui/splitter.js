@@ -39,6 +39,7 @@ define([
 	 * @param {Element} options.mainPanel The node for the main panel.  Required.
 	 * @param {Boolean} [options.toggle=false] Specifies that the side node should be able to toggle.
 	 * @param {Boolean} [options.vertical=false] Specifies that the nodes are stacked vertically rather than horizontal.
+	 * @param {Boolean} [options.closeReversely=false] Specifies that the splitter moves to right when nodes are stacked horizontally, or to bottom when nodes are stacked vertically.
 	 *
 	 * @borrows orion.editor.EventTarget#addEventListener as #addEventListener
 	 * @borrows orion.editor.EventTarget#removeEventListener as #removeEventListener
@@ -53,6 +54,7 @@ define([
 		_init: function(options) {
 			this._tracking = null;
 			this._animationDelay = 501;  // longer than CSS transitions in layout.css
+			this._closeReversely = options.closeReversely;
 			this.$node = lib.node(options.node);
 			if (!this.$node) { throw "no dom node for splitter found"; } //$NON-NLS-0$
 			this.$sideNode = lib.node(options.sidePanel);
@@ -128,11 +130,16 @@ define([
 				this._closed = this._closeByDefault;
 			}
 
+			var parentRect = lib.bounds(this.$node.parentNode);
+			var rect = lib.bounds(this.$node);
 			var pos;
 			if (this._vertical) {
 				pos = localStorage.getItem(this._prefix+"/yPosition"); //$NON-NLS-0$
 				if (pos) {
 					this._splitTop = parseInt(pos, 10);
+					if(this._splitTop > (parentRect.top + parentRect.height - rect.height)){
+						this._splitTop = parentRect.top + parentRect.height / 2.0;
+					}
 				} else if (this._closeByDefault) {
 					this._initialSplit = this._getSplitPosition();
 					this._splitTop = 0;
@@ -141,6 +148,9 @@ define([
 				pos = localStorage.getItem(this._prefix+"/xPosition"); //$NON-NLS-0$
 				if (pos) {
 					this._splitLeft = parseInt(pos, 10);
+					if(this._splitLeft > (parentRect.left + parentRect.width - rect.width)){
+						this._splitLeft = parentRect.left + parentRect.width / 2.0;
+					}
 				} else if (this._closeByDefault) {
 					this._initialSplit = this._getSplitPosition();
 					this._splitLeft = 0;
@@ -244,7 +254,17 @@ define([
 				}
 			} else {
 				this._closed = true;
-				top = left = 0;
+				if(!this._closeReversely) {
+					top = left = 0;
+				} else {
+					var parentRect = lib.bounds(this.$node.parentNode);
+					var rect = lib.bounds(this.$node);
+					if(this._vertical){
+						top = parentRect.height - rect.height;
+					} else {
+						left = parentRect.width - rect.width;
+					}					
+				}
 			}
 			if (this._vertical) {
 				this.$sideNode.style.height = top+"px"; //$NON-NLS-0$
@@ -295,6 +315,7 @@ define([
 			this.$sideNode.classList.add("panelTracking"); //$NON-NLS-0$
 			this._tracking = this._mouseMove.bind(this);
 			window.addEventListener("mousemove", this._tracking); //$NON-NLS-0$
+			lib.setFramesEnabled(false);
 			lib.stop(event);
 		},
 
@@ -333,6 +354,7 @@ define([
 
 		_mouseUp: function(event) {
 			if (this._tracking) {
+				lib.setFramesEnabled(true);
 				window.removeEventListener("mousemove", this._tracking); //$NON-NLS-0$
 				this._tracking = null;
 				this.$node.classList.remove("splitTracking"); //$NON-NLS-0$

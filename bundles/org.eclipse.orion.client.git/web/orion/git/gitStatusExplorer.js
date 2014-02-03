@@ -10,9 +10,9 @@
  ******************************************************************************/
 /*global define document window Image*/
 define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orion/selection', 'orion/section', 'orion/URITemplate', 'orion/PageUtil', 'orion/webui/littlelib',
-		'orion/i18nUtil', 'orion/globalCommands', 'orion/git/util',	'orion/git/gitCommands', 'orion/Deferred', 'orion/git/widgets/CommitTooltipDialog',
+		'orion/i18nUtil', 'orion/globalCommands', 'orion/git/uiUtil',	'orion/git/gitCommands', 'orion/Deferred', 'orion/git/widgets/CommitTooltipDialog',
 		'orion/webui/tooltip'],
-		function(require, messages, mExplorer, mSelection, mSection, URITemplate, PageUtil, lib, i18nUtil, mGlobalCommands, mGitUtil, mGitCommands,
+		function(require, messages, mExplorer, mSelection, mSection, URITemplate, PageUtil, lib, i18nUtil, mGlobalCommands, mGitUIUtil, mGitCommands,
 				Deferred, mCommitTooltip, Tooltip) {
 
 	var exports = {};
@@ -369,7 +369,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 					getChildren : function(parentItem, onComplete) {
 						if (parentItem instanceof Array && parentItem.length > 0) {
 							onComplete(parentItem);
-						} else if (mGitUtil.isChange(parentItem)) {
+						} else if (mGitUIUtil.isChange(parentItem)) {
 							if (!parentItem.children) {// lazy creation,
 														// this is required
 														// for selection
@@ -388,7 +388,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 					getId : function(/* item */item) {
 						if (item instanceof Array && item.length > 0) {
 							return "unstagedRoot"; //$NON-NLS-0$
-						} else if (mGitUtil.isChange(item)) {
+						} else if (mGitUIUtil.isChange(item)) {
 							return "unstaged" + item.name; //$NON-NLS-0$
 						} else {
 							return "unstaged" + item.diffUri; //$NON-NLS-0$
@@ -412,7 +412,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 				UnstagedRenderer.prototype.getCellElement = function(col_no, item, tableRow) {
 					switch (col_no) {
 						case 0:
-							if (mGitUtil.isChange(item)) {
+							if (mGitUIUtil.isChange(item)) {
 								var td = document.createElement("td"); //$NON-NLS-0$
 								var div = document.createElement("div"); //$NON-NLS-0$
 								div.className = "sectionTableItem"; //$NON-NLS-0$
@@ -467,7 +467,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 								div.appendChild(diffContainer);
 
 								var navGridHolder = this.explorer.getNavDict() ? this.explorer.getNavDict().getGridNavHolder(item, true) : null;
-								mGitUtil.createCompareWidget(
+								mGitUIUtil.createCompareWidget(
 									that.registry,
 									that.commandService,
 									item.diffUri,
@@ -509,7 +509,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 				// provide to the selection model that if a row is
 				// selectable
 				UnstagedNavigator.prototype.isRowSelectable = function(modelItem) {
-					return mGitUtil.isChange(modelItem);
+					return mGitUIUtil.isChange(modelItem);
 				};
 				// provide to the expandAll/collapseAll commands
 				UnstagedNavigator.prototype.getItemCount = function() {
@@ -583,7 +583,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 					getChildren : function(parentItem, onComplete) {
 						if (parentItem instanceof Array && parentItem.length > 0) {
 							onComplete(parentItem);
-						} else if (mGitUtil.isChange(parentItem)) {
+						} else if (mGitUIUtil.isChange(parentItem)) {
 							if (!parentItem.children) {// lazy creation,
 														// this is required
 														// for selection
@@ -602,7 +602,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 					getId : function(/* item */item) {
 						if (item instanceof Array && item.length > 0) {
 							return "stagedRoot"; //$NON-NLS-0$
-						} else if (mGitUtil.isChange(item)) {
+						} else if (mGitUIUtil.isChange(item)) {
 							return "staged" + item.name; //$NON-NLS-0$
 						} else {
 							return "staged" + item.diffUri; //$NON-NLS-0$
@@ -626,7 +626,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 				StagedRenderer.prototype.getCellElement = function(col_no, item, tableRow) {
 					switch (col_no) {
 						case 0:
-							if (mGitUtil.isChange(item)) {
+							if (mGitUIUtil.isChange(item)) {
 								var td = document.createElement("td"); //$NON-NLS-0$
 								var div = document.createElement("div"); //$NON-NLS-0$
 								div.className = "sectionTableItem"; //$NON-NLS-0$
@@ -682,7 +682,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 
 								var navGridHolder = this.explorer.getNavDict() ? this.explorer.getNavDict().getGridNavHolder(item, true) : null;
 								var hasConflict = isConflict(item.parent.type);
-								mGitUtil.createCompareWidget(
+								mGitUIUtil.createCompareWidget(
 									that.registry,
 									that.commandService,
 									item.diffUri,
@@ -724,7 +724,7 @@ define(['require', 'i18n!git/nls/gitmessages', 'orion/explorers/explorer', 'orio
 				// provide to the selection model that if a row is
 				// selectable
 				StagedNavigator.prototype.isRowSelectable = function(modelItem) {
-					return mGitUtil.isChange(modelItem);
+					return mGitUIUtil.isChange(modelItem);
 				};
 				// provide to the expandAll/collapseAll commands
 				StagedNavigator.prototype.getItemCount = function() {

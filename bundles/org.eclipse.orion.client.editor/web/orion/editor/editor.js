@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2009, 2012 IBM Corporation and others.
+ * Copyright (c) 2009, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -40,9 +40,20 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 	function BaseEditor(options) {
 		options = options || {};
 		this._domNode = options.domNode;
+		this._model = options.model;
+		this._undoStack = options.undoStack;
 		this._statusReporter = options.statusReporter;
-		this._dirty = false;
 		this._title = null;
+		var self = this;
+		this._listener = {
+			onChanged: function(e) {
+				self.onChanged(e);
+			}
+		};
+		if (this._model) {
+			this._model.addEventListener("Changed", this._listener.onChanged); //$NON-NLS-0$
+		}
+		this.checkDirty();
 	}
 	BaseEditor.prototype = /** @lends orion.editor.BaseEditor.prototype */ {
 		/**
@@ -51,6 +62,14 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 		destroy: function() {
 			this.uninstall();
 			this._statusReporter = this._domNode = null;
+			if (this._model) {
+				this._model.removeEventListener("Changed", this._listener.onChanged); //$NON-NLS-0$
+			}
+		},
+		
+		/** @private */
+		checkDirty : function() {
+			this.setDirty(this._undoStack && !this._undoStack.isClean());
 		},
 		/**
 		 * Focus the the editor view. The default implementation does nothing.
@@ -88,9 +107,18 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			return this._title;
 		},
 		/**
+		 * Returns the editor undo stack. 
+		 *
+		 * @returns {orion.editor.UndoStack} the editor undo stack.
+		 */
+		getUndoStack: function() {
+			return this._undoStack;
+		},
+		/**
 		 * Creates the DOM hierarchy of the editor and add it to the document.
 		 */
 		install: function() {
+			this.installed = true;
 		},
 		/**
 		 * Returns <code>true</code> if the editor is dirty; <code>false</code> otherwise.
@@ -103,7 +131,8 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 		 * Marks the current state of the editor as clean. Meaning there are no unsaved modifications.
 		 */
 		markClean: function() {
-			this.setDirty(false);	
+			this.getUndoStack().markClean();
+			this.setDirty(false);
 		},
 		/**
 		 * Called when the dirty state of the editor changes.
@@ -118,6 +147,13 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 		 */
 		onInputChanged: function (inputChangedEvent) {
 			return this.dispatchEvent(inputChangedEvent);
+		},
+		/**
+		 * Called when the editor's text model has been changed.
+		 * @param {Event} inputChangedEvent
+		 */
+		onChanged: function (modelChangedEvent) {
+			this.checkDirty();
 		},
 		/**
 		 * Report the message to the user.
@@ -148,6 +184,14 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			this.onDirtyChanged({type: "DirtyChanged"}); //$NON-NLS-0$
 		},
 		/**
+		 * @private
+		 */
+		_setModelText: function(contents) {
+			if (this._model) {
+				this._model.setText(contents);
+			}
+		},
+		/**
 		 * Sets the editor's contents.
 		 *
 		 * @param {String} title the editor title
@@ -157,6 +201,19 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 		 */
 		setInput: function(title, message, contents, contentsSaved) {
 			this._title = title;
+			if (!contentsSaved) {
+				if (message) {
+					this.reportStatus(message, "error"); //$NON-NLS-0$
+				} else {
+					if (contents !== null && contents !== undefined) {
+						this._setModelText(contents);
+					}
+				}
+				if (this._undoStack) {
+					this._undoStack.reset();
+				}
+			}
+			this.checkDirty();
 			this.onInputChanged({
 				type: "InputChanged", //$NON-NLS-0$
 				title: title,
@@ -166,9 +223,23 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			});
 		},
 		/**
+		 * Replaces the text in the given range with the given text.
+		 * <p>
+		 * The character at the end offset is not replaced.
+		 * </p>
+		 *
+		 * @param {String} text the new text.
+		 * @param {Number} [start=0] the start offset of text range.
+		 * @param {Number} [end=char count] the end offset of text range.
+		 */
+		setText: function(text, start, end) {
+			this.getModel().setText(text, start, end);
+		},
+		/**
 		 * Removes the DOM hierarchy of the editor from the document.
 		 */
 		uninstall: function() {
+			this.installed = false;
 		}
 	};
 	mEventTarget.EventTarget.addMixin(BaseEditor.prototype);
@@ -306,14 +377,6 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			return this._textView;
 		},
 		/**
-		 * Returns the editor undo stack. 
-		 *
-		 * @returns {orion.editor.UndoStack} the editor undo stack.
-		 */
-		getUndoStack: function() {
-			return this._undoStack;
-		},
-		/**
 		 * Returns the editor's key modes.
 		 *
 		 * @returns {Array} the editor key modes.
@@ -352,9 +415,6 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			if (this._textView) {
 				this._textView.focus();
 			}
-		},
-		markClean: function() {
-			this.getUndoStack().markClean();
 		},
 		/**
 		 * Resizes the text view.
@@ -438,7 +498,32 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			}
 			return offset;
 		},
-		
+		/**
+		 * @name getLineAtOffset
+		 * @description Returns the line number corresponding to the given offset in the source
+		 * @function
+		 * @public
+		 * @memberof orion.editor.Editor
+		 * @param {Number} offset The offset into the source
+		 * @returns {Number} The line number corresponding to the given offset or <code>-1</code> if out of range
+		 * @since 5.0
+		 */
+		getLineAtOffset: function(offset) {
+			return this.getModel().getLineAtOffset(this.mapOffset(offset));	
+		},
+		/**
+		 * @name getLineStart
+		 * @description Compute the editor start offset of the given line number
+		 * @function
+		 * @public
+		 * @memberof orion.editor.TextView
+		 * @param {Number} line The line number in the editor
+		 * @returns {Number} Returns the start offset of the given line number in the editor.
+		 * @since 5.0
+		 */
+		getLineStart: function(line) {
+			return this.getModel().getLineStart(line);
+		},
 		getCaretOffset: function() {
 			return this.mapOffset(this._textView.getCaretOffset());
 		},
@@ -464,7 +549,6 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 				if (annotation.type === AT.ANNOTATION_FOLDING) {
 					if (annotation.expand) {
 						annotation.expand();
-						annotationModel.modifyAnnotation(annotation);
 					}
 				}
 			}
@@ -530,11 +614,6 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 		},
 		
 		/** @private */
-		checkDirty : function() {
-			this.setDirty(!this._undoStack.isClean());
-		},
-		
-		/** @private */
 		_getTooltipInfo: function(x, y) {
 			var textView = this._textView;			
 			var annotationModel = this.getAnnotationModel();
@@ -594,20 +673,21 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			annotationModel.replaceAnnotations(remove, add);
 		},
 		
-		install: function() {
-			this.installTextView();
-		},
-		
 		/**
 		 * Creates the underlying TextView and installs the editor's features.
 		 */
-		installTextView : function() {
+		installTextView: function() {
+			this.install();
+		},
+		
+		install : function() {
 			if (this._textView) { return; }
 			
 			// Create textView and install optional features
 			this._textView = this._textViewFactory();
 			if (this._undoStackFactory) {
 				this._undoStack = this._undoStackFactory.createUndoStack(this);
+				this.checkDirty();
 			}
 			if (this._textDNDFactory) {
 				this._textDND = this._textDNDFactory.createTextDND(this, this._undoStack);
@@ -735,13 +815,6 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 					}
 				}
 				
-				/*
-				* TODO - UndoStack relies on this line to ensure that collapsed regions are expanded 
-				* when the undo operation happens to those regions. This line needs to be remove when the
-				* UndoStack is fixed.
-				*/
-				textView.annotationModel = this._annotationModel;
-					
 				var rulers = this._annotationFactory.createAnnotationRulers(this._annotationModel);
 				var ruler = this._annotationRuler = rulers.annotationRuler;
 				if (ruler) {
@@ -791,16 +864,17 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 				textView: textView
 			};
 			this.dispatchEvent(textViewInstalledEvent);
+			BaseEditor.prototype.install.call(this);
 		},
 
-		uninstall: function() {
-			this.uninstallTextView();
-		},
-		
 		/**
 		 * Destroys the underlying TextView.
 		 */
 		uninstallTextView: function() {
+			this.uninstall();
+		},
+		
+		uninstall: function() {
 			var textView = this._textView;
 			if (!textView) { return; }
 			
@@ -819,6 +893,7 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 				textView: textView
 			};
 			this.dispatchEvent(textViewUninstalledEvent);
+			BaseEditor.prototype.uninstall.call(this);
 		},
 		
 		_updateCursorStatus: function() {
@@ -867,7 +942,7 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 							var lineIndex = annotation.line - 1;
 							var lineStart = model.getLineStart(lineIndex);
 							start = lineStart + annotation.start - 1;
-							end = lineStart + annotation.end;
+							end = lineStart + annotation.end - 1;
 						} else {
 							// document offsets
 							start = annotation.start;
@@ -1000,31 +1075,30 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 		},
 		
 		/**
+		 * @private
+		 */
+		_setModelText: function(contents) {
+			if (this._textView) {
+				this._textView.setText(contents);
+				this._textView.getModel().setLineDelimiter("auto"); //$NON-NLS-0$
+				this._highlightCurrentLine(this._textView.getSelection());
+			}
+		},
+		
+		/**
 		 * Sets the editor's contents.
 		 *
 		 * @param {String} title
 		 * @param {String} message
 		 * @param {String} contents
 		 * @param {Boolean} contentsSaved
+		 * @param {Boolean} noFocus
 		 */
-		setInput: function(title, message, contents, contentsSaved) {
-			if (this._textView) {
-				if (!contentsSaved) {
-					if (message) {
-						this._textView.setText(message);
-					} else {
-						if (contents !== null && contents !== undefined) {
-							this._textView.setText(contents);
-							this._textView.getModel().setLineDelimiter("auto"); //$NON-NLS-0$
-							this._highlightCurrentLine(this._textView.getSelection());
-						}
-					}
-					this._undoStack.reset();
-					this._textView.focus();
-				}
-				this.checkDirty();
-			}
+		setInput: function(title, message, contents, contentsSaved, noFocus) {
 			BaseEditor.prototype.setInput.call(this, title, message, contents, contentsSaved);
+			if (this._textView && !contentsSaved && !noFocus) {
+				this._textView.focus();
+			}
 		},
 		/**
 		 * Reveals a line in the editor, and optionally selects a portion of the line.

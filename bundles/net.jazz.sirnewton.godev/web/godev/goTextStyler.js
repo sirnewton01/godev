@@ -15,9 +15,8 @@
 // TODO Rewrite this to either reduce it to just the bracket matching or make it the full scanner for golang
 
 define("godev/goTextStyler", [ //$NON-NLS-0$
-	'orion/editor/annotations', //$NON-NLS-0$
-	'orion/editor/keywords' //$NON-NLS-0$
-], function(mAnnotations, mKeywords) {
+	'orion/editor/annotations' //$NON-NLS-0$
+], function(mAnnotations) {
 	// Scanner constants
 	var UNKOWN = 1;
 	var STRING = 4;

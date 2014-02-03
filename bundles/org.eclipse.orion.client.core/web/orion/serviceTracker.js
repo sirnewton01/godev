@@ -102,7 +102,7 @@ define([], function() {
 			addedListener = /** @ignore */ function(event) {
 				if (isTrackable(event.serviceReference)) {
 					add.call(self, event.serviceReference);
-					if (typeof self.onServiceAdded === 'function') {
+					if (typeof self.onServiceAdded === 'function') { //$NON-NLS-0$
 						return self.onServiceAdded(event.serviceReference, self.serviceRegistry.getService(event.serviceReference));
 					}
 				}
@@ -116,6 +116,9 @@ define([], function() {
 			serviceRegistry.addEventListener('unregistering', removedListener); //$NON-NLS-0$
 			serviceRegistry.getServiceReferences(objectClass).forEach(function(serviceRef) {
 				add.call(self, serviceRef);
+				if (typeof self.onServiceAdded === 'function') { //$NON-NLS-0$
+					return self.onServiceAdded(serviceRef, serviceRegistry.getService(serviceRef));
+				}
 			});
 			if (typeof this.onOpen === 'function') {
 				this.onOpen();

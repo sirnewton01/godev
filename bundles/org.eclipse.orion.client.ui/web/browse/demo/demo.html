@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+    <head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title>View File</title>
+	    <link rel="stylesheet" type="text/css" href="../built/built-browser.css"/>
+		<script src="../built/built-browser.js"></script>
+		<script>
+		/*globals orion URL*/
+		window.onload=function(){
+			
+			var url = new URL(window.location.href);
+			
+			orion.browse.browser({
+				parentId: "fileBrowser",
+				repo: url.query.get("repo") || "https://github.com/eclipse/orion.client.git",
+				base: url.query.get("base")
+			}); 
+		};
+		</script>
+    </head>
+	<body id="orion-browser" spellcheck="false">
+		<div class="fileBrowserDemoTextParent">
+			<p>This is a demo for the <b>readonly</b> file system browse widget. The outer blue border represents an HTML DIV where the widget can be <b>embedded</b>. 
+			Clicking on a folder will <b>drill in</b>. Clicking on the bread crumb will <b>drill out</b>. Clicking on a <b>text</b> file will open an editor with <b>syntax highlighting</b> depending on the file type. 
+			Clicking on an <b>image</b> file will display it right in the section. If a <b>readme</b> file exists in a folder, a second section will show the readme contents below the main section.</p>
+		</div>
+		<div class="fileBrowserParent" id="fileBrowser">
+		</div>
+	</body>
+</html>

@@ -24,6 +24,7 @@ define(
 			CommitDialog.prototype.TEMPLATE = '<div style="display: none; padding-top: 10px; padding-bottom: 10px;" id="commitInfoBar"><strong id="commitInfo"></strong></div>'
 					+ '<div style="padding:4px"><label id="commitMessageLabel" for="commitMessage">${Message:}</label><input id="commitMessage" style="width: 30em" value=""></div>'
 					+ '<div style="padding:4px"><label id="amendLabel" for="amend">${Amend:}</label><input id="amend" type="checkbox"></div>'
+					+ '<div style="padding:4px"><label id="changeIdLabel" for="changeId">${ChangeId:}</label><input id="changeId" type="checkbox"></div>'
 					+ '<div style="padding:4px"><label id="committerNameLabel" for="committerName">${Committer Name:}</label><input id="committerName" style="width: 30em" value=""></div>'
 					+ '<div style="padding:4px"><label id="committerEmailLabel" for="committerEmail">${Committer Email:}</label><input id="committerEmail" style="width: 30em" value=""></div>'
 					+ '<div style="padding:4px"><label id="authorNameLabel" for="authorName">${Author Name:}</label><input id="authorName" style="width: 30em" value=""></div>'
@@ -62,6 +63,10 @@ define(
 
 				if (this.options.body.Amend) {
 					this.$amend.checked = true;
+				}
+
+				if (this.options.body.ChangeId) {
+				  this.$changeId.checked = true;
 				}
 
 				if (this.options.body.CommitterName) {
@@ -132,6 +137,7 @@ define(
 
 					body.Message = this.$commitMessage.value;
 					body.Amend = this.$amend.checked ? true : false;
+					body.ChangeId = this.$changeId.checked ? true : false;
 					body.CommitterName = this.$committerName.value;
 					body.CommitterEmail = this.$committerEmail.value;
 					body.AuthorName = this.$authorName.value;

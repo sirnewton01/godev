@@ -69,7 +69,7 @@ define(['require', 'orion/plugin', 'orion/xhr', 'orion/Deferred', 'orion/i18nUti
 		_xhr("GET", url, {
 			headers : {
 				"Orion-Version" : "1",
-				"Content-Type" : "charset=UTF-8"
+				"Content-Type" : handler + "; charset=UTF-8"
 			},
 			timeout : 15000,
 			handleAs : handler
@@ -88,7 +88,7 @@ define(['require', 'orion/plugin', 'orion/xhr', 'orion/Deferred', 'orion/i18nUti
 		_xhr("PUT", url, { 
 			headers : { 
 				"Orion-Version" : "1",
-				"Content-Type" : "charset=UTF-8"
+				"Content-Type" : "application/json; charset=UTF-8"
 			},
 			timeout : 15000,
 			handleAs : "json", //$NON-NLS-0$

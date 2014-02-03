@@ -22,6 +22,20 @@ define([
 		this.editor = editor;
 	}
 	MarkOccurrences.prototype = {
+		/**
+		 * Sets whether mark occurrences are shown.
+		 * 
+		 * @param visible whether mark occurrences are shown
+		 */
+		setOccurrencesVisible: function(visible) {
+			if (this.occurrencesVisible === visible) {
+				return;
+			}
+			this.occurrencesVisible = visible;
+			if (!visible) {
+				this.editor.showOccurrences([]);
+			}
+		},
 		/* Looks up applicable references of occurrence service, calls references, calls the editor to show the occurrences. */
 		findOccurrences: function() {
 			function getServiceRefs(registry, contentType, title) {
@@ -67,6 +81,7 @@ define([
 				if (occurrenceTimer) {
 					window.clearTimeout(occurrenceTimer);
 				}
+				if (!self.occurrencesVisible) { return; }
 				occurrenceTimer = window.setTimeout(function() {
 					occurrenceTimer = null;
 					var editor = self.editor;

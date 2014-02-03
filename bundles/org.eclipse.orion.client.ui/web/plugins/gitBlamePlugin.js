@@ -28,7 +28,7 @@ define(["orion/xhr", "orion/plugin", "orion/Deferred", 'orion/operation'], funct
 			xhr("GET", "/gitapi/blame/" + (commit ? commit : "HEAD") + location, { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				headers: {
 					"Orion-Version": "1", //$NON-NLS-1$ //$NON-NLS-0$
-						"Content-Type": "charset=UTF-8" //$NON-NLS-1$ //$NON-NLS-0$
+						"Content-Type": "application/json; charset=UTF-8" //$NON-NLS-1$ //$NON-NLS-0$
 				},
 				timeout: 15000,
 				handleAs: "json" //$NON-NLS-0$

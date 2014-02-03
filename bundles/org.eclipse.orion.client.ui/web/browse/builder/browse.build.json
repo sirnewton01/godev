@@ -1,0 +1,22 @@
+({
+    baseUrl: '.',
+	closure: {
+		CompilerOptions: {},
+		CompilationLevel: 'SIMPLE_OPTIMIZATIONS',
+		loggingLevel: 'WARNING'
+	},
+	paths: {
+        text: 'requirejs/text',
+        i18n: 'requirejs/i18n',
+	    domReady: 'requirejs/domReady'
+	},
+	name: "orion/widgets/browse/builder/browse",
+	preserveLicenseComments: false,
+	uglify: {
+		ascii_only: true
+	},
+	wrap: {
+		start: "/* orion browse */ ", //start cannot be empty
+		end: " define(['orion/widgets/browse/builder/browse'], function(browse) {return browse;});"
+	}
+})

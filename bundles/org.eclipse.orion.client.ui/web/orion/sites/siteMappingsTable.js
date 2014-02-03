@@ -13,7 +13,6 @@
 define(['i18n!orion/sites/nls/messages', 'orion/commands', 'orion/explorers/explorer', 'orion/i18nUtil', 'orion/Deferred', 'orion/webui/littlelib', 'orion/EventTarget'],
 		function(messages, mCommands, mExplorer, i18nUtil, Deferred, lib, EventTarget) {
 
-var ROOT = "/"; //$NON-NLS-0$
 var mSiteMappingsTable = {};
 
 function mixin(target, source) {

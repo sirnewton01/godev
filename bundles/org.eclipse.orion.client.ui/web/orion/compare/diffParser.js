@@ -337,16 +337,11 @@ orion.DiffParser = (function() {
 		},
 		
 		//In many versions of GNU diff, each range can omit the comma and trailing value s, in which case s defaults to 1. 
-		_parseHRangeBody: function(body , retVal){
-			if(0 < body.indexOf(",")){ //$NON-NLS-0$
-				var splitted = body.split(","); //$NON-NLS-0$
-				var split0 = parseInt(splitted[0], 10);
-				var split1 = parseInt(splitted[1], 10);
-				retVal.push(split0 >= 0 ? split0 : 1);
-				retVal.push(split1 >= 0 ? split1 : 1);
+		_converHRangeBody: function(body , retVal){
+			if( body ){
+				var number =  parseInt(body, 10);
+				retVal.push( number >= 0 ? number : 1);
 			} else {
-				var bodyInt = parseInt(body, 10);
-				retVal.push(bodyInt >= 0 ? bodyInt : 1);
 				retVal.push(1);
 			}
 		},
@@ -362,34 +357,25 @@ orion.DiffParser = (function() {
 		 */
 		_parseHunkRange: function(lineNumber){
 			var oneLine = this._diffContents[lineNumber];
-			if(8 > oneLine.length){
-				return null;//to be qualified as a hunkSign line , the line has to match the @@-l,s+l,s@@ pattern
-			}
-			var subStr = oneLine.substring(0,2);
-			if("@@" !== subStr){ //$NON-NLS-0$
-				return null;//to be qualified as a hunkSign line , the line has to start with "@@"
-			}
-			var subLine = oneLine.substring(2);
-			var secondIndex = subLine.indexOf("@@"); //$NON-NLS-0$
-			if(secondIndex < 0){
-				return null;//to be qualified as a hunkSign line , the line has to have the second "@@"
-			}
-			var hunkSignBody = subLine.substring(0 , secondIndex);
-			
-			var minusIndex = hunkSignBody.indexOf("-"); //$NON-NLS-0$
-			var plusIndex = hunkSignBody.indexOf("+"); //$NON-NLS-0$
-			if( minusIndex < 0 || plusIndex < 0){
-				return null;
-			}
-			var splitted, retVal = [lineNumber];
-			if(minusIndex < plusIndex){
-				splitted = hunkSignBody.substring(minusIndex+1).split("+"); //$NON-NLS-0$
-				this._parseHRangeBody(splitted[0] , retVal);
-				this._parseHRangeBody(splitted[1] , retVal);
+			var regex = /^@@\s*-([\+|\-]*[\d]+)\s*,*\s*([\d]*)\s*\+([\+|\-]*[\d]+)\s*,*\s*([\d]*)\s*@@+/;// Pattern : "@@-l,s +l,s@@" or "@@-l,s +l@@" or "@@-l +l,s@@" or even "@@--l,s +-l,s@@"
+			var regexReverse = /^@@\s*\+([\+|\-]*[\d]+)\s*,*\s*([\d]*)\s*-([\+|\-]*[\d]+)\s*,*\s*([\d]*)\s*@@+/;// Pattern : "@@+l,s -l,s@@" or "@@+l,s -l@@" or "@@+l -l,s@@" or even "@@+-l,s --l,s@@"
+			var match = regex.exec(oneLine);
+			var retVal = null;
+			if(match && match.length === 5) {
+				retVal = [lineNumber];
+				this._converHRangeBody(match[1], retVal);
+				this._converHRangeBody(match[2], retVal);
+				this._converHRangeBody(match[3], retVal);
+				this._converHRangeBody(match[4], retVal);
 			} else {
-				splitted = hunkSignBody.substring(plusIndex+1).split("-"); //$NON-NLS-0$
-				this._parseHRangeBody(splitted[1] , retVal);
-				this._parseHRangeBody(splitted[0] , retVal);
+				match = regexReverse.exec(oneLine);
+				if(match && match.length === 5) {
+					retVal = [lineNumber];
+					this._converHRangeBody(match[3], retVal);
+					this._converHRangeBody(match[4], retVal);
+					this._converHRangeBody(match[1], retVal);
+					this._converHRangeBody(match[2], retVal);
+				}
 			}
 			return retVal;
 		}

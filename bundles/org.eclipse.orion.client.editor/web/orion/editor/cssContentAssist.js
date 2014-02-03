@@ -13,8 +13,8 @@
 
 define("orion/editor/cssContentAssist", [ //$NON-NLS-0$
 	'orion/editor/templates', //$NON-NLS-0$
-	'orion/editor/keywords' //$NON-NLS-0$
-], function(mTemplates, mKeywords) {
+	'orion/editor/stylers/text_css/syntax' //$NON-NLS-0$
+], function(mTemplates, mCSS) {
 
 	var overflowValues = {
 		type: "link", //$NON-NLS-0$
@@ -237,7 +237,7 @@ define("orion/editor/cssContentAssist", [ //$NON-NLS-0$
 	 */
 	function CssContentAssistProvider() {
 	}
-	CssContentAssistProvider.prototype = new mTemplates.TemplateContentAssist(mKeywords.CSSKeywords, templates);
+	CssContentAssistProvider.prototype = new mTemplates.TemplateContentAssist(mCSS.keywords, templates);
 	
 	CssContentAssistProvider.prototype.getPrefix = function(buffer, offset, context) {
 		var index = offset;

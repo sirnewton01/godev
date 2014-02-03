@@ -194,19 +194,25 @@ function(messages, require, lib, i18nUtil, mSearchUtils, mSearchCrawler, navigat
 		 * Runs a search and displays the results under the given DOM node.
 		 * @public
 		 * @param {Object} searchParams The search parameters.
-		 * @param {String} [excludeFile] URI of a file to exclude from the result listing.
+		 * @param {String} [folderKeyword] The filter to show only files whose path contains the folderKeyword.
 		 * @param {Function(JSONObject)} Callback function that receives the results of the query.
 		 */
-		search: function(searchParams, excludeFile, renderer) {
+		search: function(searchParams, folderKeyword, renderer) {
 			var transform = function(jsonData) {
 				var transformed = [];
 				for (var i=0; i < jsonData.response.docs.length; i++) {
 					var hit = jsonData.response.docs[i];
-					transformed.push({name: hit.Name, 
-									  path: hit.Location, 
-									  folderName: mSearchUtils.path2FolderName(hit.Path ? hit.Path : hit.Location, hit.Name),
-									  directory: hit.Directory, 
-									  lineNumber: hit.LineNumber});
+					var path = hit.Location;
+					var folderName = mSearchUtils.path2FolderName(hit.Path ? hit.Path : hit.Location, hit.Name);
+					var folder = folderName ? folderName : path;
+					var folderCheck = folderKeyword ? (folder.indexOf(folderKeyword) >= 0) : true;
+					if(folderCheck) {
+						transformed.push({name: hit.Name, 
+										  path: path, 
+										  folderName: folderName,
+										  directory: hit.Directory, 
+										  lineNumber: hit.LineNumber});
+					}
 				}
 				return transformed;
 			};

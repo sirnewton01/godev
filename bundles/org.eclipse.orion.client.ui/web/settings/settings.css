@@ -159,6 +159,10 @@
 	padding-top: 10px;
 }
 
+.setting-info {
+	padding: 10px;
+}
+
 .setting-local-indicator {
 	cursor: pointer;
 	display: inline-block;

@@ -1,20 +1,26 @@
-/******************************************************************************* 
+/*******************************************************************************
  * @license
  * Copyright (c) 2012 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
- * Contributors: IBM Corporation - initial API and implementation 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
+ *
+ * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
 /*jslint browser:true */
 /*global define*/
 
-define(["orion/assert", "orion/editor/eventTarget", "orion/editor/textModel", "orion/editor/annotations", "orion/editor/mirror"],
-		function(assert, mEventTarget, mTextModel) {
-		
+define([
+	"orion/assert",
+	"orion/editor/eventTarget",
+	"orion/editor/keyModes",
+	"orion/editor/textModel",
+	"orion/editor/annotations",
+	"orion/editor/mirror"
+], function(assert, mEventTarget, mKeyModes, mTextModel) {
+
 	function clone(obj) {
 		/*Note that this code only works because of the limited types used in TextViewOptions */
 		if (obj instanceof Array) {
@@ -101,19 +107,31 @@ define(["orion/assert", "orion/editor/eventTarget", "orion/editor/textModel", "o
 			}
 			this.lineStyles = [];
 			this._timer = null;
-			
+			this._keyModes = [];
+
 			this._selection = new Selection(0, 0, false);
 			this._hookEvents();
 			this._createActions();
 			this._updatePage();
 		},
+		addKeyMode: function(mode, index) {
+			var keyModes = this._keyModes;
+			if (index !== undefined) {
+				keyModes.splice(index, 0, mode);
+			} else {
+				keyModes.push(mode);
+			}
+			//TODO: API needed for this
+			if (mode._modeAdded) {
+				mode._modeAdded();
+			}
+		},
 		_createActions: function() {
-			this._keyBindings = [
-				// TODO predefined keybindings
-			];
-			this._actions = [
+			this.addKeyMode(new mKeyModes.DefaultKeyMode(this));
+
+			this._actions = {
 				// TODO predefined actions
-			];
+			};
 		},
 		destroy: function() {
 			this._unhookEvents();
@@ -126,7 +144,7 @@ define(["orion/assert", "orion/editor/eventTarget", "orion/editor/textModel", "o
 		},
 		/**
 		 * Method for testing line style.
-		 * @returns {Object} The output argument from onLineStyle for the given line, or <code>null</code>. When an object is 
+		 * @returns {Object} The output argument from onLineStyle for the given line, or <code>null</code>. When an object is
 		 * returned, it will have one of the following properties:
 		 * <dl>
 		 * <dt><code>ranges</code></dt><dd>{@link orion.editor.StyleRange[]}</dd>
@@ -382,73 +400,35 @@ define(["orion/assert", "orion/editor/eventTarget", "orion/editor/textModel", "o
 		_reset: function() {
 			this.lineStyles = new Array(this._model.getLineCount());
 		},
-		setAction: function(name, handler) {
-			if (!name) { return; }
+		setAction: function(actionID, handler, actionDescription) {
+			if (!actionID) { return; }
 			var actions = this._actions;
-			for (var i = 0; i < actions.length; i++) {
-				var a = actions[i];
-				if (a.name === name) {
-					a.userHandler = handler;
-					return;
-				}
+			var action = actions[actionID];
+			if (!action) {
+				action = actions[actionID] = {};
 			}
-			actions.push({name: name, userHandler: handler});
+			action.handler = handler;
+			if (actionDescription !== undefined) {
+				action.actionDescription = actionDescription;
+			}
 		},
-		invokeAction: function (name, defaultAction) {
-			var actions = this._actions;
-			for (var i = 0; i < actions.length; i++) {
-				var a = actions[i];
-				if (a.name && a.name === name) {
-					if (!defaultAction && a.userHandler) {
-						if (a.userHandler()) { return; }
+		invokeAction: function (actionID, defaultAction, actionOptions) {
+			if (!this._clientDiv) { return; }
+			var action = this._actions[actionID];
+			if (action) {
+				if (!defaultAction && action.handler) {
+					if (action.handler(actionOptions)) {
+						return true;
 					}
-					if (a.defaultHandler) { return a.defaultHandler(); }
-					return false;
+				}
+				if (action.defaultHandler) {
+					return typeof action.defaultHandler(actionOptions) === "boolean"; //$NON-NLS-0$
 				}
 			}
 			return false;
 		},
-		setKeyBinding: function(keyBinding, name) {
-			var keyBindings = this._keyBindings;
-			for (var i = 0; i < keyBindings.length; i++) {
-				var kb = keyBindings[i]; 
-				if (kb.keyBinding.equals(keyBinding)) {
-					if (name) {
-						kb.name = name;
-					} else {
-						if (kb.predefined) {
-							kb.name = null;
-						} else {
-							var oldName = kb.name; 
-							keyBindings.splice(i, 1);
-							var index = 0;
-							while (index < keyBindings.length && oldName !== keyBindings[index].name) {
-								index++;
-							}
-							if (index === keyBindings.length) {
-								/* <p>
-								 * Removing all the key bindings associated to an user action will cause
-								 * the user action to be removed. TextView predefined actions are never
-								 * removed (so they can be reinstalled in the future). 
-								 * </p>
-								 */
-								var actions = this._actions;
-								for (var j = 0; j < actions.length; j++) {
-									if (actions[j].name === oldName) {
-										if (!actions[j].defaultHandler) {
-											actions.splice(j, 1);
-										}
-									}
-								}
-							}
-						}
-					}
-					return;
-				}
-			}
-			if (name) {
-				keyBindings.push({keyBinding: keyBinding, name: name});
-			}
+		setKeyBinding: function(keyBinding, actionID) {
+			this._keyModes[0].setKeyBinding(keyBinding, actionID);
 		},
 		getCaretOffset: function () {
 			var s = this._getSelection();
@@ -460,13 +440,16 @@ define(["orion/assert", "orion/editor/eventTarget", "orion/editor/textModel", "o
 			var selection = new Selection(offset, offset, false);
 			this._setSelection (selection, show === undefined || show);
 		},
+		getKeyModes: function() {
+			return this._keyModes.slice(0);
+		},
 		_getSelection: function () {
 			return this._selection.clone();
 		},
 		_setSelection: function (selection, scroll, update, pageScroll) {
 			if (selection) {
 				if (update === undefined) { update = true; }
-				var oldSelection = this._selection; 
+				var oldSelection = this._selection;
 				if (!oldSelection.equals(selection)) {
 					this._selection = selection;
 					var e = {
@@ -476,7 +459,7 @@ define(["orion/assert", "orion/editor/eventTarget", "orion/editor/textModel", "o
 					};
 					this.onSelection(e);
 				}
-				/* 
+				/*
 				* Always showCaret(), even when the selection is not changing, to ensure the
 				* caret is visible. Note that some views do not scroll to show the caret during
 				* keyboard navigation when the selection does not chanage. For example, line down

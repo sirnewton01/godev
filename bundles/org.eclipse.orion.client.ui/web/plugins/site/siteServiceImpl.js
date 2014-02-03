@@ -10,8 +10,13 @@
  ******************************************************************************/
 /*global define document window*/
 /*jslint regexp:false*/
-define(['require', 'orion/xhr', 'orion/regex'], function(require, xhr, regex) {
-	
+define([
+	'require',
+	'orion/i18nUtil',
+	'orion/xhr',
+	'orion/regex'
+], function(require, i18nUtil, xhr, regex) {
+
 	var temp = document.createElement('a');
 	
 	function qualifyURL(url) {
@@ -114,74 +119,65 @@ define(['require', 'orion/xhr', 'orion/regex'], function(require, xhr, regex) {
 			return this.projects[workspaceId];
 		};
 	}
-	/*
-	 * TYPE_FILE: TargetSuffix represents a workspace path
-	 * TYPE_API: TargetSuffix represents a URL on this server
-	 */
-	var TYPE_FILE = 0, TYPE_API = 1;
-	var SELF_HOSTING_TEMPLATE = [
-			{ type: TYPE_FILE, source: "/", targetSuffix: "/bundles/org.eclipse.orion.client.ui/web/index.html" },
-			{ type: TYPE_FILE, source: "/", targetSuffix: "/bundles/org.eclipse.orion.client.ui/web" },
-			{ type: TYPE_FILE, source: "/", targetSuffix: "/bundles/org.eclipse.orion.client.core/web" },
-			{ type: TYPE_FILE, source: "/", targetSuffix: "/bundles/org.eclipse.orion.client.editor/web" },
-			{ type: TYPE_API, source: "/file", targetSuffix: "file" },
-			{ type: TYPE_API, source: "/prefs", targetSuffix: "prefs" },
-			{ type: TYPE_API, source: "/workspace", targetSuffix: "workspace" },
-			{ type: TYPE_API, source: "/users", targetSuffix: "users" },
-			{ type: TYPE_API, source: "/authenticationPlugin.html", targetSuffix: "authenticationPlugin.html" },
-			{ type: TYPE_API, source: "/login", targetSuffix: "login" },
-			{ type: TYPE_API, source: "/loginstatic", targetSuffix: "loginstatic" },
-			{ type: TYPE_API, source: "/useremailconfirmation", targetSuffix: "useremailconfirmation" },
-			{ type: TYPE_API, source: "/site", targetSuffix: "site" },
-			{ type: TYPE_FILE, source: "/", targetSuffix: "/bundles/org.eclipse.orion.client.git/web" },
-			{ type: TYPE_API, source: "/gitapi", targetSuffix: "gitapi" },
-			{ type: TYPE_FILE, source: "/", targetSuffix: "/bundles/org.eclipse.orion.client.users/web" },
-			{ type: TYPE_API, source: "/xfer", targetSuffix: "xfer" },
-			{ type: TYPE_API, source: "/filesearch", targetSuffix: "filesearch" },
-			{ type: TYPE_API, source: "/index.jsp", targetSuffix: "index.jsp" },
-			{ type: TYPE_API, source: "/plugins/git", targetSuffix: "plugins/git" },
-			{ type: TYPE_API, source: "/plugins/user", targetSuffix: "plugins/user" },
-			{ type: TYPE_API, source: "/logout", targetSuffix: "logout" },
-			{ type: TYPE_API, source: "/mixlogin/manageopenids", targetSuffix: "mixlogin/manageopenids" },
-			{ type: TYPE_API, source: "/openids", targetSuffix: "openids" },
-			{ type: TYPE_API, source: "/task", targetSuffix: "task" },
-			{ type: TYPE_API, source: "/help", targetSuffix: "help" }
-	];
-	function generateSelfHostingMappings(basePath, port) {
-		var hostPrefix = "http://localhost" + ":" + port + makeHostRelative(getContext());
-		return SELF_HOSTING_TEMPLATE.map(function(item) {
-			var target;
-			if (item.type === TYPE_FILE) {
-				target = basePath + item.targetSuffix;
-			} else {
-				target = hostPrefix + item.targetSuffix;
-			}
-			return {Source: item.source, Target: target};
-		});
-	}
-	function matchesSelfHostingTemplate(basePath, site) {
-		// Given a site and a base workspace path, can we substitute the path into each FILE mapping, and
-		// localhost:anyport into every API mapping, such that the site matches the self-hosting template?
-		return SELF_HOSTING_TEMPLATE.every(function(item) {
-			return site.Mappings.some(function(mapping) {
-				if (mapping.Source === item.source) {
-					if (item.type === TYPE_FILE) {
-						return mapping.Target === (basePath + item.targetSuffix);
-					} else if (item.type === TYPE_API) {
-						return new RegExp(
-							regex.escape("http://localhost") + "(:\\d+)?" + regex.escape(makeHostRelative(getContext())) + regex.escape(item.targetSuffix)
-						).test(mapping.Target);
-					}
-				}
-				return false;
-			});
-		});
-	}
 
-	function SiteImpl(filePrefix, workspacePrefix) {
+	function SiteImpl(filePrefix, workspacePrefix, selfHostingRules) {
 		this.filePrefix = filePrefix;
 		this.cache = new Cache(workspacePrefix);
 		this.makeAbsolute = workspacePrefix && workspacePrefix.indexOf("://") !== -1;
+		this.selfHostingRules = selfHostingRules;
+
+		// TODO move this onto the orion site client side?
+		var SELF_HOSTING_TEMPLATE = selfHostingRules.Rules;
+		var TYPE_FILE = selfHostingRules.Types.File;
+		var TYPE_API = selfHostingRules.Types.API;
+		/**
+		 * @param {String[]} folderPaths
+		 */
+		this._generateSelfHostingMappings = function(folderPaths) {
+			var hostPrefix = "http://localhost" + makeHostRelative(getContext()); //$NON-NLS-0$
+			return SELF_HOSTING_TEMPLATE.map(function(item) {
+				var target;
+				if (item.type === TYPE_FILE) {
+					// Replace occurrence of ${n} in targetPattern with the n'th folderPath
+					target = i18nUtil.formatMessage.apply(i18nUtil, [item.targetPattern].concat(folderPaths));
+				} else { // TYPE_API
+					target = i18nUtil.formatMessage(item.targetPattern, hostPrefix);
+				}
+				return {Source: item.source, Target: target};
+			});
+		};
+		/**
+		 * Performs a rough check to see if the given folderPath and site can generate all rules in the template.
+		 * @returns {Boolean}
+		 */
+		this._matchesSelfHostingTemplate = function(projectPath, site) {
+			// Given a site, can we substitute the projectPath (+ optional suffix) into each FILE mapping, and localhost:anyport into
+			// every API mapping, such that the site satisfies the self-hosting template?
+			var variableRegex = /(\$\{[^}]+?\})/;
+			var hostsub = regex.escape("http://localhost") + "(:\\d+)?" + regex.escape(makeHostRelative(getContext())); //$NON-NLS-1$ //$NON-NLS-0$
+			return SELF_HOSTING_TEMPLATE.every(function(item) {
+				return site.Mappings.some(function(mapping) {
+					if (mapping.Source === item.source) {
+						var sub;
+						if (item.type === TYPE_FILE) {
+							sub = regex.escape(projectPath) + ".*?"; //$NON-NLS-0$
+						} else if (item.type === TYPE_API) {
+							sub = hostsub;
+						}
+						var result = [];
+						item.targetPattern.split(variableRegex).forEach(function(element) {
+							if (variableRegex.test(element)) {
+								result.push(sub);
+							} else {
+								result.push(regex.escape(element));
+							}
+						});
+						return new RegExp(result.join("")).test(mapping.Target); //$NON-NLS-0$
+					}
+					return false;
+				});
+			});
+		};
 	}
 	
 	SiteImpl.prototype = {
@@ -377,16 +373,20 @@ define(['require', 'orion/xhr', 'orion/regex'], function(require, xhr, regex) {
 		isSelfHostingSite: function(site) {
 			var self = this;
 			return this.cache.getProjects(site.Workspace).then(function(projects) {
-				// There must be a project for which all self hosting mappings can be generated using the project's Id
+				// This is just a rough check, not rigorous. We don't verify that a consistent assignments of
+				// paths exists that satisfies the template, nor that any mentioned subfolders exist.
 				return projects.some(function(project) {
 					var internalPath = self.toInternalForm(project.Location);
-					return matchesSelfHostingTemplate(internalPath, site);
+					return self._matchesSelfHostingTemplate(internalPath, site);
 				});
 			});
 		},
-		convertToSelfHosting: function(site, selfHostfileLocation, port) {
-			var internalPath = this.toInternalForm(selfHostfileLocation);
-			var mappings = generateSelfHostingMappings(internalPath, port);
+		/**
+		 * @parram {String[]} folderLocations
+		 */
+		convertToSelfHosting: function(site, folderLocations) {
+			var internalPaths = folderLocations.map(this.toInternalForm.bind(this));
+			var mappings = this._generateSelfHostingMappings(internalPaths);
 			site.Mappings = mappings;
 			return site;
 		},

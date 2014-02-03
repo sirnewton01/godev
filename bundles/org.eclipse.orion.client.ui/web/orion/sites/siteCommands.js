@@ -10,7 +10,7 @@
  ******************************************************************************/
 
 /*global console define document window*/
-/*jslint sub:true*/
+/*jslint sub:true laxbreak:true*/
 define(['i18n!orion/sites/nls/messages', 'require', 'orion/commandRegistry', 'orion/commands', 'orion/sites/siteUtils', 'orion/sites/siteClient', 
 			'orion/Deferred', 'orion/i18nUtil'],
 		function(messages, require, mCommandRegistry, mCommands, mSiteUtils, mSiteClient, Deferred, i18nUtil) {
@@ -129,6 +129,19 @@ define(['i18n!orion/sites/nls/messages', 'require', 'orion/commandRegistry', 'or
 			}});
 		commandService.addCommand(startCommand);
 
+		/**
+		 * @param {Boolean} overwrite If true, the entire site configuration will be saved.
+		 * If false, only its HostingStatus field will be modified.
+		 * @param {SiteConfiguration} item
+		 */
+		var stopSite = function(overwrite, site) {
+			var newItem = overwrite ? site : {};
+			newItem.HostingStatus = { Status: "stopped" }; //$NON-NLS-0$
+			var location = site.Location;
+			var siteService = mSiteClient.forLocation(serviceRegistry, location);
+			return siteService.updateSiteConfiguration(location, newItem);
+		};
+
 		var stopCommand = new Command({
 			name: messages["Stop"],
 			tooltip: messages["Stop the site"],
@@ -150,13 +163,8 @@ define(['i18n!orion/sites/nls/messages', 'require', 'orion/commandRegistry', 'or
 				if (userData.site && items.length > 1) {
 					throw new Error(userDataErr);
 				}
-				var stops = items.map(function(item) {
-					var newItem = userData.site || {} /* just update the HostingStatus */;
-					newItem.HostingStatus = { Status: "stopped" }; //$NON-NLS-0$
-					var location = item.Location;
-					var siteService = mSiteClient.forLocation(serviceRegistry, location);
-					return siteService.updateSiteConfiguration(location, newItem);
-				});
+				items = items || [userData.site];
+				var stops = items.map(stopSite.bind(null, !!userData.site));
 				progressService.showWhile(Deferred.all(stops))
 					.then(unwrap(data.items))
 					.then(userData.stopCallback, userData.errorCallback);
@@ -169,13 +177,7 @@ define(['i18n!orion/sites/nls/messages', 'require', 'orion/commandRegistry', 'or
 			imageClass: "core-sprite-delete", //$NON-NLS-0$
 			id: "orion.site.delete", //$NON-NLS-0$
 			visibleWhen: function(items) {
-				var siteArray = wrap(items);
-				if (siteArray.length > 0) {
-					return siteArray.every(function(item) {
-						return item.HostingStatus && item.HostingStatus.Status === "stopped"; //$NON-NLS-0$
-					});
-				}
-				return false;
+				return wrap(items).length > 0;
 			},
 			/**
 			 * @param {Function} [data.userData.deleteCallback]
@@ -190,9 +192,13 @@ define(['i18n!orion/sites/nls/messages', 'require', 'orion/commandRegistry', 'or
 				dialogService.confirm(msg, function(confirmed) {
 					if (confirmed) {
 						var deletes = items.map(function(item) {
-							var location = item.Location;
-							var siteService = mSiteClient.forLocation(serviceRegistry, location);
-							return siteService.deleteSiteConfiguration(location);
+							// First stop the site if necessary
+							var maybeStop = (item.HostingStatus && item.HostingStatus.Status !== "stopped") ? stopSite(false, item) : item;
+							return Deferred.when(maybeStop).then(function() {
+								var location = item.Location;
+								var siteService = mSiteClient.forLocation(serviceRegistry, location);
+								return siteService.deleteSiteConfiguration(location);
+							});
 						});
 						Deferred.all(deletes).then(unwrap(data.items)).then(userData.deleteCallback, userData.errorCallback);
 					}

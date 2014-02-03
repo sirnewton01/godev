@@ -88,7 +88,7 @@ define([
 				}
 			}
 			if (alreadyFound) {
-				this._registry.getService("orion.page.message").setMessage(theName + " is already saved.", 2000); //$NON-NLS-1$ //$NON-NLS-0$
+				this._registry.getService("orion.page.message").setProgressResult({Message: i18nUtil.formatMessage(messages["${0} is already saved"], theName), Severity: "Warning"}); //$NON-NLS-1$ //$NON-NLS-0$
 			} else {
 				this._searches.push({ "name": theName, "query": theQuery}); //$NON-NLS-1$ //$NON-NLS-0$
 			}
@@ -338,7 +338,7 @@ define([
 		//The vertical splitter has to adjust the top and bottm pane when the outliner is refreshed by the click on browser's refresh.
 		//Otherwise there the bottom pane is a little offset.
 		window.setTimeout(function() { 
-			this._splitter = new splitter.Splitter({node: splitNode, sidePanel: top, mainPanel: bottom, toggle: true, vertical: true});
+			this._splitter = new splitter.Splitter({node: splitNode, sidePanel: top, mainPanel: bottom, toggle: true, vertical: true, closeReversely: true});
 		}, 100);
 	}
 	SearchBuilder.prototype = /** @lends orion.navoutliner.SearchOutliner.prototype */ {

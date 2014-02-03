@@ -17,7 +17,7 @@ html,body {
 }
 
 .sitesPanel {
-	min-width: 600px;
+	/*min-width: 600px; No minimum - Bug 423617*/
 	/*max-width: 900px;*/
 	/*padding-left: 20px;
 	padding-right: 40px;*/
@@ -43,14 +43,6 @@ tr.treeTableRow td:first-child {
 	vertical-align: baseline;
 }
 
-.newSiteRow > td {
-	background-color: #f4f4f4;
-}
-
-.newSiteCol {
-	font-weight: bold;
-}
-
 .treetable th {
 	font-weight: bold;
 	text-align: left;
@@ -74,4 +66,22 @@ tr.treeTableRow td:first-child {
 
 .siteConfigDetails {
 	padding-left: 16px;
+}
+
+.siteGroup {
+	margin-bottom: 15px;
+}
+
+.siteGroup .sectionWrapper {
+	margin-left: 15px;
+	margin-right: 15px;
+}
+
+.siteGroup .sectionTable {
+	margin-left: 15px;
+	margin-right: 15px;
+}
+
+.displayTable .sitesPanel {
+	margin-top: 15px;
 }

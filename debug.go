@@ -5,7 +5,6 @@
 package main
 
 import (
-	"code.google.com/p/go.net/websocket"
 	"encoding/json"
 	"fmt"
 	"go/build"
@@ -15,9 +14,13 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+
+	"code.google.com/p/go.net/websocket"
 )
 
 const (
@@ -293,6 +296,10 @@ func debugSocket(ws *websocket.Conn) {
 		return
 	}
 
+	// Matcher for references to a particular line in the source code
+	//  from a stack trace
+	sourceLineMatcher := regexp.MustCompile(`(^|\n)([0-9A-Za-z./\\:\-]+):([0-9]+) \((0x[0-9a-f]+)\)`)
+
 	for {
 		buffer := <-procData.output
 
@@ -301,6 +308,26 @@ func debugSocket(ws *websocket.Conn) {
 			ws.Close()
 			break
 		}
+
+		buffer = sourceLineMatcher.ReplaceAllStringFunc(buffer, func(s string) string {
+			submatches := sourceLineMatcher.FindStringSubmatch(s)
+			begin := submatches[1]
+			ospath := submatches[2]
+			lineNumber := submatches[3]
+			hexOffset := submatches[4]
+
+			logicalPath := getLogicalPos(ospath)
+
+			replacement := `$1<a href='/edit/edit.html#/file$2,line=$3' target='_blank'>$5:$3</a> ($4)`
+
+			replacement = strings.Replace(replacement, "$1", begin, -1)
+			replacement = strings.Replace(replacement, "$2", logicalPath, -1)
+			replacement = strings.Replace(replacement, "$3", lineNumber, -1)
+			replacement = strings.Replace(replacement, "$4", hexOffset, -1)
+			replacement = strings.Replace(replacement, "$5", ospath, -1)
+
+			return replacement
+		})
 
 		ws.Write([]byte(buffer))
 	}

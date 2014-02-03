@@ -1,14 +1,11 @@
 /*global console define*/
 /*jslint browser:true sub:true*/
 define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', 'orion/webui/littlelib',
-		'orion/URITemplate',
 		'orion/PageUtil',
 		'orion/widgets/nav/mini-nav',
 		'orion/widgets/nav/project-nav',
 		'i18n!orion/edit/nls/messages'],
-		function(Deferred, objects, mCommands, mOutliner, lib, URITemplate, PageUtil, MiniNavViewMode, ProjectNavViewMode, messages) {
-
-	var uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
+		function(Deferred, objects, mCommands, mOutliner, lib, PageUtil, MiniNavViewMode, ProjectNavViewMode, messages) {
 
 	/**
 	 * @name orion.sidebar.Sidebar
@@ -66,16 +63,20 @@ define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', '
 			var toolbarNode = this.toolbarNode;
 
 			// Create toolbar contribution area for use by viewmodes
-			var modeContributionToolbar = this.modeContributionToolbar = document.createElement("div"); //$NON-NLS-0$
-			modeContributionToolbar.id = toolbarNode.id + "childModes"; //$NON-NLS-0$
-			toolbarNode.appendChild(modeContributionToolbar);
 			var switcherNode = this.switcherNode = document.createElement("ul"); //$NON-NLS-0$
 			switcherNode.id = toolbarNode.id + "viewmodeSwitch"; //$NON-NLS-0$
 			switcherNode.classList.add("layoutRight"); //$NON-NLS-0$
 			switcherNode.classList.add("commandList"); //$NON-NLS-0$
 			switcherNode.classList.add("pageActions"); //$NON-NLS-0$
 			toolbarNode.appendChild(switcherNode);
-
+			
+			// switcher node is more essential for navigation it should therefore
+			// be inserted first to prevent it from being considered as part of the
+			// overflow before the modeContributionToolbar
+			var modeContributionToolbar = this.modeContributionToolbar = document.createElement("div"); //$NON-NLS-0$
+			modeContributionToolbar.id = toolbarNode.id + "childModes"; //$NON-NLS-0$
+			toolbarNode.appendChild(modeContributionToolbar);
+			
 			var changeViewModeCommand = new mCommands.Command({
 				name: messages["View"],
 				imageClass: "core-sprite-outline", //$NON-NLS-0$
@@ -101,10 +102,8 @@ define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', '
 				toolbarNode: modeContributionToolbar
 			}));
 			
-			var _self = this;
-			
-			if(this.serviceRegistry.getServiceReferences("orion.projects").length>0){
-				var projectViewMode = new ProjectNavViewMode({ //$NON-NLS-0$
+			if (this.serviceRegistry.getServiceReferences("orion.projects").length > 0) { //$NON-NLS-0$
+				this.projectViewMode = new ProjectNavViewMode({
 					commandRegistry: commandRegistry,
 					contentTypeRegistry: contentTypeRegistry,
 					fileClient: fileClient,
@@ -113,59 +112,7 @@ define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', '
 					sidebarNavInputManager: this.sidebarNavInputManager,
 					serviceRegistry: serviceRegistry,
 					toolbarNode: modeContributionToolbar,
-					scopeUp: function(){
-						var input = PageUtil.matchResourceParameters();
-						var resource = input.resource;
-						delete input.navigate;
-						delete input.resource;
-						window.location.href = uriTemplate.expand({resource: resource, params: input});
-						_self.setViewMode("nav");
-					}
-				});
-				if(this.editorInputManager.getFileMetadata()){
-					this.addViewMode("project", projectViewMode);
-					this.renderViewModeMenu();
-				}
-				this.editorInputManager.addEventListener("InputChanged", function(event){
-					if(event.input){
-						_self.addViewMode("project", projectViewMode);
-						_self.renderViewModeMenu();
-						if(event.metadata && event.metadata.Directory){
-							if(event.metadata.Children){
-								for(var i=0; i<event.metadata.Children.length; i++){
-									if(event.metadata.Children[i].Name === "project.json"){
-										_self.setViewMode("project");
-										return;
-									}
-								}
-							} else if(event.metadata.ChildrenLocation){
-								_self.fileClient.fetchChildren(event.metadata.ChildrenLocation).then(function(children){
-									for(var i=0; i<children.length; i++){
-										if(children[i].Name === "project.json"){
-											_self.setViewMode("project");
-											return;											
-										}
-									}
-								});
-							}
-						}
-					} else {
-						_self.removeViewMode("project");
-						_self.renderViewModeMenu();
-					}
-				});
-				this.sidebarNavInputManager.addEventListener("InputChanged", function(event){
-					if(_self.editorInputManager.getFileMetadata()){
-						//if there is a file opened we display its project
-						return;
-					}
-					if(event.input){
-						_self.addViewMode("project", projectViewMode);
-						_self.renderViewModeMenu();
-					} else {
-						_self.removeViewMode("project");
-						_self.renderViewModeMenu();
-					}
+					sidebar: this
 				});
 			}
 
@@ -204,10 +151,10 @@ define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', '
 		 */
 		addViewMode: function(id, mode) {
 			if (!id) {
-				throw new Error("Invalid id: " + id);
+				throw new Error("Invalid id: " + id); //$NON-NLS-0$
 			}
 			if (!mode || typeof mode !== "object") { //$NON-NLS-0$
-				throw new Error("Invalid mode: "  + mode);
+				throw new Error("Invalid mode: "  + mode); //$NON-NLS-0$
 			}
 			if (!Object.prototype.hasOwnProperty.call(this.viewModes, id)) {
 				this.viewModes[id] = mode;

@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -25,8 +25,12 @@ define({
 	"Save": "Save",
 	"Save the site configuration": "Save the site configuration",
 	"Choose folder...": "Choose folder\u2026",
-	"Choose Orion Source Folder": "Choose Orion Source Folder",
-	"SelectRepoSourceFolder": "Select the folder where you checked out the ${0} repository:",
+	"ConvertToSelfHostingTitle": "Locate Required Folders",
+	"SelectRequiredFoldersSingle": "Locate the following required folder in your workspace.",
+	"SelectRequiredFolders": "Locate the following required folders in your workspace.",
+	"LocateFolderTitle": "Locate ${0}",
+	"FolderPrompt": "${0} (${1}):",
+	"orionClientLabel": "Orion client repository",
 	"Loading...": "Loading...",
 	"Add": "Add",
 	"Add a directory mapping to the site configuration": "Add a directory mapping to the site configuration",
@@ -48,7 +52,8 @@ define({
 	"Add the file to this site": "Add the file to this site",
 	"View": "View",
 	"View the file on the site": "View the file on the site",
-	"Started": "Started at",
+	// The url of the site will be inserted as a link
+	"Started" : "Started at ${0}",
 	"Unknown": "Unknown",
 	"Name": "Name",
 	"Actions": "Actions",
@@ -67,8 +72,8 @@ define({
 	"Optional; used to determine the URL where a started site can be accessed." : "Optional; used to determine the URL where a started site can be accessed.",
 	"Changes you make here won't affect the running site." : "Changes you make here won't affect the running site.",
 	"Stopped" : "Stopped",
-	"Started at " : "Started at ",
-	"EnterPortNumber": "Enter the HTTP port number that the Orion server is running on (default is ${0}):",
 	"Sites": "Sites",
-	"Mappings": "Mappings"
+	"Mappings": "Mappings",
+	// The create button will be inserted into the following text
+	"SitesExplorer.NoSitesText" : "You have no sites. Click ${0} to create a site."
 });

@@ -9,9 +9,10 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
-  /*globals define window setTimeout, FileReader*/
+  /*globals define window setTimeout, FileReader URL*/
 
-define([ 'i18n!git/nls/gitmessages', 'orion/git/gitPreferenceStorage', 'orion/webui/dialog' ], function(messages, GitPreferenceStorage, dialog) {
+define([ 'i18n!git/nls/gitmessages', 'orion/git/gitPreferenceStorage', 'orion/webui/dialog', 'orion/git/util'],
+ function(messages, GitPreferenceStorage, dialog, mGitUtil) {
 
 	/**
 	 * Usage: <code>new GitCredentialsDialog(options).show();</code>
@@ -170,7 +171,8 @@ define([ 'i18n!git/nls/gitmessages', 'orion/git/gitPreferenceStorage', 'orion/we
 
 		var process = function(pKey) {
 			if (that._sshService) {
-				that._sshService.getKnownHosts().then(
+				var repositoryURL = mGitUtil.parseSshGitUrl(repository);
+				that._sshService.getKnownHostCredentials(repositoryURL.host, repositoryURL.port).then(
 						function(knownHosts) {
 							if (that.options.func) {
 								var failedOperation = typeof that.options.failedOperation === "undefined" ? that.options.errordata.failedOperation

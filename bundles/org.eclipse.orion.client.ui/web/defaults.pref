@@ -4,19 +4,21 @@
 		"plugins/fileClientPlugin.html":true,
 		"plugins/jslintPlugin.html":true,
 		"git/plugins/gitPlugin.html":true,
+		"javascript/plugins/javascriptPlugin.html":true,
 		"profile/userservicePlugin.html":true,
+		"edit/content/imageViewerPlugin.html":true,
+		"edit/content/jsonEditorPlugin.html":true,
 		"plugins/webEditingPlugin.html":true,
 		"plugins/pageLinksPlugin.html":true,
 		"plugins/preferencesPlugin.html":true,
 		"plugins/taskPlugin.html": true,
 		"plugins/csslintPlugin.html": true,
 		"plugins/site/sitePlugin.html": true,
-		"plugins/esprimaAst/esprimaAstPlugin.html": true,
-		"plugins/esprima/esprimaJsContentAssistPlugin.html":true,
 		"plugins/npmPlugin.html": true,
 		"shell/plugins/shellPagePlugin.html":true,
 		"search/plugins/searchPagePlugin.html":true,
 		"plugins/projectsPlugin.html" :true,
-		"plugins/gitBlamePlugin.html" :true
+		"plugins/gitBlamePlugin.html" :true,
+		"cfui/plugins/cFPlugin.html":true
 	}
 }

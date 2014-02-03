@@ -26,10 +26,11 @@ define("orion/editor/templates", [], function() { //$NON-NLS-0$
 	var delimiterVar = "${delimiter}"; //$NON-NLS-0$
 	var cursorVar = "${cursor}"; //$NON-NLS-0$
 	
-	function Template (prefix, description, template) {
+	function Template (prefix, description, template, name) {
 		this.prefix = prefix;
 		this.description = description;
 		this.template = template;
+		this.name = name;
 		this._parse();
 	}
 	Template.prototype = /** @lends orion.editor.Template.prototype */ {
@@ -89,9 +90,11 @@ define("orion/editor/templates", [], function() { //$NON-NLS-0$
 			}
 			return {
 				proposal: proposal,
+				name: this.name,
 				description: this.description,
 				groups: newGroups,
-				escapePosition: startOffset + escapePosition
+				escapePosition: startOffset + escapePosition,
+				style: 'noemphasis'
 			};
 		},
 		match: function(prefix) {
@@ -139,17 +142,16 @@ define("orion/editor/templates", [], function() { //$NON-NLS-0$
 		addTemplates: function(json) {
 			var templates = this.getTemplates();
 			for (var j = 0; j < json.length; j++) {
-				templates.push(new Template(json[j].prefix, json[j].description, json[j].template));
+				templates.push(new Template(json[j].prefix, json[j].description, json[j].template, json[j].name));
 			}
 		},
 		computeProposals: function(buffer, offset, context) {
 			var prefix = this.getPrefix(buffer, offset, context);
 			var proposals = [];
-			if (!this.isValid(prefix, buffer, offset, context)) {
-				return proposals;
+			if (this.isValid(prefix, buffer, offset, context)) {
+				proposals = proposals.concat(this.getTemplateProposals(prefix, offset, context));
+				proposals = proposals.concat(this.getKeywordProposals(prefix));
 			}
-			proposals = proposals.concat(this.getTemplateProposals(prefix, offset, context));
-			proposals = proposals.concat(this.getKeywordProposals(prefix));
 			return proposals;
 		},
 		getKeywords: function() {
@@ -161,8 +163,20 @@ define("orion/editor/templates", [], function() { //$NON-NLS-0$
 			if (keywords) {
 				for (var i = 0; i < keywords.length; i++) {
 					if (keywords[i].indexOf(prefix) === 0) {
-						proposals.push({proposal: chop(prefix, keywords[i]), description: keywords[i]});
+						proposals.push({proposal: chop(prefix, keywords[i]), 
+							description: keywords[i], 
+							style: 'noemphasis_keyword'//$NON-NLS-0$
+						});
 					}
+				}
+				
+				if (0 < proposals.length) {
+					proposals.splice(0, 0,{
+						proposal: '',
+						description: 'Keywords', //$NON-NLS-0$
+						style: 'noemphasis_title_keywords', //$NON-NLS-0$
+						unselectable: true
+					});	
 				}
 			}
 			return proposals;
@@ -184,6 +198,18 @@ define("orion/editor/templates", [], function() { //$NON-NLS-0$
 					proposals.push(proposal);
 				}
 			}
+			
+			if (0 < proposals.length) {
+				// if any templates were added to the list of 
+				// proposals, add a title as the first element
+				proposals.splice(0, 0, {
+					proposal: '',
+					description: 'Templates', //$NON-NLS-0$
+					style: 'noemphasis_title', //$NON-NLS-0$
+					unselectable: true
+				});
+			}
+			
 			return proposals;
 		},
 		removePrefix: function(prefix, proposal) {

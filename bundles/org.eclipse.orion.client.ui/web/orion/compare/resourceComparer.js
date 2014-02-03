@@ -119,106 +119,155 @@ exports.ResourceComparer = (function() {
 		this._compareView.getWidget().setOptions({extCmdHolder: this});
 		if(!viewOptions.highlighters){
 			this._compareView.getWidget().setOptions({highlighters: [new CompareStyler(serviceRegistry), new CompareStyler(serviceRegistry)]});
+		} 
+		if(!viewOptions.oldFile){//Create a default file option object for right side 
+			this._compareView.getWidget().setOptions({oldFile: {readonly: this._checkReadonly(options.readonlyRight)}});
 		}
-		if(!viewOptions.oldFile){
-			this._compareView.getWidget().setOptions({oldFile: {readonly: true}});
-		}
-		if(!viewOptions.newFile){
-			this._compareView.getWidget().setOptions({newFile: {readonly: options.readonly}});
+		if(!viewOptions.newFile){//Create a default file option object for left side
+			this._compareView.getWidget().setOptions({newFile: {readonly: this._checkReadonly(options.readonly, true)}});
 		}
 		this.initExtCmds();
-		var that = this;
-		this._inputManager = new mInputManager.InputManager({
-			serviceRegistry: serviceRegistry,
-			fileClient: that._fileClient,
-			progressService: that._progress
-		});
-		objects.mixin(this._inputManager, {
-			filePath: "",
-			getInput: function() {
-				return this.filePath;
-			},
-			
-			setDirty: function(dirty) {
-				mGlobalCommands.setDirtyIndicator(dirty);
-			},
-			
-			getFileMetadata: function() {
-				return this._fileMetadata;
-			},
-			
-			getEditor: function() {
-				return that._compareView.getWidget().getEditors()[1];
-			},
-						
-			setInput: function(fileURI, editor) {
-				this._parsedLocation = {resource:fileURI};
-				that._progress.progress(that._fileClient.read(fileURI, true), "Getting file metadata " + fileURI).then( //$NON-NLS-0$
-					function(metadata) {
-						this._fileMetadata = metadata;
-						if( that.options.savable){
-							var toolbar = lib.node("pageActions"); //$NON-NLS-0$
-							if (toolbar) {	
-								that._commandService.destroy(toolbar);
-								that._commandService.renderCommands(toolbar.id, toolbar, that._compareView.getWidget().getEditors()[1], that._compareView.getWidget().getEditors()[1], "button"); //$NON-NLS-0$
-							}
-						}
-						if(metadata){
-							this.setTitle(metadata.Location, metadata);
-						}
-					}.bind(this),
-					function(error) {
-						console.error("Error loading file metadata: " + error.message); //$NON-NLS-0$
-						this.setTitle(fileURI);
-					}.bind(this)
-				);
-				this.lastFilePath = fileURI;
-			},
-			
-			setTitle : function(title, /*optional*/ metadata) {
-				var name;
-				if (metadata) {
-					name = metadata.Name;
-				}
-				mGlobalCommands.setPageTarget({task: messages["Compare"], name: name, target: metadata,
-							serviceRegistry: serviceRegistry, commandService: that._commandService,
-							searchService: that._searchService, fileService: that._fileClient});
-				if (title.charAt(0) === '*') { //$NON-NLS-0$
-					mGlobalCommands.setDirtyIndicator(true);
-					name = title.substring(1);
-				} else {
-					mGlobalCommands.setDirtyIndicator(false);
-				} 
-			},
-			
-			afterSave: function(){
-				var editors = that._compareView.getWidget().getEditors();
-				var newContents = editors[1].getTextView().getText();
-				that._compareView.getWidget().options.newFile.Content = newContents;
-				that._compareView.getWidget().refresh();
-			}
-		});
-		if(!options.readonly && !options.toggleable && this._compareView.getWidget().type === "twoWay") { //$NON-NLS-0$
-			var keyBindingFactory = function(editor, keyModeStack, undoStack, contentAssist) {
-				var localSearcher = new mSearcher.TextSearcher(editor, that._commandService, undoStack);
-				var keyBindings = new mEditorFeatures.KeyBindingsFactory().createKeyBindings(editor, undoStack, contentAssist, localSearcher);
-				var commandGenerator = new mEditorCommands.EditorCommandFactory(that._registry, that._commandService,that._fileClient , that._inputManager, "pageActions", false, "pageNavigationActions", localSearcher); //$NON-NLS-1$ //$NON-NLS-0$
-				commandGenerator.generateEditorCommands(editor);
-				return keyBindings;
-			};
-			this._compareView.getWidget().options.newFile.keyBindingFactory = keyBindingFactory;
-		}
+		this._initInputManagers();
 		this._compareView.getWidget().initEditors( messages['fetching...']);
-		if(!options.readonly && !options.toggleable && this._compareView.getWidget().type === "twoWay") { //$NON-NLS-0$
-			var editors = this._compareView.getWidget().getEditors();
-			editors[1].addEventListener("DirtyChanged", function(evt) { //$NON-NLS-0$
-				this._inputManager.setDirty(editors[1].isDirty());
-			}.bind(this));
-		}
+		this._inputManagers.forEach(function(inputManager) {
+			if(inputManager.manager){
+				var editor = this._compareView.getWidget().getEditors()[inputManager.manager._editorIndex];
+				editor.addEventListener("DirtyChanged", function(evt) { //$NON-NLS-0$
+					inputManager.manager.setDirty(editor.isDirty());
+				});
+			}
+		}.bind(this));
 	}
 	ResourceComparer.prototype = {
 		_clearOptions: function(){
 			this.options = {};
+		},
+		_checkReadonly: function(readonlyFlag, isLeft){
+			if(isLeft){//Legacy: If not defined, left side readonly is false
+				return typeof readonlyFlag === "undefined" ? false : readonlyFlag; //$NON-NLS-0$
+			} else {//Legacy: If not defined, right side readonly is true
+				return typeof readonlyFlag === "undefined" ? true : readonlyFlag; //$NON-NLS-0$
+			}
+		},
+		_getFileOptions: function(editorIndex) {
+			return (editorIndex === 1 ? this._compareView.getWidget().options.newFile : this._compareView.getWidget().options.oldFile);
+		},
+		_createInputManager: function() {
+			return new mInputManager.InputManager({
+						serviceRegistry: this._registry,
+						fileClient: this._fileClient,
+						progressService: this._progress
+			});
+		},
+		_initInputManagers: function() {
+			this._inputManagers = [{}, {}];
+			//We only create input managers when it is a non toggleable side by side compare widget
+			if(!this.options.toggleable && this._compareView.getWidget()._uiFactory && this._compareView.getWidget().type === "twoWay") { //$NON-NLS-0$
+				//Create the right hand side input manager
+				if(!this._checkReadonly(this.options.readonlyRight)) {
+					this._inputManagers[0].manager = this._createInputManager();
+					this._initInputManager(this._inputManagers[0].manager, 0, this._compareView.getWidget()._uiFactory.getActionDivId());
+				}
+				//Create the left hand side input manager
+				if(!this._checkReadonly(this.options.readonly, true)) {
+					this._inputManagers[1].manager =  this._createInputManager();
+					this._initInputManager(this._inputManagers[1].manager, 1, this._compareView.getWidget()._uiFactory.getActionDivId(true));
+				}
+			}
+			var that = this;
+			this._inputManagers.forEach(function(inputManager) {
+				if(inputManager.manager){
+					var keyBindingFactory = function(editor, keyModeStack, undoStack, contentAssist) {
+						var localSearcher = new mSearcher.TextSearcher(editor, that._registry, that._commandService, undoStack);
+						var keyBindings = new mEditorFeatures.KeyBindingsFactory().createKeyBindings(editor, undoStack, contentAssist, localSearcher);
+						var commandGenerator = new mEditorCommands.EditorCommandFactory(that._registry, that._commandService, that._fileClient , inputManager.manager, inputManager.manager._actionBarId, false, "pageNavigationActions", localSearcher); //$NON-NLS-0$
+						var saveCmdId = inputManager.manager._editorIndex === 1 ? "orion.compare.save.left" : "orion.compare.save.right"; //$NON-NLS-1$ //$NON-NLS-0$
+						commandGenerator.generateSimpleEditorCommands(editor, saveCmdId);
+						return keyBindings;
+					};
+					this._getFileOptions(inputManager.manager._editorIndex).keyBindingFactory = keyBindingFactory;
+				}
+			}.bind(this));
+		},
+		_initInputManager: function(inputManger, editorIndex, actionBarId){
+			var that = this;
+			objects.mixin(inputManger, {
+				filePath: "",
+				_editorIndex: editorIndex,
+				_actionBarId: actionBarId,
+				getInput: function() {
+					return this.filePath;
+				},
+				
+				setDirty: function(dirty) {
+					var editors = that._compareView.getWidget().getEditors();
+					var checkedDirty = dirty;
+					if(editors && editors.length === 2){
+						checkedDirty = editors[0].isDirty() || editors[1].isDirty();
+					}
+					mGlobalCommands.setDirtyIndicator(checkedDirty);
+					if(that._compareView.getWidget().refreshTitle){
+						that._compareView.getWidget().refreshTitle(this._editorIndex, dirty);
+					}
+				},
+				
+				getFileMetadata: function() {
+					return this._fileMetadata;
+				},
+				
+				getEditor: function() {
+					return that._compareView.getWidget().getEditors()[this._editorIndex];
+				},
+							
+				setInput: function(fileURI, editor) {
+					this._parsedLocation = {resource:fileURI};
+					that._progress.progress(that._fileClient.read(fileURI, true), "Getting file metadata " + fileURI).then( //$NON-NLS-0$
+						function(metadata) {
+							this._fileMetadata = metadata;
+							var toolbar = lib.node(this._actionBarId); //$NON-NLS-0$
+							if (toolbar) {	
+								that._commandService.destroy(toolbar);
+								var editorIndex = this._editorIndex;
+								that._commandService.renderCommands(toolbar.id, toolbar, that._compareView.getWidget().getEditors()[editorIndex], that._compareView.getWidget().getEditors()[editorIndex], "button"); //$NON-NLS-0$
+							}
+							if(metadata){
+								this.setTitle(metadata.Location, metadata);
+							}
+						}.bind(this),
+						function(error) {
+							console.error("Error loading file metadata: " + error.message); //$NON-NLS-0$
+							this.setTitle(fileURI);
+						}.bind(this)
+					);
+					this.lastFilePath = fileURI;
+				},
+				
+				setTitle : function(title, /*optional*/ metadata) {
+					//TODO: We need a better taget get here. E.g. "Compare file 1 and file 2" 
+					/*
+					var name;
+					if (metadata) {
+						name = metadata.Name;
+					}
+					mGlobalCommands.setPageTarget({task: messages["Compare"], name: name, target: metadata,
+								serviceRegistry: that._registry, commandService: that._commandService,
+								searchService: that._searchService, fileService: that._fileClient});
+					*/
+					if (title.charAt(0) === '*') { //$NON-NLS-0$
+						mGlobalCommands.setDirtyIndicator(true);
+					} else {
+						mGlobalCommands.setDirtyIndicator(false);
+					} 
+				},
+				
+				afterSave: function(){
+					var editors = that._compareView.getWidget().getEditors();
+					var newContents = editors[this._editorIndex].getTextView().getText();
+					var fileObj = that._getFileOptions(this._editorIndex);
+					fileObj.Content = newContents;
+					that._compareView.getWidget().refresh();
+				}
+			});
 		},
 		setOptions: function(options, clearExisting){
 			if(clearExisting){
@@ -238,6 +287,7 @@ exports.ResourceComparer = (function() {
 			var href = mCompareUtils.generateCompareHref(this.options.resource, {
 				compareTo: this.options.compareTo,
 				readonly: this.options.readonly,
+				readonlyRight: this.options.readonlyRight,
 				conflict: this.options.hasConflicts,
 				block: diffPos.block ? diffPos.block : 1, 
 				change: diffPos.change ? diffPos.change : 0 
@@ -245,7 +295,6 @@ exports.ResourceComparer = (function() {
 			var url = new URL(href, window.location.href).href;
 			prompt(messages["Copy the link URL:"], url);
 		},
-		
 		openComparePage: function(compareWidget){	
 			var diffPos = compareWidget.getCurrentDiffPos();
 			var href = mCompareUtils.generateCompareHref(this.options.resource, {
@@ -300,6 +349,19 @@ exports.ResourceComparer = (function() {
 			}.bind(this));
 			return Deferred.all(promises, function(error) { return {_error: error}; });
 	    },
+		/* Internal */
+		_isImage: function(contentType) {
+			switch (contentType && contentType.id) {
+				case "image/jpeg": //$NON-NLS-0$
+				case "image/png": //$NON-NLS-0$
+				case "image/gif": //$NON-NLS-0$
+				case "image/ico": //$NON-NLS-0$
+				case "image/tiff": //$NON-NLS-0$
+				case "image/svg": //$NON-NLS-0$
+					return true;
+			}
+			return false;
+		},
 	    _loadSingleFile: function(file) {
 	        return this._registry.getService("orion.page.progress").progress(this._fileClient.read(file.URL), "Getting contents of " + file.URL).then( //$NON-NLS-1$ //$NON-NLS-0$
 		        function(contents) {
@@ -325,20 +387,34 @@ exports.ResourceComparer = (function() {
 				var that = this;
 				return that.options.diffProvider.resolveDiff(that.options.resource, that.options.compareTo, that.options.hasConflicts).then( function(diffParam){
 					that._compareView.getWidget().setOptions(diffParam);
+					var isImage = that._isImage(diffParam.newFile.Type);
 					var viewOptions = that._compareView.getWidget().options;
-					viewOptions.oldFile.readonly = true;
-					if(that.options.readonly) {
+					if(that._checkReadonly(that.options.readonlyRight) || isImage) {
+						viewOptions.oldFile.readonly = true;
+					}
+					if(that._checkReadonly(that.options.readonly, true) || isImage) {
 						viewOptions.newFile.readonly = true;
 					}
-					var filesToLoad = ( viewOptions.diffContent ? [viewOptions.oldFile/*, viewOptions.newFile*/] : [viewOptions.oldFile, viewOptions.newFile]); 
-					return that._getFilesContents(filesToLoad).then( function(){
-						var viewHeight = that._compareView.getWidget().refresh(true);
-						if(!that.options.readonly && !that.options.toggleable && that._compareView.getWidget().type === "twoWay") { //$NON-NLS-0$
-							this._inputManager.filePath = that._compareView.getWidget().options.newFile.URL;
-							that._inputManager.setInput(viewOptions.newFile.URL , that._compareView.getWidget().getEditors()[1]);
-						}
-						return new Deferred().resolve(viewHeight);
-					}.bind(that));
+					if(isImage){
+						that._compareView.initImageMode();
+						return that._compareView.getWidget().refresh().then(function(height){
+							return new Deferred().resolve(height + 5);
+						});
+					} else {
+						var filesToLoad = ( viewOptions.diffContent ? [viewOptions.oldFile/*, viewOptions.newFile*/] : [viewOptions.oldFile, viewOptions.newFile]); 
+						return that._getFilesContents(filesToLoad).then( function(){
+							var viewHeight = that._compareView.getWidget().refresh(true);
+							this._inputManagers.forEach(function(inputManager) {
+								if(inputManager.manager){
+									var fileOptions = that._getFileOptions(inputManager.manager._editorIndex);
+									var editor = that._compareView.getWidget().getEditors()[inputManager.manager._editorIndex];
+									inputManager.manager.filePath = fileOptions.URL;
+									inputManager.manager.setInput(fileOptions.URL , editor);
+								}
+							});
+							return new Deferred().resolve(viewHeight);
+						}.bind(that));
+					}
 				});
 			}
 		}

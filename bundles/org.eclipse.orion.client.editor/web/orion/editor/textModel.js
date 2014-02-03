@@ -13,7 +13,7 @@
  
 /*global define*/
 
-define("orion/editor/textModel", ['orion/editor/eventTarget', 'orion/util'], function(mEventTarget, util) { //$NON-NLS-2$  //$NON-NLS-1$ //$NON-NLS-0$
+define("orion/editor/textModel", ['orion/editor/eventTarget', 'orion/regex', 'orion/util'], function(mEventTarget, mRegex, util) { //$NON-NLS-2$  //$NON-NLS-1$ //$NON-NLS-0$
 
 	/**
 	 * Constructs a new TextModel with the given text and default line delimiter.
@@ -44,6 +44,11 @@ define("orion/editor/textModel", ['orion/editor/eventTarget', 'orion/util'], fun
 	}
 
 	TextModel.prototype = /** @lends orion.editor.TextModel.prototype */ {
+		/**
+		 * Destroys this text model.
+		 */
+		destroy: function() {
+		},
 		/**
 		 * @class This object describes the options to use while finding occurrences of a string in a text model.
 		 * @name orion.editor.FindOptions
@@ -81,17 +86,26 @@ define("orion/editor/textModel", ['orion/editor/eventTarget', 'orion/util'], fun
 			var string = options.string;
 			var regex = options.regex;
 			var pattern = string;
+			var flags = "";
 			var caseInsensitive = options.caseInsensitive;
-			if (!regex && string) {
-				pattern = string.replace(/([\\$\^*\/+?\.\(\)|{}\[\]])/g, "\\$&"); //$NON-NLS-0$
-				/*
-				* Bug in JS RegEx. In a Turkish locale, dotless i (u0131) capitalizes to I (u0049) and i (u0069) 
-				* capitalizes to dot I (u0130). The JS RegEx does not match correctly the Turkish i's in case
-				* insensitive mode. The fix is to detect the presence of Turkish i's in the search pattern and 
-				* to modify the pattern to search for both upper and lower case.
-				*/
-				if (caseInsensitive) {  //$NON-NLS-1$ //$NON-NLS-0$
-					pattern = pattern.replace(/[iI\u0130\u0131]/g, "[Ii\u0130\u0131]"); //$NON-NLS-0$
+			if (pattern) {
+				if (regex) {
+					var parsed = mRegex.parse(pattern);
+					if (parsed) {
+						pattern = parsed.pattern;
+						flags = parsed.flags;
+					}
+				} else {
+					pattern = string.replace(/([\\$\^*\/+?\.\(\)|{}\[\]])/g, "\\$&"); //$NON-NLS-0$
+					/*
+					* Bug in JS RegEx. In a Turkish locale, dotless i (u0131) capitalizes to I (u0049) and i (u0069) 
+					* capitalizes to dot I (u0130). The JS RegEx does not match correctly the Turkish i's in case
+					* insensitive mode. The fix is to detect the presence of Turkish i's in the search pattern and 
+					* to modify the pattern to search for both upper and lower case.
+					*/
+					if (caseInsensitive) {  //$NON-NLS-1$ //$NON-NLS-0$
+						pattern = pattern.replace(/[iI\u0130\u0131]/g, "[Ii\u0130\u0131]"); //$NON-NLS-0$
+					}
 				}
 			}
 			var current = null, skip;
@@ -102,8 +116,8 @@ define("orion/editor/textModel", ['orion/editor/eventTarget', 'orion/util'], fun
 				var start = options.start || 0;
 				var end = options.end;
 				var isRange = (end !== null && end !== undefined);
-				var flags = "";
 				if (flags.indexOf("g") === -1) { flags += "g"; } //$NON-NLS-1$ //$NON-NLS-0$
+				if (flags.indexOf("m") === -1) { flags += "m"; } //$NON-NLS-1$ //$NON-NLS-0$
 				if (caseInsensitive) {
 					if (flags.indexOf("i") === -1) { flags += "i"; } //$NON-NLS-1$ //$NON-NLS-0$
 				}

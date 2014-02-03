@@ -55,6 +55,7 @@ define(['i18n!orion/sites/nls/messages', 'require', 'orion/Deferred', 'orion/fil
 		this._serviceRegistry = serviceRegistry;
 		this._siteService = siteService;
 		this._selfHost = siteServiceRef.getProperty('canSelfHost'); //$NON-NLS-0$
+		this._selfHostConfig = siteServiceRef.getProperty('selfHostingConfig'); //$NON-NLS-0$
 		this._sitePattern = siteServiceRef.getProperty('sitePattern'); //$NON-NLS-0$
 		this._filePattern = siteServiceRef.getProperty('filePattern'); //$NON-NLS-0$
 		this._name = siteServiceRef.getProperty('name'); //$NON-NLS-0$
@@ -74,6 +75,9 @@ define(['i18n!orion/sites/nls/messages', 'require', 'orion/Deferred', 'orion/fil
 		};
 	}
 	SiteClient.prototype = {
+		getSelfHostingConfig: function() {
+			return this._selfHostConfig;
+		},
 		// Convenience methods below
 		isFileMapped: function(site, file) {
 			if (!site) {

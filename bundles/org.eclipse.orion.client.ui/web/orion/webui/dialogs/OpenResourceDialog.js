@@ -36,7 +36,7 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 			'<div><label id="fileNameMessage" for="fileName">${Type the name of a file to open (? = any character, * = any string):}</label></div>' + //$NON-NLS-0$
 			'<div><input id="fileName" type="text" class="setting-control" style="width:90%;"/></div>' + //$NON-NLS-0$
 			'<div id="progress" style="padding: 2px 0 0; width: 100%;"><img src="'+ require.toUrl("../../../images/progress_running.gif") + '" class="progressPane_running_dialog" id="crawlingProgress"></img></div>' +  //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-			'<div id="results" style="max-height:400px; height:auto; overflow-y:auto;" aria-live="off"></div>' + //$NON-NLS-0$
+			'<div id="results" style="max-height:250px; height:auto; overflow-y:auto;" aria-live="off"></div>' + //$NON-NLS-0$
 			'<div id="statusbar"></div>' + //$NON-NLS-0$
 		'</div>'; //$NON-NLS-0$
 
@@ -76,7 +76,11 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 	OpenResourceDialog.prototype._bindToDom = function(parent) {
 		var self = this;
 		self.$crawlingProgress.style.display = "none"; //$NON-NLS-0$
-		this.$fileName.setAttribute("placeholder", messages['Search']);  //$NON-NLS-0$
+		if(this._nameSearch) {
+			this.$fileName.setAttribute("placeholder", messages["FileName FolderName"]);  //$NON-NLS-0$
+		} else {
+			this.$fileName.setAttribute("placeholder", messages["Search"]);  //$NON-NLS-0$
+		}
 		this.$fileName.addEventListener("input", function(evt) { //$NON-NLS-0$
 			self._time = + new Date();
 			if (self._timeoutId) {
@@ -89,8 +93,12 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 				var link = lib.$("a", self.$results); //$NON-NLS-0$
 				if (link) {
 					lib.stop(evt);
-					window.open(link.href);
-					self.hide();
+					if(util.isMac ? evt.metaKey : evt.ctrlKey){
+						window.open(link.href);
+					} else {
+						window.location.href = link.href;
+						self.hide();
+					}
 				}
 			}
 		}, false);
@@ -187,20 +195,41 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 	};
 
 	/** @private */
+	OpenResourceDialog.prototype._detectFolderKeyword = function(text) {
+		var regex, match, keyword = text, folderKeyword = null;
+		if(this._nameSearch){
+			regex = /(\S+)\s*(.*)/;
+			match = regex.exec(text);
+			if(match && match.length === 3){
+				if(match[1]){
+					keyword = match[1];
+				}
+				if(match[2]){
+					folderKeyword = match[2];
+				}
+			}
+		} else {
+			//TODO: content search has to do similar thing. E.g. "foo bar" folder123
+		}
+		return {keyword: keyword, folderKeyword: folderKeyword};
+	};
+
+	/** @private */
 	OpenResourceDialog.prototype.doSearch = function() {
 		var text = this.$fileName.value;
 
 		// don't do a server-side query for an empty text box
 		if (text) {
 			// Gives Webkit a chance to show the "Searching" message
-			var searchParams = this._searcher.createSearchParams(text, this._nameSearch, this._searchOnRoot);
+			var keyword = this._detectFolderKeyword(text);
+			var searchParams = this._searcher.createSearchParams(keyword.keyword, this._nameSearch, this._searchOnRoot);
 			var renderFunction = this._searchRenderer.makeRenderFunction(this._contentTypeService, this.$results, false, this.decorateResult.bind(this));
 			this.currentSearch = renderFunction;
 			var div = document.createElement("div"); //$NON-NLS-0$
 			div.appendChild(document.createTextNode(this._nameSearch ? messages['Searching...'] : util.formatMessage(messages["Searching for occurrences of"], text)));
 			lib.empty(this.$results);
 			this.$results.appendChild(div);
-			this._searcher.search(searchParams, false, function() {
+			this._searcher.search(searchParams, keyword.folderKeyword, function() {
 				if (renderFunction === this.currentSearch) {
 					renderFunction.apply(null, arguments);
 				}
@@ -212,19 +241,15 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 	OpenResourceDialog.prototype.decorateResult = function(resultsDiv) {
 		var self = this;
 		var links = lib.$$array("a", resultsDiv); //$NON-NLS-0$
+		function clicked(evt) { //$NON-NLS-0$
+			if (evt.button === 0 && !evt.ctrlKey && !evt.metaKey) {
+				self.hide();
+			}
+		}
 		for (var i=0; i<links.length; i++) {
 			var link = links[i];
-			link.addEventListener("mouseup", function(evt) { //$NON-NLS-0$
-				if (evt.button === 0 && !evt.ctrlKey && !evt.metaKey) {
-					self.hide();
-				}
-			}, false);
-			link.addEventListener("keyup", function(evt) { //$NON-NLS-0$
-				if (evt.keyCode === lib.KEY.ENTER) {
-					self.hide();
-				}
-			}, false);
-		};
+			link.addEventListener("click", clicked, false);
+		}
 	};
 	
 	/** @private */

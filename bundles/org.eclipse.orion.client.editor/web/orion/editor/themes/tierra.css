@@ -40,21 +40,18 @@
 .tierra .line_caret {
 	background-color: #baa289;
 }
-.tierra .token_keyword {
+.tierra .keyword {
 	color: darkred;
 }
-.tierra .token_string {
+.tierra .string {
 	color: orangered;
 }
-.tierra .token_singleline_comment {
+.tierra .comment {
 	color: darkseagreen;
 }
-.tierra .token_multiline_comment {
+.tierra .comment.block.documentation {
 	color: darkseagreen;
 }
-.tierra .token_doc_comment {
-	color: darkseagreen;
-}
-.tierra .token_doc_html_markup {
+.tierra .keyword.other.documentation.markup {
 	color: darkseagreen;
 }

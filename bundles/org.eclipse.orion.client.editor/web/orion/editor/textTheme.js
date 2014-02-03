@@ -177,13 +177,12 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 			
 			//From textstyler.css
 			defineRule("line_caret", settings.currentLine, true); //$NON-NLS-0$
-			defineRule("token_keyword", settings.keyword, false); //$NON-NLS-0$
-			defineRule("token_string", settings.string, false); //$NON-NLS-0$
-			defineRule("token_singleline_comment", settings.comment, false); //$NON-NLS-0$
-			defineRule("token_multiline_comment", settings.comment, false); //$NON-NLS-0$
-			defineRule("token_doc_comment", settings.comment, false); //$NON-NLS-0$
-			defineRule("token_doc_html_markup", settings.comment, false); //$NON-NLS-0$
-			
+			defineRule("keyword", settings.keyword, false); //$NON-NLS-0$
+			defineRule("string", settings.string, false); //$NON-NLS-0$
+			defineRule("comment", settings.comment, false); //$NON-NLS-0$
+			defineRule("comment.block.documentation", settings.comment, false); //$NON-NLS-0$
+			defineRule("keyword.other.documentation.markup", settings.comment, false); //$NON-NLS-0$
+
 			return result.join("\n"); //$NON-NLS-0$
 		},
 		/**

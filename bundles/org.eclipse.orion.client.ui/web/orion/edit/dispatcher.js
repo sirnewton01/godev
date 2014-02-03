@@ -1,19 +1,19 @@
-/******************************************************************************* 
+/*******************************************************************************
  * @license
  * Copyright (c) 2011, 2012 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
- * Contributors: IBM Corporation - initial API and implementation 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
+ *
+ * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 /*global define */
 define(['orion/edit/dispatcher'], function() {
 	/**
 	 * @name orion.edit.Dispatcher
 	 * @class Forwards events from an {@link orion.editor.Editor} to interested services.
-	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry 
+	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry
 	 * @param {orion.editor.Editor} editor
 	 * @param {orion.InputManger} inputManager
 	 */
@@ -22,6 +22,9 @@ define(['orion/edit/dispatcher'], function() {
 		this.editor = editor;
 		this.inputManager = inputManager;
 		this.contentTypeService = serviceRegistry.getService("orion.core.contentTypeRegistry"); //$NON-NLS-0$
+		if (!this.contentTypeService) {
+			throw new Error("Missing required service");
+		}
 		this.serviceReferences = {};
 
 		var self = this;
@@ -68,15 +71,15 @@ define(['orion/edit/dispatcher'], function() {
 			}
 		},
 		_wireService: function(serviceReference, service) {
-			var types = serviceReference.getProperty("types"); //$NON-NLS-0$
+			var keys = Object.keys(service);
 			var textView = this.editor.getTextView();
-			if (!types) { return; }
-			for (var i=0; i < types.length; i++) {
-				var type = types[i];
-				var method = service["on" + type]; //$NON-NLS-0$
-				if (method) {
-					this._wireServiceMethod(serviceReference, service, method, textView, type);
+			for (var i=0; i < keys.length; i++) {
+				var key = keys[i], method = service[key];
+				if (key.substr(0, 2) !== "on" || typeof method !== "function") {//$NON-NLS-1$ //$NON-NLS-0$
+					continue;
 				}
+				var type = key.substr("on".length); //$NON-NLS-0$
+				this._wireServiceMethod(serviceReference, service, method, textView, type);
 			}
 			this._initService(service, textView);
 		},

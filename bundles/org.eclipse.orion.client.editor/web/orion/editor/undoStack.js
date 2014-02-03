@@ -20,7 +20,8 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 	 * @name orion.editor.Change
 	 * @private
 	 */
-	function Change(offset, text, previousText, type) {
+	function Change(model, offset, text, previousText, type) {
+		this.model = model;
 		this.offset = offset;
 		this.text = text;
 		this.previousText = previousText;
@@ -62,31 +63,12 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 			return false;
 		},
 		_doUndoRedo: function(offset, text, previousText, view, select) {
-			var model = view.getModel();
-			/* 
-			* TODO UndoStack should be changing the text in the base model.
-			* This is code needs to change when modifications in the base
-			* model are supported properly by the projection model.
-			*/
-			if (model.mapOffset && view.annotationModel) {
-				var mapOffset = model.mapOffset(offset, true);
-				if (mapOffset < 0) {
-					var annotationModel = view.annotationModel;
-					var iter = annotationModel.getAnnotations(offset, offset + 1);
-					while (iter.hasNext()) {
-						var annotation = iter.next();
-						if (annotation.type === "orion.annotation.folding") { //$NON-NLS-0$
-							annotation.expand();
-							mapOffset = model.mapOffset(offset, true);
-							break;
-						}
-					}
+			this.model.setText(text, offset, offset + previousText.length);
+			if (select && view) {
+				var model = view.getModel();
+				if (model !== this.model) {
+					offset = model.mapOffset(offset, true);
 				}
-				if (mapOffset < 0) { return; }
-				offset = mapOffset;
-			}
-			model.setText(text, offset, offset + previousText.length);
-			if (select) {
 				view.setSelection(offset, offset + text.length);
 			}
 		}
@@ -128,8 +110,10 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		},
 		/** @ignore */
 		end: function (view) {
-			this.endSelection = view.getSelection();
-			this.endCaret = view.getCaretOffset();
+			if (view) {
+				this.endSelection = view.getSelection();
+				this.endCaret = view.getCaretOffset();
+			}
 			var owner = this.owner;
 			if (owner && owner.end) {
 				owner.end();
@@ -137,16 +121,16 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		},
 		/** @ignore */
 		undo: function (view, select) {
-			if (this.changes.length > 1) {
+			if (this.changes.length > 1 && view) {
 				view.setRedraw(false);
 			}
 			for (var i=this.changes.length - 1; i >= 0; i--) {
 				this.changes[i].undo(view, false);
 			}
-			if (this.changes.length > 1) {
+			if (this.changes.length > 1 && view) {
 				view.setRedraw(true);
 			}
-			if (select) {
+			if (select && view) {
 				var start = this.startSelection.start;
 				var end = this.startSelection.end;
 				view.setSelection(this.startCaret ? start : end, this.startCaret ? end : start);
@@ -159,16 +143,16 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		},
 		/** @ignore */
 		redo: function (view, select) {
-			if (this.changes.length > 1) {
+			if (this.changes.length > 1 && view) {
 				view.setRedraw(false);
 			}
 			for (var i = 0; i < this.changes.length; i++) {
 				this.changes[i].redo(view, false);
 			}
-			if (this.changes.length > 1) {
+			if (this.changes.length > 1, view) {
 				view.setRedraw(true);
 			}
-			if (select) {
+			if (select && view) {
 				var start = this.endSelection.start;
 				var end = this.endSelection.end;
 				view.setSelection(this.endCaret ? start : end, this.endCaret ? end : start);
@@ -188,8 +172,10 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		},
 		/** @ignore */
 		start: function (view) {
-			this.startSelection = view.getSelection();
-			this.startCaret = view.getCaretOffset();
+			if (view) {
+				this.startSelection = view.getSelection();
+				this.startCaret = view.getCaretOffset();
+			}
 			var owner = this.owner;
 			if (owner && owner.start) {
 				owner.start();
@@ -213,14 +199,8 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 	 * </p>
 	 */
 	function UndoStack (view, size) {
-		this.view = view;
 		this.size = size !== undefined ? size : 100;
 		this.reset();
-		var model = view.getModel();
-		if (model.getBaseModel) {
-			model = model.getBaseModel();
-		}
-		this.model = model;
 		var self = this;
 		this._listener = {
 			onChanging: function(e) {
@@ -230,10 +210,26 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 				self._onDestroy(e);
 			}
 		};
-		model.addEventListener("Changing", this._listener.onChanging); //$NON-NLS-0$
-		view.addEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
+		if (view.getModel) {
+			var model = view.getModel();
+			if (model.getBaseModel) {
+				model = model.getBaseModel();
+			}
+			this.model = model;
+			this.setView(view);
+		} else {
+			this.shared = true;
+			this.model = view;
+		}
+		this.model.addEventListener("Changing", this._listener.onChanging); //$NON-NLS-0$
 	}
 	UndoStack.prototype = /** @lends orion.editor.UndoStack.prototype */ {
+		/**
+		 * Destroy the undo stack.
+		 */
+		destroy: function() {
+			this._onDestroy();
+		},
 		/**
 		 * Adds a change to the stack.
 		 * 
@@ -434,6 +430,16 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 			this._ignoreUndo = false;
 			this._compoundChange = undefined;
 		},
+		setView: function(view) {
+			if (this.view === view) { return; }
+			if (this.view) {
+				view.removeEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
+			}
+			this.view = view;
+			if (this.view) {
+				view.addEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
+			}
+		},
 		/**
 		 * Starts a compound change. 
 		 * <p>
@@ -460,8 +466,13 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 			this.endCompoundChange();
 		},
 		_onDestroy: function(evt) {
-			this.model.removeEventListener("Changing", this._listener.onChanging); //$NON-NLS-0$
-			this.view.removeEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
+			if (!evt /* undo stack destroyed */ || !this.shared) {
+				this.model.removeEventListener("Changing", this._listener.onChanging); //$NON-NLS-0$
+			}
+			if (this.view) {
+				this.view.removeEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
+				this.view = null;
+			}
 		},
 		_onChanging: function(e) {
 			if (this._ignoreUndo) {
@@ -486,7 +497,7 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 					return;
 				}
 			}
-			this.add(new Change(start, text, previousText, type));
+			this.add(new Change(this.model, start, text, previousText, type));
 		}
 	};
 	

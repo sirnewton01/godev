@@ -15,6 +15,13 @@
 define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', 'orion/uiUtils'], 
 		function(messages, require, lib, uiUtil) {
 	/**
+	 * Holds the current opened modal dialog.
+	 */
+	var modalDialogManager = {
+		dialog: null
+	};
+		
+	/**
 	 * Dialog is used to implement common dialog behavior in Orion.
 	 * Clients use the Dialog prototype and implement the following behavior:
 	 *    1.  Ensure that the HTML template for the dialog content is defined in the prototype TEMPLATE variable
@@ -197,6 +204,13 @@ define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', '
 			this.$$modalExclusions.push(dialog.$frame || dialog.$parent);
 		},
 		
+		_inModalExclusion: function(dialog) {
+			// Allow the child dialog to take focus.
+			return this.$$modalExclusions.some(function(item) {
+				return dialog.$frame === item || dialog.$parent === item;
+			});
+		},
+		
 		/*
 		 * Internal.  Binds any child nodes with id's to the matching field variables.
 		 */
@@ -215,7 +229,10 @@ define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', '
 		 * hooks (_beforeHiding, _afterHiding) to do any work related to hiding the dialog, such
 		 * as destroying resources.
 		 */
-		hide: function() {
+		hide: function(keepCurrentModal) {
+			if(!keepCurrentModal && modalDialogManager.dialog === this) {
+				modalDialogManager.dialog = null;
+			}
 			if (typeof this._beforeHiding === "function") { //$NON-NLS-0$
 				this._beforeHiding();
 			}
@@ -225,6 +242,7 @@ define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', '
 			}
 
 			this.$frame.classList.remove("dialogShowing"); //$NON-NLS-0$
+			lib.setFramesEnabled(true);
 			if (typeof this._afterHiding === "function") { //$NON-NLS-0$
 				this._afterHiding();
 			}
@@ -240,9 +258,20 @@ define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', '
 		 * such as setting initial focus.
 		 */
 		show: function(near) {
+			if(this.modal){//Modal dialog should only appear once unless they are chain dialog
+				if(modalDialogManager.dialog) {//There is already modal dialog opened
+					if(!modalDialogManager.dialog._inModalExclusion(this)) {//The dialog is NOT a child dialog of the exisitng dialog
+						this.hide(true);
+						return;
+					}
+				} else {
+					modalDialogManager.dialog = this;
+				}
+			}
 			if (typeof this._beforeShowing === "function") { //$NON-NLS-0$
 				this._beforeShowing();
 			}
+			lib.setFramesEnabled(false);
 			var rect = lib.bounds(this.$frame);
 			var totalRect = lib.bounds(document.documentElement);
 			var left, top;
@@ -287,6 +316,13 @@ define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', '
 		 * Internal.  Cleanup and remove dom nodes.
 		 */
 		destroy: function() {
+			if (!this.$frame) {
+				return;
+			}
+			if(modalDialogManager.dialog === this) {
+				modalDialogManager.dialog = null;
+			}
+			lib.setFramesEnabled(true);
 			if (this._addedBackdrop && this._addedBackdrop.length > 0) {
 				this._addedBackdrop.forEach(function(node) { //$NON-NLS-0$
 					node.classList.remove("modalBackdrop"); //$NON-NLS-0$

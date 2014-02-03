@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="../../requirejs/require.js"></script>
+	<script>
+	/*global require window*/
+	require({
+		baseUrl: '../../../',
+		paths: {
+			text: 'requirejs/text',
+			i18n: 'requirejs/i18n',
+			domReady: 'requirejs/domReady'
+		}
+	});
+
+	window.onload = function() {
+		require(["orion/test", "js-tests/dispatcher/editDispatcherTests"], function(test, testcase) {
+			Object.keys(testcase).forEach(function(prop) {
+				if (/^test/.test(prop)) {
+					var li = document.createElement("li");
+					li.textContent = prop;
+					document.getElementById("testlist").appendChild(li);
+				}
+			});
+
+			test.run(testcase);
+		});
+	};
+	</script>
+</head>
+<body>
+<h3>Unit Tests</h3>
+<p>
+	The tests cover <code>orion.edit.Dispatcher</code>. The following tests are defined:
+</p>
+<ul id="testlist">
+</ul>
+</body>
+</html>

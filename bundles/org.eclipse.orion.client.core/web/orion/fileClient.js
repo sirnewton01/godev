@@ -156,7 +156,7 @@ define(['i18n!orion/navigate/nls/messages', "orion/Deferred", "orion/i18nUtil"],
 				Name: _references[j].getProperty("Name")		 //$NON-NLS-0$
 			};
 
-			var patternString = _references[j].getProperty("pattern") || ".*"; //$NON-NLS-1$ //$NON-NLS-0$
+			var patternString = _references[j].getProperty("pattern") || _references[j].getProperty("top").replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1"); //$NON-NLS-1$ //$NON-NLS-0$
 			if (patternString[0] !== "^") { //$NON-NLS-0$
 				patternString = "^" + patternString; //$NON-NLS-0$
 			}
@@ -342,7 +342,7 @@ define(['i18n!orion/navigate/nls/messages', "orion/Deferred", "orion/i18nUtil"],
 			});
 			
 		},
-		 
+				
 		/**
 		 * Copies a file or directory.
 		 * @param {String} sourceLocation The location of the file or directory to copy.
@@ -391,6 +391,16 @@ define(['i18n!orion/navigate/nls/messages', "orion/Deferred", "orion/i18nUtil"],
 		 */
 		read: function(location, isMetadata) {
 			return _doServiceCall(this._getService(location), "read", arguments); //$NON-NLS-0$
+		},
+
+		/**
+		 * Returns the blob contents of the file at the given location.
+		 *
+		 * @param {String} location The location of the file to get contents for
+		 * @return A deferred that will be provided with the blob contents when available
+		 */
+		readBlob: function(location) {
+			return _doServiceCall(this._getService(location), "readBlob", arguments); //$NON-NLS-0$
 		},
 
 		/**

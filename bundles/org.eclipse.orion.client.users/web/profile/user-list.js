@@ -85,6 +85,27 @@ define(['i18n!profile/nls/messages', 'require', 'orion/webui/littlelib', 'orion/
 		
 		commandRegistry.addCommand(createUserCommand);
 			
+		var findUserCommand = new mCommands.Command({
+			name: messages["Find User"],
+			id: "eclipse.findUser", //$NON-NLS-0$
+			parameters: new mCommandRegistry.ParametersDescription([new mCommandRegistry.CommandParameter('name', 'text', messages["Login:"])]), //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			callback: function(data) {
+				var name = data.parameters && data.parameters.valueFor('name'); //$NON-NLS-0$
+				var findFunction = function(name) {
+					var href = require.toUrl("profile/user-profile.html") +"#/users/" + name;
+					window.location.href = href;
+				};
+				if (name) {
+					findFunction(name);
+				}
+			},
+			visibleWhen: function(item) {
+				return true;
+			}
+		});
+		
+		commandRegistry.addCommand(findUserCommand);
+		
 		var deleteCommand = new mCommands.Command({
 			name: messages["Delete User"],
 			image: require.toUrl("images/delete.png"), //$NON-NLS-0$
@@ -155,6 +176,7 @@ define(['i18n!profile/nls/messages', 'require', 'orion/webui/littlelib', 'orion/
 		commandRegistry.registerCommandContribution("pageNavigationActions", "orion.userlist.nextPage", 2);  //$NON-NLS-1$ //$NON-NLS-0$
 
 		commandRegistry.registerCommandContribution("pageActions", "eclipse.createUser", 1, "eclipse.usersGroup"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		commandRegistry.registerCommandContribution("pageActions", "eclipse.findUser", 2, "eclipse.usersGroup"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		
 		commandRegistry.registerCommandContribution("userCommands", "eclipse.deleteUser", 1); //$NON-NLS-1$ //$NON-NLS-0$
 		commandRegistry.registerCommandContribution("userCommands", "eclipse.changePassword", 2); //$NON-NLS-1$ //$NON-NLS-0$

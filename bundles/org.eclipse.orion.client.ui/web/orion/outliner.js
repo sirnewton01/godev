@@ -21,8 +21,10 @@ define([
 	'orion/URITemplate',
 	'orion/EventTarget',
 	'orion/i18nUtil',
-	'orion/edit/editorContext'
-], function(messages, Deferred, lib, mUIUtils, mSection, mExplorer, mCommands, URITemplate, EventTarget, i18nUtil, EditorContext) {
+	'orion/edit/editorContext',
+	'orion/keyBinding',
+	'orion/globalCommands'
+], function(messages, Deferred, lib, mUIUtils, mSection, mExplorer, mCommands, URITemplate, EventTarget, i18nUtil, EditorContext, KeyBinding, mGlobalCommands) {
 
 	function OutlineRenderer (options, explorer, title, selectionService) {
 		this.explorer = explorer;
@@ -31,7 +33,7 @@ define([
 		this.selectionService = selectionService;
 	}
 	
-	OutlineRenderer.prototype = mExplorer.SelectionRenderer.prototype;
+	OutlineRenderer.prototype = new mExplorer.SelectionRenderer();
 	OutlineRenderer.prototype.constructor = OutlineRenderer;
 	OutlineRenderer.prototype.getLabelColumnIndex = function() {
 		return 0;
@@ -40,52 +42,103 @@ define([
 		if (!item) {
 			return;
 		}
+		
+		// ExpandNode | ContentsNode { Link { LinkContentsNode {PreNode <labelPre> | <label> | PostNode <labelPost>} } }
+		// className applies to all of ContentsNode, classNamePre applies to PreNode, classNamePost applies to PostNode
+		
 		var elementNode = document.createElement("span"); //$NON-NLS-0$
-		tableRow.appendChild(elementNode);
-		if (item.className) {
-			elementNode.classList.add(item.className);
-		}
-		if (item.children) {
-			this.getExpandImage(tableRow, elementNode);
-		}
-		if (item.href) {
-			this._createLink(item.label, item.href, elementNode);
-		} else if (item.line || item.column || item.start) {
-			var href = new URITemplate("#{,resource,params*}").expand({resource: this.title, params: item}); //$NON-NLS-0$
-			this._createLink(item.label, href, elementNode);
-		} else if (item.label) {
-			elementNode.appendChild(document.createTextNode(item.label)); //$NON-NLS-0$
-		}
-	};
+		var expandNode = document.createElement("span"); //$NON-NLS-0$
+		var contentsNode = document.createElement("span"); //$NON-NLS-0$
+ 		tableRow.appendChild(elementNode);
+		elementNode.appendChild(expandNode);
+		elementNode.appendChild(contentsNode);
+		
+ 		if (item.className) {
+			contentsNode.className += item.className;
+ 		}
+ 		if (item.children) {
+			this.getExpandImage(tableRow, expandNode);
+		} else {
+			expandNode.classList.add("outlineLeafIndent"); //$NON-NLS-0$
+ 		}
+ 		
+ 		// Create the link content (labelPre + label + labelPost)
+ 		var linkContents = document.createElement("span"); //$NON-NLS-0$
+ 		if (item.labelPre || item.classNamePre){
+ 			var preNode = document.createElement("span"); //$NON-NLS-0$
+ 			linkContents.appendChild(preNode);
+ 			if (item.labelPre) {
+ 				preNode.appendChild(document.createTextNode(item.labelPre));
+ 			}
+	 		if (item.classNamePre) {
+				preNode.className += item.classNamePre;
+	 		}
+ 		}
+ 		if (item.label){
+ 			linkContents.appendChild(document.createTextNode(item.label));
+ 		}
+ 		if (item.labelPost || item.classNamePost){
+ 			var postNode = document.createElement("span"); //$NON-NLS-0$
+ 			linkContents.appendChild(postNode);
+ 			if (item.labelPost) {
+ 				postNode.appendChild(document.createTextNode(item.labelPost));
+ 			}
+	 		if (item.classNamePost) {
+				postNode.className += item.classNamePost;
+	 		}
+ 		}
+ 		
+ 		if (item.href) {
+			this._createLink(linkContents, item.href, contentsNode);
+ 		} else if (item.line || item.column || item.start) {
+ 			var href = new URITemplate("#{,resource,params*}").expand({resource: this.title, params: item}); //$NON-NLS-0$
+			this._createLink(linkContents, href, contentsNode);
+ 			item.outlineLink = href;
+ 		} else {
+			contentsNode.appendChild(linkContents); //$NON-NLS-0$
+ 		}
+ 	};
 	
-	OutlineRenderer.prototype._createLink = function(text, href, parentNode) {
+	OutlineRenderer.prototype._createLink = function(contentsNode, href, parentNode) {
 		var link = document.createElement("a"); //$NON-NLS-0$
 		parentNode.appendChild(link);
-		// if there is no selection service, we rely on normal link following
-		if (!this.selectionService) {
-			link.href = href;
-		} else {
-			link.style.cursor = "pointer"; //$NON-NLS-0$
-		}
+		
 		link.classList.add("navlinkonpage"); //$NON-NLS-0$
-		link.appendChild(document.createTextNode(text));
+		link.appendChild(contentsNode);
+		
 		// if a selection service has been specified, we will use it for link selection.
 		// Otherwise we assume following the href in the anchor tag is enough.
 		if (this.selectionService) {
-			var selectionService = this.selectionService;
-			var url = href;
+			link.style.cursor = "pointer"; //$NON-NLS-0$
 			link.addEventListener("click", function(event) { //$NON-NLS-0$
-				if (mUIUtils.openInNewWindow(event)) {
-					mUIUtils.followLink(url, event);
-				} else {
-					selectionService.setSelections(url);
-				}
-			}, false);
+				this._followLink(event, href);
+			}.bind(this), false);
+		} else {
+			// if there is no selection service, we rely on normal link following
+			link.href = href;	
 		}
+		
 		return link;
 	};
 	
-
+	//This is an optional function for explorerNavHandler. It performs an action when Enter is pressed on a table row.
+    //The explorerNavHandler hooked up by the explorer will check if this function exists and call it on Enter key press.
+    OutlineRenderer.prototype.performRowAction = function(event, item) {
+		this._followLink(event, item.outlineLink);
+    };
+    
+    OutlineRenderer.prototype._followLink = function(event, url) {
+		var selectionService = this.selectionService;
+		if (selectionService) {
+			if (mUIUtils.openInNewWindow(event)) {
+				mUIUtils.followLink(url, event);
+			} else {
+				selectionService.setSelections(url);
+			}
+		}
+    };
+	
+	
 	function OutlineExplorer(serviceRegistry, selection, title) {
 		/*	we intentionally do not do this:
 				this.selection = selection;
@@ -95,9 +148,124 @@ define([
 		this.registry = serviceRegistry;
 		this.renderer = new OutlineRenderer({checkbox: false, treeTableClass: "outlineExplorer"}, this, title, selection);  //$NON-NLS-0$ 
 	}
-	OutlineExplorer.prototype = mExplorer.Explorer.prototype;	
+	OutlineExplorer.prototype = new mExplorer.Explorer();	
 	OutlineExplorer.prototype.constructor = OutlineExplorer;
 	
+	OutlineExplorer.prototype.filterChanged = function (filter) {
+		var navHandler = this.getNavHandler();
+		var modifiedFilter = null;
+		
+		if (filter) {
+			var filterFlags = "i"; // case insensitive by default //$NON-NLS-0$
+			modifiedFilter = filter.replace(/([.+^=!:${}()|\[\]\/\\])/g, "\\$1"); //add start of line character and escape all special characters except * and ? //$NON-NLS-1$ //$NON-NLS-0$
+			modifiedFilter = modifiedFilter.replace(/([*?])/g, ".$1");	//convert user input * and ? to .* and .? //$NON-NLS-0$
+			
+			if (/[A-Z]/.test(modifiedFilter)) {
+				//filter contains uppercase letters, perform case sensitive search
+				filterFlags = "";	
+			}
+			
+			modifiedFilter = new RegExp(modifiedFilter, filterFlags);
+			this._currentModifiedFilter = modifiedFilter;
+
+		
+			//figure out if we need to expand
+			if (this._previousUnmodifiedFilter) {
+				if (0 !== filter.indexOf(this._previousUnmodifiedFilter)) {
+					//this is not a more specific version of the previous filter, expand again
+					this.expandAll();
+				}
+			} else {
+				//there was no previous filter, expand all
+				this.expandAll();
+			}
+		} else {
+			//filter was emptied, expand all
+			this.expandAll();
+			this._currentModifiedFilter = null;
+		}
+		
+		// filter the tree nodes recursively
+		// this should also be done if the passed in filter is empty
+		// because it will traverse all the nodes and reset their states
+		var topLevelNodes = navHandler.getTopLevelNodes();
+		for (var i = 0; i < topLevelNodes.length ; i++){
+			this._filterRecursively(topLevelNodes[i], modifiedFilter);
+		}
+		
+		this._previousUnmodifiedFilter = filter;
+	};
+	
+	OutlineExplorer.prototype._filterRecursively = function (node, filter) {
+		var navHandler = this.getNavHandler();
+		var self = this;
+		var rowDiv = navHandler.getRowDiv(node);
+		// true if the filter is null or if the node's label matches it
+		var nodeMatchesFilter = (-1 !== node.label.search(filter));
+		
+		if (node.children) {
+			// if this node has children ensure it is expanded otherwise we've already filtered it out
+			if (navHandler.isExpanded(node)) {
+				var hasVisibleChildren = false;
+				node.children.forEach(function(childNode){
+					if (self._filterRecursively(childNode, filter)) {
+						hasVisibleChildren = true;
+					}
+				});
+				
+				if (!hasVisibleChildren) {
+					this.myTree.collapse(node);
+				}
+			}
+		}
+		
+		// node is visible if one of the following is true: 
+		// 1) filter === null
+		// 2) the node has visible children
+		// 3) the node matches the filter
+		var visible = !filter || hasVisibleChildren || nodeMatchesFilter;
+		
+		if (filter) {
+			// set row visibility
+			if (visible) {
+				//show row
+				rowDiv.classList.remove("outlineRowHidden"); //$NON-NLS-0$
+			} else {
+				//hide
+				rowDiv.classList.add("outlineRowHidden"); //$NON-NLS-0$
+			};
+			// set visual indicator for matching rows
+			if (nodeMatchesFilter) {
+				rowDiv.classList.add("outlineRowMatchesFilter"); //$NON-NLS-0$
+			} else {
+				rowDiv.classList.remove("outlineRowMatchesFilter"); //$NON-NLS-0$
+			}	
+			
+			// set node's keyboard traversal selectability
+			navHandler.setIsNotSelectable(node, !nodeMatchesFilter);
+		} else {
+			rowDiv.classList.remove("outlineRowHidden"); //$NON-NLS-0$ //show row
+			rowDiv.classList.remove("outlineRowMatchesFilter"); //$NON-NLS-0$ //remove filter match decoration
+			navHandler.setIsNotSelectable(node, false); // make node keyboard traversable
+		}	
+	
+		return visible;
+	};
+	
+	/**
+	 * This function should be called after the user triggers an outline
+	 * node expansion in order to filter the node's children.
+	 * 
+	 * @param {String} nodeId The id of the node that was expanded
+	 */
+	OutlineExplorer.prototype.postUserExpand = function (nodeId) {
+		if (this._currentModifiedFilter) {
+			var node = this.getNavDict().getValue(nodeId).model;
+			this._expandRecursively(node);
+			this._filterRecursively(node, this._currentModifiedFilter);
+		}
+ 	};
+ 	
 	function OutlineModel(items, rootId) {
 		this.items = items;
 		this.root = {children: items};
@@ -119,18 +287,25 @@ define([
 			return item.outlinerId;
 		}
 		// Generate an id.  Since these id's are used in the DOM, we strip out characters that shouldn't be in a DOM id.
-		var id = item.label.replace(/[\\\/\.\:\-\_]/g, "");
+		var originalId = item.label.replace(/[\\\/\.\:\-\_\s]/g, "");
+		var id = originalId;
+		var number = 0;
 		// We might have duplicate id's if the outline items are duplicated, or if we happen to have another dom id using
 		// this name.  Check for this case and use a timestamp in lieu of the generated id.
-		if ((this.idItemMap[id] && this.idItemMap[id]!== item) ||
+		while ((this.idItemMap[id] && this.idItemMap[id]!== item) ||
 			lib.node(id)) {// see https://bugs.eclipse.org/bugs/show_bug.cgi?id=389760
-			id = new Date().getTime().toString();
-			this.idItemMap[id] = item;
-			item.outlinerId = id;
-		} else {
-			this.idItemMap[id] = item;
+			id = originalId + "[" + number + "]";
+			number = number + 1;
 		}
+		
+		this.idItemMap[id] = item; //store the item
+		item.outlinerId = id;		// cache the id
+			
 		return id;
+	};
+	
+	OutlineModel.prototype.getIdItemMap = function(){
+		return this.idItemMap;
 	};
 		
 	OutlineModel.prototype.getChildren = function(parentItem, /* function(items) */ onComplete){
@@ -192,9 +367,16 @@ define([
 
 			this._inputManager.addEventListener("InputChanged", function(event) { //$NON-NLS-0$
 				_self.setContentType(event.contentType, event.location);
+				if (_self._editor !== event.editor) {
+					if (_self._editor) {
+						_self._editor.removeEventListener("InputChanged", _self._editorListener); //$NON-NLS-0$
+					}
+					_self._editor = event.editor;
+					if (_self._editor) {
+						_self._editor.addEventListener("InputChanged", _self._editorListener = _self.generateOutline.bind(_self)); //$NON-NLS-0$
+					}
+				}
 			});
-
-			this._inputManager.getEditor().addEventListener("InputChanged", this.generateOutline.bind(this)); //$NON-NLS-0$
 
 			Deferred.when(_self._outlineService, function(service) {
 				service.addEventListener("outline", function(event) { //$NON-NLS-0$
@@ -278,7 +460,34 @@ define([
 					destroy: _self.destroyViewMode.bind(_self, provider)
 				});
 			});
+			
 			var sidebar = _self._sidebar;
+			this._commandService.unregisterCommandContribution(this._toolbar.id, "orion.openOutline", null); //$NON-NLS-0$
+			
+			if (newProviders && newProviders[0]) {
+				var defaultOutlinerId = _self._viewModeId(newProviders[0]);
+				var openOutlineCommand = new mCommands.Command({
+					name: "Open Outliner", //$NON-NLS-0$
+					id: "orion.openOutline", //$NON-NLS-0$
+					callback: function () {
+						var mainSplitter = mGlobalCommands.getMainSplitter();
+						if (mainSplitter.splitter.isClosed()) {
+							mainSplitter.splitter.toggleSidePanel();
+						}
+						if (sidebar.getActiveViewModeId() !== defaultOutlinerId) {
+							sidebar.setViewMode(defaultOutlinerId);
+						}
+						if (_self._filterInput) {
+							_self._previousActiveElement = document.activeElement;
+							_self._filterInput.select();
+						}
+					}
+				});
+				this._commandService.addCommand(openOutlineCommand);
+				this._commandService.registerCommandContribution(this._toolbar.id, "orion.openOutline", 1, null, true, new KeyBinding.KeyBinding("o", true)); //$NON-NLS-1$ //$NON-NLS-0$
+				this._commandService.renderCommands(this._toolbar.id, this._toolbar, {}, {}, "tool"); //$NON-NLS-0$
+			}
+
 			sidebar.renderViewModeMenu();
 		},
 		_isActive: function() {
@@ -293,10 +502,64 @@ define([
 		},
 		createViewMode: function(provider) {
 			this.setSelectedProvider(provider);
+			this._createFilterInput();
 			this.generateOutline();
 		},
 		destroyViewMode: function(provider) {
+			if (this.explorer) {
+				this.explorer.destroy();
+				this.explorer = null;
+			}
 		},
+		
+		_createFilterInput: function() {
+			var input = document.createElement("input"); //$NON-NLS-0$
+		
+			input.classList.add("outlineFilter"); //$NON-NLS-0$
+			input.placeholder = messages["Filter"]; //$NON-NLS-0$
+			input.type="text"; //$NON-NLS-0$
+			input.addEventListener("input", function (e) { //$NON-NLS-0$
+				if (this._filterInputTimeout) {
+					window.clearTimeout(this._filterInputTimeout);
+				}
+				var that = this;
+				this._filterInputTimeout = window.setTimeout(function(){
+					that.explorer.filterChanged(input.value);
+					that._filterInputTimeout = null;
+				}, 200);
+			}.bind(this));
+		
+			input.addEventListener("keydown", function (e) { //$NON-NLS-0$
+				var navHandler = null;
+				var firstNode = null;
+				if (e.keyCode === lib.KEY.DOWN)	{
+					input.blur();
+					navHandler = this.explorer.getNavHandler();
+					navHandler.focus();
+					if (navHandler.getTopLevelNodes()) {
+						firstNode = navHandler.getTopLevelNodes()[0];
+						navHandler.cursorOn(firstNode, false, true);
+						if (firstNode.isNotSelectable) {
+							navHandler.iterate(true, false, false, true);
+						}
+					}
+					
+					//prevent the browser's default behavior of automatically scrolling 
+					//the outline view down because the DOWN key was pressed
+					if (e.preventDefault) {
+						e.preventDefault();	
+					}
+				} else if (e.keyCode === lib.KEY.ESCAPE) {
+					if (this._previousActiveElement) {
+						this._previousActiveElement.focus();
+					}
+				}
+			}.bind(this), false);
+			
+			this._toolbar.appendChild(input);
+			this._filterInput = input;
+		},
+		
 		/**
 		 * Called when the inputManager's contentType has changed, so we need to look up the capable outline providers.
 		 * @param {String} fileContentType
@@ -338,6 +601,7 @@ define([
 				_self._providerLookup = false;
 				_self._outlineService.setOutlineProviders(filteredProviders);
 				_self.setOutlineProviders(filteredProviders);
+				_self.generateOutline();
 			});
 		}
 	};

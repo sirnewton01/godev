@@ -282,7 +282,7 @@
     }
 
     function _normalizePort(port) {
-        return (/[1-9]\d*$/).exec(port)[0];
+        return port ? (/[1-9]\d*$/).exec(port)[0] : "";
     }
 
     function _normalizePath(path) {
@@ -439,7 +439,7 @@
                     return;
                 }
                 var scheme = (value.slice(-1) === ":") ? value.substring(0, value.length - 1) : value;
-                if (_SCHEME_RE.test(scheme)) {
+                if (scheme === "" || _SCHEME_RE.test(scheme)) {
                     this._url.scheme = _normalizeScheme(scheme);
                 }
 
@@ -623,14 +623,15 @@
         }
     });
 
-    if (window.URL && window.URL.createObjectURL) {
+	var _URL = window.URL || window.webkitURL;
+    if (_URL && _URL.createObjectURL) {
         Object.defineProperty(URL, "createObjectURL", {
-            value: window.URL.createObjectURL.bind(window.URL),
+            value: _URL.createObjectURL.bind(_URL),
             enumerable: false
         });
 
         Object.defineProperty(URL, "revokeObjectURL", {
-            value: window.URL.revokeObjectURL.bind(window.URL),
+            value: _URL.revokeObjectURL.bind(_URL),
             enumerable: false
         });
     }

@@ -99,8 +99,8 @@ define(["orion/util"], function(util) {
 	function bounds(node) {
 		var clientRect = node.getBoundingClientRect();
 		return { 
-			left: clientRect.left + document.body.scrollLeft,
-			top: clientRect.top + document.body.scrollTop,
+			left: clientRect.left + document.documentElement.scrollLeft,
+			top: clientRect.top + document.documentElement.scrollTop,
 			width: clientRect.width,
 			height: clientRect.height
 		};
@@ -235,7 +235,7 @@ define(["orion/util"], function(util) {
 				});
 				if (excludeNodeInDocument && !excluded) {
 					try {
-						autoDismissNode.dismiss();
+						autoDismissNode.dismiss(event);
 					} catch (e) {
 						if (typeof console !== "undefined" && console) { //$NON-NLS-0$
 							console.error(e && e.message);
@@ -267,7 +267,22 @@ define(["orion/util"], function(util) {
 				}, false);
 			}
 		}
+		
 		autoDismissNodes.push({excludeNodes: excludeNodes, dismiss: dismissFunction});
+	}
+	
+	/**
+	 * Removes all auto-dismiss nodes which trigger the specified dismiss function.
+	 * 
+	 * @name orion.webui.littlelib.removeAutoDismiss
+	 * @function
+	 * @static
+	 * @param {Function} dismissFunction The dismiss function to look for.
+	 */
+	function removeAutoDismiss(dismissFunction) {
+		autoDismissNodes = autoDismissNodes.filter(function(autoDismissNode) {
+			return dismissFunction !== autoDismissNode.dismiss;
+		});
 	}
 	
 	/**
@@ -284,6 +299,13 @@ define(["orion/util"], function(util) {
 		if (event.preventDefault) {
 			event.preventDefault();
 			event.stopPropagation();
+		}
+	}
+	
+	function setFramesEnabled(enable) {
+		var frames = document.getElementsByTagName("iframe"); //$NON-NLS-0$
+		for (var i = 0; i<frames.length; i++) {
+			frames[i].parentNode.style.pointerEvents = enable ? "" : "none"; //$NON-NLS-0$
 		}
 	}
 
@@ -325,6 +347,8 @@ define(["orion/util"], function(util) {
 		processTextNodes: processTextNodes,
 		processDOMNodes: processDOMNodes,
 		addAutoDismiss: addAutoDismiss,
+		setFramesEnabled: setFramesEnabled,
+		removeAutoDismiss: removeAutoDismiss,
 		KEY: KEY
 	};
 });

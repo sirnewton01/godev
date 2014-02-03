@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 //NLS_CHARSET=UTF-8
+/*global define */
 
 define({
 	"Plugin Description": "Plugin Description",
@@ -126,6 +127,10 @@ define({
 	"EditorThemes": "Themes",
 	"Import": "Import",
 	"Import a theme": "Import a theme",
+	"Export": "Export",
+	"Export a theme": "Export a theme",
+	"Theme name:": "Theme name:",
+	"yourTheme": "yourTheme",
 	"fileManagement" : "File Management",
 	"typing": "Typing",
 	"autoSave": "Auto Save",
@@ -158,7 +163,8 @@ define({
 	"autoSaveTimeoutInvalid": "Invalid save interval.",
 	"scrollAnimationTimeoutInvalid": "Invalid scrolling duration.",
 	"tabSizeInvalid": "Invalid tab size.",
-	"localSettingsTooltip" : "Toggle whether this setting is shown in local editor settings drop down.",
+	"localSettingsTooltip" : "Toggle whether this setting is shown in the local editor settings drop down.",
+	"editorSettingsInfo": "Use the ${0} and ${1} to toggle whether a given setting is shown in the local editor settings drop down ${2}.",
 	"autoPairParentheses": "Autopair (Parentheses)",
 	"autoPairBraces": "Autopair {Braces}",
 	"autoPairSquareBrackets": "Autopair [Square] Brackets",
@@ -168,6 +174,9 @@ define({
 	"smartIndentation": "Smart Indentation",
 	"sourceControl": "Source Control",
 	"showBlame": "Show Blame",
+	"languageTools": "Language Tools",
+	"showOccurrences": "Show Occurrences",
+	"contentAssistAutoTrigger": "Show Content Assist automatically",
 	"Editor preferences updated": "Editor preferences updated",
 	"Editor defaults restored": "Editor defaults restored",
 	"Theme": "Theme",

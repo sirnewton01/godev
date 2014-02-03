@@ -74,7 +74,7 @@ define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui
 		'<div>' + //$NON-NLS-0$
 			'<div><label for="sftpPath">${Location:}</label></div>' +  //$NON-NLS-0$
 			'<div><select id="sftpConnectionList" name="sftpConnectionList"></select>' + //$NON-NLS-0$
-			'<button id="newSftpConnection" style="margin-left: 16px;" class="dropdownTrigger orionButton commandButton">${New}<span class="dropdownArrowDown core-sprite-downarrow"></span></button></div>' + //$NON-NLS-0$
+			'<button id="newSftpConnection" style="margin-left: 16px;" class="dropdownTrigger orionButton commandButton">${New}<span class="dropdownArrowDown core-sprite-openarrow"></span></button></div>' + //$NON-NLS-0$
 			'<div><label for="sftpPassword">${Password:}</label></div>' + //$NON-NLS-0$
 			'<div><input id="sftpPassword" type="password" /></div>' + //$NON-NLS-0$
 			'<p>${If the same file exists in both the source and destination:}</p>' + //$NON-NLS-0$

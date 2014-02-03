@@ -1,0 +1,90 @@
+
+(function(root, factory) {
+    if(typeof exports === 'object') {
+        module.exports = factory(require, exports, module);
+    }
+    else if(typeof define === 'function' && define.amd) {
+        define(['require', 'exports', 'module'], factory);
+    }
+    else {
+        var req = function(id) {return root[id];},
+            exp = root,
+            mod = {exports: exp};
+        root.ruleContext = factory(req, exp, mod);
+    }
+}(this, function(require, exports, module) {
+/**
+ * @fileoverview RuleContext utility for rules
+ * @author Nicholas C. Zakas
+ */
+
+//------------------------------------------------------------------------------
+// Constants
+//------------------------------------------------------------------------------
+
+var PASSTHROUGHS = [
+        "getSource",
+        "getTokens",
+        "getComments",
+        "getAllComments",
+        "getAncestors",
+        "getScope"
+    ];
+
+//------------------------------------------------------------------------------
+// Rule Definition
+//------------------------------------------------------------------------------
+
+/**
+ * Acts as an abstraction layer between rules and the main eslint object.
+ * @constructor
+ * @param {string} ruleId The ID of the rule using this object.
+ * @param {eslint} eslint The eslint object.
+ * @param {array} options the configuration information to be added to the rule
+ */
+function RuleContext(ruleId, eslint, options) {
+
+    /**
+     * The read-only ID of the rule.
+     */
+    Object.defineProperty(this, "id", {
+        value: ruleId
+    });
+
+    /**
+     * The read-only options of the rule
+     */
+    Object.defineProperty(this, "options", {
+        value: options
+    });
+
+    // copy over passthrough methods
+    PASSTHROUGHS.forEach(function(name) {
+        this[name] = function() {
+            return eslint[name].apply(eslint, arguments);
+        };
+    }, this);
+
+    /**
+     * Passthrough to eslint.report() that automatically assigns the rule ID.
+     * @param {ASTNode} node The AST node related to the message.
+     * @param {string} message The message to display to the user.
+     * @param {Object} opts Optional template data which produces a formatted message
+     *     with symbols being replaced by this object's values.
+     * @param {Object} related Optional related token or node.
+     * @returns {void}
+     */
+    this.report = function(node, message, opts, related) {
+        eslint.report(ruleId, node, message, opts, related);
+    };
+
+}
+
+RuleContext.prototype = {
+    constructor: RuleContext
+};
+
+module.exports = RuleContext;
+
+    return module.exports;
+}));

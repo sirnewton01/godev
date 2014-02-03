@@ -44,6 +44,8 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
             this._workspaceRootSegmentName = options.workspaceRootSegmentName;
 			this._workspaceRootURL = options.workspaceRootURL;
             this._makeHref = options.makeHref;
+            this._makeFinalHref = options.makeFinalHref;
+            this._maxLength = options.maxLength;
             this.path = "";
             this.measure();
             this.render();
@@ -106,7 +108,9 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
 		            }
 		
 		            collection.forEach(function (parent) {
-		
+						if(parent.skip) {
+							return;
+						}
 		                if (firstSegmentName) {
 		                    segmentName = firstSegmentName;
 		                    firstSegmentName = null;
@@ -177,12 +181,21 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
         },
 
         finalSegment: function (seg, firstSegmentName) {
-            seg = document.createElement('span'); //$NON-NLS-0$
+        	if(this._resource.skip) {
+        		return;
+        	}
+            var name;
             if (firstSegmentName) {
-                seg.appendChild(document.createTextNode(firstSegmentName));
-                firstSegmentName = null;
+                name = firstSegmentName;
             } else {
-				seg.appendChild(document.createTextNode(this._resource.Name));             
+				name = this._resource.Name;
+            }
+            if (this._makeFinalHref) {
+               seg = this.buildSegment(name); //$NON-NLS-0$
+               this.addSegmentHref(seg, this._resource);
+            } else {
+                seg = document.createElement('span'); //$NON-NLS-0$
+                seg.appendChild(document.createTextNode( name ));
             }
             seg.classList.add("currentLocation"); //$NON-NLS-0$
             this.path += this._resource.Name;
@@ -193,11 +206,13 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
             if (segment) {
                 this.append(segment);
 
-                if (this._resource && this._resource.Parents) {
+                if (this._resource && this._resource.Parents && !this._resource.skip) {
                     segment.classList.add("breadcrumb"); //$NON-NLS-0$
                     this.addDivider();
                 } else { // we are at the root.  Get rid of any href since we are already here
-                    segment.href = "";
+                    if(!this._resource.skip) {
+                    	segment.href = "";
+                    }
                     segment.classList.add("currentLocation"); //$NON-NLS-0$
                     return;
                 }
@@ -240,11 +255,15 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
 
         measure: function () {
         
-        	var middleWidth = document.getElementById( 'location' );
+        	var middleWidth = this._container;
 
 			middleWidth.style.width = 'auto';
-        
-        	this.MAX_LENGTH = middleWidth.offsetWidth;
+			
+			if(this._maxLength) {
+        		this.MAX_LENGTH = this._maxLength;
+			} else {
+        		this.MAX_LENGTH = middleWidth.offsetWidth;
+        	}
 
             this.refresh();
             

@@ -37,6 +37,10 @@
 	border: 0;
 }
 
+.inlineRulerLeft {
+	border-right: 1px solid #EAEAEA;
+}
+
 .compareEditorParent {
 	clear: both;
 	overflow: hidden;
@@ -46,6 +50,10 @@
     left: 0;
     width: 100%;
 	margin-bottom: 30px;  /* $Editor line number div height */   
+}
+
+.compareEditorParentImageMode {
+	overflow: auto !important;
 }
 
 .compareEditorParentWithCanvas {
@@ -64,11 +72,25 @@
 	overflow: hidden;
 }
 
-.titleContainer {
+.compareActionContainer {
+	float: left;
+	padding-top: 3px;
+	padding-bottom: 3px;
+	overflow: hidden;
+	background: #FFFFFF;
+}
+
+.titleActionContainer {
 	width:100%;
 	height:30px;
 	overflow: hidden;
-	background: #EEEEEE;
+	background: #EEEEEE
+}
+
+.titleContainer {
+	padding-left: 5px;
+	padding-top: 3px;
+	overflow: hidden;
 }
 
 .statusContainer {
@@ -102,9 +124,9 @@
 	left: 50%;  /* override this value if you want a different proportion of the two split panes */
 	height: 100%;
 	z-index: 50;
-	width: 3px;
+	width: 4px;
 	cursor: e-resize;
-	background: #dedede;
+	background: #dedede !important;
 	visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
 }
 

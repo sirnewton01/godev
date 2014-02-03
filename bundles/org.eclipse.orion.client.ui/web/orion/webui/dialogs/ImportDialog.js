@@ -34,7 +34,7 @@ define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui
 				'</div>' + //$NON-NLS-0$
 			'</div>' + //$NON-NLS-0$
 		'</div>' + //$NON-NLS-0$
-		'<div class="layoutBlock layoutRight"><input type="file" name="selectedFile" id="selectedFile" class="uploadChooser" /><span id="uploadButton" role="button" class="commandButton disabled" tabindex="0">${Upload}</span></div>' + //$NON-NLS-0$
+		'<div class="layoutBlock layoutRight"><input type="file" multiple name="selectedFile" id="selectedFile" class="uploadChooser" /><span id="uploadButton" role="button" class="commandButton disabled" tabindex="0">${Upload}</span></div>' + //$NON-NLS-0$
 	'</div>'; //$NON-NLS-0$
 	
 	ImportDialog.prototype._init = function(options) {
@@ -106,8 +106,10 @@ define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui
 			return;
 		}
 		if (this.$selectedFile.files && this.$selectedFile.files.length > 0) {
-			this.uploadFile(this.$selectedFile.files[0]);
-	    }
+		    for (var i = 0; i < this.$selectedFile.files.length; i++) {
+		        this.uploadFile(this.$selectedFile.files[i]);
+		    }
+		}
 
 	};
 

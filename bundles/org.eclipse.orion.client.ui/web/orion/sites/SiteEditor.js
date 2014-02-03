@@ -11,11 +11,22 @@
 /*global define orion*/
 /*jslint browser:true sub:true*/
 
-define(['i18n!orion/sites/nls/messages', 'orion/commands', 'orion/Deferred', 'orion/section',
-	'orion/objects', 'orion/sites/siteMappingsTable', 'orion/i18nUtil', 'orion/webui/littlelib', 'orion/EventTarget',
-	'orion/webui/dialogs/DirectoryPrompterDialog', 'orion/webui/dialog',
-	'text!orion/sites/templates/SiteEditor.html', 'text!orion/sites/templates/ConvertToSelfHostingDialog.html'],
-	function(messages, mCommands, Deferred, mSection, objects, mSiteMappingsTable, i18nUtil, lib, EventTarget,
+define([
+	'i18n!orion/sites/nls/messages',
+	'i18n!orion/widgets/nls/messages',
+	'orion/commands',
+	'orion/Deferred',
+	'orion/section',
+	'orion/objects',
+	'orion/sites/siteMappingsTable',
+	'orion/i18nUtil',
+	'orion/webui/littlelib',
+	'orion/EventTarget',
+	'orion/webui/dialogs/DirectoryPrompterDialog',
+	'orion/webui/dialog',
+	'text!orion/sites/templates/SiteEditor.html',
+	'text!orion/sites/templates/ConvertToSelfHostingDialog.html'
+], function(messages, widgetMessages, mCommands, Deferred, mSection, objects, mSiteMappingsTable, i18nUtil, lib, EventTarget,
 		DirPrompter, dialog, SiteEditorTemplate, ConvertToSelfHostingDialogTemplate) {
 var Dialog = dialog.Dialog;
 
@@ -27,48 +38,94 @@ var ConvertToSelfHostingDialog = function(options) {
 };
 ConvertToSelfHostingDialog.prototype = new Dialog();
 objects.mixin(ConvertToSelfHostingDialog.prototype, {
-	DEFAULT_PORT: 8080,
 	TEMPLATE: ConvertToSelfHostingDialogTemplate,
 	_init: function(options) {
 		this.title = options.title || messages['Convert to Self-Hosting']; //$NON-NLS-1$
 		this.buttons = [{ text: messages['OK'], callback: this.okButtonClicked.bind(this) }];
 		this.modal = true;
+		this.folders = this.selfHostingConfig.folders;
 
 		this.messages = {};
 		objects.mixin(this.messages, messages);
-		this.messages['SelectRepoSourceFolder'] = i18nUtil.formatMessage(messages['SelectRepoSourceFolder'], ["org.eclipse.orion.client"]); //$NON-NLS-0$
-		this.messages['EnterPortNumber'] = i18nUtil.formatMessage(messages['EnterPortNumber'], this.DEFAULT_PORT); //$NON-NLS-1$
+		this.messages['LabelSelectRequired'] = (this.folders.length === 1) ? messages['SelectRequiredFoldersSingle'] : messages['SelectRequiredFolders'];  //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$
 
 		this._initialize();
 	},
 	_bindToDom: function() {
-		var self = this;
 		this.$okButton = this.$buttonContainer.firstChild;
 		this.$okButton.classList.add('disabled'); //$NON-NLS-0$
-		this.$browseButton.addEventListener('click', function() { //$NON-NLS-0$
-			var browseFolderDialog = new DirPrompter.DirectoryPrompterDialog({
-				title: messages["Choose Orion Source Folder"], //$NON-NLS-1$
-				serviceRegistry: this.serviceRegistry,
-				fileClient: this.fileClient,
-				func: this.onFolderChosen.bind(this)
-			});
-			self._addChildDialog(browseFolderDialog);
-			browseFolderDialog.show();
-		}.bind(this));
-		this.$port.addEventListener('change', function() { //$NON-NLS-1$
-			this.portNumber = parseInt(this.$port.value, 10);
-			this.updateValidity();
-		}.bind(this));
-		this.portNumber = this.$port.value = this.DEFAULT_PORT;
+
+		this.browseButtons = [];
+		this.folderTexts = [];
+
+		this.appendFolderElements();
+
 		this.updateValidity();
 	},
-	onFolderChosen: function(folder) {
-		this.folder = folder;
-		this.$folderText.textContent = folder ? folder.Name : ''; //$NON-NLS-1$
+	appendFolderElements: function() {
+		// Append form elements for folders
+		var self = this;
+		var folderFragment = document.createDocumentFragment();
+		this.folders.forEach(function(folder, folderIndex) {
+			// Prompt
+			var li = document.createElement('li'); //$NON-NLS-0$
+			li.className = 'msg pad2'; //$NON-NLS-0$
+			var label = document.createElement('div'); //$NON-NLS-0$
+			//label.textContent = i18nUtil.formatMessage(messages['FolderPrompt'], folder.name, folder.label); //$NON-NLS-0$
+			label.textContent = messages['FolderPrompt']; //$NON-NLS-0$
+			var nameNode = document.createElement('span'); //$NON-NLS-0$
+			nameNode.className = 'folderName'; //$NON-NLS-0$
+			nameNode.textContent = folder.name;
+			lib.processDOMNodes(label, [nameNode, document.createTextNode(folder.label)]);
+			li.appendChild(label);
+			folderFragment.appendChild(li);
+
+			// Button
+			li = document.createElement('li'); //$NON-NLS-0$
+			li.className = 'pad1'; //$NON-NLS-0$
+			var col = document.createElement('div'); //$NON-NLS-0$
+			col.className = 'col'; //$NON-NLS-0$
+			var button = document.createElement('button'); //$NON-NLS-0$
+			button.className = 'browseButton commandButton'; //$NON-NLS-0$
+			button.textContent = widgetMessages['Browse...']; //$NON-NLS-0$
+			button.type = 'button'; //$NON-NLS-0$
+			var folderText = document.createElement('span'); //$NON-NLS-0$
+			folderText.className = 'folderText'; //$NON-NLS-0$
+			col.appendChild(button);
+			col.appendChild(folderText);
+			li.appendChild(col);
+			self.browseButtons.push(button);
+			self.folderTexts.push(folderText);
+			folderFragment.appendChild(li);
+
+			button.addEventListener('click', self.showChooseFolderDialog.bind(self, folderIndex)); //$NON-NLS-0$
+		});
+		self.$selectRequired.parentNode.appendChild(folderFragment, null);
+	},
+	showChooseFolderDialog: function(folderIndex) {
+		var folderInfo = this.folders[folderIndex];
+		// TODO The DirectoryPrompterDialog should support restricting itself to a single filesystem, and hiding the
+		// root FS element. This would be friendlier.
+		var browseFolderDialog = new DirPrompter.DirectoryPrompterDialog({
+			title: i18nUtil.formatMessage(messages["LocateFolderTitle"], folderInfo.name), //$NON-NLS-0$
+			serviceRegistry: this.serviceRegistry,
+			fileClient: this.fileClient,
+			func: this.onFolderChosen.bind(this, folderIndex)
+		});
+		this._addChildDialog(browseFolderDialog);
+		browseFolderDialog.show();
+	},
+	onFolderChosen: function(folderIndex, chosenFolder) {
+		var folderInfo = this.folders[folderIndex];
+		folderInfo.folder = chosenFolder;
+		this.folderTexts[folderIndex].textContent = chosenFolder ? chosenFolder.Name : ''; //$NON-NLS-0$
 		this.updateValidity();
 	},
 	isValid: function() {
-		return (this.folder && !isNaN(this.portNumber) && this.portNumber > 0);
+		var allFoldersChosen = this.folders.every(function(folderInfo) {
+			return folderInfo.folder;
+		});
+		return allFoldersChosen;
 	},
 	updateValidity: function() {
 		if (!this.isValid()) {
@@ -81,7 +138,7 @@ objects.mixin(ConvertToSelfHostingDialog.prototype, {
 		if (this.isValid()) {
 			this.hide();
 			if (typeof this.options.func === 'function') { //$NON-NLS-1$
-				this.options.func(this.folder, this.portNumber);
+				this.options.func(this.folders);
 			}
 		}
 	}
@@ -194,7 +251,6 @@ objects.mixin(SiteEditor.prototype, {
 				visibleWhen: function(item) {
 					return !!item.Location && canSelfHost && !self._isSelfHostingSite;
 				},
-				// FIXME selfhosting 
 				callback: self.convertToSelfHostedSite.bind(self)});
 			self._commandService.addCommand(convertCommand);
 		});
@@ -280,23 +336,43 @@ objects.mixin(SiteEditor.prototype, {
 	},
 
 	// Special feature for setting up self-hosting
-	// TODO ideally this logic would be defined entirely by a plugin. It is here because of the dialog (UI) dependency
 	convertToSelfHostedSite: function(items, userData) {
-		var self = this;
-		var dialog = new ConvertToSelfHostingDialog({
-			serviceRegistry: this.serviceRegistry,
-			fileClient: this.fileClient,
-			siteClient: this._siteClient,
-			func: function(folder, port) {
-				self._siteClient.convertToSelfHosting(self.getSiteConfiguration(), folder.Location, port).then(
-					function(updatedSite) {
-						self.mappings.deleteAllMappings();
-						self.mappings.addMappings(updatedSite.Mappings);
-						self.save();
-					});
+		function onError(e) {
+			return e;
+		}
+
+		// Load the translated labels first so dialog can be constructed synchronously
+		var selfHostingConfig = this._siteClient.getSelfHostingConfig();
+		var i18nLoaded = [];
+		selfHostingConfig.folders.forEach(function(folderInfo) {
+			if (folderInfo.nls) {
+				i18nLoaded.push(i18nUtil.getMessageBundle(folderInfo.nls).then(function(bundle) {
+					folderInfo.label = bundle[folderInfo.labelKey] || folderInfo.label || folderInfo.labelKey;
+				}));
 			}
 		});
-		dialog.show();
+
+		Deferred.all(i18nLoaded, onError).then(function() {
+			var self = this;
+			var dialog = new ConvertToSelfHostingDialog({
+				serviceRegistry: this.serviceRegistry,
+				fileClient: this.fileClient,
+				siteClient: this._siteClient,
+				selfHostingConfig: selfHostingConfig,
+				func: function(folderInfos) {
+					var folderLocations = folderInfos.map(function(folderInfo) {
+						return folderInfo.folder.Location;
+					});
+					self._siteClient.convertToSelfHosting(self.getSiteConfiguration(), folderLocations).then(
+						function(updatedSite) {
+							self.mappings.deleteAllMappings();
+							self.mappings.addMappings(updatedSite.Mappings);
+							self.save();
+						});
+				}
+			});
+			dialog.show();
+		}.bind(this));
 	},
 	
 	/**
@@ -407,12 +483,12 @@ objects.mixin(SiteEditor.prototype, {
 		var hostStatus = this._siteConfiguration.HostingStatus;
 		if (hostStatus && hostStatus.Status === "started") { //$NON-NLS-0$
 			this.siteStartedWarning.style.display = "block"; //$NON-NLS-0$
-			this.hostingStatus.textContent = messages["Started at "];
+			this.hostingStatus.textContent = messages["Started"];
 			var a = document.createElement("a"); //$NON-NLS-0$
 			a.href = hostStatus.URL;
 			a.target = "_new"; //$NON-NLS-0$
-			this.hostingStatus.appendChild(a);
 			a.textContent = hostStatus.URL;
+			lib.processDOMNodes(this.hostingStatus, [a]);
 		} else if (hostStatus && hostStatus.Status === "stopped") {//$NON-NLS-0$
 			this.siteStartedWarning.style.display = "none"; //$NON-NLS-0$
 			this.hostingStatus.textContent = messages["Stopped"];

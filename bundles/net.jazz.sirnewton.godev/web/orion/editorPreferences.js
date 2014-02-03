@@ -33,6 +33,10 @@ define([], function() {
 		showBlame: true,
 		// END GODEV CUSTOMIZATION
 		showBlameVisible: true,
+		contentAssistAutoTrigger: true,
+		contentAssistAutoTriggerVisible: true,
+		showOccurrences: false,
+		showOccurrencesVisible: true,
 		autoPairParentheses: true,
 		autoPairParenthesesVisible: true,
 		autoPairBraces: true,

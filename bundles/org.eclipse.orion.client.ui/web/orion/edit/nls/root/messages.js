@@ -13,6 +13,8 @@
 //NLS_CHARSET=UTF-8
 
 define({
+	"Editor": "Editor", //$NON-NLS-1$ //$NON-NLS-0$
+	"switchEditor": "Switch Editor", //$NON-NLS-1$ //$NON-NLS-0$
 	"Fetching": "Fetching: ${0}", //$NON-NLS-1$ //$NON-NLS-0$
 	"confirmUnsavedChanges": "There are unsaved changes.  Do you still want to navigate away?", //$NON-NLS-1$ //$NON-NLS-0$
 	"searchFiles": "Search Files", //$NON-NLS-1$ //$NON-NLS-0$
@@ -49,7 +51,13 @@ define({
 	"NoFile": "Use the ${0} to create new files and folders. Click a file to start coding.", //$NON-NLS-1$ //$NON-NLS-0$
 	"LocalEditorSettings": "Local Editor Settings", //$NON-NLS-1$ //$NON-NLS-0$
 	"NoProject": "${0} is not a project. To convert it to a project use ${1}.", //$NON-NLS-1$ //$NON-NLS-0$
+	"NoProjects": "There are no projects in your workspace. Use ${0} to create projects.", //$NON-NLS-1$ //$NON-NLS-0$
+	"disconnected": "(disconnected)", //$NON-NLS-1$ //$NON-NLS-0$
 	"ChooseFS": "Choose Filesystem", //$NON-NLS-1$ //$NON-NLS-0$
 	"ChooseFSTooltip": "Choose the filesystem you want to view.", //$NON-NLS-1$ //$NON-NLS-0$
-	"FSTitle": "${0} (${1})" //$NON-NLS-1$ //$NON-NLS-0$
+	"FSTitle": "${0} (${1})", //$NON-NLS-1$ //$NON-NLS-0$
+	"Deploy": "Deploy", //$NON-NLS-1$ //$NON-NLS-0$
+	"ImportExport": "Import/Export", //$NON-NLS-1$ //$NON-NLS-0$
+	"OpenWith": "Open with...", //$NON-NLS-1$ //$NON-NLS-0$
+	"Extensions": "Extensions" //$NON-NLS-1$ //$NON-NLS-0$
 });

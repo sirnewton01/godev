@@ -655,8 +655,12 @@ exports.DiffBlockFeeder = (function() {
 	
 	DiffBlockFeeder.prototype = /** @lends orion.DiffTreeNavigator.TwoWayDiffBlockFeeder.prototype */ {
 		
+		_isAddedSide: function(){
+			return this._mapperColumnIndex === 0;
+		},
+				
 		getWordAnnoTypes: function(result){
-			if(this._mapperColumnIndex === 0){
+			if(this._isAddedSide()){
 				result.push({type: "word", current: DiffAnnoTypes.ANNO_DIFF_CURRENT_ADDED_WORD, normal: DiffAnnoTypes.ANNO_DIFF_ADDED_WORD, list: []}); //$NON-NLS-0$
 			} else {
 				result.push({type: "word", current: DiffAnnoTypes.ANNO_DIFF_CURRENT_DELETED_WORD, normal: DiffAnnoTypes.ANNO_DIFF_DELETED_WORD, list: []}); //$NON-NLS-0$
@@ -669,13 +673,13 @@ exports.DiffBlockFeeder = (function() {
  
 		getCurrentWordAnnoType: function(annoPosition, textModel){
 			if(annoPosition.start === annoPosition.end && textModel){
-				if(this._mapperColumnIndex === 0){
+				if(this._isAddedSide()){
 					return {current: this._repositionEmptyWord(annoPosition, textModel), normal: DiffAnnoTypes.ANNO_DIFF_ADDED_WORD};
 				} else {
 					return {current: this._repositionEmptyWord(annoPosition, textModel), normal: DiffAnnoTypes.ANNO_DIFF_DELETED_WORD};
 				}
 			} else {
-				if(this._mapperColumnIndex === 0){
+				if(this._isAddedSide()){
 					return {current: DiffAnnoTypes.ANNO_DIFF_CURRENT_ADDED_WORD, normal: DiffAnnoTypes.ANNO_DIFF_ADDED_WORD};
 				} else {
 					return {current: DiffAnnoTypes.ANNO_DIFF_CURRENT_DELETED_WORD, normal: DiffAnnoTypes.ANNO_DIFF_DELETED_WORD};
@@ -690,10 +694,10 @@ exports.DiffBlockFeeder = (function() {
 			if(lineStart !== lineEnd){
 				if(annoPosition.start === lineEnd){
 					annoPosition.start--;
-					return this._mapperColumnIndex === 0 ? DiffAnnoTypes.ANNO_DIFF_EMPTY_ADDED_WORD_RIGHT : DiffAnnoTypes.ANNO_DIFF_EMPTY_DELETED_WORD_RIGHT;
+					return this._isAddedSide() ? DiffAnnoTypes.ANNO_DIFF_EMPTY_ADDED_WORD_RIGHT : DiffAnnoTypes.ANNO_DIFF_EMPTY_DELETED_WORD_RIGHT;
 				}
 				annoPosition.end++;
-				return this._mapperColumnIndex === 0 ? DiffAnnoTypes.ANNO_DIFF_EMPTY_ADDED_WORD_LEFT : DiffAnnoTypes.ANNO_DIFF_EMPTY_DELETED_WORD_LEFT;
+				return this._isAddedSide() ? DiffAnnoTypes.ANNO_DIFF_EMPTY_ADDED_WORD_LEFT : DiffAnnoTypes.ANNO_DIFF_EMPTY_DELETED_WORD_LEFT;
 			} else if (lineIndex > 0){
 				lineIndex--;
 				lineStart = textModel.getLineStart(lineIndex);
@@ -701,10 +705,10 @@ exports.DiffBlockFeeder = (function() {
 				if(lineStart !== lineEnd){
 					annoPosition.start = lineEnd -1;
 					annoPosition.end = lineEnd;
-					return this._mapperColumnIndex === 0 ? DiffAnnoTypes.ANNO_DIFF_EMPTY_ADDED_WORD_RIGHT : DiffAnnoTypes.ANNO_DIFF_EMPTY_DELETED_WORD_RIGHT;
+					return this._isAddedSide() ? DiffAnnoTypes.ANNO_DIFF_EMPTY_ADDED_WORD_RIGHT : DiffAnnoTypes.ANNO_DIFF_EMPTY_DELETED_WORD_RIGHT;
 				}
 			}
-			return this._mapperColumnIndex === 0 ? DiffAnnoTypes.ANNO_DIFF_EMPTY_ADDED_WORD_LEFT : DiffAnnoTypes.ANNO_DIFF_EMPTY_DELETED_WORD_LEFT;
+			return this._isAddedSide() ? DiffAnnoTypes.ANNO_DIFF_EMPTY_ADDED_WORD_LEFT : DiffAnnoTypes.ANNO_DIFF_EMPTY_DELETED_WORD_LEFT;
 		},
 		
 		getMapper: function(){
@@ -775,12 +779,18 @@ exports.TwoWayDiffBlockFeeder = (function() {
 	 * @param {orion.editor.TextModel} The text model of the whole text.
 	 * @param {array} The mapper generated from the unified diff.
 	 * @param {integer} The column index where the line index can be calculated.
+	 * @param {Boolean} reverseAnnotation Normally the left hand side fo the compare is annotated as geen and the right hand side uses red.
+	 *        If this flag is true, we use green annotations on the right and red on the left.
 	 */
-	function TwoWayDiffBlockFeeder(model, mapper, mapperColumnIndex) {
+	function TwoWayDiffBlockFeeder(model, mapper, mapperColumnIndex, reverseAnnotation) {
 	    this._mapperColumnIndex = mapperColumnIndex;
+	    this._reverseAnnotation = reverseAnnotation;
 	    this.init(model, mapper);
 	}
 	TwoWayDiffBlockFeeder.prototype = new exports.DiffBlockFeeder(); 
+	TwoWayDiffBlockFeeder.prototype._isAddedSide = function(){
+		return (this._reverseAnnotation ? this._mapperColumnIndex !== 0 : this._mapperColumnIndex === 0);
+	};
 	TwoWayDiffBlockFeeder.prototype.init = function(model, mapper){
 	    this._textModel = model;
 		this._diffBlocks = undefined;
@@ -797,7 +807,7 @@ exports.TwoWayDiffBlockFeeder = (function() {
 		}
 	};
 	TwoWayDiffBlockFeeder.prototype.getBlockAnnoTypes = function(result){
-		if(this._mapperColumnIndex === 0){
+		if(this._isAddedSide()){
 			result.push({type: "block", normal: DiffAnnoTypes.ANNO_DIFF_ADDED_BLOCK, current: DiffAnnoTypes.ANNO_DIFF_CURRENT_ADDED_BLOCK, list: []}); //$NON-NLS-0$
 		} else {
 			result.push({type: "block", normal: DiffAnnoTypes.ANNO_DIFF_DELETED_BLOCK, current: DiffAnnoTypes.ANNO_DIFF_CURRENT_DELETED_BLOCK, list: []}); //$NON-NLS-0$
@@ -814,7 +824,7 @@ exports.TwoWayDiffBlockFeeder = (function() {
 			return {normal: DiffAnnoTypes.ANNO_DIFF_BLOCK_TOPONLY, current: DiffAnnoTypes.ANNO_DIFF_CURRENT_BLOCK_TOPONLY};
 		} else if(mCompareUtils.isMapperConflict(this.getMapper(), mapperIndex)){
 			return {normal: DiffAnnoTypes.ANNO_DIFF_BLOCK_CONFLICT, current: DiffAnnoTypes.ANNO_DIFF_CURRENT_BLOCK_CONFLICT};
-		} else if(this._mapperColumnIndex === 0){
+		} else if(this._isAddedSide()){
 			return {type: "block", normal: DiffAnnoTypes.ANNO_DIFF_ADDED_BLOCK, current: DiffAnnoTypes.ANNO_DIFF_CURRENT_ADDED_BLOCK, list: []}; //$NON-NLS-0$
 		} 
 		return {type: "block", normal: DiffAnnoTypes.ANNO_DIFF_DELETED_BLOCK, current: DiffAnnoTypes.ANNO_DIFF_CURRENT_DELETED_BLOCK, list: []}; //$NON-NLS-0$
@@ -851,7 +861,7 @@ exports.inlineDiffBlockFeeder = (function() {
 			var curGapLineindex = 0;//zero based
 			for (var i = 0 ; i < this._mapper.length ; i++){
 				if((this._mapper[i][2] !== 0)){
-					if(this._mapperColumnIndex === 0){//adding block
+					if(this._isAddedSide()){//adding block
 						var startLineIndex = curLineindex + this._mapper[i][1];
 						this._diffBlocks.push([startLineIndex , i]);
 						this._gapBlocks.push([startLineIndex , startLineIndex + this._mapper[i][0], curGapLineindex]);
@@ -869,7 +879,7 @@ exports.inlineDiffBlockFeeder = (function() {
 		}
 	};
 	inlineDiffBlockFeeder.prototype.getBlockAnnoTypes = function(result){
-		if(this._mapperColumnIndex === 0){
+		if(this._isAddedSide()){
 			result.push({type: "block", normal: DiffAnnoTypes.ANNO_DIFF_ADDED_BLOCK, current: DiffAnnoTypes.ANNO_DIFF_CURRENT_ADDED_BLOCK, list: []}); //$NON-NLS-0$
 		} else {
 			result.push({type: "block", normal: DiffAnnoTypes.ANNO_DIFF_DELETED_BLOCK, current: DiffAnnoTypes.ANNO_DIFF_CURRENT_DELETED_BLOCK, list: []}); //$NON-NLS-0$
@@ -889,7 +899,7 @@ exports.inlineDiffBlockFeeder = (function() {
 			return({current: DiffAnnoTypes.ANNO_DIFF_CURRENT_ADDED_WORD, normal: DiffAnnoTypes.ANNO_DIFF_ADDED_WORD});
 		} else if(mCompareUtils.isMapperConflict(this.getMapper(), mapperIndex)){
 			return {normal: DiffAnnoTypes.ANNO_DIFF_BLOCK_CONFLICT, current: DiffAnnoTypes.ANNO_DIFF_CURRENT_BLOCK_CONFLICT};
-		} else if(this._mapperColumnIndex === 0){
+		} else if(this._isAddedSide()){
 			return {type: "block", normal: DiffAnnoTypes.ANNO_DIFF_ADDED_BLOCK, current: DiffAnnoTypes.ANNO_DIFF_CURRENT_ADDED_BLOCK, list: []}; //$NON-NLS-0$
 		} 
 		return {type: "block", normal: DiffAnnoTypes.ANNO_DIFF_DELETED_BLOCK, current: DiffAnnoTypes.ANNO_DIFF_CURRENT_DELETED_BLOCK, list: []}; //$NON-NLS-0$

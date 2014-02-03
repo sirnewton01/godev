@@ -64,13 +64,7 @@ searchUtils.doSearch = function(searcher, serviceRegistry, searchStr, advOptions
 			}
 			var searchParams = searcher.createSearchParams(newSearchStr, false, false, advOptions);
 			var href = searchUtils.generateSearchHref(searchParams);
-			searchUtils.getOpenSearchPref(serviceRegistry, function(openInNewTab){
-				if(openInNewTab){
-					window.open(href);
-				} else {
-					window.location = href;
-				}
-			});
+			window.location = href;
 		}
 	} else {
 		window.alert(messages["Can't search: no search service is available"]);
@@ -512,12 +506,12 @@ searchUtils.path2FolderName = function(filePath, fileName, keepTailSlash){
 
 var MAX_RECENT_SEARCH_NUMBER = 20;
 
-searchUtils._storeRecentSearch = function(serviceRegistry, searches, eventTarget){
+searchUtils._storeRecentSearch = function(serviceRegistry, searches, eventTarget, deleting){
 	serviceRegistry.getService("orion.core.preference").getPreferences("/window/favorites").then(function(prefs) {  //$NON-NLS-1$ //$NON-NLS-0$
 		prefs.put("recentSearch", searches); //$NON-NLS-0$
 		if(eventTarget) {
 			window.setTimeout(function() {
-				eventTarget.dispatchEvent({type:"recentSearchesChanged"}); //$NON-NLS-0$
+				eventTarget.dispatchEvent({type:"inputDataListChanged", deleting: deleting}); //$NON-NLS-0$
 			}.bind(this), 20);
 		}
 	});
@@ -566,7 +560,7 @@ searchUtils.removeRecentSearch = function(serviceRegistry, searchName, eventTarg
 			for (i in searches) {
 				if (searches[i].name === searchName) {
 					searches.splice(i, 1);
-					searchUtils._storeRecentSearch(serviceRegistry, searches, eventTarget);
+					searchUtils._storeRecentSearch(serviceRegistry, searches, eventTarget, true);
 					break;
 				}
 			}

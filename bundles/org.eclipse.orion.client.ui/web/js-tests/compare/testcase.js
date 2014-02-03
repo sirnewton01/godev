@@ -11,7 +11,15 @@
 /*global define JsDiff*/
 /*jslint forin:true regexp:false sub:true*/
 
-define(["orion/assert", "orion/compare/diffParser", "orion/compare/jsdiffAdapter", "mapper-test-data.js", 'jsdiff/diff'], function(assert, mDiffParser, mJSDiffAdapter, mMapperTestData) {
+define(['orion/assert', 
+		'orion/compare/diffParser', 
+		'orion/compare/jsdiffAdapter', 
+		'orion/compare/diffTreeNavigator', 
+		'orion/compare/compareUtils',
+		'orion/editor/textModel',
+		'mapper-test-data.js', 
+		'jsdiff/diff'], 
+function(assert, mDiffParser, mJSDiffAdapter, mDiffTreeNavigator, mCompareUtils, mTextModel, mMapperTestData) {
 	var tests = {};
 	var mapperTestCases = mMapperTestData.mapperTestCases;
 
@@ -161,6 +169,37 @@ define(["orion/assert", "orion/compare/diffParser", "orion/compare/jsdiffAdapter
 		
 	};
 	
+	var _generateMapper = function(input, output, diff){
+		var delim = "\n"; //$NON-NLS-0$
+		if(typeof output === "string" && typeof input === "string"){ //$NON-NLS-1$ //$NON-NLS-0$
+			var adapter = new mJSDiffAdapter.JSDiffAdapter();
+			var maps = adapter.adapt(input, output, delim);
+			return {delim:delim , mapper:maps.mapper, output: output, diffArray:maps.changContents};
+		} else {
+			var diffParser = new mDiffParser.DiffParser(delim);
+			var result = diffParser.parse(input, diff, false, true);
+			var diffArray = diffParser.getDiffArray();
+			return {delim:delim , mapper:result.mapper, output: result.outPutFile, diffArray:diffArray};
+		}
+	};
+	
+	var testMergeDiffBlocks = function (options, expectedResult){
+		var input = options.oldFile.Content;
+		var output = options.newFile ? options.newFile.Content : null;
+		var diff = options.diffContent;
+
+		var result = _generateMapper(input, output, diff);
+		if(typeof output !== "string"){ //$NON-NLS-0$
+			output = result.output;
+		}
+		var textModel = new mTextModel.TextModel(input, "\n");
+		//Merge the text with diff 
+		var rFeeder = new mDiffTreeNavigator.inlineDiffBlockFeeder(result.mapper, 1);
+		var lFeeder = new mDiffTreeNavigator.inlineDiffBlockFeeder(result.mapper, 0);
+		mCompareUtils.mergeDiffBlocks(textModel, lFeeder.getDiffBlocks(), result.mapper, result.diffArray.array, result.diffArray.index, "\n"); //$NON-NLS-0$
+		assert.equal(textModel.getText(), expectedResult);
+	};
+	
 	testMapper(mapperTestCases);
 	testJSDiffPatch(mapperTestCases, null, [23,29,31,39,40]);
 	testJSDiffAdapter(mapperTestCases);
@@ -244,6 +283,265 @@ define(["orion/assert", "orion/compare/diffParser", "orion/compare/jsdiffAdapter
 		var adapter = new mJSDiffAdapter.JSDiffAdapter();
 		var result = adapter.adapt(input, output, "\n"); //$NON-NLS-0$
 		_mapperPartialEqual(result.mapper, expectedMapping);
+	};
+	
+	/*
+	 * Changing one line file without line delimeter (old file + new file)
+	 */
+	//https://bugs.eclipse.org/bugs/show_bug.cgi?id=423442
+	tests["test merge inline text model -- 1"] = function() { //$NON-NLS-0$
+		var oldFile = "123"; //$NON-NLS-0$
+		var newFile = "234"; //$NON-NLS-0$
+		var mergedFile = "123\n" +  //$NON-NLS-0$
+		  				 "234\n"; //$NON-NLS-0$
+		testMergeDiffBlocks(
+			{oldFile: {Content: oldFile}, newFile: {Content: newFile}},
+			mergedFile
+		);
+	};
+	
+	/*
+	 * Changing all 3 lines in the file without line delimeter (old file + new file) 
+	 */
+	//https://bugs.eclipse.org/bugs/show_bug.cgi?id=423442
+	tests["test merge inline text model -- 2"] = function() { //$NON-NLS-0$
+		var oldFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333" +  //$NON-NLS-0$
+		  "";
+		var newFile = "1111\n" +  //$NON-NLS-0$
+		  "2222\n" +  //$NON-NLS-0$
+		  "3333" +  //$NON-NLS-0$
+		  "";
+		var mergedFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333\n" +  //$NON-NLS-0$
+		  "1111\n" +  //$NON-NLS-0$
+		  "2222\n" +  //$NON-NLS-0$
+		  "3333\n"; //$NON-NLS-0$
+		testMergeDiffBlocks(
+			{oldFile: {Content: oldFile}, newFile: {Content: newFile}},
+			mergedFile
+		);
+	};
+	
+	/*
+	 *Changing last line in a file with 3 lines without last line delimeter (old file + new file) 
+	 */
+	//https://bugs.eclipse.org/bugs/show_bug.cgi?id=423442
+	tests["test merge inline text model -- 3"] = function() { //$NON-NLS-0$
+		var oldFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333" +  //$NON-NLS-0$
+		  "";
+		var newFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "3333" +  //$NON-NLS-0$
+		  "";
+		var mergedFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333\n" +  //$NON-NLS-0$
+		  "3333\n"; //$NON-NLS-0$
+		testMergeDiffBlocks(
+			{oldFile: {Content: oldFile}, newFile: {Content: newFile}},
+			mergedFile
+		);
+	};
+	
+	/*
+	 * Changing the middle line in a file with 3 lines without last line delimeter (old file + new file)
+	 */
+	tests["test merge inline text model -- 4"] = function() { //$NON-NLS-0$
+		var oldFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333" +  //$NON-NLS-0$
+		  "";
+		var newFile = "111\n" +  //$NON-NLS-0$
+		  "2222\n" +  //$NON-NLS-0$
+		  "333" +  //$NON-NLS-0$
+		  "";
+		var mergedFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "2222\n" +  //$NON-NLS-0$
+		  "333"; //$NON-NLS-0$
+		testMergeDiffBlocks(
+			{oldFile: {Content: oldFile}, newFile: {Content: newFile}},
+			mergedFile
+		);
+	};
+	
+	/*
+	 * Changing the middle line in a file with 3 lines with last line delimeter (old file + new file)
+	 */
+	tests["test merge inline text model -- 5"] = function() { //$NON-NLS-0$
+		var oldFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333\n" +  //$NON-NLS-0$
+		  "";
+		var newFile = "111\n" +  //$NON-NLS-0$
+		  "2222\n" +  //$NON-NLS-0$
+		  "333\n" +  //$NON-NLS-0$
+		  "";
+		var mergedFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "2222\n" +  //$NON-NLS-0$
+		  "333\n"; //$NON-NLS-0$
+		testMergeDiffBlocks(
+			{oldFile: {Content: oldFile}, newFile: {Content: newFile}},
+			mergedFile
+		);
+	};
+	
+	/*
+	 * Changing one line file without line delimeter (old file+ diff)
+	 */
+	//https://bugs.eclipse.org/bugs/show_bug.cgi?id=423442
+	tests["test merge inline text model -- 6"] = function() { //$NON-NLS-0$
+		var oldFile = "123"; //$NON-NLS-0$
+		var diff =
+		"diff --git a/testMergeInline.js b/testMergeInline.js\n" + //$NON-NLS-0$
+		"index d800886..df689d8 100644\n" + //$NON-NLS-0$
+		"--- a/testMergeInline.js\n" + //$NON-NLS-0$
+		"+++ b/testMergeInline.js\n" + //$NON-NLS-0$
+		"@@ -1 +1 @@\n" + //$NON-NLS-0$
+		"-123\n" + //$NON-NLS-0$
+		"\\ No newline at end of file\n" + //$NON-NLS-0$
+		"+234\n" + //$NON-NLS-0$
+		"\\ No newline at end of file\n" + //$NON-NLS-0$
+		"";
+		var mergedFile = "123\n" +  //$NON-NLS-0$
+		  				 "234\n"; //$NON-NLS-0$
+		testMergeDiffBlocks(
+			{oldFile: {Content: oldFile}, diffContent: diff},
+			mergedFile
+		);
+	};
+	
+	/*
+	 * Changing all 3 lines in the file without line delimeter (old file+ diff)
+	 */
+	//https://bugs.eclipse.org/bugs/show_bug.cgi?id=423442
+	tests["test merge inline text model -- 7"] = function() { //$NON-NLS-0$
+		var oldFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333" +  //$NON-NLS-0$
+		  "";
+		var diff =
+		"diff --git a/testMergeInline.js b/testMergeInline.js\n" + //$NON-NLS-0$
+		"index d800886..df689d8 100644\n" + //$NON-NLS-0$
+		"--- a/testMergeInline.js\n" + //$NON-NLS-0$
+		"+++ b/testMergeInline.js\n" + //$NON-NLS-0$
+		"@@ -1,3 +1,3 @@\n" + //$NON-NLS-0$
+		"-111\n" + //$NON-NLS-0$
+		"-222\n" + //$NON-NLS-0$
+		"-333\n" + //$NON-NLS-0$
+		"\\ No newline at end of file\n" + //$NON-NLS-0$
+		"+1111\n" + //$NON-NLS-0$
+		"+2222\n" + //$NON-NLS-0$
+		"+3333\n" + //$NON-NLS-0$
+		"\\ No newline at end of file\n" + //$NON-NLS-0$
+		"";
+		var mergedFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333\n" +  //$NON-NLS-0$
+		  "1111\n" +  //$NON-NLS-0$
+		  "2222\n" +  //$NON-NLS-0$
+		  "3333\n"; //$NON-NLS-0$
+		testMergeDiffBlocks(
+			{oldFile: {Content: oldFile}, diffContent: diff},
+			mergedFile
+		);
+	};
+	
+	/*
+	 *Changing last line in a file with 3 lines without last line delimeter (old file + diff) 
+	 */
+	//https://bugs.eclipse.org/bugs/show_bug.cgi?id=423442
+	tests["test merge inline text model -- 8"] = function() { //$NON-NLS-0$
+		var oldFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333" +  //$NON-NLS-0$
+		  "";
+		var diff =
+		"diff --git a/testMergeInline.js b/testMergeInline.js\n" + //$NON-NLS-0$
+		"index d800886..df689d8 100644\n" + //$NON-NLS-0$
+		"--- a/testMergeInline.js\n" + //$NON-NLS-0$
+		"+++ b/testMergeInline.js\n" + //$NON-NLS-0$
+		"@@ -1,3 +1,3 @@\n" + //$NON-NLS-0$
+		" 111\n" + //$NON-NLS-0$
+		" 222\n" + //$NON-NLS-0$
+		"-333\n" + //$NON-NLS-0$
+		"\\ No newline at end of file\n" + //$NON-NLS-0$
+		"+3333\n" + //$NON-NLS-0$
+		"\\ No newline at end of file\n" + //$NON-NLS-0$
+		"";
+		var mergedFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333\n" +  //$NON-NLS-0$
+		  "3333\n"; //$NON-NLS-0$
+		testMergeDiffBlocks(
+			{oldFile: {Content: oldFile}, diffContent: diff},
+			mergedFile
+		);
+	};
+	
+	/*
+	 * Changing the middle line in a file with 3 lines without last line delimeter (old file + diff)
+	 */
+	tests["test merge inline text model -- 9"] = function() { //$NON-NLS-0$
+		var oldFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333" +  //$NON-NLS-0$
+		  "";
+		var diff =
+		"diff --git a/testMergeInline.js b/testMergeInline.js\n" + //$NON-NLS-0$
+		"index d800886..df689d8 100644\n" + //$NON-NLS-0$
+		"--- a/testMergeInline.js\n" + //$NON-NLS-0$
+		"+++ b/testMergeInline.js\n" + //$NON-NLS-0$
+		"@@ -1,3 +1,3 @@\n" + //$NON-NLS-0$
+		" 111\n" + //$NON-NLS-0$
+		"-222\n" + //$NON-NLS-0$
+		"+2222\n" + //$NON-NLS-0$
+		" 333\n" + //$NON-NLS-0$
+		"\\ No newline at end of file\n" + //$NON-NLS-0$
+		"";
+		var mergedFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "2222\n" +  //$NON-NLS-0$
+		  "333"; //$NON-NLS-0$
+		testMergeDiffBlocks(
+			{oldFile: {Content: oldFile}, diffContent: diff},
+			mergedFile
+		);
+	};
+	
+	/*
+	 * Changing the middle line in a file with 3 lines with last line delimeter (old file + new file)
+	 */
+	tests["test merge inline text model -- 10"] = function() { //$NON-NLS-0$
+		var oldFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "333\n" +  //$NON-NLS-0$
+		  "";
+		var diff =
+		"diff --git a/testMergeInline.js b/testMergeInline.js\n" + //$NON-NLS-0$
+		"index d800886..df689d8 100644\n" + //$NON-NLS-0$
+		"--- a/testMergeInline.js\n" + //$NON-NLS-0$
+		"+++ b/testMergeInline.js\n" + //$NON-NLS-0$
+		"@@ -1,3 +1,3 @@\n" + //$NON-NLS-0$
+		" 111\n" + //$NON-NLS-0$
+		"-222\n" + //$NON-NLS-0$
+		"+2222\n" + //$NON-NLS-0$
+		" 333\n" + //$NON-NLS-0$
+		"";
+		var mergedFile = "111\n" +  //$NON-NLS-0$
+		  "222\n" +  //$NON-NLS-0$
+		  "2222\n" +  //$NON-NLS-0$
+		  "333\n"; //$NON-NLS-0$
+		testMergeDiffBlocks(
+			{oldFile: {Content: oldFile}, diffContent: diff},
+			mergedFile
+		);
 	};
 	
 	return tests;

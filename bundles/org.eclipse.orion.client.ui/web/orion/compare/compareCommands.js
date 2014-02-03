@@ -56,7 +56,7 @@ exports.CompareCommandFactory = (function() {
 				id: "orion.compare.copyToLeft", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
 				visibleWhen: function(item) {
-					return compareWidget.type === "twoWay" && compareWidget.options.newFile && !compareWidget.options.newFile.readonly; //$NON-NLS-0$
+					return compareWidget.type === "twoWay" && !compareWidget.getImageMode() && compareWidget.options.newFile && !compareWidget.options.newFile.readonly; //$NON-NLS-0$
 				}.bind(this),
 				callback : function(data) {
 					data.items.copyToLeft();
@@ -68,7 +68,7 @@ exports.CompareCommandFactory = (function() {
 				id: "orion.compare.copyToRight", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
 				visibleWhen: function(item) {
-					return compareWidget.type === "twoWay" && compareWidget.options.oldFile && !compareWidget.options.oldFile.readonly; //$NON-NLS-0$
+					return compareWidget.type === "twoWay" && !compareWidget.getImageMode() && compareWidget.options.oldFile && !compareWidget.options.oldFile.readonly; //$NON-NLS-0$
 				}.bind(this),
 				callback : function(data) {
 					data.items.copyToRight();
@@ -103,6 +103,9 @@ exports.CompareCommandFactory = (function() {
 				imageClass : "core-sprite-move-down", //$NON-NLS-0$
 				id: "orion.compare.nextDiff", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
+				visibleWhen: function(item) {
+					return !compareWidget.getImageMode();
+				},
 				callback : function(data) {
 					data.items.nextDiff();
 			}});
@@ -112,6 +115,9 @@ exports.CompareCommandFactory = (function() {
 				imageClass : "core-sprite-move-up", //$NON-NLS-0$
 				id: "orion.compare.prevDiff", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
+				visibleWhen: function(item) {
+					return !compareWidget.getImageMode();
+				},
 				callback : function(data) {
 					data.items.prevDiff();
 			}});
@@ -121,6 +127,9 @@ exports.CompareCommandFactory = (function() {
 				imageClass : "core-sprite-move-down", //$NON-NLS-0$
 				id: "orion.compare.nextChange", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
+				visibleWhen: function(item) {
+					return !compareWidget.getImageMode();
+				},
 				callback : function(data) {
 					data.items.nextChange();
 			}});
@@ -130,6 +139,9 @@ exports.CompareCommandFactory = (function() {
 				imageClass : "core-sprite-move-up", //$NON-NLS-0$
 				id: "orion.compare.prevChange", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
+				visibleWhen: function(item) {
+					return !compareWidget.getImageMode();
+				},
 				callback : function(data) {
 					data.items.prevChange(data);
 			}});

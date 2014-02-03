@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Orion Editor Snippet</title>
+
+<style>
+#editor {
+	border: 1px solid #ddd;
+	position: relative;
+	width: 100%;
+	height: 400px;
+}
+</style>
+
+<link rel="stylesheet" type="text/css" href="http://eclipse.org/orion/editor/releases/latest/built-editor.css"/>
+<script src="http://eclipse.org/orion/editor/releases/latest/built-editor.js"></script>
+<script src="contentAssistSnippet.js"></script>
+
+<script>
+	/*globals require*/
+	require(["orion/editor/edit", "examples/editor/snippets/contentAssistSnippet"], function(edit, snippet) {
+		var editor = edit({
+			lang: "sql"
+		});
+		var contentAssist = editor.getContentAssist();
+		contentAssist.setProviders([new snippet.ContentAssistProvider()]);
+	});
+</script>
+</head>
+<body spellcheck="false">
+<h2>SQL Content Assist</h2>
+This snippet shows how to use templates to add SQL content assist to the Orion stand alone editor.
+<br>
+<br>
+<div id="editor">
+SELECT id FROM myTable;
+</div>
+</body>
+</html>

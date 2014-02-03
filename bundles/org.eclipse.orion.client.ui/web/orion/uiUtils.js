@@ -10,7 +10,7 @@
  *******************************************************************************/
 /*global define window document navigator*/
 
-define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, lib) {
+define(['orion/webui/littlelib'], function(lib) {
                 
 	/**
 	 * This class contains static utility methods. It is not intended to be instantiated.
@@ -108,18 +108,28 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 	/**
 	 * @name orion.uiUtils.getUserText
 	 * @function
-	 * @param {String} id
-	 * @param {Element} refNode
-	 * @param {Boolean} shouldHideRefNode
-	 * @param {String} initialText
-	 * @param {Function} onComplete
-	 * @param {Function} onEditDestroy
-	 * @param {String} promptMessage
-	 * @param {String} selectTo
-	 * @param {Boolean} isInitialValid
+	 * @param {Object} options The options object
+	 * @param {String} options.id
+	 * @param {Element} options.refNode
+	 * @param {Boolean} options.hideRefNode
+	 * @param {String} options.initialText
+	 * @param {Function} options.onComplete
+	 * @param {Function} options.onEditDestroy
+	 * @param {String} options.selectTo
+	 * @param {Boolean} options.isInitialValid
+	 * @param {Boolean} options.insertAsChild
 	 */
-	function getUserText(id, refNode, shouldHideRefNode, initialText, onComplete, onEditDestroy, promptMessage, selectTo, isInitialValid) {
-		/** @return {Function} function(event) */
+	function getUserText(options) {
+		var id = options.id;
+		var refNode = options.refNode;
+		var hideRefNode = options.hideRefNode;
+		var initialText = options.initialText;
+		var onComplete = options.onComplete;
+		var onEditDestroy = options.onEditDestroy;
+		var selectTo = options.selectTo;
+		var isInitialValid = options.isInitialValid;
+		var insertAsChild = options.insertAsChild;
+		
 		var done = false;
 		var handler = function(isKeyEvent) {
 			return function(event) {
@@ -132,7 +142,7 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 					return;
 				}
 				if (isKeyEvent && event.keyCode === lib.KEY.ESCAPE) {
-					if (shouldHideRefNode) {
+					if (hideRefNode) {
 						refNode.style.display = "inline"; //$NON-NLS-0$
 					}
 					done = true;
@@ -145,13 +155,13 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 				if (isKeyEvent && event.keyCode !== lib.KEY.ENTER) {
 					return;
 				} else if (newValue.length === 0 || (!isInitialValid && newValue === initialText)) {
-					if (shouldHideRefNode) {
+					if (hideRefNode) {
 						refNode.style.display = "inline"; //$NON-NLS-0$
 					}
 					done = true;
 				} else {
 					onComplete(newValue);
-					if (shouldHideRefNode && refNode.parentNode) {
+					if (hideRefNode && refNode.parentNode) {
 						refNode.style.display = "inline"; //$NON-NLS-0$
 					}
 					done = true;
@@ -170,9 +180,13 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 		var editBox = document.createElement("input"); //$NON-NLS-0$
 		editBox.id = id;
 		editBox.value = initialText || "";
-		refNode.parentNode.insertBefore(editBox, refNode.nextSibling);
+		if (insertAsChild) {
+			refNode.appendChild(editBox);
+		} else {
+			refNode.parentNode.insertBefore(editBox, refNode.nextSibling);
+		}
 		editBox.classList.add("userEditBoxPrompt"); //$NON-NLS-0$
-		if (shouldHideRefNode) {
+		if (hideRefNode) {
 			refNode.style.display = "none"; //$NON-NLS-0$
 		}				
 		editBox.addEventListener("keydown", handler(true), false); //$NON-NLS-0$

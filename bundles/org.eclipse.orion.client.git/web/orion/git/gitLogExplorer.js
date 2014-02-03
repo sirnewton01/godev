@@ -145,7 +145,7 @@ exports.GitLogExplorer = (function() {
 					
 					mGitCommands.updateNavTools(that.registry, that.commandService, that, "pageActions", "selectionTools", item); //$NON-NLS-1$ //$NON-NLS-0$
 					deferred.resolve();
-				}, function(error) { 
+				}.bind(this), function(error) { 
 					deferred.reject(error);
 				}
 			);

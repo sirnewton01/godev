@@ -58,7 +58,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 		eclipse.lineNumberOdd = '#444';
 		eclipse.lineNumberEven = '#444';
 		eclipse.lineNumber = '#444';
-		eclipse.currentLine = '#D3E0F5';
+		eclipse.currentLine = '#EAF2FE';
 		eclipse.tag = 'darkorange';
 		eclipse.attribute = 'cadetBlue';
 		eclipse.fontFamily = defaultFont;
@@ -79,7 +79,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 		prospecto.lineNumberOdd = 'silver';
 		prospecto.lineNumberEven = 'silver';
 		prospecto.lineNumber = 'silver';
-		prospecto.currentLine = '#D3E0F5';
+		prospecto.currentLine = '#EAF2FE';
 		prospecto.tag = '#CC4C07';
 		prospecto.attribute = 'cadetBlue';
 		prospecto.fontFamily = defaultFont;

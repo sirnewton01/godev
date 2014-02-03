@@ -31,6 +31,7 @@ define([
 			variableName: "ShellLocation",
 			replacements: [{pattern: "\\?depth=1$", replacement: ""}] 
 		}],
+		category: "edit",
 		uriTemplate: "{+OrionHome}/shell/shellPage.html#{,ShellLocation}",
 		forceSingleItem: true
 	});
@@ -42,6 +43,7 @@ define([
 		id: "eclipse.shell.open",
 		tooltipKey: "Open Shell page",
 		nls: "orion/shell/nls/messages",
+		category: "edit",
 		validationProperties: [{
 			source: "NoTarget"
 		}],

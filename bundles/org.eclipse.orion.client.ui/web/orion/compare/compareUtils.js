@@ -201,8 +201,16 @@ orion.compareUtils.mergeDiffBlocks = function(oldTextModel, newDiffBlocks, mappe
 				text = text + lineText.substring(diffArraySubstrIndex) + lineDelim;
 			}
 			var lineCount = oldTextModel.getLineCount();
-			if(startLineIndex >= lineCount ){
-				startLineIndex = lineCount -1;
+			if(startLineIndex >= lineCount){
+				//Check if the last line of the text model has line delimeter or not
+				var lineEnd1 = oldTextModel.getLineEnd(lineCount - 1);
+				var lineEnd2 = oldTextModel.getLineEnd(lineCount - 1, true);
+				if(lineEnd1 === lineEnd2){//last line has no line delimeter, we need to fake one
+					oldTextModel.setText(lineDelim, lineEnd1, lineEnd1);
+					startLineIndex = lineCount;
+				} else {
+					startLineIndex = lineCount -1;
+				}
 			}
 			var startOffset = oldTextModel.getLineStart(startLineIndex);
 			oldTextModel.setText(text, startOffset, startOffset);

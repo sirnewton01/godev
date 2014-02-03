@@ -13,8 +13,8 @@
 
 define(
 		[ 'require', 'i18n!git/nls/gitmessages', 'orion/section', 'orion/explorers/explorer', 'orion/URITemplate', 'orion/PageUtil', 'orion/i18nUtil', 'orion/webui/littlelib',
-				'orion/globalCommands', 'orion/git/gitCommands', 'orion/git/util', 'orion/Deferred', 'orion/webui/tooltip' ],
-		function(require, messages, mSection, mExplorer, URITemplate, PageUtil, i18nUtil, lib, mGlobalCommands, mGitCommands, mGitUtil, Deferred, Tooltip) {
+				'orion/globalCommands', 'orion/git/gitCommands', 'orion/git/uiUtil', 'orion/Deferred', 'orion/webui/tooltip' ],
+		function(require, messages, mSection, mExplorer, URITemplate, PageUtil, i18nUtil, lib, mGlobalCommands, mGitCommands, mGitUIUtil, Deferred, Tooltip) {
 			var exports = {};
 			
 			var repoTemplate = new URITemplate("git/git-repository.html#{,resource,params*}"); //$NON-NLS-0$
@@ -447,7 +447,7 @@ define(
 
 									var navGridHolder = this.explorer.getNavDict() ? this.explorer.getNavDict().getGridNavHolder(item, true) : null;
 									
-									mGitUtil.createCompareWidget(
+									mGitUIUtil.createCompareWidget(
 										that.registry,
 										that.commandService, 
 										item.parent.DiffLocation, 

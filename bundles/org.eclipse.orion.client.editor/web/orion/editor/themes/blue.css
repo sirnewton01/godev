@@ -40,21 +40,18 @@
 .blue .line_caret {
 	background-color: white;
 }
-.blue .token_keyword {
+.blue .keyword {
 	color: cornFlowerBlue;
 }
-.blue .token_string {
+.blue .string {
 	color: cornFlowerBlue;
 }
-.blue .token_singleline_comment {
+.blue .comment {
 	color: indigo;
 }
-.blue .token_multiline_comment {
+.blue .comment.block.documentation {
 	color: indigo;
 }
-.blue .token_doc_comment {
-	color: indigo;
-}
-.blue .token_doc_html_markup {
+.blue .keyword.other.documentation.markup {
 	color: indigo;
 }

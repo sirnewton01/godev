@@ -40,21 +40,18 @@
 .ambience .line_caret {
 	background-color: lightcyan;
 }
-.ambience .token_keyword {
+.ambience .keyword {
 	color: cornFlowerBlue;
 }
-.ambience .token_string {
+.ambience .string {
 	color: lightcoral;
 }
-.ambience .token_singleline_comment {
+.ambience .comment {
 	color: mediumslateblue;
 }
-.ambience .token_multiline_comment {
+.ambience .comment.block.documentation {
 	color: mediumslateblue;
 }
-.ambience .token_doc_comment {
-	color: mediumslateblue;
-}
-.ambience .token_doc_html_markup {
+.ambience .keyword.other.documentation.markup {
 	color: mediumslateblue;
 }

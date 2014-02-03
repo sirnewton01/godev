@@ -26,7 +26,7 @@
 	color: #444;
 }
 .eclipse .annotationLine.currentLine {
-	background-color: #D3E0F5;
+	background-color: #EAF2FE;
 }
 .eclipse .entity-name-tag {
 	color: #7f0055;
@@ -38,23 +38,20 @@
 	color: blue;
 }
 .eclipse .line_caret {
-	background-color: #D3E0F5;
+	background-color: #EAF2FE;
 }
-.eclipse .token_keyword {
+.eclipse .keyword {
 	color: #7f0055;
 }
-.eclipse .token_string {
+.eclipse .string {
 	color: blue;
 }
-.eclipse .token_singleline_comment {
+.eclipse .comment {
 	color: green;
 }
-.eclipse .token_multiline_comment {
+.eclipse .comment.block.documentation {
 	color: green;
 }
-.eclipse .token_doc_comment {
-	color: green;
-}
-.eclipse .token_doc_html_markup {
+.eclipse .keyword.other.documentation.markup {
 	color: green;
 }

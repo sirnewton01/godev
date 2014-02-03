@@ -11,8 +11,9 @@
  *******************************************************************************/
 /*global define*/
 define([
-	'orion/plugin'
-], function (PluginProvider){
+	'orion/plugin',
+	'stringexternalizer/nonnlsSearchUtil'
+], function (PluginProvider, NlsSearchUtil) {
 
 	var validatorEnabled = true;
 
@@ -28,33 +29,11 @@ define([
 	         return editorContext.getText().then(this.checkText.bind(this));
 	     },
 	     checkText: function(contents) {
-		     function getExcluded(exlRegExp){
-				var ret = [];
-				var match = exlRegExp.exec(contents);
-				while(match){
-					ret.push(match);
-					match = exlRegExp.exec(contents);
-				}
-				return ret;
-		     }
-	     
-		     function isInExcluded(excluded, match, offset){
-				for(var i=0; i<excluded.length; i++){
-					if((match.index + offset) > excluded[i].index && (match.index + offset) < (excluded[i].index + excluded[i][0].length)){
-						return true;
-					}
-				}
-				return false;
-		     }
+		       if (!validatorEnabled) {
+		           return {problems: []};
+		       }
 
-		var excluded = getExcluded(new RegExp("/\\x2a((\\x2a[^/]*)|[^*/]|[^*]/)*\\x2a/", "gm"), contents);
-		excluded = excluded.concat(getExcluded(new RegExp("//.*\\r?\\n*", "gm")), contents);
-		excluded = excluded.concat(getExcluded(new RegExp("define\\(\\[[^\\]]*\\]", "gm")), contents);
-		excluded = excluded.concat(getExcluded(new RegExp("messages\\[[^\\]]*\\]", "gmi")), contents);
-
-	       if (!validatorEnabled) {
-	           return {problems: []};
-	       }
+		var excluded = NlsSearchUtil.getExcluded(contents);
 
 	       var problems = [];
 	       var stringRegExp = /("(\\"|[^"])+")|('(\\'|[^'])+')/g;
@@ -67,7 +46,7 @@ define([
 	         var match = stringRegExp.exec(line);
 	         var strings = [];
 	         while (match) {
-				if(!isInExcluded(excluded, match, lineOffset)){
+				if(!excluded.contains(match, lineOffset)){
 						strings.push(match);
 					}
 				match = stringRegExp.exec(line);

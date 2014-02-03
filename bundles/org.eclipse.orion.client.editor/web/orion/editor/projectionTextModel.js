@@ -54,11 +54,32 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 	 * @borrows orion.editor.EventTarget#dispatchEvent as #dispatchEvent
 	 */
 	function ProjectionTextModel(baseModel) {
-		this._model = baseModel;	/* Base Model */
+		this._model = baseModel;
 		this._projections = [];
+		var self = this;
+		this._listener = {
+			onChanged: function(e) {
+				self._onChanged(e);
+			},
+			onChanging: function(e) {
+				self._onChanging(e);
+			}
+		};
+		baseModel.addEventListener("preChanged", this._listener.onChanged); //$NON-NLS-0$
+		baseModel.addEventListener("preChanging", this._listener.onChanging); //$NON-NLS-0$
 	}
 
 	ProjectionTextModel.prototype = /** @lends orion.editor.ProjectionTextModel.prototype */ {
+		/**
+		 * Destroys this projection text model.
+		 */
+		destroy: function() {
+			if (this._model) {
+				this._model.removeEventListener("preChanged", this._listener.onChanged); //$NON-NLS-0$
+				this._model.removeEventListener("preChanging", this._listener.onChanging); //$NON-NLS-0$
+				this._model = null;
+			}
+		},
 		/**
 		 * Adds a projection range to the model.
 		 * <p>
@@ -169,7 +190,6 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 		 * @see orion.editor.ProjectionTextModel#addProjection
 		 */
 		removeProjection: function(projection) {
-			//TODO remove listeners from model
 			var i, delta = 0;
 			for (i = 0; i < this._projections.length; i++) {
 				var p = this._projections[i];
@@ -402,33 +422,92 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 			return result.join("");
 		},
 		/** @ignore */
-		_onChanging: function(text, start, removedCharCount, addedCharCount, removedLineCount, addedLineCount) {
-			var model = this._model, projections = this._projections, i, projection, delta = 0, lineDelta;
-			var end = start + removedCharCount;
-			for (; i < projections.length; i++) {
+		_onChanged: function(modelChangedEvent) {
+			var change = this._change;
+			var start = change.baseStart, end = change.baseEnd, i;
+			var projection, projections = this._projections;
+			for (i = 0; i < projections.length; i++) {
 				projection = projections[i];
-				if (projection.start > start) { break; }
-				delta += projection._model.getCharCount() - (projection.end - projection.start);
+				if (projection.end > start) { break; }
 			}
-			/*TODO add stuff saved by setText*/
-			var mapStart = start + delta, rangeStart = i;
-			for (; i < projections.length; i++) {
+			var rangeStart = i;
+			for (i = 0; i < projections.length; i++) {
 				projection = projections[i];
-				if (projection.start > end) { break; }
-				delta += projection._model.getCharCount() - (projection.end - projection.start);
-				lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
+				if (projection.start >= end) { break; }
 			}
-			/*TODO add stuff saved by setText*/
-			var mapEnd = end + delta, rangeEnd = i;
-			this.onChanging(mapStart, mapEnd - mapStart, addedCharCount/*TODO add stuff saved by setText*/, removedLineCount + lineDelta/*TODO add stuff saved by setText*/, addedLineCount/*TODO add stuff saved by setText*/);
-			projections.splice(projections, rangeEnd - rangeStart);
-			var count = text.length - (mapEnd - mapStart);
-			for (; i < projections.length; i++) {
+			var rangeEnd = i;
+			var model = this._model;
+			var changeCount = change.baseText.length - (end - start);
+			for (i = rangeEnd; i < projections.length; i++) {
 				projection = projections[i];
-				projection.start += count;
-				projection.end += count;
+				projection.start += changeCount;
+				projection.end += changeCount;
 				projection._lineIndex = model.getLineAtOffset(projection.start);
 			}
+			var removed = projections.splice(rangeStart, rangeEnd - rangeStart);
+			for (i = 0; i < removed.length; i++) {
+				if (removed[i].annotation) {
+					removed[i].annotation._expand();
+				}
+			}
+			var modelChangedEvent1 = {
+				type: "Changed", //$NON-NLS-0$
+				start: change.start,
+				removedCharCount: change.removedCharCount,
+				addedCharCount: change.addedCharCount,
+				removedLineCount: change.removedLineCount,
+				addedLineCount: change.addedLineCount
+			};
+			this.onChanged(modelChangedEvent1);
+			this._change = undefined;
+		},
+		_onChanging: function(modelChangingEvent) {
+			var hasChange = !!this._change;
+			var change = this._change || {};
+			var start = modelChangingEvent.start, end = start + modelChangingEvent.removedCharCount;
+			change.baseStart = start;
+			change.baseEnd = end;
+			change.baseText = modelChangingEvent.text;
+			change.addedLineCount = modelChangingEvent.addedLineCount;
+			if (!hasChange) {
+				this._change = change;
+				change.text = modelChangingEvent.text;
+				var projections = this._projections, delta, i, projection;
+				function mapOffset(offset) {
+					for (i = 0, delta = 0; i < projections.length; i++) {
+						projection = projections[i];
+						if (projection.start > offset) { break; }
+						if (projection.end > offset) { return -1; }
+						delta += projection._model.getCharCount() - (projection.end - projection.start);
+					}
+					return offset + delta;
+				}
+				change.start = mapOffset(start);
+				if (change.start === -1) {
+					change.text = this._model.getText(projection.start, start) + change.text;
+					change.addedLineCount += this._model.getLineAtOffset(start) - this._model.getLineAtOffset(projection.start);
+					change.start = projection.start + delta;
+				}
+				change.end = mapOffset(end);
+				if (change.end === -1) {
+					change.text += this._model.getText(end, projection.end);
+					change.addedLineCount += this._model.getLineAtOffset(projection.end) - this._model.getLineAtOffset(end);
+					change.end = projection.start + delta;
+				}
+			}
+			change.addedCharCount = change.text.length;
+			change.removedCharCount = change.end - change.start;
+			change.removedLineCount = this.getLineAtOffset(change.end) - this.getLineAtOffset(change.start);
+			var modelChangingEvent1 = {
+				type: "Changing", //$NON-NLS-0$
+				text: change.text,
+				start: change.start,
+				removedCharCount: change.removedCharCount,
+				addedCharCount: change.addedCharCount,
+				removedLineCount: change.removedLineCount,
+				addedLineCount: change.addedLineCount
+			};
+			this.onChanging(modelChangingEvent1);
 		},
 		/**
 		 * @see orion.editor.TextModel#onChanging
@@ -452,130 +531,58 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 		 * @see orion.editor.TextModel#setText
 		 */
 		setText: function(text, start, end) {
-			if (text === undefined) { text = ""; }
-			if (start === undefined) { start = 0; }
-			var eventStart = start, eventEnd = end;
-			var model = this._model, projections = this._projections;
-			var delta = 0, lineDelta = 0, i, projection, charCount, startProjection, endProjection, startLineDelta = 0;
-			for (i = 0; i < projections.length; i++) {
-				projection = projections[i];
-				if (projection.start > start - delta) { break; }
-				charCount = projection._model.getCharCount();
-				if (projection.start + charCount > start - delta) {
-					if (end !== undefined && projection.start + charCount > end - delta) {
-						projection._model.setText(text, start - (projection.start + delta), end - (projection.start + delta));
-						//TODO events - special case
-						return;
-					} else {
-						startLineDelta = projection._model.getLineCount() - 1 - projection._model.getLineAtOffset(start - (projection.start + delta));
-						startProjection = {
-							projection: projection,
-							start: start - (projection.start + delta)
-						};
-						start = projection.end + delta + charCount - (projection.end - projection.start);
-					}
-				}
-				lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
-				delta += charCount - (projection.end - projection.start);
-			}
-			var mapStart = start - delta, rangeStart = i, startLine = model.getLineAtOffset(mapStart) + lineDelta - startLineDelta;
-			if (end !== undefined) {
-				for (; i < projections.length; i++) {
+			this._change = {
+				text: text || "",
+				start: start || 0,
+				end: end === undefined ? this.getCharCount() : end
+			};
+			var projections = this._projections, delta, i, projection;
+			function mapOffset(offset) {
+				for (i = 0, delta = 0; i < projections.length; i++) {
 					projection = projections[i];
-					if (projection.start > end - delta) { break; }
-					charCount = projection._model.getCharCount();
-					if (projection.start + charCount > end - delta) {
-						lineDelta += projection._model.getLineAtOffset(end - (projection.start + delta));
-						charCount = end - (projection.start + delta);
-						end = projection.end + delta;
-						endProjection = {
-							projection: projection,
-							end: charCount
-						};
-						break;
+					if (projection.start > offset - delta) { break; }
+					var charCount = projection._model.getCharCount();
+					if (projection.start + charCount > offset - delta) {
+						return -1;
 					}
-					lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
 					delta += charCount - (projection.end - projection.start);
 				}
+				return offset - delta;
+			}
+			var startProjection, endProjection;
+			var mapStart = mapOffset(this._change.start);
+			if (mapStart === -1) {
+				startProjection = {
+					projection: projection,
+					start: this._change.start - (projection.start + delta)
+				};
+				mapStart = projection.end;
+			}
+			var mapEnd = mapOffset(this._change.end);
+			if (mapEnd === -1) {
+				endProjection = {
+					projection: projection,
+					end: this._change.end - (projection.start + delta)
+				};
+				mapEnd = projection.start;
+			}
+			if (startProjection && endProjection && startProjection.projection === endProjection.projection) {
+				//TODO events - special case - change is completely inside of a projection
+				projection._model.setText(this._change.text, startProjection.start, endProjection.end);
 			} else {
-				for (; i < projections.length; i++) {
-					projection = projections[i];
-					lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
-					delta += projection._model.getCharCount() - (projection.end - projection.start);
+				this._model.setText(this._change.text, mapStart, mapEnd);
+				if (startProjection) {
+					projection = startProjection.projection;
+					projection._model.setText("", startProjection.start);
+				}		
+				if (endProjection) {
+					projection = endProjection.projection;
+					projection._model.setText("", 0, endProjection.end);
+					projection.start = projection.end;
+					projection._lineCount = 0;
 				}
-				end = eventEnd = model.getCharCount() + delta;
 			}
-			var mapEnd = end - delta, rangeEnd = i, endLine = model.getLineAtOffset(mapEnd) + lineDelta;
-			
-			//events
-			var removedCharCount = eventEnd - eventStart;
-			var removedLineCount = endLine - startLine;
-			var addedCharCount = text.length;
-			var addedLineCount = 0;
-			var cr = 0, lf = 0, index = 0;
-			while (true) {
-				if (cr !== -1 && cr <= index) { cr = text.indexOf("\r", index); } //$NON-NLS-0$
-				if (lf !== -1 && lf <= index) { lf = text.indexOf("\n", index); } //$NON-NLS-0$
-				if (lf === -1 && cr === -1) { break; }
-				if (cr !== -1 && lf !== -1) {
-					if (cr + 1 === lf) {
-						index = lf + 1;
-					} else {
-						index = (cr < lf ? cr : lf) + 1;
-					}
-				} else if (cr !== -1) {
-					index = cr + 1;
-				} else {
-					index = lf + 1;
-				}
-				addedLineCount++;
-			}
-			
-			var modelChangingEvent = {
-				type: "Changing", //$NON-NLS-0$
-				text: text,
-				start: eventStart,
-				removedCharCount: removedCharCount,
-				addedCharCount: addedCharCount,
-				removedLineCount: removedLineCount,
-				addedLineCount: addedLineCount
-			};
-			this.onChanging(modelChangingEvent);
-			
-//			var changeLineCount = model.getLineAtOffset(mapEnd) - model.getLineAtOffset(mapStart) + addedLineCount;
-			model.setText(text, mapStart, mapEnd);
-			if (startProjection) {
-				projection = startProjection.projection;
-				projection._model.setText("", startProjection.start);
-			}		
-			if (endProjection) {
-				projection = endProjection.projection;
-				projection._model.setText("", 0, endProjection.end);
-				projection.start = projection.end;
-				projection._lineCount = 0;
-			}
-			projections.splice(rangeStart, rangeEnd - rangeStart);
-			var changeCount = text.length - (mapEnd - mapStart);
-			for (i = rangeEnd; i < projections.length; i++) {
-				projection = projections[i];
-				projection.start += changeCount;
-				projection.end += changeCount;
-//				if (projection._lineIndex + changeLineCount !== model.getLineAtOffset(projection.start)) {
-//					log("here");
-//				}
-				projection._lineIndex = model.getLineAtOffset(projection.start);
-//				projection._lineIndex += changeLineCount;
-			}
-			
-			var modelChangedEvent = {
-				type: "Changed", //$NON-NLS-0$
-				start: eventStart,
-				removedCharCount: removedCharCount,
-				addedCharCount: addedCharCount,
-				removedLineCount: removedLineCount,
-				addedLineCount: addedLineCount
-			};
-			this.onChanged(modelChangedEvent);
+			this._change = undefined;
 		}
 	};
 	mEventTarget.EventTarget.addMixin(ProjectionTextModel.prototype);

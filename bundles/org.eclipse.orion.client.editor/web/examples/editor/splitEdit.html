@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Orion Editor Sample</title>
+<link rel="stylesheet" type="text/css" href="../../../orion/editor/themes/default.css"/>
+<style>
+
+body {
+	height: 100%;
+	overflow: hidden;
+}
+html {
+	height: 100%;
+}
+.editor {
+	border: 1px solid teal;
+	width: 100%;
+	height: 40%;
+}
+
+</style>
+<!-- Note if running this standalone you will need to copy requirejs from bundles/org.eclipse.orion.client.core/web/ -->
+<script src="../../requirejs/require.js"></script>
+<script>
+	/*globals require*/
+	require({
+		baseUrl: '../..',
+		paths: {
+			i18n: 'requirejs/i18n'
+		}
+	});
+	require(["orion/editor/edit", "orion/editor/textModel"], function(edit, mTextModel) {
+		var model = new mTextModel.TextModel("");
+		edit({
+			lang: "js",
+			className: "editor",
+			model: model
+		});
+		model.setText("/**\n * This is a split editor sample.\n */\nfunction test() {\n\tconsole.log('here');\n}\n");
+	});
+</script>
+</head>
+<body spellcheck="false">
+<h2>Split Editor sample</h2>
+This snippet shows how to implement a split editor on the same contents.
+<br>
+<br>
+<div class="editor"></div>
+<br>
+<div class="editor"></div>
+</body>
+</html>

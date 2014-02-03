@@ -9,7 +9,13 @@
 
 .search_primaryColumn {
 	padding-left: 0 !important;
-	vertical-align: baseline;
+	vertical-align: top;
+	width: 45px;
+}
+
+.search_primaryColumn_Details {
+	padding-left: 0 !important;
+	vertical-align: middle;
 	width: 45px;
 }
 
@@ -61,7 +67,7 @@
 	z-index: 50;
 	height: 4px;
 	cursor: n-resize;
-	background: #efefef;
+	background: #dedede !important;
 	overflow: hidden;
 	visibility: visible; 
 }

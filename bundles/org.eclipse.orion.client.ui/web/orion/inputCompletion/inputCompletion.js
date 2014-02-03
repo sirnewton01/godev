@@ -9,7 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 /*global window define require document*/
-define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtils'], function(messages, EventTarget, mSearchUtils){
+define(['orion/EventTarget'], function( EventTarget){
 
 	/**
 	 * InputCompletion is an alternative to datalist support in html5.
@@ -37,17 +37,16 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 	 * @param {String} options.group The group name of input completion. If there will be multiple input completion in one page, the group name is nice to provide.
 	 * @param {Boolean} options.proposeFromStart The flag to propose strings that only match from start(index 0). If not provided, the flag is set to false.
 	 * For example if this flag is true, "foo" will only match "fo" but not "oo". If false, "foo" will match both "fo" and "oo".
+	 * @param {Function} options.onDelete The onDelete function(itemToBeDleted, eventTarget)) that provides the deletion of a proposal item.
+	 * @param {String} options.deleteToolTips The string that represents the toolltips for the deletion.
 	 */
 	function InputCompletion(inputFieldOrId, binderFunc, options) {
-		this._inputField = inputFieldOrId;
 		EventTarget.attach(this);
-		if (typeof(this._inputField) === "string") { //$NON-NLS-0$
-			this._inputField = document.getElementById(this._inputField);
-		}
 		this._binderFunc = binderFunc;
+		this.setInputField(inputFieldOrId);
 		var idFrefix = options ? options.group: null;
 		if(!idFrefix){
-			if(this._inputField.id){
+			if(this._inputField && this._inputField.id){
 				idFrefix = this._inputField.id;
 			} else {
 				idFrefix = "default__input__group"; //$NON-NLS-0$
@@ -57,29 +56,85 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 		this._proposeFromStart = options ? options.proposeFromStart : false;
 		this._extendedProvider = options ? options.extendedProvider : null;
 		this._serviceRegistry = options ? options.serviceRegistry : null;
+		this._onDelete = options ? options.onDelete : null;
+		this._deleteToolTips = options ? options.deleteToolTips : "";
 		this._proposalIndex = -1;
 		this._dismissed = true;
 		this._mouseDown = false;
 		this._dataList = [];
 		this._initUI();
 		
-		this.addEventListener("recentSearchesChanged", function(event) {//$NON-NLS-0$
+		this._listeners = [];
+		var dataListHandler = function(event) {
 			if(this._binderFunc){// If a binder function is provided, every time when the input field is focused, we would ask for the full set of data and propose based on that
 				var completion = this;
 				this._binderFunc(function(dataList){
 					this._bind(dataList);
-					this._proposeOn(this._inputField.value);
+					if(event.deleting){
+						this._proposeOn(this._inputField.value);
+						this._selectProposal(this._proposalIndex, true);
+					}
 				}.bind(completion));
 			}
-		}.bind(this));
+		}.bind(this);
+		this.addEventListener("inputDataListChanged", dataListHandler);//$NON-NLS-0$
+		this._listeners.push({evtTarget: this, type: "inputDataListChanged", handler: dataListHandler});//$NON-NLS-0$
 		
-		this._completionUIContainer.addEventListener("mousedown", function(e) {
+		var mouseDownHandler = function(e) {
 			this._mouseDown = true;
-		}.bind(this));
-		this._completionUIContainer.addEventListener("mouseup", function(e) {
+		}.bind(this);
+		this._completionUIContainer.addEventListener("mousedown", mouseDownHandler);//$NON-NLS-0$
+		this._listeners.push({evtTarget: this._completionUIContainer, type: "mousedown", handler: mouseDownHandler});//$NON-NLS-0$
+		
+		var mouseUpHandler = function(e) {
 			this._mouseDown = false;
-		}.bind(this));
-		this._inputField.addEventListener("blur", function(e) {
+		}.bind(this);
+		this._completionUIContainer.addEventListener("mouseup", mouseUpHandler);//$NON-NLS-0$
+		this._listeners.push({evtTarget: this._completionUIContainer, type: "mouseup", handler: mouseUpHandler});//$NON-NLS-0$
+	}
+	
+	/**
+	 * Private
+	 */
+	InputCompletion.prototype._removeListeners = function(listeners){
+		if(listeners){
+			listeners.forEach(function(listener){
+				listener.evtTarget.removeEventListener(listener.type, listener.handler, false);
+			});
+		}
+	};
+		
+	InputCompletion.prototype.destroy = function(){
+		this._removeListeners(this._inputFieldListeners);
+		this._removeListeners(this.listeners);
+	};
+	
+	/**
+	 * Check is the data list already has an item whose value is the given value.
+	 * @param {String} value The given value.
+	 */
+	InputCompletion.prototype.hasValueOf = function(value){
+		return this._dataList.some(function(item){
+			return item.value === value;
+		});
+	};
+	
+	/**
+	 * Initialize or reset the nput field for the completion.
+	 * When called by teh caller, it will check if a previous input field is hooked with the completion. If so then remove all the listeners on the previous input field.
+	 * @param {DOMElement} inputFieldOrId The "text" type input html element. This is required.
+	 */
+	InputCompletion.prototype.setInputField = function(inputFieldOrId){
+		if(this._inputField && this._inputFieldListeners){
+			this._removeListeners(this._inputFieldListeners);
+		}
+		this._inputFieldListeners = [];
+		this._inputField = inputFieldOrId;
+		if (typeof(this._inputField) === "string") { //$NON-NLS-0$
+			this._inputField = document.getElementById(this._inputField);
+		}
+		
+		var blurHanlder = function(e) {
 			if(this._mouseDown){
 				var completion = this;
 				window.setTimeout(function(){ //wait a few milliseconds for the input field to focus 
@@ -88,14 +143,23 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 			} else {
 				this._dismiss();
 			}
-		}.bind(this));
-		this._inputField.addEventListener("keydown", function(e) {
+		}.bind(this);
+		this._inputField.addEventListener("blur", blurHanlder); //$NON-NLS-0$
+		this._inputFieldListeners.push({evtTarget: this._inputField, type: "blur", handler: blurHanlder}); //$NON-NLS-0$
+		
+		var keyDownHandler = function(e) {
 			this.onKeyDown(e);
-		}.bind(this));
-		this._inputField.addEventListener("input", function(e) {
+		}.bind(this);
+		this._inputField.addEventListener("keydown", keyDownHandler); //$NON-NLS-0$
+		this._inputFieldListeners.push({evtTarget: this._inputField, type: "keydown", handler: keyDownHandler}); //$NON-NLS-0$
+
+		var inputChangeHandler = function(e) {
 			this._proposeOn(this._inputField.value);
-		}.bind(this));
-		this._inputField.addEventListener("focus", function(e) {
+		}.bind(this);
+		this._inputField.addEventListener("input", inputChangeHandler); //$NON-NLS-0$
+		this._inputFieldListeners.push({evtTarget: this._inputField, type: "input", handler: inputChangeHandler}); //$NON-NLS-0$
+		
+		var focusHandler = function(e) {
 			if(!this._dismissed || !this._binderFunc){
 				return;
 			}
@@ -112,9 +176,11 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 					}
 				}.bind(completion));
 			}
-		}.bind(this));
-	}
-	
+		}.bind(this);
+		this._inputField.addEventListener("focus", focusHandler); //$NON-NLS-0$
+		this._inputFieldListeners.push({evtTarget: this._inputField, type: "focus", handler: focusHandler}); //$NON-NLS-0$
+	};
+
 	/**
 	 * The key listener on enter , down&up arrow and ESC keys.
 	 * The user of the input completion has to listen on the key board events and call this function.
@@ -143,9 +209,10 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 			this._dismiss();//Dismiss the proposal UI and do nothing.
 			return false;
 		} else if(keyCode === 46/* DELETE */) {
-			if(this._proposalIndex > -1) { //If a proposal is highlighted in the suggestion, the delete key will delete the proposal.
+			if(this._proposalIndex > -1 && this._onDelete) { //If a proposal is highlighted in the suggestion and the onDelete callback is provided, the delete key will delete the proposal.
 				e.preventDefault();
-				this._delete();
+				this._onDelete(this._proposalList[this._proposalIndex].item.value, this);
+				this._resetIndexAfterDeletion();
 				e.stopPropagation();
 				return false;
 			}
@@ -154,28 +221,36 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 		return true;
 	};
 
+	InputCompletion.prototype._resetIndexAfterDeletion = function(){
+		if(this._proposalList.length <= 1) {
+			this._proposalIndex = -1;
+		} else if(this._proposalIndex === (this._proposalList.length - 1)) {
+			this._proposalIndex = this._proposalList.length - 2;
+		}
+	};
+	
 	InputCompletion.prototype._bind = function(dataList){
 		this._dataList = dataList;
 	};
 	
 	InputCompletion.prototype._getUIContainerID = function(){
-		return this._completionIdPrefix + "UIContainer";
+		return this._completionIdPrefix + "UIContainer"; //$NON-NLS-0$
 	};
 
 	InputCompletion.prototype._getUIProposalListId = function(){
-		return this._completionIdPrefix + "UIProposalList";
+		return this._completionIdPrefix + "UIProposalList"; //$NON-NLS-0$
 	};
 	
 	InputCompletion.prototype._initUI = function(){
 		this._completionUIContainer = document.getElementById(this._getUIContainerID());
 		if(!this._completionUIContainer){
-			this._completionUIContainer = document.createElement('div');
+			this._completionUIContainer = document.createElement('div'); //$NON-NLS-0$
 			this._completionUIContainer.id = this._getUIContainerID();
 			this._completionUIContainer.style.display = "none"; //$NON-NLS-0$
 			this._completionUIContainer.className = "inputCompletionContainer"; //$NON-NLS-0$
-			this._completionUIContainer.setAttribute("role", "list");
-			this._completionUIContainer.setAttribute("aria-atomic", "true");
-			this._completionUIContainer.setAttribute("aria-live", "assertive");
+			this._completionUIContainer.setAttribute("role", "list"); //$NON-NLS-1$ //$NON-NLS-0$
+			this._completionUIContainer.setAttribute("aria-atomic", "true"); //$NON-NLS-1$ //$NON-NLS-0$
+			this._completionUIContainer.setAttribute("aria-live", "assertive"); //$NON-NLS-1$ //$NON-NLS-0$
 			document.body.appendChild(this._completionUIContainer);
 		}
 		this._completionUIContainer.textContent = "";
@@ -212,7 +287,7 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 		textNode = document.createTextNode(text.substring(boldIndex, boldIndex+boldLength));
 		matchSegBold.appendChild(textNode);
 		
-		if((boldIndex + boldLength) < (text.length - 1)){
+		if((boldIndex + boldLength) < text.length){
 			textNode = document.createTextNode(text.substring(boldIndex + boldLength));
 			parentSpan.appendChild(textNode);
 		}
@@ -225,7 +300,7 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 		}
 		var listEle;
 		if(categoryName){
-			listEle = document.createElement('li');
+			listEle = document.createElement('li'); //$NON-NLS-0$
 			listEle.className = "inputCompletionLICategory"; //$NON-NLS-0$
 			var liText = document.createTextNode(categoryName);
 			listEle.appendChild(liText);
@@ -233,7 +308,7 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 		}
 		
 		categoryList.forEach(function(category) {
-			listEle = document.createElement('li');
+			listEle = document.createElement('li'); //$NON-NLS-0$
 			listEle.onmouseover = function(e){
 				this._selectProposal(e.currentTarget);
 			}.bind(this);
@@ -243,39 +318,40 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 			listEle.className = "inputCompletionLINormal"; //$NON-NLS-0$
 			listEle.completionItem = category.item;
 			var deleteBtn;
-			if(typeof category.item.value === "string"){
+			if(typeof category.item.value === "string"){ //$NON-NLS-0$
 				var tbl = document.createElement('table'); //$NON-NLS-0$
 				tbl.style.width = "100%"; //$NON-NLS-0$
 				tbl.style.tableLayout = 'fixed'; //$NON-NLS-0$
 				tbl.style.borderSpacing = "0"; //$NON-NLS-0$
-				var tr = document.createElement('tr');
+				var tr = document.createElement('tr'); //$NON-NLS-0$
 				tr.style.width = this._inputField.offsetWidth + "px"; //$NON-NLS-0$
 				tbl.appendChild(tr);
 				var td1 = document.createElement('td'); //$NON-NLS-0$
+				td1.classList.add("inputCompletionLILeftTD"); //$NON-NLS-0$
 				var liTextEle = this._createBoldText(category.item.value, category.boldIndex, category.boldLength);
 				td1.appendChild(liTextEle);
 				td1.style.overflow = 'hidden'; //$NON-NLS-0$
 				tr.appendChild(td1);
 				
-				deleteBtn = document.createElement('button');
-				deleteBtn.classList.add("dismissButton"); //$NON-NLS-0$
-				deleteBtn.classList.add("layoutRight"); //$NON-NLS-0$
-				deleteBtn.classList.add("core-sprite-close"); //$NON-NLS-0$
-				deleteBtn.classList.add("imageSprite"); //$NON-NLS-0$
-				deleteBtn.style.display = "none"; //$NON-NLS-0$
-				deleteBtn.style.margin = "0 0 0"; //$NON-NLS-0$
-				deleteBtn.title = messages['Click or use delete key to delete the search term'];
-				deleteBtn.onclick = function(e){
-					e.stopPropagation();
-					this._proposalIndex = -1;
-					mSearchUtils.removeRecentSearch(this._serviceRegistry, category.item.value, this);
-				}.bind(this);
-				
-				var td2 = document.createElement('td'); //$NON-NLS-0$
-				td2.style.width = "16px"; //$NON-NLS-0$
-				td2.style.height = "16px"; //$NON-NLS-0$
-				td2.appendChild(deleteBtn);
-				tr.appendChild(td2);
+				if(this._onDelete) {
+					deleteBtn = document.createElement('button'); //$NON-NLS-0$
+					deleteBtn.classList.add("inputCompletionDismissButton"); //$NON-NLS-0$
+					deleteBtn.classList.add("layoutRight"); //$NON-NLS-0$
+					deleteBtn.classList.add("core-sprite-close"); //$NON-NLS-0$
+					deleteBtn.classList.add("imageSprite"); //$NON-NLS-0$
+					deleteBtn.style.display = "none"; //$NON-NLS-0$
+					deleteBtn.style.margin = "0 0 0"; //$NON-NLS-0$
+					deleteBtn.title = this._deleteToolTips;
+					deleteBtn.onclick = function(e){
+						e.stopPropagation();
+						this._onDelete(category.item.value, this);
+						this._resetIndexAfterDeletion();
+					}.bind(this);
+					var td2 = document.createElement('td'); //$NON-NLS-0$
+					td2.classList.add("inputCompletionLIRightTD"); //$NON-NLS-0$
+					td2.appendChild(deleteBtn);
+					tr.appendChild(td2);
+				}
 				listEle.appendChild(tbl);
 			} else if(category.item.value.name && category.item.value.type === "link"){ //$NON-NLS-0$
 				listEle.appendChild(this._createProposalLink(category.item.value.name, category.item.value.value, category.boldIndex, category.boldLength));
@@ -324,12 +400,12 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 		}
 	};
 
-	InputCompletion.prototype._selectProposal = function(indexOrDomNode){
+	InputCompletion.prototype._selectProposal = function(indexOrDomNode, force){
 		var index = indexOrDomNode;
 		if(isNaN(index)){
 			index = this._domNode2Index(indexOrDomNode);
 		}
-		if(index !== this._proposalIndex){
+		if(index !== this._proposalIndex || force){
 			this._highlight(this._proposalIndex, false);
 			this._proposalIndex = index;
 			this._highlight(this._proposalIndex, true);
@@ -344,11 +420,11 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 		this._proposalList = null;
 		this._proposalIndex = -1;
 		
-		if(typeof valueToInputField === "string"){
+		if(typeof valueToInputField === "string"){ //$NON-NLS-0$
 			this._inputField.value = valueToInputField;
 			this._dismissing = true;
 			this._inputField.focus();
-		} else if(valueToInputField && valueToInputField.name && valueToInputField.type === "link"){
+		} else if(valueToInputField && valueToInputField.name && valueToInputField.type === "link"){ //$NON-NLS-0$
 			if(ctrlKey){
 				window.open(valueToInputField.value);
 			} else {
@@ -393,15 +469,6 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 		this._selectProposal(index);
 	};
 	
-	InputCompletion.prototype._delete = function(){
-		if(this._proposalIndex > -1) {
-			mSearchUtils.removeRecentSearch(this._serviceRegistry, this._proposalList[this._proposalIndex].item.value, this);
-			this._proposalIndex = -1;
-			return true;
-		}
-		return false;
-	};
-	
 	InputCompletion.prototype._proposeOnList = function(datalist, searchTerm, filterForMe){
 		var categoryName = "";
 		var categoryList = [];
@@ -417,7 +484,7 @@ define(['i18n!orion/search/nls/messages', 'orion/EventTarget', 'orion/searchUtil
 				var pIndex = -1;
 				if(searchTerm && filterForMe){
 					var searchOn;
-					if(typeof data.value === "string"){
+					if(typeof data.value === "string"){ //$NON-NLS-0$
 						searchOn = data.value.toLowerCase();
 					} else if(data.value.name){
 						searchOn = data.value.name.toLowerCase();

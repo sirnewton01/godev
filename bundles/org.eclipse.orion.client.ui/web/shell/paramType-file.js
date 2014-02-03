@@ -241,9 +241,7 @@ define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", 
 							messages["Wrote ${0}"],
 							typeof(file) === "string" ? file : this.shellPageFileService.computePathString(file)); //$NON-NLS-0$
 						var writer = new mResultWriters.ShellStringWriter(element);
-						writer.appendText(string);
-						writer.appendNewline();
-						writer.write();
+						writer.write(string + "\n"); //$NON-NLS-0$
 						if (--waitCount !== 0 || isProgress) {
 							promise.progress(element);
 						} else {
@@ -259,9 +257,7 @@ define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", 
 							typeof(file) === "string" ? file : this.shellPageFileService.computePathString(file)); //$NON-NLS-0$
 						string += " [" + error + "]"; //$NON-NLS-1$ //$NON-NLS-0$
 						var writer = new mResultWriters.ShellStringWriter(element);
-						writer.appendText(string);
-						writer.appendNewline();
-						writer.write();
+						writer.write(string + "\n"); //$NON-NLS-0$
 						if (--waitCount !== 0 || isProgress) {
 							promise.progress(element);
 						} else {

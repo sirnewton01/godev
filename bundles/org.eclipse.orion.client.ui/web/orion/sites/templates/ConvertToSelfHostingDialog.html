@@ -17,6 +17,10 @@
 	}
 	.pad1 { padding: 8px 0 0 0; }
 	.pad2 { padding: 20px 0 0 0; }
+	.browseButton { margin: 0 5px 0 5px; }
+	.folderName {
+		font-weight: bold;
+	}
 	.field {
 		float: left;
 		width: 6em;
@@ -29,21 +33,20 @@
 	</style>
 	<div>
 		<ul class="form">
-			<li class="msg">
-				<div>${SelectRepoSourceFolder}</div>
+			<li class="msg" id="selectRequired">
+				<div>${LabelSelectRequired}</div>
 			</li>
+
+			<!-- Elements are dynamically added here for each required folder. Each folder follows this pattern: -->
+			<!--
+			<li class="msg pad2"><div class="col">orion.client - Orion client repository:</div></li>
 			<li class="pad1">
 				<div class="col">
-					<button class="browseButton commandButton" id="browseButton">${Browse...}</button>
-					<span class="folderText" id="folderText"></span>
+					<button class="browseButton commandButton" type="button">Browse...</button>
+					<span class="folderText">impress.js</span>
 				</div>
 			</li>
-			<li class="msg pad2">
-				<div>${EnterPortNumber}</div>
-			</li>
-			<li class="pad1">
-				<input class="field port" id="port" type="number" />
-			</li>
+			-->
 		</ul>
 	</div>
 </div>

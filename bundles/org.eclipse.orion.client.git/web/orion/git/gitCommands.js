@@ -35,7 +35,7 @@ var exports = {};
 	function statusURL(statusLocation) {
 		return require.toUrl(statusTemplate.expand({resource: statusLocation}));
 	}
-
+	
 	exports.updateNavTools = function(registry, commandRegistry, explorer, toolbarId, selectionToolbarId, item, pageNavId) {
 		var toolbar = lib.node(toolbarId);
 		if (toolbar) {
@@ -77,16 +77,24 @@ var exports = {};
 	exports.handleKnownHostsError = function(serviceRegistry, errorData, options, func){
 		if(confirm(i18nUtil.formatMessage(messages["Would you like to add ${0} key for host ${1} to continue operation? Key fingerpt is ${2}."],
 				errorData.KeyType, errorData.Host, errorData.HostFingerprint))){
+			
+			var hostURL = mGitUtil.parseSshGitUrl(errorData.Url);
+			var hostCredentials = {
+					host : errorData.Host,
+					keyType : errorData.KeyType,
+					hostKey : errorData.HostKey,
+					port : hostURL.port
+				};
+			
 			var sshService = serviceRegistry.getService("orion.net.ssh"); //$NON-NLS-0$
-			sshService.addKnownHosts(errorData.Host + " " + errorData.KeyType + " " + errorData.HostKey).then(function(){ //$NON-NLS-1$ //$NON-NLS-0$
-				sshService.getKnownHosts().then(function(knownHosts){
-					options.knownHosts = knownHosts;
-					if(typeof options.failedOperation !== "undefined"){
-						var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
-						progress.removeOperation(options.failedOperation);
-					}
-					func(options);
-				});
+			sshService.addKnownHost(hostCredentials).then(function(knownHosts){ //$NON-NLS-1$ //$NON-NLS-0$
+				options.knownHosts = knownHosts;
+				if(typeof options.failedOperation !== "undefined"){
+					var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
+					progress.removeOperation(options.failedOperation);
+				}
+				
+				func(options);
 			});
 		}
 	};
@@ -129,12 +137,34 @@ var exports = {};
 		}
 	};
 
-	exports.getDefaultSshOptions = function(serviceRegistry, authParameters){
+	exports.getDefaultSshOptions = function(serviceRegistry, item, authParameters){
 		var def = new Deferred();
 		var sshService = serviceRegistry.getService("orion.net.ssh"); //$NON-NLS-0$
 		var sshUser =  authParameters && !authParameters.optionsRequested ? authParameters.valueFor("sshuser") : ""; //$NON-NLS-0$
 		var sshPassword = authParameters && !authParameters.optionsRequested ? authParameters.valueFor("sshpassword") : ""; //$NON-NLS-0$
-		sshService.getKnownHosts().then(function(knownHosts){
+		
+		var repository;
+		
+		//TODO This should be somehow unified
+		if(item.GitUrl !== undefined) { repository = item.GitUrl; }
+		else if(item.errorData !== undefined) { repository = item.errorData.Url; }
+		else if(item.toRef !== undefined) { repository = item.toRef.RemoteLocation[0].GitUrl; }
+		else if(item.RemoteLocation !== undefined){ repository = item.RemoteLocation[0].GitUrl; }
+
+		if(!repository){
+			def.resolve({
+						knownHosts: "",
+						gitSshUsername: sshUser,
+						gitSshPassword: sshPassword,
+						gitPrivateKey: "",
+						gitPassphrase: ""
+			});
+			
+			return def;
+		}
+
+		var repositoryURL = mGitUtil.parseSshGitUrl(repository);
+		sshService.getKnownHostCredentials(repositoryURL.host, repositoryURL.port).then(function(knownHosts){
 			def.resolve({
 						knownHosts: knownHosts,
 						gitSshUsername: sshUser,
@@ -143,6 +173,7 @@ var exports = {};
 						gitPassphrase: ""
 			});
 		});
+		
 		return def;
 	};
 	
@@ -223,8 +254,11 @@ var exports = {};
 		else if(data.items.errorData !== undefined) { repository = data.items.errorData.Url; }
 		else if(data.items.toRef !== undefined) { repository = data.items.toRef.RemoteLocation[0].GitUrl; }
 
+		var sshService = serviceRegistry.getService("orion.net.ssh");
+		var repositoryURL = mGitUtil.parseSshGitUrl(repository);
+
 		var triggerCallback = function(sshObject){
-			serviceRegistry.getService("orion.net.ssh").getKnownHosts().then(function(knownHosts){ //$NON-NLS-0$
+			serviceRegistry.getService("orion.net.ssh").getKnownHostCredentials(repositoryURL.host, repositoryURL.port).then(function(knownHosts){ //$NON-NLS-0$
 				data.sshObject = sshObject;
 				def.resolve({
 					knownHosts: knownHosts,
@@ -237,12 +271,21 @@ var exports = {};
 		};
 		
 		var errorData = data.errorData;
+		
 		// if this is a known hosts error, show a prompt always
 		if (errorData && errorData.HostKey) {
 			if(confirm(i18nUtil.formatMessage(messages['Would you like to add ${0} key for host ${1} to continue operation? Key fingerpt is ${2}.'],
 					errorData.KeyType, errorData.Host, errorData.HostFingerprint))){
-				var sshService = serviceRegistry.getService("orion.net.ssh"); //$NON-NLS-0$
-				sshService.addKnownHosts(errorData.Host + " " + errorData.KeyType + " " + errorData.HostKey).then( //$NON-NLS-1$ //$NON-NLS-0$
+				
+				var hostURL = mGitUtil.parseSshGitUrl(errorData.Url);
+				var hostCredentials = {
+						host : errorData.Host,
+						keyType : errorData.KeyType,
+						hostKey : errorData.HostKey,
+						port : hostURL.port
+					};
+				
+				sshService.addKnownHost(hostCredentials).then( //$NON-NLS-1$ //$NON-NLS-0$
 					function(){
 						if(data.sshObject && (data.sshObject.gitSshUsername!=="" || data.sshObject.gitSshPassword!=="" || data.sshObject.gitPrivateKey!=="")){
 							triggerCallback({
@@ -542,7 +585,7 @@ var exports = {};
 				var item = data.items;
 				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
 				if(confirm(i18nUtil.formatMessage(messages["You're going to delete remote branch ${0} and push the change."], item.Name)+"\n\n" + messages["Are you sure?"])) //$NON-NLS-1$
-				exports.getDefaultSshOptions(serviceRegistry).then(function(options){
+				exports.getDefaultSshOptions(serviceRegistry, item).then(function(options){
 					var func = arguments.callee;
 					var gitService = serviceRegistry.getService("orion.git.provider"); //$NON-NLS-0$
 					var progressService = serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
@@ -631,7 +674,7 @@ var exports = {};
 				var item = data.items;
 				var path = item.Location;
 				var name = item.Name;
-				exports.getDefaultSshOptions(serviceRegistry).then(function(options) {
+				exports.getDefaultSshOptions(serviceRegistry, item).then(function(options) {
 					var func = arguments.callee;
 					var gitService = serviceRegistry.getService("orion.git.provider"); //$NON-NLS-0$
 					var statusService = serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
@@ -2058,7 +2101,14 @@ var exports = {};
 		});
 		commandService.addCommand(addConfigEntryCommand);
 		
-		var editConfigParameters = new mCommandRegistry.ParametersDescription([new mCommandRegistry.CommandParameter('value', 'text', messages['Value:'])]); //$NON-NLS-1$ //$NON-NLS-0$
+		var editConfigParameters = new mCommandRegistry.ParametersDescription([], null, function(commandInvocation) {
+			var items = commandInvocation.items;
+			var val;
+			if(items) {
+				val = items.Value;
+			}
+			return [new mCommandRegistry.CommandParameter('value', 'text', messages['Value:'], val)]; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		});
 		
 		var editConfigEntryCommand = new mCommands.Command({
 			name: messages["Edit"],
@@ -2131,7 +2181,9 @@ var exports = {};
 				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
 				
 				var cloneFunction = function(gitUrl, path, name) {
-					exports.getDefaultSshOptions(serviceRegistry).then(function(options) {
+					
+					item.GitUrl = gitUrl;
+					exports.getDefaultSshOptions(serviceRegistry, item).then(function(options) {
 						var func = arguments.callee;
 						var gitConfigPreference = new GitConfigPreference(serviceRegistry);
 						
@@ -2175,7 +2227,7 @@ var exports = {};
 										function(repoJson){
 											if (repoJson.Children[0].GitUrl === item.url){
 												window.location = require.toUrl(editTemplate.expand({
-													resource: repoJson.Children[0].ContentLocation + "?depth=1" //$NON-NLS-0$
+													resource: repoJson.Children[0].ContentLocation
 												}));
 											} else {
 												console.info("Folder project is used");
@@ -2205,10 +2257,14 @@ var exports = {};
 			id : "eclipse.cloneGitRepository", //$NON-NLS-0$
 			parameters: cloneParameters,
 			callback : function(data) {
+				var item = data.items;
+				
 				var gitService = serviceRegistry.getService("orion.git.provider"); //$NON-NLS-0$
 				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
 				var cloneFunction = function(gitUrl, path, name) {
-					exports.getDefaultSshOptions(serviceRegistry).then(function(options) {
+					
+					item.GitUrl = gitUrl;
+					exports.getDefaultSshOptions(serviceRegistry, item).then(function(options) {
 						var func = arguments.callee;
 						var gitConfigPreference = new GitConfigPreference(serviceRegistry);
 						gitConfigPreference.getConfig().then(function(userInfo){
@@ -2254,10 +2310,14 @@ var exports = {};
 			id : "eclipse.cloneGitRepositoryReviewReq", //$NON-NLS-0$
 			//parameters: cloneParameters,
 			callback : function(data) {
+				var item = data.items;
+				
 				var gitService = serviceRegistry.getService("orion.git.provider"); //$NON-NLS-0$
 				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
 				var cloneFunction = function(gitUrl, path, name) {
-					exports.getDefaultSshOptions(serviceRegistry).then(function(options) {
+					
+					item.GitUrl = gitUrl;
+					exports.getDefaultSshOptions(serviceRegistry, item).then(function(options) {
 						var func = arguments.callee;
 						var gitConfigPreference = new GitConfigPreference(serviceRegistry);
 						gitConfigPreference.getConfig().then(function(userInfo){
@@ -2422,10 +2482,14 @@ var exports = {};
 			id : "eclipse.initGitRepository", //$NON-NLS-0$
 			parameters: initRepositoryParameters,
 			callback : function(data) {
+				var item = data.items;
+				
 				var gitService = serviceRegistry.getService("orion.git.provider"); //$NON-NLS-0$
 				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
 				var initRepositoryFunction = function(gitUrl, path, name) {
-					exports.getDefaultSshOptions(serviceRegistry).then(function(options){
+					
+					item.GitUrl = gitUrl;
+					exports.getDefaultSshOptions(serviceRegistry, item).then(function(options){
 						var func = arguments.callee;
 						var gitConfigPreference = new GitConfigPreference(serviceRegistry);
 						gitConfigPreference.getConfig().then(function(userInfo){
@@ -2496,6 +2560,7 @@ var exports = {};
 							function(jsonData){
 								if(explorer.changedItem){
 									window.location = require.toUrl(repoTemplate.expand({})); //reset the location
+									explorer.changedItem();
 								}
 							},
 							displayErrorOnStatus);
@@ -2782,8 +2847,33 @@ var exports = {};
 		
 		commandService.addCommand(unstageCommand);
 		
+		/* Fetches the appropriate commit message when the 'amend' flag is used */
+		var amendEventListener = new mCommandRegistry.CommandEventListener('change', function(event, commandInvocation){ //$NON-NLS-0$
+			var target = event.target;
+			var item = commandInvocation.items.status;
+			var commitMessageBox = document.getElementById("name" + "parameterCollector"); //$NON-NLS-0$//$NON-NLS-1$
+				
+			if(target.checked){
+				var progressService = serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
+				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
+				var deferred = progress.progress(serviceRegistry.getService("orion.git.provider").doGitLog(item.CommitLocation + "?page=1&pageSize=1"), messages["Fetching previous commit message"]); //$NON-NLS-0$ 
+					
+				progressService.createProgressMonitor(deferred, messages["Fetching previous commit message"], deferred.then(function(resp){
+					// use the last commit message
+					var message = resp.Children[0].Message;
+					commitMessageBox.value = message;
+				}), function(error){
+					commitMessageBox.value = ""; //$NON-NLS-0$
+				});
+			} else {
+				commitMessageBox.value = ""; //$NON-NLS-0$
+			}
+		});
+		
 		var commitMessageParameters = new mCommandRegistry.ParametersDescription(
-			[new mCommandRegistry.CommandParameter('name', 'text', messages['Commit message:'], "", 4), new mCommandRegistry.CommandParameter('amend', 'boolean', messages['Amend:'], false)], //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-1$ //$NON-NLS-0$
+			[new mCommandRegistry.CommandParameter('name', 'text', messages['Commit message:'], "", 4), //$NON-NLS-0$  //$NON-NLS-1$  //$NON-NLS-3$
+			 new mCommandRegistry.CommandParameter('amend', 'boolean', messages['Amend:'], false, null, amendEventListener), //$NON-NLS-0$  //$NON-NLS-1$
+			 new mCommandRegistry.CommandParameter('changeId', 'boolean', messages['ChangeId:'], false)], //$NON-NLS-0$  //$NON-NLS-1$
 			 {hasOptionalParameters: true});
 		
 		var commitCommand = new mCommands.Command({
@@ -2834,6 +2924,7 @@ var exports = {};
 				var body = {};
 				body.Message = data.parameters.valueFor("name"); //$NON-NLS-0$
 				body.Amend = data.parameters.valueFor("amend"); //$NON-NLS-0$
+				body.ChangeId = data.parameters.valueFor("changeId"); //$NON-NLS-0$
 				
 				var config = item.Clone.Config;
 				if(body.Amend && !body.Message){
@@ -2903,7 +2994,7 @@ var exports = {};
 
 		var checkoutCommand = new mCommands.Command({
 			name: messages['Checkout'],
-			tooltip: messages["Checkout files, discarding all changes"],
+			tooltip: messages["Checkout all the selected files, discarding all changes"],
 			imageClass: "git-sprite-checkout", //$NON-NLS-0$
 			spriteClass: "gitCommandSprite", //$NON-NLS-0$
 			id: "eclipse.orion.git.checkoutCommand", //$NON-NLS-0$
