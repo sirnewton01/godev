@@ -1,0 +1,600 @@
+/*
+Layout classes used in Orion.
+The model is one of a "side panel" defaulting to 1/3 width on the left and a "main panel" taking the rest
+of the room.  A page always has a fixed header but may have a fluid footer (at the bottom of content) or
+a fixed footer on the bottom of the page.
+
+To split a page in different proportions, modify the left hand position of the split bar to override the
+33% width position described in the class splitLayout
+
+The transition delays used for splitter animation (0.5) have a relationship with the animation delay used
+by the splitter bar.  If these values change, then change the delay in the splitter.
+
+Items that should appear on top of other orion visual components should have a z-index of 100 or greater.  Values
+under 100 are used to achieve layering of the header, footer, and splitters.
+*/
+
+/*
+There are implied LESS variables here, for now set up as layout classes that live here and refer to the
+hard-coded numbers elsewhere.
+*/
+
+/* $HeaderHeight */
+.headerLayout {
+	height: 60px;
+}
+
+/* $FooterHeight */
+.footerLayout {
+	height: 28px;
+	padding-left:10px;
+	font-size:0.9em;
+	font-weight:bold;
+	/* background:linear-gradient( rgba(242, 242, 242, 0.9), rgba(222, 222, 222, 0.9)) 28px;*/
+}
+
+/* $ToolbarHeight */
+.toolbarLayout {
+	height: 36px;
+}
+
+/*
+ * Filesystem switcher toolbar.
+ */
+.fsToolbarLayout {
+	height: 30px; /* $FSToolbarHeight */
+}
+
+/* Banner Layout Classes */
+
+.bannerLeftArea{
+
+	-ms-flex: 1 6 20%;
+	-moz-box-ordinal-group: 1;	
+	-webkit-order: 1;
+	-ms-flex-order: 1;              /* TWEENER - IE 10 */
+	order: 1; 
+
+	-moz-box-flex: 1;
+
+	-webkit-box-flex:1;
+	-webkit-box-ordinal-group: 1;
+    
+    width: 20%;
+    
+    padding-left:5px;
+}
+
+.bannerMiddleArea{
+	-ms-flex: 3 1 60%;
+
+	-webkit-order: 2;
+	-ms-flex-order: 2;              /* TWEENER - IE 10 */
+	order: 2;  
+
+ 	-moz-box-flex: 1;
+    -moz-box-ordinal-group: 2;
+    
+    -webkit-box-flex:1;
+	-webkit-box-ordinal-group: 2;
+    width: 60%; 
+}
+
+@media only screen and (device-width: 768px) {
+  /* For general iPad layouts */
+  
+  .bannerMiddleArea{
+	-ms-flex: 3 1 60%;
+
+	-webkit-order: 2;
+	-ms-flex-order: 2;              /* TWEENER - IE 10 */
+	order: 2;  
+
+ 	-moz-box-flex: 1;
+    -moz-box-ordinal-group: 2;
+    
+    -webkit-box-flex:1;
+	-webkit-box-ordinal-group: 2;
+    width: 59%; 
+}
+  
+}
+
+
+.bannerRightArea{
+	-ms-flex: 1 6 20%;
+	-moz-box-ordinal-group: 3;
+	-webkit-order: 3;
+	-ms-flex-order: 3;              /* TWEENER - IE 10 */
+	order: 3;  
+
+	-moz-box-flex: 1;
+	
+	-webkit-box-flex:1;
+	-webkit-box-ordinal-group: 3;
+
+    width: 20%; 
+    padding-right:5px;
+}
+
+.content-fixedHeight {
+	clear: both;
+	overflow: hidden;
+    position: absolute;
+    top: 37px;
+	/* bottom: 36px; $FooterHeight + footer border (1px) */    
+    bottom: 0;
+    left: 0;
+    right: 0;
+	/*margin-bottom: 29px;*/
+}
+
+.content-fixedHeight-animation {
+    transition: left 0.3s ease; /* if this is changed SideMenu.js->TRANSITION_DURATION_MS needs to be changed as well */
+}
+
+.content-fixedHeight-maximized {
+	top: 0;
+	bottom: 0;
+}
+
+.content-fluid {
+}
+
+.footer-fixed-bottom {
+	position: fixed;
+	bottom: 0;
+	z-index: 50;
+	right: 0;
+	left: 0;
+	/* height: 36px;  It has to be this */
+	height: 0;
+	background:#ededed;
+}
+
+.footerBlock {
+	float: left;
+	margin: 8px;
+	color: #7F7F7F;
+	font-weight: bold;
+	float: left;
+}
+
+.footerRightBlock {
+	float: right;
+	margin: 4px;
+}
+
+.footerRightBlock ul {
+	margin: 0;
+	margin-top:4px;
+	font-size: .9em;
+	margin-right: 4px;
+}
+
+.footerRightBlock li {
+	display: inline;
+}
+
+.footerRightBlock li:after {
+	content: ' ';
+	padding: 0 8px;
+}
+
+.footerRightBlock li:last-child:after {
+	content: none;
+}
+
+.layoutBlock {
+	clear: both;
+	margin: 0;
+	/* padding: 2px 8px; */
+	padding: 4px 4px 0 4px;
+	vertical-align: baseline;
+}
+
+.layoutLeft {
+	float: left;
+	margin: 0;
+}
+
+.layoutRight {
+	float: right;
+	margin: 0;
+}
+
+.spacingLeft {
+	margin-left: 5px;
+}
+
+.spacingRight {
+	margin-right: 5px;
+}
+
+.clear {
+	clear: both;
+}
+
+.hidden {
+	visibility: hidden;
+}
+
+.sidePanelLayout {
+	display: block;
+	position: absolute;
+	left: 0;
+	width: 33%;
+	height: 100%;
+}
+
+.sidePanelLayoutAnimation {
+	-webkit-transition: width 0.5s ease;
+	-moz-transition: width 0.5s ease;
+	-o-transition: width 0.5s ease;
+	transition: width 0.5s ease;
+	z-index: 50;
+    overflow: auto;
+}
+
+.sidePanelVerticalLayoutAnimation {
+	-webkit-transition: height 0.5s ease;
+	-moz-transition: height 0.5s ease;
+	-o-transition: height 0.5s ease;
+	transition: height 0.5s ease;
+	z-index: 50;
+    overflow: auto;
+}
+
+.sidePanelMargins {
+	margin-left: 8px;
+	margin-top: 2px;
+    margin-bottom: 8px;
+    width: auto;
+}
+
+.mainPanelLayout {
+	display: block;
+	position: absolute;
+	right: 0;
+	height: 100%;
+}
+
+.mainPanelLayoutAnimation {
+	-webkit-transition: left 0.5s ease;
+	-moz-transition: left 0.5s ease;
+	-o-transition: left 0.5s ease;
+	transition: left 0.5s ease;
+}
+
+.mainPanelVerticalLayoutAnimation {
+	-webkit-transition: top 0.5s ease;
+	-moz-transition: top 0.5s ease;
+	-o-transition: top 0.5s ease;
+	transition: top 0.5s ease;
+}
+
+.fixedToolbarHolder {
+	position: relative;
+	left: 0;
+	top: 0;
+	height: 100%;
+	width: 100%;
+	min-width:140px;
+
+}
+
+.workingTarget {
+	position: absolute;
+	top: 2px;  /* $ToolbarHeight + 2 */
+ 	width: 100%;
+ 	bottom: 10px;
+ 	overflow-y: auto;
+	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.33); /* 0 0 0 1px #d1d1d1,0 0 4px 1px #ccc; */
+	margin-left: 2px;
+	/* margin-top: 2px; */
+	/* padding-top: 10px; */
+	margin-right: 2px;
+	background: white;
+}
+
+.toolbarTarget {
+	position: absolute;
+	top: 36px;  /* $ToolbarHeight + 2 */
+ 	width: 100%;
+ 	bottom: 10px;
+ 	overflow-y: auto;
+}
+
+.toolbarTarget-toolbarHidden {
+	top: 2px;  /* 2 */
+}
+
+.pageLayoutTarget {
+	position: absolute;
+ 	width: calc( 100% - 35px );
+ 	bottom: 10px;
+ 	overflow-y: auto;
+	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.33); /* 0 0 0 1px #d1d1d1,0 0 4px 1px #ccc; */
+	margin-left: 2px;
+	margin-right: 10px;
+	margin-left:10px;
+	padding-top: 10px;
+	padding-bottom: 5px;
+	background: white;
+}
+
+.hasSplit {
+   display: none;
+}
+
+.splitLayout {
+	position: absolute;
+	left: 33%;  /* override this value if you want a different proportion of the two split panes */
+	height: 100%;
+	z-index: 50;
+	width: 10px;
+	margin-right: 3px;
+	cursor: e-resize;
+	overflow: hidden;
+	visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
+}
+
+.splitVerticalLayout {
+	position: absolute;
+	top: 33%;  /* override this value if you want a different proportion of the two split panes */
+	width: 100%;
+	z-index: 50;
+	height: 10px;
+	margin-bottom: 3px;
+	cursor: n-resize;
+	overflow: hidden;
+	visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
+}
+
+.splitThumbLayout {
+	position: absolute;
+	right: 0;
+	height: 3em;
+	width: 5px;
+	top: 49%;
+	cursor: pointer;
+	border-top-left-radius: 5px;
+	border-bottom-left-radius: 5px;	
+}
+
+.splitVerticalThumbLayout {
+	position: absolute;
+	bottom: 0;
+	width: 3em;
+	height: 5px;
+	left: 49%;
+	cursor: pointer;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;	
+}
+
+.splitLayoutAnimation {
+	-webkit-transition: left 0.5s ease;
+	-moz-transition: left 0.5s ease;
+	-o-transition: left 0.5s ease;
+	transition: left 0.5s ease;
+}
+
+.splitVerticalLayoutAnimation {
+	-webkit-transition: top 0.5s ease;
+	-moz-transition: top 0.5s ease;
+	-o-transition: top 0.5s ease;
+	transition: top 0.5s ease;
+}
+
+.panelTracking {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	overflow: auto;
+}
+
+/* command layout */
+
+/* spacing for commands in a list */
+.commandList {
+	padding: 0;
+	margin-left: 0;
+	margin-right: 0;
+	list-style-type: none;
+	vertical-align: baseline;
+}
+
+.commandList > li {
+	float: left;
+	margin-left: 4px;
+	margin-right: 4px;
+}
+
+/* for commands not in a list we add margins for backward compatibility */
+.commandMargins {
+	margin-left: 4px !important;
+	margin-right: 4px !important;
+}
+
+/* ----- side menu begin ----- */
+
+.sideMenu{
+    width: 0;
+    background: #4a4a4a;
+	float: left;
+    position: absolute;
+    top: 36px;
+	/* bottom: 36px; $FooterHeight + footer border (1px) */   
+    bottom: 0;
+    /*z-index: 0;*/
+    -webkit-animation: slide 0.5s forwards;
+    -webkit-animation-delay: 2s;
+    animation: slide 0.5s forwards;
+    animation-delay: 2s;
+    display:block;
+    margin:0;
+    font-family: sans-serif;
+	font-size:10px;
+	text-decoration:none !important;
+	border-right:1px solid #ccc;
+	user-select: none;
+	-webkit-user-select: none;
+	-moz-user-select: -moz-none;
+}
+
+.sideMenu.animating {
+	z-index: 0;
+}
+
+.sideMenu-maximized {
+	top: 0;
+	bottom: 0;
+}
+
+.sideMenuList{
+	margin: 0;
+	padding: 0;
+	display:inline-block !important;
+	width: 100%;
+	text-align: center;
+}
+
+.sideMenuItem{
+	border-bottom: 1px solid #444;
+	border-top: 1px solid transparent;
+	list-style-type: none;
+	font-size:16px !important;
+	padding: 0;
+}
+
+.sideMenuItem:hover, .sideMenuItem.expanded {
+	text-decoration:none;
+	color:white !important;
+}
+
+/* icon links */
+.sideMenuItem > .submenu-trigger {
+	color: #bbb !important;
+	text-decoration:none !important;
+	width: 100%;
+	display: inline-block;
+	padding: 9px 0px 12px 0px;
+}
+.sideMenuItem>.submenu-trigger:hover, .sideMenuItem.expanded>.submenu-trigger{
+	text-decoration:none;
+	color:white !important;
+}
+
+.sideMenuItemActive {
+	background: radial-gradient(circle 20px, #3a3a3a, #333);
+	border-top: 1px solid #555;
+	border-bottom: 1px solid #666;
+}
+
+.sideMenuItemActive > .submenu-trigger {
+	color: white !important;
+}
+
+.sideMenuToggle {
+	display: none;
+}
+
+/* sub menus */
+.sideMenuSubMenu{
+	display: none;
+	list-style-type:none;
+	position:absolute;
+	font-family:sans-serif;
+	padding-left: 0;
+	z-index:100;
+	text-align: left;
+	left: 40px;
+}
+
+.sideMenuSubMenuItem{
+	display: inline-block;
+	width: 100%;
+	white-space: nowrap;
+	font-size: 12px;
+    background: white;
+	border-right:1px solid #bbb;
+}
+
+/* left arrow */
+.sideMenuSubMenuItem:before {
+	width: 0;
+	height: 0;
+	top: 13px;
+	content: "";
+	left: -7px;
+	position: absolute;
+	z-index: 200;
+	border-top: 7px solid transparent;
+	border-bottom: 7px solid transparent;
+	border-right: 7px solid white;
+}
+/* left arrow: match submenu bgcolor on hover */
+.sideMenuSubMenuItem:hover:before {
+	border-right: 7px solid #fde7cf;
+}
+
+.sideMenuSubMenuItem:first-child{
+	border-top:1px solid #bbb;
+	border-top-right-radius: 4px;
+}
+
+.sideMenuSubMenuItem:last-child{
+	border-bottom:1px solid #bbb;
+	border-bottom-right-radius: 4px;
+}
+
+.sideMenuSubMenuItem a {
+	display: inline-block;
+	color: #333;
+	padding: 12px 30px 12px 10px;
+	width: calc(100% - 30px - 10px + 8px); /* clamp to container's width, plus 5px fudge factor */
+}
+
+/* 1) Set up special hover colors for submenu items */
+.sideMenuSubMenuItem:hover {
+	background-color: #fde7cf; /* #373737; */
+}
+.sideMenuSubMenuItem:hover a {
+	/* color: white; */
+}
+
+
+/* 2) Disable hover colors when submenu has only 1 item */
+.sideMenuSubMenuItem:only-child:hover {
+	/* background-color: white; */
+}
+.sideMenuSubMenuItem:only-child:hover a {
+	color: #333;
+}
+
+.sideMenuSubMenuItem a span {
+	display: inline-block;
+}
+
+/* Show submenu on hover, and when "expanded" is set programatically
+ */
+.sideMenuItem:hover .sideMenuSubMenu, .sideMenuSubMenu.expanded { 
+    display:inline-block;
+}
+
+/* .sideMenuitem:hover > li:hover ul {
+    display: block;
+    position: absolute;
+    border-top: 1px solid #f39cbd;
+    border-left: 1px solid #f39cbd;
+} */
+/* ----- side menu end ----- */
+
+.mainContent{
+	position:absolute;
+	left:50px;
+}

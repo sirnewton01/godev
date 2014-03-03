@@ -1,0 +1,129 @@
+
+.bottomBorderReplace {
+	height: 50%;
+}
+
+.bottomBorderSearch {
+	height: 0;
+}
+
+.search_primaryColumn {
+	padding-left: 0 !important;
+	vertical-align: top;
+	width: 45px;
+}
+
+.search_primaryColumn_Details {
+	padding-left: 0 !important;
+	vertical-align: middle;
+	width: 45px;
+}
+
+.search_secondaryColumn{
+	color: #666666;	
+}
+
+.search_report {
+	padding-left: 5px; 
+	padding-right: 5px;
+}
+
+.search_header {
+	text-align: left;
+}
+
+.search_mainpane {
+    margin: 0;
+    padding-left: 0;
+    padding-top: 0;
+    background: #FFFFFF;
+	overflow: auto;
+}
+
+.topBorder {
+	overflow: auto;
+}
+
+.topPanelLayout {
+	display: block;
+	top: 0;
+    overflow: auto;
+	width: 100%;
+	height: 50%;
+}
+
+.bottomPanelLayout {
+	display: block;
+	position: absolute;
+	bottom: 0;
+    overflow: hidden;
+	width: 100%;
+}
+
+.replaceSplitLayout {
+	position: absolute;
+	top: 50%;  
+	width: 100%;
+	z-index: 50;
+	height: 4px;
+	cursor: n-resize;
+	background: #dedede !important;
+	overflow: hidden;
+	visibility: visible; 
+}
+
+.outlinerSplitLayout {
+}
+
+.advSearchOptContainer {
+	color: black;
+	display: block;
+	border:  1px solid #666;
+	background: white;
+	max-height: 300px;
+	max-width: 300px;
+	min-width: 150px;
+	position: absolute;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 2px;
+	z-index:200;
+}
+
+.searchOptionBlock {
+	margin-left: 2px;
+	margin-right: 0px;
+	margin-top: 6px;
+	margin-bottom: 0px;
+}
+
+.search-control {
+	display: inline-block;
+	padding: 4px;
+	outline: none;
+	background-color: white;
+	border: 1px solid #CCC;
+	border-radius: 3px;
+	font-size: 12px;
+	color: #222;
+}
+
+.search-filter-input {
+	min-width:20em;
+}
+
+.search-button {
+	min-width:6em;
+}
+
+.search-filter-text {
+	background : yellow;
+}
+
+.search-label {
+	display: inline-block;
+	padding: 4px 4px 4px 7px;
+	outline: none;
+	font-size: 12px;
+	color: #222;
+}

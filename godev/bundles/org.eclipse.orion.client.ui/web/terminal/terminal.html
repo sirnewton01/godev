@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="copyright" content="Copyright (c) IBM Corporation and others 2014." >
+	<meta http-equiv="Content-Language" content="en-us">
+	<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+	<link rel="icon" href="/images/shell.png" type="image/png">
+	<title>Orion Terminal</title>
+	<link rel="stylesheet" type="text/css" href="terminal.css" />
+	<script src="../requirejs/require.js"></script>
+	<script>
+		/*global require*/
+		require({
+			baseUrl: "..",
+			paths: {
+				text: "requirejs/text",
+				i18n: "requirejs/i18n",
+				domReady: "requirejs/domReady"
+			}
+		});
+		require(["terminal.js"]);
+	</script>
+</head>
+	<body id="orion-terminalPage" class="orionPage">
+		<div id="sideMenu" class="sideMenu"></div>
+		<div id="pageContent" class="content-fixedHeight">
+			<div id="sideMenuToggle" class="sideMenuToggle"></div>
+			<div class="terminal" id="terminal"></div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer"></div>
+	</body>
+</html>

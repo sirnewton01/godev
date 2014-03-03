@@ -1,0 +1,398 @@
+.incomingCommitsdRow {
+	font-weight: bold;
+}
+
+.outgoingCommitsdRow {
+	font-weight: bold;
+}
+
+.incomingCommitsdRow div {
+	background: url(../images/incoming-commit.png);
+	background-repeat: no-repeat;
+	background-position: left top; 
+}
+
+.outgoingCommitsdRow div {
+	background: url(../images/outgoing-commit.png);
+	background-repeat: no-repeat;
+	background-position: left top; 
+}
+
+.gitAuthorImage {
+	border: 1px solid lightGrey;
+	padding: 2px;
+}
+
+.git-author-icon {
+	float: left;
+	position: relative;
+	height: 30px;
+	vertical-align: text-top;
+	width: 30px;
+	border: 1px solid lightGrey;
+	padding: 2px;
+	margin-right: 18px;
+}
+
+.git-author-icon-small {
+	float: left;
+	position: relative;
+	height: 35px;
+	vertical-align: text-top;
+	width: 35px;
+	border: 1px solid lightGrey;
+	padding: 2px;
+	margin-right: 18px;
+}
+
+.gitRepoItem {
+	background: url(../images/repository.png);
+}
+
+.gitBranchItem {
+	background: url(../images/branch.png);
+}
+
+.gitRemoteItem {
+	background: url(../images/remote.png);
+}
+
+.gitDefaultItem {
+}
+
+.gitPanel {
+	min-width: 800px;
+	background:white;
+	height:100%;
+}
+
+/* sprites */
+.gitCommandSprite {
+	display: inline-block;
+}
+
+.gitImageSprite {
+	display: inline-block;
+	padding-right: 10px;
+	margin: 1px;
+}
+
+.git-sprite-notsure{ background-position: 0 -216px; width: 16px; height: 16px; } 
+
+.git-sprite-apply-patch{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555555;
+	font-family: 'Orion Icon Font';
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-repository{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+
+.git-sprite-pull{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-remote{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-checkout{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-fetch{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-tag{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-branch{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-stage{
+	font-size: 16px;
+	line-height: 14px;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-addition{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+
+.git-sprite-file{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-removal{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-merge{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-merge-squash{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-rebase{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-cherry-pick{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-compare{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-reset{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-open{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-unstage{
+	font-size: 16px;
+	line-height: 14px;
+	vertical-align:middle;
+	color: #555;
+	font-family: 'Orion Icon Font';	
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-incoming-commit{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #333;
+	font-family: 'Orion Icon Font';	
+	padding-right:5px;
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-outgoing-commit{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #333;
+	font-family: 'Orion Icon Font';	
+	padding-right:5px;
+	background: none;
+	border: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-branch-active{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #333;
+	font-family: 'Orion Icon Font';	
+	padding-right:5px;
+	background: none;
+	border: none;
+	margin: 0;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.git-sprite-conflict-file{
+	font-size: 24px;
+	line-height: normal;
+	vertical-align:middle;
+	color:#df484c;	
+	padding-right:5px;
+	background: none;
+	border: none;
+	margin: 0;
+}
+
+.git-sprite-apply-patch:before{ content:'\0057'; }
+.git-sprite-cherry-pick:before{ content:'\0058'; }
+.git-sprite-pull:before{ content:'\0063'; }
+.git-sprite-repository:before{ content:'\0065'; }
+.git-sprite-remote:before{ content:'\0065'; }
+.git-sprite-checkout:before{ content:'\0062'; }
+.git-sprite-fetch:before{ content:'\0064'; }
+.git-sprite-tag:before{ content:'\0047'; }
+.git-sprite-branch:before{ content:'\006E'; }
+.git-sprite-stage:before{ content:'\0072'; }
+.git-sprite-addition:before{ content:'\0071'; }
+.git-sprite-file:before{ content:'\004B'; }
+.git-sprite-removal:before{ content:'\0074'; }
+.git-sprite-merge:before{ content:'\0069'; }
+.git-sprite-merge-squash:before{ content:'\0068'; }
+.git-sprite-rebase:before{ content:'\0067'; }
+.git-sprite-compare:before{ content:'\0046'; }
+.git-sprite-reset:before{ content:'\0066'; }
+.git-sprite-open:before{ content:'\0075'; }
+.git-sprite-unstage:before{ content:'\0070'; }
+.git-sprite-incoming-commit:before{ content:'\0055'; }
+.git-sprite-outgoing-commit:before{ content:'\0056'; }
+.git-sprite-conflict-file:before{ content: '\2B0C'; } 
+.git-sprite-branch-active:before{ content: '\0059'; }

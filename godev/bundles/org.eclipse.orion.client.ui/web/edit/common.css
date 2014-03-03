@@ -1,0 +1,57 @@
+@import "../css/layout.css";
+
+@import "../css/ide.css";
+
+@import "../css/images.css";
+
+@import "../css/sections.css"; /* for outliner */
+
+@import "../orion/editor/editor.css";
+
+@import "../css/theme.css";
+
+.outlineExplorer {
+	overflow-y: hidden;
+	white-space:nowrap;
+}
+
+.outlineFilter {
+	border: 1px solid lightgrey;
+	margin: 4px;
+	float: left;
+	width: 95%; /* for older browsers */
+	width: -webkit-calc(100% - 8px);
+	width: calc(100% - 8px);
+}
+
+.outlineRowMatchesFilter {
+	font-weight:bold;
+}
+
+.outlineRowHidden {
+	display: none;
+}
+
+.outlineLeafIndent {
+	display: inline-block;
+	width: 16px; /*16px standard indent*/
+}
+
+.findOptionsDiv {
+	display: inline-block;
+	margin: 0;
+	padding: 0;
+}
+
+.replaceInfo {
+	margin-left: -14px;
+	margin-right: 7px;
+	margin-bottom: -3px;
+	cursor: pointer;
+}
+
+.extraActions:not(:empty) {
+	margin-left: 4px;
+	padding-left: 10px;
+	border-left: 1px solid #ccc;
+}

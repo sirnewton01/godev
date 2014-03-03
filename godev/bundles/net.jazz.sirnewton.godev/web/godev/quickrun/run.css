@@ -1,0 +1,11 @@
+@import "../../css/layout.css";
+@import "../../css/ide.css";
+@import "../../css/images.css";
+@import "../../css/sections.css";
+@import "../../css/theme.css";
+
+.terminal {
+	font-size: 11pt;
+	margin-left: 5px;
+	margin-top: 3px;
+}

@@ -1,0 +1,9 @@
+@import "sites.css";
+
+.viewOnSiteTable {
+	max-width: 700px;
+}
+
+.pageLayoutTarget {
+	padding: 10px;
+}

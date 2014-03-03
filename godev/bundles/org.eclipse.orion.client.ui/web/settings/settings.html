@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2012, 2014." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<link rel="icon" href="/images/repository.png" type="image/png">
+		<title>Settings</title>
+		<link rel="stylesheet" type="text/css" href="settings.css"/>
+		<script src="../requirejs/require.js"></script>
+		<script type="text/javascript">
+			/*global require*/
+			require({ baseUrl: '..',
+				      packages: [],
+				      paths: { text: 'requirejs/text', i18n: 'requirejs/i18n', domReady: 'requirejs/domReady' } 
+			});
+			require(["settings.js"]);
+		</script>
+	</head>
+	
+	<body id="orion-settings" class="orionPage">
+		<div id="sideMenu" class="sideMenu"></div>
+		<div id="pageContent" class="content-fixedHeight">
+			<div id="sideMenuToggle" class="sideMenuToggle"></div>
+			<div id="auxpane" class="auxpane sidePanelLayout hasSplit">
+				<div class="fixedToolbarHolder">
+					<div id="sidebarToolbar" class="sidebarToolbar mainToolbar toolComposite toolbarLayout"></div>
+					<div id="categoriesContainer" class="toolbarTarget"></div>
+				</div>
+			</div>
+			<div class="split splitLayout settingsSplitLayout" style="left: 300px;"></div>
+			<div id="rightPane" class="mainpane mainPanelLayout hasSplit">
+				<div class="fixedToolbarHolder">
+					<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+					<div class="toolbarTarget workingTarget" tabindex="0" id="settings">
+					</div>				
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer"></div>
+		</div>
+	</body>
+</html>

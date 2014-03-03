@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2011, 2014." >
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<link rel="icon" href="/images/sites.png" type="image/png">
+		<title>Edit Site</title>
+		<link rel="stylesheet" type="text/css" href="site.css" />
+		<script src="../requirejs/require.js"></script>
+		<script>
+		/*global require*/
+		require({
+			  baseUrl: '..',
+			  packages: [],
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["site.js"]);
+		</script>
+	</head>
+	
+	
+	<body id="orion-site" class="orionPage">
+		<div id="sideMenu" class="sideMenu"></div>
+		<div id="pageContent" class="content-fixedHeight">
+			<div id="sideMenuToggle" class="sideMenuToggle"></div>
+			<div class="fixedToolbarHolder mainpane mainPanelLayout">
+				<div class="mainToolbar toolComposite" id="pageToolbar"></div>
+				<div id="mainNode" class="toolbarTarget pageLayoutTarget">
+					<div id="site" class="displayTable sitePanel" style="padding-bottom: 20px;">
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="footer-fixed-bottom footer" id="footer">
+		</div>
+	</body>	
+</html>

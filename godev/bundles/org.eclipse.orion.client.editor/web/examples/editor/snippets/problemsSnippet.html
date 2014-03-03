@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Orion Editor Snippet</title>
+
+<link rel="stylesheet" type="text/css" href="http://eclipse.org/orion/editor/releases/latest/built-editor.css"/>
+<script src="http://eclipse.org/orion/editor/releases/latest/built-editor.js"></script>
+
+<style>
+
+#myEditor {
+	border: 1px solid #ddd;
+	position: relative;
+	width: 100%;
+	height: 400px;
+}
+
+textarea {
+	width: 100%;
+	height: 100%;
+}
+</style>
+
+<script>
+	/*globals require*/
+	require(["orion/editor/edit"], function(edit) {
+		var editor = edit({lang: "js", parent: "myEditor"});
+		editor.showProblems([
+		{
+			description: "'consle' is undefined",
+			severity: "error",
+			start: 20,
+			end: 26
+		},
+		{
+			description: "Missing semi colon.",
+			severity: "warning",
+			start: 86,
+			end: 87
+		}
+		]);
+	});
+</script>
+</head>
+<body spellcheck="false">
+<h2>Problems snippet</h2>
+This snippet shows how to add problem or warning annotations in the editor.
+<br>
+<br>
+<div id="myEditor"><textarea>
+function hello() {
+	consle.log("Hello word");
+}
+
+function done() {
+	console.log("done")
+}
+</textarea></div>
+</body>
+</html>

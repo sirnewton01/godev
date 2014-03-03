@@ -1,0 +1,49 @@
+<header id="banner" role="banner">
+	<!-- Requires some js code to bind the home link, link to progress image, and binding NLS variables  -->
+
+	<div id="staticBanner" class="layoutBlock topRowBanner"> <!-- primaryNav -->
+		<div id="centralNavigationArea" style="position:absolute;left:0;top:0;width:39px;height:36px; z-index:1;border-right:1px solid #ddd;"></div>
+
+		<!-- Static "Home" link. TODO delete this -->
+		<a id="home" class="layoutLeft "></a>
+
+		<!-- Left banner component: hamburger -->
+		<nav id="primaryNav" class="bannerLeftArea" style="z-index:2;" role="navigation">
+				<button class="centralNavigation commandSprite core-sprite-hamburger" type="button"id="centralNavigation"></button>
+		</nav>
+
+		<!-- Middle banner component: Breadcrumb bar -->
+		<div class="clear navigationBreadcrumb bannerMiddleArea" >
+			<div id="location" class="currentLocation"></div>
+		</div>
+
+		<!-- Right banner component: user identity -->
+		<div class="bannerRightArea" style="z-index:2;">
+			<!-- Global commands support. -->
+			<div id="globalActions" class="spacingLeft layoutLeft"></div>
+
+			<!-- Search. TODO delete this -->
+			<input type="text" id="search" autocomplete="off" class="layoutLeft spacingLeft searchbox" role="search" style="display:none;">
+			<div id="searchOptions" class="layoutLeft" style="padding-top:1px;display:none;"></div>
+
+			<!-- User identity menu and Progress -->
+			<div id="userMenu" class="spacingRight layoutRight" style="color:#ccc;line-height:16px;">
+				<div style="position: absolute;right: 0px;top:0;width: 39px;height:36px; z-index:-50;border-left: 1px solid #ddd;"></div>
+
+				<!-- Progress indicator -->
+				<img class="progressPane" id="progressPane" tabindex="0" role="progressbar"></img>
+
+				<!-- User identity menu -->
+				<span id="userTrigger" tabindex="0" role="button" class="dropdownTrigger" style="z-index:2;">
+				</span>
+				<ul id="userDropdown" class="dropdownMenu" role="menu"></ul>
+			</div>
+		</div>
+	</div>
+
+	<!-- IDE notification messages go in here -->
+	<div id="notificationArea" class="notificationHide">
+		<div class="layoutLeft" id="notifications" aria-live="assertive" aria-atomic="true"></div>
+		<div class="layoutRight"><button aria-label="Close" class="dismissButton layoutRight core-sprite-close imageSprite" type="button" id="closeNotifications"></span></div>
+	</div>
+</header>

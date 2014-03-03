@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset=utf-8>
+		<title>Run</title>
+		<link rel="stylesheet" type="text/css" href="run.css" />
+		<script src="../../requirejs/require.js"></script>
+		<script type="text/javascript">
+		/*global require*/
+		require({
+			  baseUrl: '../..',
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'	    
+			  }
+			});
+		
+		require(["run.js"]);
+		</script>		
+	</head>
+	<body style="background-color:white; overflow: hidden; min-width: 50px; width: 780px; height: 520px;">
+		<div class="dialogTitle">
+			<span class="dialogTitleText layoutLeft">Run</span>
+			<button aria-label="Close" class="dismissButton layoutRight core-sprite-close imageSprite" id="closeDialog"></button>
+		</div>
+		<div class="dialogContent layoutBlock" style="height: 480px;">
+			<div id="terminalArea" style="height: 480px; margin:5px; overflow: auto;" aria-live="off"></div>
+		</div>
+	</body>	
+</html>

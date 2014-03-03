@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Orion Editor Snippet</title>
+
+<link rel="stylesheet" type="text/css" href="http://eclipse.org/orion/editor/releases/latest/built-editor.css"/>
+<script src="http://eclipse.org/orion/editor/releases/latest/built-editor.js"></script>
+
+<style>
+
+/* Use the parent of the editor to control its size. */
+
+#myEditor {
+	border: 1px solid #ddd;
+	position: relative;
+	width: 100%;
+	height: 400px;
+}
+
+/*
+ * Use this class (textview) to control the font-size, font-family, etc
+ */
+.textview {
+	font-size: 30pt;
+}
+
+textarea {
+	width: 100%;
+	height: 100%;
+}
+</style>
+
+<script>
+	/*globals require*/
+	require(["orion/editor/edit"], function(edit) {
+		var editor = edit({lang: "js", parent: "myEditor"});
+		editor.setSelection(33, 43);
+	});
+</script>
+</head>
+<body spellcheck="false">
+<h2>Size and font snippet</h2>
+This snippet shows how to size the editor to a specified height/width and how to change its font size.
+<br>
+<br>
+<div id="myEditor"><textarea>
+function hello() {
+	console.log("Hello word");
+}
+
+function done() {
+	console.log("done");
+}
+</textarea></div>
+</body>
+</html>

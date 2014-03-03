@@ -1,0 +1,87 @@
+.sectionIcon {
+	float: left;
+	position: relative;
+	height: 16px;
+	vertical-align: text-top;
+	width: 16px;
+	padding-right: 10px;
+}
+
+.sectionTitle {
+	margin-top: 5px;
+}
+
+.sectionTitleTwistie {
+	margin-top: 2px;
+}
+
+.sectionItemCount {
+	padding: 2px;
+	border-radius: 4px;
+	border: 1px solid #CCC;
+	float: left;
+	color: #AAA;
+	margin-top: 4px;
+	font-size: 8px;
+	font-weight: normal;
+	margin-left: 5px;
+}
+
+.sectionTable {
+	overflow-x: hidden;
+}
+
+.sectionTableItem {
+	padding: 6px;
+}
+
+.sectionTableItemActions {
+	float: right;
+	position: relative;
+	color: #666;
+}
+
+.sectionExplorerActions {
+	text-align: right;
+	padding: 0px 4px 4px 0px;
+}
+
+.sectionActions {
+	font-size: 8pt;
+	font-weight: normal;
+	margin-top: 2px;
+	vertical-align: baseline;
+}
+
+/*TODO: this is wrong
+sectionAnchor {
+	line-height: 30px,
+	color: #808080,
+	font-weight: normal !important;
+	margin-top: 0 !important;
+}
+*/
+
+.displayTable {
+	padding: 10px 20px
+}
+
+.sectionWrapper {
+	vertical-align: middle;
+	color: gray;
+	overflow: hidden;
+}
+.sectionWrapper:focus{
+	outline:none;
+}
+
+.sectionWrapperAux {
+    /* background-color: #fafafa;
+	border: 1px solid #ebebeb; */
+}
+
+.sectionProgress {
+    text-decoration: blink;
+    font-weight: bold;
+    font-size: 1.2em;
+}

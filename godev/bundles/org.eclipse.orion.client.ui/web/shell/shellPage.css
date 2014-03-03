@@ -1,0 +1,49 @@
+@import "../css/layout.css";
+@import "../css/ide.css";
+@import "../css/images.css";
+@import "../orion/shell/Shell.css";
+@import "../css/theme.css";
+
+html,body {
+	height: 100%;
+}
+
+.shell-input {
+  position: absolute; height: 27px; bottom: 0; left: 0; right: 0;
+}
+
+.shell-input input {
+	outline: none;
+	border: 0;
+	margin: 0;
+	z-index: 2;
+}
+
+.shell-input .gcli-prompt {
+	z-index: 0;
+	pointer-events: none;
+}
+
+.shell-input .gcli-in-complete {
+	z-index: 1;
+	pointer-events: none;
+}
+
+.shell-output {
+  position: absolute; top: 0; bottom: 30px; left: 0; right: 0;
+  font-size: 10pt;
+}
+
+.gcli-row-out > p, .gcli-row-out > div > span, .string-result-output {
+	white-space: pre-wrap;
+}
+
+.modelDecorationSprite { 
+	display: inline-block; 
+	vertical-align: middle; 
+}
+
+.toolbarTarget {
+	overflow: hidden;
+	margin-top: 10px;
+}

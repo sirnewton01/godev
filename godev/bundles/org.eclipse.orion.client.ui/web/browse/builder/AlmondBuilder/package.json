@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "deferred-fs": ">=0.1.0",
+    "requirejs": "~2.1.2"
+  }
+}

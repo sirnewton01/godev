@@ -1,0 +1,32 @@
+.textview {
+	background-color: white;
+	font-family: "Consolas", "Monaco", "Vera Mono", "monospace";
+	font-size: 10pt;
+	min-width: 50px;
+	min-height: 50px;
+}
+
+.textviewScroll {
+	padding: 5px 2px 2px 2px;
+}
+
+.textviewContent {
+  cursor: auto;
+}
+
+.textviewLeftRuler {
+	border-right: 1px solid #eaeaea;
+}
+
+.textviewRightRuler {
+	border-left: 1px solid #eaeaea;
+}
+
+.textviewMarginRuler {
+	border-left: 1px solid #eaeaea;
+}
+
+.textviewBlockCursor {
+	background: black;
+	opacity: 0.4;
+}
