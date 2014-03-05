@@ -309,7 +309,7 @@ type delegateFunc func(writer http.ResponseWriter, req *http.Request, path strin
 
 func wrapHandler(delegate delegateFunc) handlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
-		logger.Printf("HANLDER: %v %v\n", req.Method, req.URL.Path)
+		logger.Printf("HANDLER: %v %v\n", req.Method, req.URL.Path)
 
 		if hostName != loopbackHost {
 			// Monitor the rate of requests
@@ -357,7 +357,7 @@ func wrapFileServer(delegate http.Handler) handlerFunc {
 
 func wrapWebSocket(delegate http.Handler) handlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
-		logger.Printf("WEBSOCK HANLDER: %v %v\n", req.Method, req.URL.Path)
+		logger.Printf("WEBSOCK HANDLER: %v %v\n", req.Method, req.URL.Path)
 
 		if hostName != loopbackHost {
 			// Check the magic cookie
