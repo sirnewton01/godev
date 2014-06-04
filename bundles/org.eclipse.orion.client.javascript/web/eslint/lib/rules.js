@@ -1,4 +1,4 @@
-
+/* global module require exports define */
 (function(root, factory) {
     if(typeof exports === 'object') {
         module.exports = factory(require('./load-rules'), require, exports, module);
@@ -17,13 +17,13 @@
  * @fileoverview Main CLI object.
  * @author Nicholas C. Zakas
  */
+"use strict";
 
 //------------------------------------------------------------------------------
 // Privates
 //------------------------------------------------------------------------------
 
-var rules = Object.create(null),
-    _ = null;
+var rules = Object.create(null);
 
 //------------------------------------------------------------------------------
 // Public Interface
@@ -42,6 +42,10 @@ exports.load = load;
 
 exports.get = function(ruleId) {
     return rules[ruleId];
+};
+
+exports.testClear = function() {
+    rules = Object.create(null);
 };
 
 exports.define = define;

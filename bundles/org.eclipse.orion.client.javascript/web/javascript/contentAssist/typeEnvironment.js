@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012, 2013 VMware, Inc. and others.
+ * Copyright (c) 2012, 2014 VMware, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -155,6 +155,10 @@ define([
 					}
 				} else {
 					visited = {};
+				}
+				if (typeUtils.isArrayType(proto.typeObj)) {
+					// inferred type of expression is the type of the dereferenced array
+					proto.typeObj = typeUtils.extractArrayParameterType(proto.typeObj);
 				}
 				visited[proto.typeObj.name] = true;
 				return innerLookup(env, name, env.lookupQualifiedType(proto.typeObj.name), includeDefinition, visited);
@@ -337,6 +341,9 @@ define([
 							return inferredTypeObj.expression.name;
 						} else if (inferredTypeObj.type === 'UndefinedLiteral') {
 							return "Object";
+						} else if(inferredTypeObj.type === 'UnionType') {
+							//TODO properly distinguish a union type
+							return 'Object';
 						}
 					} else {
 						// grab topmost scope
@@ -375,7 +382,7 @@ define([
 						// this is a built in property of object.  do not redefine
 						return;
 					}
-					var type = this._allTypes[this.scope(target)];
+					var type = this.lookupQualifiedType(this.scope(target), true);
 					// do not allow augmenting built in types
 					if (!type.$$isBuiltin) {
 						// if new type name is not more general than old type, do not replace
@@ -458,8 +465,8 @@ define([
 					if (!found) {
 						// not found, so just add to current scope
 						// do not allow overwriting of built in types
-						var type = this._allTypes[targetTypeName];
-						if (!type.$$isBuiltin) {
+						var type = this.lookupQualifiedType(targetTypeName, true);
+						if (type && !type.$$isBuiltin) {
 							defn = new typeUtils.Definition(typeObj, range, this.uid);
 							defn.docRange = docRange;
 							type[name] = defn;
@@ -490,7 +497,6 @@ define([
 				 * @return {{}} type objec for the current name or null if doesn't exist
 				 */
 				lookupTypeObj : function(name, target, includeDefinition) {
-	
 					var scope = this.scope(target);
 					var targetType = this.lookupQualifiedType(scope, includeDefinition);
 	
@@ -505,11 +511,11 @@ define([
 				/** removes the variable from the current type */
 				removeVariable : function(name, target) {
 					// do not allow deleting properties of built in types
-					var type = this._allTypes[this.scope(target)];
+					var type = this.lookupQualifiedType(this.scope(target), true);
 					// 2 cases to avoid:
 					//  1. properties of builtin types cannot be deleted
 					//  2. builtin types cannot be deleted from global scope
-					if (!type.$$isBuiltin && type[name] && !(type[name] && !type.hasOwnProperty(name))) {
+					if (type && !type.$$isBuiltin && type[name] && !(type[name] && !type.hasOwnProperty(name))) {
 						delete type[name];
 					}
 				},

@@ -11,8 +11,8 @@
 
 /*global define */
 
-define(["orion/assert", 'orion/editor/textModel', 'orion/editor/annotations'], function(assert, mTextModel) {
-
+define(["chai/chai", 'orion/editor/textModel', 'orion/editor/annotations'], function(chai, mTextModel) {
+	var assert = chai.assert;
 	var tests = {};
 	
 	function assertEquals(msg, expected, actual) {

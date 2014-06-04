@@ -9,12 +9,12 @@
  * Contributors:
  *	 IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define module require exports */
+/*global define module require exports console */
 (function(root, factory) {
-	if(typeof exports === 'object') {
+	if(typeof exports === 'object') {  //$NON-NLS-0$
 		module.exports = factory(require, exports, module);
 	}
-	else if(typeof define === 'function' && define.amd) {
+	else if(typeof define === 'function' && define.amd) {  //$NON-NLS-0$
 		define(['require', 'exports', 'module'], factory);
 	}
 	else {
@@ -39,7 +39,7 @@
 			}
 		}
 		return null;
-	};
+	}
 
 	/**
 	 * @description Ruturns if the given node is an identifier and is one of 'null' or 'undefined'
@@ -48,23 +48,41 @@
 	 */
 	function isNullness(node) {
 		if(node && node.type) {
-			return (node.type === 'Literal' && node.value == null) || (node.type === 'Identifier' && node.name === 'undefined');
+			return (node.type === 'Literal' && node.value == null) || (node.type === 'Identifier' && node.name === 'undefined');  //$NON-NLS-0$  //$NON-NLS-1$  //$NON-NLS-2$
 		}
 		return false;
-	};
+	}
 
+	/**
+	 * @name module.exports
+	 * @description Rule exports
+	 * @function
+	 * @param context
+	 * @returns {Object} AST nodes to lint
+	 */
 	module.exports = function(context) {
-		"use strict";
+		"use strict";  //$NON-NLS-0$
 		return {
-			"BinaryExpression": function(node) {
-				if(isNullness(node.left) || isNullness(node.right)) {
-					return;
+			/**
+			 * @name BinaryExpression
+			 * @description Linting for BinaryExpressions
+			 * @function
+			 * @param node
+			 */
+			"BinaryExpression": function(node) {  //$NON-NLS-0$
+				try {
+					if(isNullness(node.left) || isNullness(node.right)) {
+						return;
+					}
+					var op = node.operator;
+					if (op === "==") {  //$NON-NLS-0$
+						context.report(node, "Expected '===' and instead saw '=='.", null, getOperatorToken(context, node));
+					} else if (op === "!=") {  //$NON-NLS-0$
+						context.report(node, "Expected '!==' and instead saw '!='.", null, getOperatorToken(context, node));
+					}
 				}
-				var op = node.operator;
-				if (op === "==") {
-					context.report(node, "Expected '===' and instead saw '=='.", null, getOperatorToken(context, node));
-				} else if (op === "!=") {
-					context.report(node, "Expected '!==' and instead saw '!='.", null, getOperatorToken(context, node));
+				catch(ex) {
+					console.log(ex);
 				}
 			}
 		};

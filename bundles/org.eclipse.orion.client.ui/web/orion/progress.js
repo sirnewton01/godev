@@ -13,7 +13,6 @@
 define(['i18n!orion/nls/messages', 'require', 'orion/Deferred', 'orion/webui/littlelib', 'orion/webui/dialogs/OperationsDialog'], 
 function(messages, require, Deferred, lib, mOperationsDialog) {
 	
-	
 	function ProgressMonitorTool(progressPane, commandRegistry){
 		if(this._progressPane){
 			return;
@@ -26,6 +25,12 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 				that._operationsDialog.show();
 			}
 		});
+		
+		this._progressPane.addEventListener("click", function(evt) {  //$NON-NLS-0$
+			that._operationsDialog.show();
+		});
+		
+		this._operationsDialog.setOperations(null, null); // initialize
 	}
 	
 	ProgressMonitorTool.prototype = {
@@ -65,6 +70,7 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 					}
 				}
 				
+				// TODO fixme this entire block does nothing
 				if(status==="" && this._lastOperation!=null){
 					if(this._lastOperation.type && this._lastOperation.type==="error"){
 						status=="error";
@@ -75,19 +81,19 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 					this._progressPane.title = messages["Operations running"];
 					this._progressPane.alt = messages['Operations running'];
 					this._progressPane.setAttribute("aria-valuetext", messages['Operations running']); //$NON-NLS-0$
-					this._switchIconTo("progressPane_running"); //$NON-NLS-0$
+					this._switchIconTo("running"); //$NON-NLS-0$
 					break;
 				case "warning": //$NON-NLS-0$
 					this._progressPane.title = messages["Some operations finished with warning"];
 					this._progressPane.alt = messages['Some operations finished with warning'];
 					this._progressPane.setAttribute("aria-valuetext", messages['Some operations finished with warning']); //$NON-NLS-0$
-					this._switchIconTo("progressPane_warning"); //$NON-NLS-0$
+					this._switchIconTo("warning"); //$NON-NLS-0$
 					break;
 				case "error": //$NON-NLS-0$
 					this._progressPane.title = messages["Some operations finished with error"];
 					this._progressPane.alt = messages['Some operations finished with error'];
 					this._progressPane.setAttribute("aria-valuetext", messages['Some operations finished with error']); //$NON-NLS-0$
-					this._switchIconTo("progressPane_error"); //$NON-NLS-0$
+					this._switchIconTo("error"); //$NON-NLS-0$
 					break;
 				default:
 					this._progressPane.title = messages["Operations"];
@@ -95,7 +101,7 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 					if(this._progressPane.hasAttribute("aria-valuetext")) { //$NON-NLS-0$
 						this._progressPane.removeAttribute("aria-valuetext"); //$NON-NLS-0$
 					}
-					this._switchIconTo("progressPane_operations");					 //$NON-NLS-0$
+					this._switchIconTo("progressPane_empty");					 //$NON-NLS-0$
 				}
 				this._operationsDialog.setOperations(operationsToDisplay, deferreds);
 			},
@@ -107,7 +113,7 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 			}
 	};
 	
-	ProgressMonitorTool.prototype.constructon = ProgressMonitorTool;
+	ProgressMonitorTool.prototype.constructor = ProgressMonitorTool;
 	
 	/**
 	 * Service for tracking operations changes

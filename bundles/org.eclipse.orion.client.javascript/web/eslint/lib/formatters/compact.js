@@ -2,6 +2,7 @@
  * @fileoverview Compact reporter
  * @author Nicholas C. Zakas
  */
+"use strict";
 
 //------------------------------------------------------------------------------
 // Helper Functions
@@ -29,7 +30,7 @@ function getMessageType(message, rules) {
 //------------------------------------------------------------------------------
 // Public Interface
 //------------------------------------------------------------------------------
-
+/* global module */
 module.exports = function(results, config) {
 
     var output = "",
@@ -46,12 +47,14 @@ module.exports = function(results, config) {
             output += result.filePath + ": ";
             output += "line " + (message.line || 0) +  ", col " +
                 (message.column || 0) + ", " + getMessageType(message, rules);
-            output += " - " + message.message + "\n";
+            output += " - " + message.message + (message.ruleId ? " (" + message.ruleId + ")" : "") + "\n";
         });
 
     });
 
-    output += "\n" + total + " problem" + (total !== 1 ? "s" : "");
+    if (total > 0) {
+        output += "\n" + total + " problem" + (total !== 1 ? "s" : "");
+    }
 
     return output;
 };

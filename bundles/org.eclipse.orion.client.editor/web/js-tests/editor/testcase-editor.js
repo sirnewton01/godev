@@ -12,8 +12,9 @@
 /*jslint */
 /*global define*/
 
-define(["orion/assert", "orion/editor/editor"],
-		function(assert, mEditor) {
+define(["chai/chai", "orion/editor/editor"],
+		function(chai, mEditor) {
+	var assert = chai.assert;
 	var tests = {};
 
 	// ************************************************************************************************

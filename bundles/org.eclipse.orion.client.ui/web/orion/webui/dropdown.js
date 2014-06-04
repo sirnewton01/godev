@@ -71,6 +71,8 @@ define(['require', 'orion/webui/littlelib', 'orion/EventTarget'], function(requi
 					parentNode = parentNode.parentNode;
 				}
 			}
+			
+			this._dropdownNode.tabIndex = 0;
 
 			if (options.triggerNode) {
 				this._triggerNode = options.triggerNode;
@@ -164,7 +166,7 @@ define(['require', 'orion/webui/littlelib', 'orion/EventTarget'], function(requi
 					
 					this._positionDropdown(mouseEvent);
 					
-					items[0].focus();
+					this._focusDropdownNode();
 					actionTaken = true;
 					
 					if (this._parentDropdown) {
@@ -173,6 +175,10 @@ define(['require', 'orion/webui/littlelib', 'orion/EventTarget'], function(requi
 				}
 			}
 			return actionTaken;
+		},
+		
+		_focusDropdownNode :function() {//Sub classes can override this to set focus on different items.
+			this._dropdownNode.focus();
 		},
 		
 		_autoDismiss: function(event) {
@@ -198,7 +204,7 @@ define(['require', 'orion/webui/littlelib', 'orion/EventTarget'], function(requi
 		 * 
 		 * @param {MouseEvent} mouseEvent
 		 */
-		_positionDropdown: function(mouseEvent) {
+		_positionDropdown: function(mouseEvent) {//Sub classes can override this to position the drop down differently.
 			this._dropdownNode.style.left = "";
 			this._dropdownNode.style.top = "";
 			
@@ -256,6 +262,10 @@ define(['require', 'orion/webui/littlelib', 'orion/EventTarget'], function(requi
 				}
 				
 				this._isVisible = false;
+				if (this._selectedItem) {
+					this._selectedItem.classList.remove("dropdownMenuItemSelected"); //$NON-NLS-0$		
+					this._selectedItem = null;	
+				}
 				actionTaken = true;
 			}
 			return actionTaken;
@@ -286,6 +296,7 @@ define(['require', 'orion/webui/littlelib', 'orion/EventTarget'], function(requi
 							self._closeSelectedSubmenu();
 							lib.stop(e);
 						}
+						self._selectItem(item); // select the item on mouseover
 					});
 					item._hasDropdownMouseover = true;
 				}
@@ -316,34 +327,64 @@ define(['require', 'orion/webui/littlelib', 'orion/EventTarget'], function(requi
 		 _dropdownKeyDown: function(event) {
 			if (event.keyCode === lib.KEY.UP || event.keyCode === lib.KEY.DOWN || event.keyCode === lib.KEY.RIGHT || event.keyCode === lib.KEY.ENTER || event.keyCode === lib.KEY.LEFT) {
 				var items = this.getItems();	
-				var focusItem = document.activeElement;
-				if (items.length && items.length > 0 && focusItem) {
-					var index = items.indexOf(focusItem);
-					// for inputs nested in labels, we should check the parent node since the label is the item
-					if (index < 0) {
-						index = items.indexOf(focusItem.parentNode);
-					}
-					if (index >= 0) {
-						if (event.keyCode === lib.KEY.UP && index > 0) {
-							index--;
-							items[index].focus();
-						} else if (event.keyCode === lib.KEY.DOWN && index < items.length - 1) {
-							index++;
-							items[index].focus();
-						} else if (event.keyCode === lib.KEY.ENTER || event.keyCode === lib.KEY.RIGHT) {
-							if (focusItem.classList.contains("dropdownTrigger") && focusItem.dropdown) { //$NON-NLS-0$
-								focusItem.dropdown.open();
-							}
-						} else if (event.keyCode === lib.KEY.LEFT && focusItem.parentNode.parentNode.classList.contains("dropdownMenuOpen")) { //$NON-NLS-0$
-							this.close(true);
+				if (items.length && items.length > 0) {
+					if (this._selectedItem) {
+						var index = items.indexOf(this._selectedItem);
+						// for inputs nested in labels, we should check the parent node since the label is the item
+						if (index < 0) {
+							index = items.indexOf(this._selectedItem.parentNode);
 						}
-						lib.stop(event);
+						if (index >= 0) {
+							if (event.keyCode === lib.KEY.UP && index > 0) {
+								index--;
+								this._selectItem(items[index]);
+							} else if (event.keyCode === lib.KEY.DOWN && index < items.length - 1) {
+								index++;
+								this._selectItem(items[index]);
+							} else if (event.keyCode === lib.KEY.ENTER || event.keyCode === lib.KEY.RIGHT) {
+								if (this._selectedItem.classList.contains("dropdownTrigger") && this._selectedItem.dropdown) { //$NON-NLS-0$
+									this._selectedItem.dropdown.open();
+									this._selectedItem.dropdown._selectItem(); // select first item in submenu
+								} else if (event.keyCode === lib.KEY.ENTER) {
+									this._selectedItem.click();
+								}
+							} else if (event.keyCode === lib.KEY.LEFT && this._selectedItem.parentNode.parentNode.classList.contains("dropdownMenuOpen")) { //$NON-NLS-0$
+								this.close(true);
+								if (this._parentDropdown) {
+									this._parentDropdown._dropdownNode.focus();
+								}
+							}
+						}
+					} else {
+						this._selectItem(items[0]);	
 					}
+					lib.stop(event);
 				}
 			} else if (event.keyCode === lib.KEY.ESCAPE) {
 				this.close(true);
 				lib.stop(event);
 			}
+		 },
+		 
+		 /**
+		  * Selects the specified dropdown menu item or the first
+		  * dropdown menu item if none is specified.
+		  * @param {Object} item The dropdown menu item that should be selected. See @ref getItems() for details. Optional.
+		  */
+		 _selectItem: function(item){
+		 	var itemToSelect = item || this.getItems()[0];
+		 	if (itemToSelect) {
+		 		if (this._selectedItem) {
+		 			this._selectedItem.classList.remove("dropdownMenuItemSelected"); //$NON-NLS-0$
+			 	}
+			 	this._selectedItem = itemToSelect;
+			 	this._selectedItem.classList.add("dropdownMenuItemSelected"); //$NON-NLS-0$	
+		 	}
+		 	if (document.activeElement !== this._dropdownNode) {
+		 		// ensure that the dropdown node has the focus in 
+		 		// order for keydown events to be handled properly
+		 		this._dropdownNode.focus();
+		 	}
 		 },
 		 
 		 /**
@@ -367,14 +408,87 @@ define(['require', 'orion/webui/littlelib', 'orion/EventTarget'], function(requi
 			}
 		 },
 		 
-		 destroy: function() {
+		destroy: function() {
 			this.empty();
 			if (this._boundAutoDismiss) {
 				lib.removeAutoDismiss(this._boundAutoDismiss);
 			}
-		 }
+		},
+		
+		/**
+		 * Creates a new menu item and appends it to the bottom of this dropdown.
+		 * @param {String} text The text to display inside the new menu item. Required.
+		 * @param {String} innerNodeType The type of the inner node to create. The default is "span". Optional.
+		 * @returns {Object} The top-most new element that was created
+		 */
+		appendMenuItem: function(text, innerNodeType) {
+			var li = createMenuItem(text, innerNodeType);
+			this._dropdownNode.appendChild(li);
+			return li;
+		},
+		
+		/**
+		 * Creates a new separator and appends it to the bottom of this dropdown.
+		 */
+		appendSeparator: function() {
+			// Add a separator
+			var li = createSeparator();
+			this._dropdownNode.appendChild(li);
+			return li;
+		}
 	};
+	
+	/**
+	 * Creates a new menu item and returns it to the caller.
+	 * @param {String} text The text to display inside the new menu item. Required.
+	 * @param {String} innerNodeType The type of the inner node to create. The default is "span". Optional.
+	 * @returns {Object} The top-most new element that was created
+	 */
+	function createMenuItem(text, innerNodeType) {
+		innerNodeType = innerNodeType === undefined ? "span" : innerNodeType; //$NON-NLS-0$
+	 	
+	 	var element = document.createElement(innerNodeType); //$NON-NLS-0$
+		element.tabIndex = 0;
+		element.className = "dropdownMenuItem"; //$NON-NLS-0$
+		element.role = "menuitem";  //$NON-NLS-0$
+	
+		var span = document.createElement("span");  //$NON-NLS-0$
+		span.appendChild(document.createTextNode(text));
+		span.classList.add("dropdownCommandName"); //$NON-NLS-0$
+		element.appendChild(span);
+	 	
+	 	var li = document.createElement("li"); //$NON-NLS-0$
+	 	li.appendChild(element); //$NON-NLS-0$
+		
+		return li;
+	}
+	
+	/**
+	 * Creates a new separator menu item and returns it to the caller.
+	 * @returns {Object} The new separator element that was created
+	 */
+	function createSeparator() {
+		var li = document.createElement("li"); //$NON-NLS-0$
+		li.classList.add("dropdownSeparator"); //$NON-NLS-0$
+		return li;
+	}
+	
+	/**
+	 * Appends the specified keyBindingString to the specified menu item.
+	 * @param {Object} element The menu item to append the keybinding string to. Required.
+	 * @param {String} keyBindingString The keybinding string to append. Required.
+	 */
+	function appendKeyBindingString(element, keyBindingString) {
+		var span = document.createElement("span"); //$NON-NLS-0$
+		span.classList.add("dropdownKeyBinding"); //$NON-NLS-0$
+		span.appendChild(document.createTextNode(keyBindingString));
+		element.appendChild(span);
+	}
+		
 	Dropdown.prototype.constructor = Dropdown;
 	//return the module exports
-	return {Dropdown: Dropdown};
+	return {Dropdown: Dropdown,
+			appendKeyBindingString: appendKeyBindingString,
+			createMenuItem: createMenuItem,
+			createSeparator: createSeparator};
 });

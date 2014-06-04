@@ -3,7 +3,7 @@
     <head>
 		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010, 2014." >
 		<meta http-equiv="Content-Language" content="en-us">
-		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<link rel="icon" href="/images/search.png" type="image/png">
 		<title></title>
 		<link rel="stylesheet" type="text/css" href="search.css" /> 
@@ -19,7 +19,7 @@
 			  }
 			});
 		
-		require(["search.js"]);
+		require(["search/search"]);
 		</script>
    </head>
    
@@ -28,15 +28,9 @@
 		<div id="pageContent" class="content-fixedHeight">
 			<div id="sideMenuToggle" class="sideMenuToggle"></div>
 			<div class="auxpane sidePanelLayout hasSplit">
-				<div id="outlineContainer" style="height:100%;width:100%;position:relative;">
-					<div id="outlineTop" class="topPanelLayout">
-						<div id="searchBuilder" class="sidePanelMargins">
-						</div>
-					</div>
-					<div class="outlinerSplitLayout splitVerticalLayout"></div>
-					<div id="outlineBottom" class="bottomPanelLayout">
-						<div class="sidePanelMargins" id="searchProgress"></div>
-					</div>
+				<div id="outlineContainer" class="searchOutlineContainer">
+					<div id="searchBuilder" class="sidePanelMargins"></div>
+					<div class="sidePanelMargins" id="searchProgress"></div>
 				</div>
 			</div>
 			<div class="split splitLayout" style="left:33%;"></div>

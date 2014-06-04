@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>eslint mocha tests</title>
+	<script src="../../requirejs/require.js"></script>
+	<script>
+		/*jslint amd:true*/
+		/*global mocha*/
+		require({
+			baseUrl: "../../",
+			paths: {
+				text: "requirejs/text",
+				esprima: "esprima/esprima",
+				estraverse: "estraverse/estraverse",
+				escope: "escope/escope",
+				"eslint/tests": "eslint/tests"
+			},
+			packages: [
+				{
+					name: "eslint",
+					location: "eslint/lib",
+					main: "eslint"
+				},
+				{
+					name: "eslint/conf",
+					main: "eslint/conf"
+				}]
+	});
+	require(["mocha/mocha"], function() {
+		mocha.setup("bdd");
+		require([
+			"eslint/tests/load-tests"
+		], function(){
+			mocha.run();
+		});
+	});
+	</script>
+</head>
+<body>
+	<h1>ESLint Test Suite</h1>
+	<div id="mocha"></div>
+</body>
+</html>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry excluding="browse/built/built-browser.min.js|doctrine/|esprima/|gcli/|jsdiff/|orion/compare/examples/|persona/" kind="src" path="web"/>
+	<classpathentry excluding="doctrine/|esprima/|gcli/|jsdiff/|orion/compare/examples/|orion/webui/SideMenu.js|persona/|plugins/filePlugin/GitHubFileImpl.js" kind="src" path="web"/>
 	<classpathentry kind="con" path="org.eclipse.wst.jsdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.wst.jsdt.launching.baseBrowserLibrary"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/org.eclipse.orion.client.core"/>

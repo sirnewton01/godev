@@ -19,7 +19,7 @@ define([], function() {
 		autoSave: false,
 		autoSaveVisible: true,
 		autoSaveLocalVisible: true,
-		autoSaveTimeout: 1000,
+		autoSaveTimeout: 250,
 		autoSaveTimeoutVisible: true,
 		themeVisible: true,
 		themeLocalVisible: true,
@@ -77,7 +77,10 @@ define([], function() {
 		marginOffsetVisible: true,
 		keyBindings: "Default",
 		keyBindingsVisible: true,
-		keyBindingsLocalVisible: true
+		keyBindingsLocalVisible: true,
+		splitOrientation: "horizontal",
+		splitOrientationVisible: true,
+		splitOrientationLocalVisible: true
 	};
 
 	function EditorPreferences(preferences, callback) {

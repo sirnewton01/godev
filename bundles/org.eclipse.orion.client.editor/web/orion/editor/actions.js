@@ -17,8 +17,9 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 	'orion/editor/annotations', //$NON-NLS-0$
 	'orion/editor/tooltip', //$NON-NLS-0$
 	'orion/editor/find', //$NON-NLS-0$
+	'orion/editor/findUI', //$NON-NLS-0$
 	'orion/util' //$NON-NLS-0$
-], function(messages, mKeyBinding, mAnnotations, mTooltip, mFind, util) {
+], function(messages, mKeyBinding, mAnnotations, mTooltip, mFind, mFindUI, util) {
 
 	var AT = mAnnotations.AnnotationType;
 
@@ -31,7 +32,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		this.editor = editor;
 		this.undoStack = undoStack;
 		this._incrementalFind = new mFind.IncrementalFind(editor);
-		this._find = find ? find : new mFind.Find(editor, undoStack);
+		this._find = find ? find : new mFindUI.FindUI(editor, undoStack);
 		this._lastEditLocation = null;
 		this.init();
 	}
@@ -83,11 +84,10 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			textView.setAction("find", function() { //$NON-NLS-0$
 				if (this._find) {
 					var selection = this.editor.getSelection();
-					var search = prompt(messages.find, this.editor.getText(selection.start, selection.end));
-					if (search) {
-						this._find.find(true, {findString:search});
-					}
+					this._find.show({findString:this.editor.getText(selection.start, selection.end)});
+					return true;
 				}
+				return false;
 			}.bind(this), {name: messages.find});
 
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("k", true), "findNext"); //$NON-NLS-1$ //$NON-NLS-0$
@@ -298,7 +298,6 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			var textView = editor.getTextView();
 			var annotationModel = editor.getAnnotationModel();
 			if(!annotationModel) { return true; }
-			var model = editor.getModel();
 			var annotation, iter = annotationModel.getAnnotations();
 			textView.setRedraw(false);
 			while (iter.hasNext()) {
@@ -792,13 +791,13 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		 * Automatically inserts the specified opening and closing brackets around the caret or selected text.
 		 */
 		autoPairBrackets: function(openBracket, closeBracket) {
-			if (openBracket === "[" && !this.autoPairSquareBrackets) {
+			if (openBracket === "[" && !this.autoPairSquareBrackets) { //$NON-NLS-0$
 				return false;
-			} else if (openBracket === "{" && !this.autoPairBraces) {
+			} else if (openBracket === "{" && !this.autoPairBraces) { //$NON-NLS-0$
 				return false;
-			} else if (openBracket === "(" && !this.autoPairParentheses) {
+			} else if (openBracket === "(" && !this.autoPairParentheses) { //$NON-NLS-0$
 				return false;
-			} else if (openBracket === "<" && !this.autoPairAngleBrackets) {
+			} else if (openBracket === "<" && !this.autoPairAngleBrackets) { //$NON-NLS-0$
 				return false;
 			}
 
@@ -1032,15 +1031,17 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			var editor = this.editor;
 			var textView = editor.getTextView();
 			if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			var comment = this.lineComment || "//"; //$NON-NLS-0$
 			var model = editor.getModel();
 			var selection = editor.getSelection();
 			var firstLine = model.getLineAtOffset(selection.start);
 			var lastLine = model.getLineAtOffset(selection.end > selection.start ? selection.end - 1 : selection.end);
-			var uncomment = true, lines = [], lineText, index;
+			var uncomment = true, lineIndices = [], index;
 			for (var i = firstLine; i <= lastLine; i++) {
-				lineText = model.getLine(i, true);
-				lines.push(lineText);
-				if (!uncomment || (index = lineText.indexOf("//")) === -1) { //$NON-NLS-0$
+				var lineText = model.getLine(i, true);
+				index = lineText.indexOf(comment);
+				lineIndices.push(index);
+				if (!uncomment || index === -1) {
 					uncomment = false;
 				} else {
 					if (index !== 0) {
@@ -1055,26 +1056,28 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 					}
 				}
 			}
-			var text, selStart, selEnd;
+			var selStart, selEnd, l = comment.length, k;
 			var lineStart = model.getLineStart(firstLine);
-			var lineEnd = model.getLineEnd(lastLine, true);
+			textView.setRedraw(false);
+			this.startUndo();
 			if (uncomment) {
-				for (var k = 0; k < lines.length; k++) {
-					lineText = lines[k];
-					index = lineText.indexOf("//"); //$NON-NLS-0$
-					lines[k] = lineText.substring(0, index) + lineText.substring(index + 2);
+				for (k = lineIndices.length - 1; k >= 0; k--) {
+					index = lineIndices[k] + model.getLineStart(firstLine + k);
+					editor.setText("", index, index + l);
 				}
-				text = lines.join("");
 				var lastLineStart = model.getLineStart(lastLine);
-				selStart = lineStart === selection.start ? selection.start : selection.start - 2;
-				selEnd = selection.end - (2 * (lastLine - firstLine + 1)) + (selection.end === lastLineStart+1 ? 2 : 0);
+				selStart = lineStart === selection.start ? selection.start : selection.start - l;
+				selEnd = selection.end - (l * (lastLine - firstLine + 1)) + (selection.end === lastLineStart+1 ? l : 0);
 			} else {
-				lines.splice(0, 0, "");
-				text = lines.join("//"); //$NON-NLS-0$
-				selStart = lineStart === selection.start ? selection.start : selection.start + 2;
-				selEnd = selection.end + (2 * (lastLine - firstLine + 1));
+				for (k = lineIndices.length - 1; k >= 0; k--) {
+					index = model.getLineStart(firstLine + k);
+					editor.setText(comment, index, index);
+				}
+				selStart = lineStart === selection.start ? selection.start : selection.start + l;
+				selEnd = selection.end + (l * (lastLine - firstLine + 1));
 			}
-			editor.setText(text, lineStart, lineEnd);
+			this.endUndo();
+			textView.setRedraw(true);
 			editor.setSelection(selStart, selEnd);
 			return true;
 		},
@@ -1152,6 +1155,9 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		},
 		setAutoCompleteComments: function(enabled) {
 			this.autoCompleteComments = enabled;
+		},
+		setLineComment: function(lineComment) {
+			this.lineComment = lineComment;
 		},
 		setSmartIndentation: function(enabled) {
 			this.smartIndentation = enabled;

@@ -14,6 +14,8 @@
 
 define('orion/editor/edit', [ //$NON-NLS-0$
 	"require", //$NON-NLS-0$
+
+	"orion/editor/config", //$NON-NLS-0$
 	"orion/editor/shim", //$NON-NLS-0$
 	
 	"orion/editor/textView", //$NON-NLS-0$
@@ -32,9 +34,8 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	"orion/editor/editorFeatures", //$NON-NLS-0$
 	
 	"orion/editor/contentAssist", //$NON-NLS-0$
-	"orion/editor/cssContentAssist", //$NON-NLS-0$
-	"orion/editor/htmlContentAssist", //$NON-NLS-0$
-	"orion/editor/jsTemplateContentAssist", //$NON-NLS-0$
+	"webtools/cssContentAssist", //$NON-NLS-0$
+	"webtools/htmlContentAssist", //$NON-NLS-0$
 	
 	"orion/editor/AsyncStyler", //$NON-NLS-0$
 	"orion/editor/mirror", //$NON-NLS-0$
@@ -45,9 +46,9 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	"orion/editor/stylers/text_css/syntax", //$NON-NLS-0$
 	"orion/editor/stylers/text_html/syntax" //$NON-NLS-0$
 
-], function(require, shim, mTextView, mTextModel, mTextTheme, mProjModel, mEventTarget, mKeyBinding, mRulers, mAnnotations,
+], function(require, config, shim, mTextView, mTextModel, mTextTheme, mProjModel, mEventTarget, mKeyBinding, mRulers, mAnnotations,
 			mTooltip, mUndoStack, mTextDND, mEditor, mEditorFeatures, mContentAssist, mCSSContentAssist, mHtmlContentAssist,
-			mJSContentAssist, mAsyncStyler, mMirror, mTextMateStyler, mHtmlGrammar, mTextStyler, mJS, mCSS, mHTML) {
+			mAsyncStyler, mMirror, mTextMateStyler, mHtmlGrammar, mTextStyler, mJS, mCSS, mHTML) {
 
 	/**	@private */
 	function getDisplay(window, document, element) {
@@ -61,6 +62,9 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 				display = temp.currentStyle.display;
 			}
 			temp = temp.parentNode;
+		}
+		if (!temp || !display) {
+			return "none"; //$NON-NLS-0$
 		}
 		return display;
 	}
@@ -279,7 +283,8 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 				if (contentType) {
 					contentType = contentType.replace(/[*|:/".<>?+]/g, '_');
 					require(["./stylers/" + contentType + "/syntax"], function(grammar) { //$NON-NLS-1$ //$NON-NLS-0$
-						this.styler = new mTextStyler.TextStyler(textView, annotationModel, grammar.grammars, grammar.id);
+						var stylerAdapter = new mTextStyler.createPatternBasedAdapter(grammar.grammars, grammar.id);
+						this.styler = new mTextStyler.TextStyler(textView, annotationModel, stylerAdapter);
 					});
 				}
 				if (contentType === "text/css") { //$NON-NLS-0$
@@ -334,19 +339,20 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		if (contentAssist) {
 			var cssContentAssistProvider = new mCSSContentAssist.CssContentAssistProvider();
 			var htmlContentAssistProvider = new mHtmlContentAssist.HTMLContentAssistProvider();
-			var jsTemplateContentAssistProvider = new mJSContentAssist.JSTemplateContentAssistProvider();
 			contentAssist.addEventListener("Activating", function() { //$NON-NLS-0$
 				if (/css$/.test(options.lang)) {
 					contentAssist.setProviders([cssContentAssistProvider]);
-				} else if (/js$/.test(options.lang)) {
-					contentAssist.setProviders([jsTemplateContentAssistProvider]);
 				} else if (/html$/.test(options.lang)) {
 					contentAssist.setProviders([htmlContentAssistProvider]);
 				}
 			});
 		}
-		/* The minimum height of the editor is 50px */
-		if (getHeight(parent) <= 50) {
+		/*
+		 * The minimum height of the editor is 50px. Do not compute size if the editor is not
+		 * attached to the DOM or it is display=none.
+		 */
+		var window = doc.defaultView || doc.parentWindow;
+		if (!options.noComputeSize && getDisplay(window, doc, parent) !== "none" && getHeight(parent) <= 50) { //$NON-NLS-0$
 			var height = editor.getTextView().computeSize().height;
 			parent.style.height = height + "px"; //$NON-NLS-0$
 		}
@@ -358,6 +364,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		for (var i = 0; i < arguments.length; i++) {
 			merge(editorNS, arguments[i]);	
 		}
+		editorNS.edit = edit;
 	}
 	
 	return edit;

@@ -131,6 +131,29 @@ searchUtils.convertSearchParams = function(searchParams) {
 	if(typeof searchParams.nameSearch === "string"){ //$NON-NLS-0$
 		searchParams.nameSearch = (searchParams.nameSearch.toLowerCase() === "true"); //$NON-NLS-0$
 	}
+	if(searchParams.fileNamePatterns !== undefined){
+		searchParams.fileNamePatterns = searchUtils.getFileNamePatternsArray(searchParams.fileNamePatterns);
+	}
+};
+
+searchUtils.getFileNamePatternsArray = function(patterns) {
+	var fileNamePatternArray = undefined;
+	
+	if (patterns) {
+		var fileNamePatterns = patterns.trim();
+		
+		fileNamePatterns = fileNamePatterns.replace(/^(\s*,\s*)+/g, ""); //get rid of leading commas
+		
+		fileNamePatterns = fileNamePatterns.replace(/([^\\]),(\s*,\s*)*/g, "$1/"); //replace all unescaped commas with slashes (since slashes aren't legal in file names)
+		
+		fileNamePatterns = fileNamePatterns.replace(/(\s*\/\s*)/g, "/"); //get rid of spaces before and after delimiter
+		fileNamePatterns = fileNamePatterns.replace(/\/\/+/g, "/"); //get rid of empty patterns
+		fileNamePatterns = fileNamePatterns.replace(/\/+$/g, ""); //get rid of trailing delimiters
+		
+		fileNamePatternArray = fileNamePatterns.split("/");
+	}
+	
+	return fileNamePatternArray;
 };
 
 searchUtils.copySearchParams = function(searchParams, copyReplace) {
@@ -298,7 +321,6 @@ searchUtils.generateNewContents = function( updating, oldContents, newContents, 
 			var lineStringOrigin = oldContents[i];
 			var changingLine = false;
 			var checked = false;
-			var fullChecked = false;
 			var checkedMatches = [];
 			var originalMatches;
 			var k, startNumber = 0;
@@ -312,7 +334,6 @@ searchUtils.generateNewContents = function( updating, oldContents, newContents, 
 						}
 					}
 					checked = (checkedMatches.length > 0);
-					fullChecked = (checkedMatches.length === fileModelNode.children[j].matches.length);
 					originalMatches = fileModelNode.children[j].matches; 
 					changingLine = true;
 					break;

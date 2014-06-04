@@ -1,9 +1,20 @@
-/*global define module require exports */
+/*******************************************************************************
+ * @license
+ * Copyright (c) 2013, 2014 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ *
+ * Contributors:
+ *	 IBM Corporation - initial API and implementation
+ *******************************************************************************/
+/*global define module require exports console */
 (function(root, factory) {
-    if(typeof exports === 'object') {
+    if(typeof exports === 'object') {  //$NON-NLS-0$
         module.exports = factory(require, exports, module);
     }
-    else if(typeof define === 'function' && define.amd) {
+    else if(typeof define === 'function' && define.amd) {  //$NON-NLS-0$
         define(['require', 'exports', 'module'], factory);
     }
     else {
@@ -24,7 +35,7 @@
 
 function isImplicitGlobal(variable) {
     return variable.defs.every(function(def) {
-        return def.type === "ImplicitGlobalVariable";
+        return def.type === "ImplicitGlobalVariable";  //$NON-NLS-0$
     });
 }
 
@@ -39,7 +50,7 @@ function getDeclaredGlobalVariable(scope, ref) {
     scope.variables.some(function(variable) {
         if (variable.name === ref.identifier.name) {
             // If it's an implicit global, it must have a `writeable` field (indicating it was declared)
-            if (!isImplicitGlobal(variable) || Object.hasOwnProperty.call(variable, "writeable")) {
+            if (!isImplicitGlobal(variable) || Object.hasOwnProperty.call(variable, "writeable")) {  //$NON-NLS-0$
                 declaredGlobal = variable;
                 return true;
             }
@@ -55,23 +66,33 @@ function getDeclaredGlobalVariable(scope, ref) {
 
 module.exports = function(context) {
 
-    "use strict";
+    "use strict";  //$NON-NLS-0$
 
     return {
 
-        "Program": function(/*node*/) {
-
-            var globalScope = context.getScope();
-
-            globalScope.through.forEach(function(ref) {
-                var variable = getDeclaredGlobalVariable(globalScope, ref),
-                    name = ref.identifier.name;
-                if (!variable) {
-                    context.report(ref.identifier, "'{{name}}' is not defined.", { name: name });
-                } else if (ref.isWrite() && variable.writeable === false) {
-                    context.report(ref.identifier, "'{{name}}' is read only.", { name: name });
-                }
-            });
+        /**
+         * @name Program
+         * @description Linting for Program nodes
+         * @function
+         * @returns returns
+         */
+        "Program": function(/*node*/) {  //$NON-NLS-0$
+			try {
+	            var globalScope = context.getScope();
+	
+	            globalScope.through.forEach(function(ref) {
+	                var variable = getDeclaredGlobalVariable(globalScope, ref),
+	                    name = ref.identifier.name;
+	                if (!variable) {
+	                    context.report(ref.identifier, "'{{name}}' is not defined.", { name: name });
+	                } else if (ref.isWrite() && variable.writeable === false) {
+	                    context.report(ref.identifier, "'{{name}}' is read only.", { name: name });
+	                }
+	            });
+        	}
+        	catch(ex) {
+        		console.log(ex);
+        	}
         }
     };
 

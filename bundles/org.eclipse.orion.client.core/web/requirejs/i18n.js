@@ -84,6 +84,7 @@
 
     define(['module'], function (module) {
         var masterConfig = module.config ? module.config() : {};
+        masterConfig = masterConfig || {};
 
         return {
             version: '2.0.1+',

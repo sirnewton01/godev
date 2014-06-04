@@ -211,9 +211,6 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 				} else {
 					this._tip.insertBefore(this._tail, this._tipInner);
 				}
-				if (position === 'left') { //$NON-NLS-0$
-					this._tail.style.left = tipRect.width + "px"; //$NON-NLS-0$
-				}
 				this._tail.previousPosition = position;
 			}
 			this._tip.style.top = top + "px"; //$NON-NLS-0$

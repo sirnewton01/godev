@@ -15,6 +15,7 @@
 define([
 	'i18n!orion/edit/nls/messages',
 	'orion/editor/editor',
+	'orion/editor/eventTarget',
 	'orion/editor/textView',
 	'orion/editor/textModel',
 	'orion/editor/projectionTextModel',
@@ -41,8 +42,8 @@ define([
 	'orion/objects'
 ], function(
 	messages,
-	mEditor, mTextView, mTextModel, mProjectionTextModel, mEditorFeatures, mContentAssist, mEmacs, mVI,
-	mEditorPreferences, mThemePreferences, mThemeData, EditorSettings,
+	mEditor, mEventTarget, mTextView, mTextModel, mProjectionTextModel, mEditorFeatures, mContentAssist,
+	mEmacs, mVI, mEditorPreferences, mThemePreferences, mThemeData, EditorSettings,
 	mSearcher, mEditorCommands, mGlobalCommands,
 	mDispatcher, EditorContext, TypeDefRegistry, Highlight,
 	mMarkOccurrences, mSyntaxchecker,
@@ -63,6 +64,9 @@ define([
 	 *
 	 * @class
 	 * @name orion.EditorView
+	 * @borrows orion.editor.EventTarget#addEventListener as #addEventListener
+	 * @borrows orion.editor.EventTarget#removeEventListener as #removeEventListener
+	 * @borrows orion.editor.EventTarget#dispatchEvent as #dispatchEvent
 	 */
 	function EditorView(options) {
 		this._parent = options.parent;
@@ -125,6 +129,12 @@ define([
 		getParent: function() {
 			return this._parent;
 		},
+		getSettings: function() {
+			return this.settings;
+		},
+		setParent: function(parent) {
+			this._parent = parent;	
+		},
 		updateSourceCodeActions: function(prefs, sourceCodeActions) {
 			if (sourceCodeActions) {
 				sourceCodeActions.setAutoPairParentheses(prefs.autoPairParentheses);
@@ -183,6 +193,11 @@ define([
 			if (editor.getContentAssist()) {
 				editor.getContentAssist().setAutoTriggerEnabled(prefs.contentAssistAutoTrigger);	
 			}
+
+			this.dispatchEvent({
+				type: "Settings",
+				newSettings: this.settings
+			});
 		},
 		updateStyler: function(prefs) {
 			var styler = this.syntaxHighlighter.getStyler();
@@ -246,7 +261,7 @@ define([
 		_init: function() {
 			var editorPreferences = null;
 			if(this.preferences) {
-				editorPreferences = this.editorPreferences = new mEditorPreferences.EditorPreferences (this.preferences, function (prefs) {
+				editorPreferences = this.editorPreferences = new mEditorPreferences.EditorPreferences(this.preferences, function (prefs) {
 					if (!prefs) {
 						editorPreferences.getPrefs(this.updateSettings.bind(this));
 					} else {
@@ -263,7 +278,7 @@ define([
 
 			var self = this;
 
-			var editorDomNode = this._parent;
+//			var editorDomNode = this._parent;
 			var readonly = this.readonly;
 			var commandRegistry = this.commandRegistry;
 			var serviceRegistry = this.serviceRegistry;
@@ -276,7 +291,7 @@ define([
 			var textViewFactory = function() {
 				var options = self.updateViewOptions(self.settings);
 				objects.mixin(options, {
-					parent: editorDomNode,
+					parent: self._parent,
 					model: new mProjectionTextModel.ProjectionTextModel(self.model || new mTextModel.TextModel()),
 					wrappable: true
 				});
@@ -338,7 +353,7 @@ define([
 				var fileContentType = inputManager.getContentType();
 				var fileName = editor.getTitle();
 				var serviceRefs = serviceRegistry.getServiceReferences("orion.edit.contentAssist").concat(serviceRegistry.getServiceReferences("orion.edit.contentassist")); //$NON-NLS-1$ //$NON-NLS-0$
-				var providerInfoArray = event && event.providerInfoArray;				
+				var providerInfoArray = event && event.providers;
 				if (!providerInfoArray) {
 					providerInfoArray = serviceRefs.map(function(serviceRef) {
 						var contentTypeIds = serviceRef.getProperty("contentType"), //$NON-NLS-0$
@@ -374,7 +389,7 @@ define([
 					}
 				});
 				contentAssist.setEditorContextProvider(boundEditorContext);
-				contentAssist.setProviderInfoArray(providerInfoArray);
+				contentAssist.setProviders(providerInfoArray);
 				contentAssist.setAutoTriggerEnabled(self.settings.contentAssistAutoTrigger);
 				contentAssist.setProgress(progress);
 				contentAssist.setStyleAccessor(self.getStyleAccessor());
@@ -392,7 +407,7 @@ define([
 					// preload content assist plugins to reduce the delay 
 					// that happens when a user first triggers content assist
 					setContentAssistProviders(editor, contentAssist);
-					contentAssist.computeProposals();
+					contentAssist.initialize();
 					return result;
 				}
 			};
@@ -410,7 +425,7 @@ define([
 				contentAssistFactory: contentAssistFactory,
 				keyBindingFactory: keyBindingFactory,
 				statusReporter: this.statusReporter,
-				domNode: editorDomNode
+				domNode: this._parent
 			});
 			editor.id = "orion.editor"; //$NON-NLS-0$
 			editor.processParameters = function(params) {
@@ -495,5 +510,7 @@ define([
 			return styleAccessor;
 		}
 	};
+	mEventTarget.EventTarget.addMixin(EditorView.prototype);
+
 	return {EditorView: EditorView};
 });

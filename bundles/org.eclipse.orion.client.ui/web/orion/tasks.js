@@ -50,8 +50,6 @@ define(['i18n!orion/nls/messages', 'require', 'orion/webui/littlelib', 'orion/se
 		this._commandService = options.commandService;
 		this._descriptionProperty = options.descriptionProperty;
 		
-		var commandService = this._commandService;
-		var taskList = this;
 		this.renderTasks();
 	}
 	TaskList.prototype = /** @lends orion.tasks.TaskList.prototype */ {

@@ -9,17 +9,18 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global window define orion XMLHttpRequest confirm*/
+/*global window define orion XMLHttpRequest confirm document*/
 /*jslint sub:true*/
-define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/commands', 'orion/Deferred', 'orion/webui/dialogs/DirectoryPrompterDialog',
- 'orion/commandRegistry', 'orion/i18nUtil', 'orion/webui/dialogs/ImportDialog', 'orion/widgets/projects/ProjectOptionalParametersDialog', 
+define(['require', 'i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/commands', 'orion/Deferred', 'orion/webui/dialogs/DirectoryPrompterDialog',
+ 'orion/commandRegistry', 'orion/i18nUtil', 'orion/webui/dialogs/PromptDialog', 'orion/widgets/projects/ProjectOptionalParametersDialog', 
  'orion/fileCommands', 'orion/editorCommands', 'orion/EventTarget',
- 'orion/URITemplate', 'orion/PageLinks', 'orion/objects'],
-	function(messages, lib, mCommands, Deferred, DirectoryPrompterDialog, mCommandRegistry, i18nUtil, ImportDialog, ProjectOptionalParametersDialog, FileCommands, mEditorCommands, EventTarget,
-		URITemplate, PageLinks, objects){
+ 'orion/URITemplate', 'orion/PageLinks', 'orion/objects', 'orion/preferences'],
+	function(require, messages, lib, mCommands, Deferred, DirectoryPrompterDialog, mCommandRegistry, i18nUtil, PromptDialog, ProjectOptionalParametersDialog, FileCommands, mEditorCommands, EventTarget,
+		URITemplate, PageLinks, objects, mPreferences){
 		var projectCommandUtils = {};
 		
 		var progress;
+		var deployStore;
 		
 			
 	function forceSingleItem(item) {
@@ -86,31 +87,59 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 		if (!allowHTML && status && typeof status.HTML !== "undefined") { //$NON-NLS-0$
 			delete status.HTML;
 		}
-		progress.setProgressResult(status);
+		
+		if(status.Retry && status.Retry.parameters){
+			if(status.forceShowMessage){
+				progress.setProgressResult(status);
+			}
+			context.data.parameters = getCommandParameters(status.Retry.parameters, status.Retry.optionalParameters);
+			context.data.oldParams = context.oldParams;
+			context.commandService.collectParameters(context.data);
+		} else {
+			storeLastDeployment(context.project.Name, context.deployService, context.launchConfiguration);
+			progress.setProgressResult(status);
+		}
+		
 		
 		if(status.ToSave){
 			progress.showWhile(context.projectClient.saveProjectLaunchConfiguration(context.project, status.ToSave.ConfigurationName, context.deployService.id, status.ToSave.Parameters, status.ToSave.Url, status.ToSave.ManageUrl, status.ToSave.Path, status.ToSave.UrlTitle, status.ToSave.Type), "Saving configuration").then(
 				function(configuration){
-					storeLastDeployment(context.project, context.deployService, configuration);
+					storeLastDeployment(context.project.Name, context.deployService, configuration);
 					if(sharedLaunchConfigurationDispatcher){
 						sharedLaunchConfigurationDispatcher.dispatchEvent({type: "create", newValue: configuration });
 					}
+					displayDeployResult(progress, status, context);
 				}, context.errorHandler
 			);
+		} else {
+			displayDeployResult(progress, status, context);
 		}
-	};
+	}
 	
-	var defaultLaunchCommandPrefix = "lastProjectDeploy_";
+	function displayDeployResult(progress, status, context){
+		var display = [];
+		display.Severity = "Info";
+		
+		if (status.Message){
+			display.HTML = false;
+			display.Message = status.Message;
+		} else {
+			display.HTML = true;
+			display.Message = "Use <a href=\""+ require.toUrl("edit/edit.html#" + context.project.ContentLocation) + "\">Project</a> page to view and manage the application.";
+		}
+		
+		progress.setProgressResult(display);
+	}
 	
 	function storeLastDeployment(projectName, deployService, launchConfiguration){
 		var action;
-		if(window.sessionStorage){
+		if(deployStore){
 			if(launchConfiguration){
 				action = "orion.launchConfiguration.deploy." + launchConfiguration.ServiceId + launchConfiguration.Name;
 			} else {
 				action = "orion.project.deploy." + deployService.id;
 			}
-			window.sessionStorage[defaultLaunchCommandPrefix + projectName] = action;
+			deployStore.put(projectName, action);
 		}
 		if(sharedLaunchConfigurationDispatcher){
 			sharedLaunchConfigurationDispatcher.dispatchEvent({type: "changedDefault", newValue: action });
@@ -118,7 +147,9 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 	}
 	
 	projectCommandUtils.getDefaultLaunchCommand = function(projectName){
-		return window.sessionStorage[defaultLaunchCommandPrefix + projectName];
+		if(deployStore){
+			return deployStore.get(projectName);
+		}
 	};
 	
 	/**
@@ -136,60 +167,75 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 			context.launchConfiguration.status = {State: "PROGRESS"};
 			sharedLaunchConfigurationDispatcher.dispatchEvent({type: "changeState", newValue: context.launchConfiguration });
 		}
-		storeLastDeployment(context.project.Name, context.deployService, context.launchConfiguration);
-		progress.showWhile(context.deployService.deploy(context.project, enhansedLaunchConf), context.deployService.name + " in progress", true).then(function(result){
-			if(!result){
-				return;
-			}
-			
-			if (result.UriTemplate) {
-			    var options = {};
-				options.uriTemplate = result.UriTemplate;
-				options.width = result.Width;
-				options.height = result.Height;
-				options.id = context.deployService.id; 
-				options.done = localHandleStatus;
-				options.status = localHandleStatus;
-				mEditorCommands.createDelegatedUI(options);
-			}
-
-			if(context.launchConfiguration && (result.State || result.CheckState)){
-				context.launchConfiguration.status = result;
-				if(sharedLaunchConfigurationDispatcher){
-					sharedLaunchConfigurationDispatcher.dispatchEvent({type: "changeState", newValue: context.launchConfiguration});
+		if(context.deployService.getDeployProgressMessage){
+			context.deployService.getDeployProgressMessage(context.project, enhansedLaunchConf).then(function(message){
+				deploy(message);
+			}.bind(this), function(){
+				deploy(context.deployService.name + " in progress");
+			}.bind(this));
+		} else {
+			deploy(context.deployService.name + " in progress");
+		}
+		
+		function deploy(progressMessage){
+			progress.showWhile(context.deployService.deploy(context.project, enhansedLaunchConf), progressMessage, true).then(function(result){
+				if(!result){
+					return;
 				}
-			}
-			
-			if(result.ToSave){
-				progress.showWhile(context.projectClient.saveProjectLaunchConfiguration(context.project, result.ToSave.ConfigurationName, context.deployService.id, result.ToSave.Parameters, result.ToSave.Url, result.ToSave.ManageUrl, result.ToSave.Path, result.ToSave.UrlTitle, result.ToSave.Type), "Saving configuration").then(
-					function(configuration){
-						storeLastDeployment(context.project.Name, context.deployService, configuration);
-						if(sharedLaunchConfigurationDispatcher){
-							sharedLaunchConfigurationDispatcher.dispatchEvent({type: "create", newValue: configuration});
-						}
-					}, context.errorHandler
-				);
-			}
-			
-			var display = {};
-			display.Severity = "Info";
-			display.HTML = true;
-			display.Message = "Use <a href=\""+ require.toUrl("edit/edit.html#" + context.project.ContentLocation) + "\">Project</a> page to view and manage the application.";
-			progress.setProgressResult(display);
-			
-		}, function(error){
-			if(error.Retry && error.Retry.parameters){
-				if(error.forceShowMessage){
+				
+				if (result.UriTemplate) {
+				    var options = {};
+					options.uriTemplate = result.UriTemplate;
+					options.width = result.Width;
+					options.height = result.Height;
+					options.id = result.UriTemplateId || context.deployService.id; 
+					context.oldParams = enhansedLaunchConf.Params;
+					options.done = function(status){
+						localHandleStatus(status, null, context);
+					};
+					options.status = function(status){localHandleStatus(status, null, context);};
+					mEditorCommands.createDelegatedUI(options);
+					return;
+				}
+	
+				if(context.launchConfiguration && (result.State || result.CheckState)){
+					context.launchConfiguration.status = result;
+					if(sharedLaunchConfigurationDispatcher){
+						sharedLaunchConfigurationDispatcher.dispatchEvent({type: "changeState", newValue: context.launchConfiguration});
+					}
+				}
+				
+				if(result.ToSave){
+					progress.showWhile(context.projectClient.saveProjectLaunchConfiguration(context.project, result.ToSave.ConfigurationName, context.deployService.id, result.ToSave.Parameters, result.ToSave.Url, result.ToSave.ManageUrl, result.ToSave.Path, result.ToSave.UrlTitle, result.ToSave.Type), "Saving configuration").then(
+						function(configuration){
+							storeLastDeployment(context.project.Name, context.deployService, configuration);
+							if(sharedLaunchConfigurationDispatcher){
+								sharedLaunchConfigurationDispatcher.dispatchEvent({type: "create", newValue: configuration});
+							}
+							displayDeployResult(progress, result, context);
+						}, context.errorHandler
+					);
+				} else {
+					storeLastDeployment(context.project.Name, context.deployService, context.launchConfiguration);
+				}
+				
+				displayDeployResult(progress, result, context);
+				
+			}, function(error){
+				if(error.Retry && error.Retry.parameters){
+					if(error.forceShowMessage){
+						context.errorHandler(error);
+					}
+					context.data.parameters = getCommandParameters(error.Retry.parameters, error.Retry.optionalParameters);
+					context.data.oldParams = enhansedLaunchConf.Params;
+					context.commandService.collectParameters(context.data);
+				} else {
 					context.errorHandler(error);
+					storeLastDeployment(context.project.Name, context.deployService, context.launchConfiguration);
 				}
-				context.data.parameters = getCommandParameters(error.Retry.parameters, error.Retry.optionalParameters);
-				context.data.oldParams = enhansedLaunchConf.Params;
-				context.commandService.collectParameters(context.data);
-			} else {
-				context.errorHandler(error);
-			}
-		});
-	};
+			});
+		}
+	}
 	
 	var sharedDependencyDispatcher;
 	
@@ -241,7 +287,7 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 		
 		for(var i=0; i<launchConfigurations.length; i++){
 			(function(launchConfiguration){
-			var deployLaunchConfigurationCommands = new mCommands.Command({
+			var command = new mCommands.Command({
 				name: "Deploy to " + launchConfiguration.Name,
 				tooltip: "Deploy to " + launchConfiguration.Name,
 				id: "orion.launchConfiguration.deploy." + launchConfiguration.ServiceId + launchConfiguration.Name,
@@ -270,11 +316,13 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 					});
 				},
 				visibleWhen: function(items) {
+					if (!(command.showCommand == undefined || command.showCommand)) return false;
 					var item = forceSingleItem(items);
 					return(item.Project === treeRoot.Project);
 				}
 			});
-			commandService.addCommand(deployLaunchConfigurationCommands);
+			command.isLaunchProject = true;
+			commandService.addCommand(command);
 		})(launchConfigurations[i]);
 		}
 	},
@@ -600,7 +648,27 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 		return commands;
 	};
 	
+	/**
+	 * Gets any launch project commands in the given <code>commandRegistry</code>. If {@link #createProjectCommands}, has not been called,
+	 * this returns an empty array.
+	 * @name orion.projectCommands.getLaunchProjectCommands
+	 * @function
+	 * @param {orion.commandregistry.CommandRegistry} commandRegistry The command registry to consult.
+	 * @returns {orion.commands.Command[]} All the launch project commands added to the given <code>commandRegistry</code>.
+	 */
+	projectCommandUtils.getLaunchProjectCommands = function(commandRegistry) {
+		var commands = [];
+		for (var commandId in commandRegistry._commandList) {
+			var command = commandRegistry._commandList[commandId];
+			if (command.isLaunchProject) {
+				commands.push(command);
+			}
+		}
+		return commands;
+	};
+	
 	var explorer;
+	
 	projectCommandUtils.setExplorer = function(theExplorer) {
 		explorer = theExplorer;
 	};
@@ -614,6 +682,15 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 	 * @function
 	 */
 	projectCommandUtils.createProjectCommands = function(serviceRegistry, commandService, fileClient, projectClient, dependencyTypes, deploymentTypes) {
+		if(!deployStore){
+			var preferences = new mPreferences.PreferencesService(serviceRegistry);
+			preferences.getPreferences('/deploy/project').then(
+				function(deploySettings){
+					deployStore = deploySettings;
+				}
+			);
+		}
+		
 		progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
 		function errorHandler(error) {
 			if (progress) {
@@ -780,7 +857,6 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 					id: "orion.project.adddependency." + type,
 					tooltip: handler.addDependencyTooltip,
 					callback: function(data){
-						var def = new Deferred();
 						var item = forceSingleItem(data.items).Project;
 						
 						var func = arguments.callee;
@@ -919,40 +995,44 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 				allContributedCommandsDeferreds.push(createInitProjectCommand(dependencyType));
 			}
 		
+		var readmeFilename = "README.md"; //$NON-NLS-0$
 		var addReadmeCommand = new mCommands.Command({
-			name: "Readme File",
-			tooltip: "Create a README.md file in this project",
-			id: "orion.project.create.readme",
+			name: "Readme File", //$NON-NLS-0$
+			tooltip: "Create a README.md file in this project", //$NON-NLS-0$
+			id: "orion.project.create.readme", //$NON-NLS-0$
 			callback: function(data){
 				var item = forceSingleItem(data.items);
-				progress.progress(fileClient.createFile(item.Project.ContentLocation, "README.md"), "Creating README.md").then(function(readmeMeta){
+				progress.progress(fileClient.createFile(item.Project.ContentLocation, readmeFilename), i18nUtil.formatMessage("Creating ${0}", readmeFilename)).then(function(readmeMeta){ //$NON-NLS-0$
 					function dispatch() {
 						var dispatcher = FileCommands.getModelEventDispatcher();
-						dispatcher.dispatchEvent({ type: "create", parent: item, newValue: readmeMeta });
+						dispatcher.dispatchEvent({ type: "create", parent: item.Project.fileMetadata, newValue: readmeMeta }); //$NON-NLS-0$
 					}
 					if(item.Project){
-						progress.progress(fileClient.write(readmeMeta.Location, "# " + item.Project.Name), "Writing sample readme").then(function(){
+						progress.progress(fileClient.write(readmeMeta.Location, "# " + item.Project.Name), "Writing sample readme").then(function(){ //$NON-NLS-1$ //$NON-NLS-0$
 							dispatch();
 						});
 					} else {
 						dispatch();
 					}
-				});
+				}, errorHandler);
 			},
 			visibleWhen: function(item) {
 				if (!explorer || !explorer.isCommandsVisible()) {
 					return false;
 				}
 				item = forceSingleItem(item);
-				if(!item.Project || !item.Project.children || !item.Project.ContentLocation){
+				if(!item.Project || !item.Project.fileMetadata || !item.Project.fileMetadata.children || !item.Project.ContentLocation){
 					return false;
 				}
-				for(var i=0; i<item.Project.children.length; i++){
-					if(item.Project.children[i].Name && item.Project.children[i].Name.toLowerCase() === "readme.md"){
-						return false;
+				var children = item.Project.fileMetadata.children;
+				var hasReadMe = children.some(function(child){
+					if(child.Name && (child.Name.toLowerCase() === readmeFilename.toLowerCase()) ){
+						return true;
 					}
-				}
-				return true;
+					return false;
+				});
+				
+				return !hasReadMe;
 			}
 		});
 		
@@ -970,7 +1050,7 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 					}
 					var item = forceSingleItem(data.items);
 					fileClient.loadWorkspace(fileClient.fileServiceRootURL(item.Location)).then(function(workspace) {
-						progress.progress(projectClient.createProject(workspace.ChildrenLocation, {Name: name}), "Creating project " + name).then(function(project){
+						progress.progress(projectClient.createProject(workspace.ChildrenLocation, {Name: name}), messages["Creating project "] + name).then(function(project){
 							dispatchNewProject(workspace, project);
 						});
 					});
@@ -988,30 +1068,68 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 			commandService.addCommand(createBasicProjectCommand);
 				
 			var createZipProjectCommand = new mCommands.Command({
-			name: "File System",
-			tooltip: "Create project from a local zipped file.",
-			id: "orion.project.create.fromfile",
-			parameters : new mCommandRegistry.ParametersDescription([new mCommandRegistry.CommandParameter("name", "text", "Name: ")]),
+			name: "Zip archive", //$NON-NLS-0$
+			tooltip: "Create a project from a local zip archive.", //$NON-NLS-0$
+			id: "orion.project.create.fromfile", //$NON-NLS-0$
 			callback: function(data){
-					var name = data.parameters.valueFor("name");
-					if(!name){
-						return;
-					}
 					var item = forceSingleItem(data.items);
+
+					var fileInput = lib.node("fileSelectorInput"); //$NON-NLS-0$
+					var cloneInput = fileInput.cloneNode(); // clone file input before its value is changed
 					
-					fileClient.loadWorkspace(fileClient.fileServiceRootURL(item.Location)).then(function(workspace) {
-						progress.progress(projectClient.createProject(workspace.ChildrenLocation, {Name: name}), "Creating project " + name).then(function(projectInfo){
-							progress.progress(fileClient.read(projectInfo.ContentLocation, true)).then(function(projectMetadata){
-								var dialog = new ImportDialog.ImportDialog({
-									importLocation: projectMetadata.ImportLocation,
-									func: function() {
-										dispatchNewProject(workspace, projectInfo);
-									}
-								});
-								dialog.show();
-							});
-						});
+					var projectNameDialog = new PromptDialog.PromptDialog({
+						title: messages["Enter project name:"] //$NON-NLS-0$
 					});
+					
+					// add listener which uses project name entered by user to create a new project
+					projectNameDialog.addEventListener("ok", function(event) { //$NON-NLS-0$
+						var projectName = event.value;
+						fileClient.loadWorkspace(fileClient.fileServiceRootURL(item.Location)).then(function(workspace) {
+							progress.progress(projectClient.createProject(workspace.ChildrenLocation, {Name: projectName}), messages["Creating project "] + projectName).then(function(projectInfo){ //$NON-NLS-0$
+								progress.progress(fileClient.read(projectInfo.ContentLocation, true)).then(function(projectMetadata){
+									
+									explorer.changedItem(workspace, true).then(function(newWorkspace){ //force workspace reload
+										var children = newWorkspace.Children;
+										// find the item that represents the newly created project
+										var projectItem = null;
+										children.some(function(child){
+											if (child.Location === projectMetadata.Location) {
+												projectItem = child;
+												return true;
+											}
+											return false;
+										});
+										// upload files selected by user into newly created project
+										if (projectItem) {
+											if (fileInput.files && fileInput.files.length > 0) {
+												for (var i = 0; i < fileInput.files.length; i++) {
+													explorer._uploadFile(projectItem, fileInput.files.item(i), true);
+												}
+											}
+										}
+									});
+									
+								}, errorHandler);
+							}, errorHandler);
+						}, errorHandler);
+					});
+					
+					var changeListener = function(){
+						if (fileInput.files && fileInput.files.length > 0) {
+							projectNameDialog.show();	// ask user for project name
+						}
+
+						fileInput.removeEventListener("change", changeListener);	
+					};
+					fileInput.addEventListener("change", changeListener);
+					
+					// Launch file picker. Note that at the time when this code was written, web browser 
+					// restrictions made it so that fileInput.click() cannot be called asynchronously.
+					// e.g. cannot be called from event handler after the user enters the project name
+					fileInput.click();
+					
+					//replace original fileInput so that change event always fires
+					fileInput.parentNode.replaceChild(cloneInput, fileInput);
 				},
 			visibleWhen: function(item) {
 					if (!explorer || !explorer.isCommandsVisible()) {
@@ -1042,7 +1160,7 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 						}
 						var item = forceSingleItem(data.items);
 						fileClient.loadWorkspace(fileClient.fileServiceRootURL(item.Location)).then(function(workspace) {
-							progress.progress(projectClient.createProject(workspace.ChildrenLocation, {Name: name, ContentLocation: url}), "Creating project " + name).then(function(project){
+							progress.progress(projectClient.createProject(workspace.ChildrenLocation, {Name: name, ContentLocation: url}), messages["Creating project "] + name).then(function(project){
 								dispatchNewProject(workspace, project);
 							});
 						});
@@ -1062,6 +1180,7 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 			projectCommandUtils.createDependencyCommands(serviceRegistry, commandService, fileClient, projectClient, dependencyTypes);
 			
 			function createDeployProjectCommand(deployService){
+				var command;
 				var commandParams = {
 					name: deployService.name,
 					tootlip: deployService.tooltip,
@@ -1098,6 +1217,7 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 
 					},
 					visibleWhen: function(item) {
+						if (!(command.showCommand == undefined || command.showCommand)) return false;
 						item = explorer.treeRoot;
 						if(!item.Project || !item.children || item.children.length === 0){
 							return false;
@@ -1108,7 +1228,7 @@ define(['i18n!orion/navigate/nls/messages', 'orion/webui/littlelib', 'orion/comm
 				
 				commandParams.parameters = getCommandParameters(deployService.parameters, deployService.optionalParameters);
 				
-				var command = new mCommands.Command(commandParams);
+				command = new mCommands.Command(commandParams);
 				command.isDeployProject = true;
 				commandService.addCommand(command);
 			}

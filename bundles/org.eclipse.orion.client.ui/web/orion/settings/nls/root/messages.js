@@ -220,5 +220,9 @@ define({
 	"COLOR:": "Color:",
 	"NEW COLOR:": "New Color:",
 	"Ok": "Ok",
-	"OR HEX:": "Or Hex: "
+	"OR HEX:": "Or Hex: ",
+	"splitEditors": "Split Editors",
+	"splitOrientation": "Split Orientation",
+	"horizontal": "Horizontal",
+	"vertical": "Vertical"
 });

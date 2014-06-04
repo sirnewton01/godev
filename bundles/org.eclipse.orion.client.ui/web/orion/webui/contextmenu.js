@@ -43,8 +43,6 @@ define([
 	objects.mixin(ContextMenu.prototype, /** @lends orion.webui.contextmenu.ContextMenu.prototype */ {
 			
 		_initialize: function(options) {
-			var self = this;
-			
 			if (!this._dropdownNode.dropdown) {
 				//used by commandRegistry to set the parentNode of a child dropdown menu
 				this._dropdownNode.dropdown = this;

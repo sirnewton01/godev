@@ -141,7 +141,9 @@ define(['orion/EventTarget'], function( EventTarget){
 					this._inputField.focus();
 				}.bind(completion), 200);
 			} else {
-				this._dismiss();
+				if (document.activeElement !== this._inputField) { //guard against temporary loss of focus
+					this._dismiss();
+				}
 			}
 		}.bind(this);
 		this._inputField.addEventListener("blur", blurHanlder); //$NON-NLS-0$
@@ -431,9 +433,7 @@ define(['orion/EventTarget'], function( EventTarget){
 				window.location.href = valueToInputField.value;
 			}
 		}
-		window.setTimeout(function(){ //wait a few milliseconds for the proposal pane to hide 
-			this._completionUIContainer.style.display = "none"; //$NON-NLS-0$
-		}.bind(this), 200);
+		this._completionUIContainer.style.display = "none"; //$NON-NLS-0$
 	};
 	
 	InputCompletion.prototype._show = function(){

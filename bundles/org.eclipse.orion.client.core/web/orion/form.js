@@ -17,7 +17,7 @@ define([], function() {
 
 	/**
 	 * @name orion.form
-	 * @class Utilities for handling HTML form encoding.
+	 * @class Utilities for handling encoding.
 	 */
 	return /** @lends orion.form */ {
 		/**
@@ -35,6 +35,16 @@ define([], function() {
 				buf.push(x_www_form_urlencode(param) + '=' + x_www_form_urlencode(value)); //$NON-NLS-0$
 			}
 			return buf.join('&'); //$NON-NLS-0$
+		},
+		/**
+		 * Encodes a string into an <a href="http://tools.ietf.org/html/rfc5023#section-9.7.1">RFC 5023</a>-compliant
+		 * <tt>Slug</tt> header.
+		 * @static
+		 * @param {String} s The string to encode.
+		 * @returns {String} The encoded <tt>Slug</tt>.
+		 */
+		encodeSlug: function(s) {
+			return s.replace(/([^\u0020-\u007e]|%)+/g, encodeURIComponent);
 		}
 	};
 });

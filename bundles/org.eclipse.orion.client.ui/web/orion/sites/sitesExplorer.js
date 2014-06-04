@@ -51,41 +51,24 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 			this.commandService.renderCommands(this.pageActionsWrapperId, toolbar, item, this, "button", this.getRefreshHandler());  //$NON-NLS-0$
 		};
 		
-		SiteServicesExplorer.prototype._getSiteConfigurations = function(siteServices, result, deferred){
-			var that = this;
-			
-			if (!deferred)
-				deferred = new Deferred();
-			
-			if (!result)
-				result = [];
-			
-			if (siteServices.length > 0) {
-				siteServices[0].getSiteConfigurations().then(
-					function(/**Array*/ siteConfigurations) {
-						var item = {};
-						item.siteService = siteServices[0];
-						if (siteConfigurations) {
-							item.siteConfigurations = siteConfigurations.sort(function(a, b) {
-								var n1 = a.Name && a.Name.toLowerCase();
-								var n2 = b.Name && b.Name.toLowerCase();
-								if (n1 < n2) { return -1; }
-								if (n1 > n2) { return 1; }
-								return 0;
-							});
-						} else {
-							item.siteConfigurations = [];
-						}
-						
-						result.push(item);
-						that._getSiteConfigurations(siteServices.slice(1), result, deferred);
-					}
-				);					
-			} else {
-				deferred.resolve(result);
-			}
-			
-			return deferred;
+		// @returns {{ siteService: Service, siteConfigurations: SiteConfiguration[] }}[]
+		SiteServicesExplorer.prototype._getSiteConfigurations = function(siteServices){
+			var promises = siteServices.map(function(siteService) {
+				return siteService.getSiteConfigurations().then(function(siteConfigurations) {
+					siteConfigurations = siteConfigurations || [];
+					var item = {};
+					item.siteService = siteService;
+					item.siteConfigurations = siteConfigurations.sort(function(a, b) {
+						var n1 = a.Name && a.Name.toLowerCase();
+						var n2 = b.Name && b.Name.toLowerCase();
+						if (n1 < n2) { return -1; }
+						if (n1 > n2) { return 1; }
+						return 0;
+					});
+					return item;
+				});
+			});
+			return Deferred.all(promises);
 		};
 		
 		SiteServicesExplorer.prototype.display = function(){
@@ -114,15 +97,10 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 					commandService.registerCommandContribution(that.defaultActionWrapperId, 'orion.site.start', 20); //$NON-NLS-0$
 					commandService.registerCommandContribution(that.defaultActionWrapperId, 'orion.site.stop', 30); //$NON-NLS-0$
 					commandService.registerCommandContribution(that.defaultActionWrapperId, 'orion.site.delete', 40, null, false); //$NON-NLS-0$
-					
 
-					var areConfigurations = false;
-					for (var i=0; i<siteConfigurations.length; i++){
-						if (siteConfigurations[i].siteConfigurations && siteConfigurations[i].siteConfigurations.length > 0){
-							areConfigurations = true;
-							break;
-						}
-					}
+					var areConfigurations = siteConfigurations.some(function(sc) {
+						return sc.siteConfigurations && sc.siteConfigurations.length > 0;
+					});
 
 					// If there are no configurations, put up an info box					
 					if (!areConfigurations){
@@ -131,8 +109,8 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 						for (var i=0; i<siteConfigurations.length; i++){
 							var siteServiceId = siteConfigurations[i].siteService._id;
 							// If there are multiple site config types, organize them into a tree
-							if	(siteConfigurations.length > 1){
-								var titleWrapper = new mSection.Section(document.getElementById(that.parentId), {
+							if (siteConfigurations.length > 1){
+								new mSection.Section(document.getElementById(that.parentId), {
 									id: siteServiceId + "_Section", //$NON-NLS-0$
 									title: siteConfigurations[i].siteService._name,
 									content: '<div id="' + siteServiceId + '_Node" class="mainPadding siteGroup"></list>', //$NON-NLS-1$ //$NON-NLS-0$

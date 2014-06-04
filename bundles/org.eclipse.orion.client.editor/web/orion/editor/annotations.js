@@ -14,6 +14,14 @@
 /*global define */
 
 define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/editor/eventTarget'], function(messages, mEventTarget) { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+	
+	/**
+	 * @class This object represents a regitry of annotation types.
+	 * @name orion.editor.AnnotationType
+	 */
+	function AnnotationType() {
+	}
+	
 	/**
 	 * @class This object represents a decoration attached to a range of text. Annotations are added to a
 	 * <code>AnnotationModel</code> which is attached to a <code>TextModel</code>.
@@ -78,11 +86,16 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			}
 			return true;
 		},
-		/**
-		 * Collapses the annotation.
-		 */
-		collapse: function () {
+		_collapseImpl: function (checkOverlaping) {
 			if (this._collapse()) {
+				if (checkOverlaping) {
+					this._forEachOverlaping(function(annotation) {
+						if (!annotation.expanded) {
+							annotation._expandImpl(false);
+							annotation._recollapse = true;
+						}
+					});
+				}
 				var projectionModel = this._projectionModel;
 				var baseModel = projectionModel.getBaseModel();
 				this._projection = {
@@ -93,23 +106,45 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 				projectionModel.addProjection(this._projection);
 			}
 		},
+		_expandImpl: function(checkOverlaping) {
+			if (this._expand()) {
+				this._projectionModel.removeProjection(this._projection);
+				if (checkOverlaping) {
+					this._forEachOverlaping(function(annotation) {
+						if (annotation._recollapse) {
+							annotation._collapseImpl(false);
+							annotation._recollapse = false;
+						}
+					});
+				}
+			}
+		},
+		_forEachOverlaping: function(callback) {
+			if (!this._annotationModel) { return; }
+			var annotations = this._annotationModel.getAnnotations(this.start, this.end);
+			while (annotations.hasNext()) {
+				var annotation = annotations.next();
+				if (annotation !== this && annotation.type === AnnotationType.ANNOTATION_FOLDING) {
+					callback.call(this, annotation);
+				}
+			}
+		},
+		/**
+		 * Collapses the annotation.
+		 */
+		collapse: function () {
+			this._recollapse = false;
+			this._collapseImpl(true);
+		},
 		/**
 		 * Expands the annotation.
 		 */
 		expand: function () {
-			if (this._expand()) {
-				this._projectionModel.removeProjection(this._projection);
-			}
+			this._recollapse = false;
+			this._expandImpl(true);
 		}
 	};
 	 
-	/**
-	 * @class This object represents a regitry of annotation types.
-	 * @name orion.editor.AnnotationType
-	 */
-	function AnnotationType() {
-	}
-	
 	/**
 	 * Error annotation type.
 	 */
@@ -305,15 +340,26 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 		 * Only annotations of the specified types will be shown by
 		 * the receiver.
 		 * </p>
+		 * <p>
+		 * If the priority is not specified, the annotation type will be added
+		 * to the end of the receiver's list (lowest pririoty).
+		 * </p>
 		 *
 		 * @param {Object} type the annotation type to be shown
+		 * @param {Number} priority the priority for the annotation type
 		 * 
 		 * @see orion.editor.AnnotationTypeList#removeAnnotationType
 		 * @see orion.editor.AnnotationTypeList#isAnnotationTypeVisible
+		 * @see orion.editor.AnnotationTypeList#getAnnotationTypePriority
 		 */
-		addAnnotationType: function(type) {
+		addAnnotationType: function(type, priority) {
 			if (!this._annotationTypes) { this._annotationTypes = []; }
-			this._annotationTypes.push(type);
+			var index = priority - 1;
+			if (priority == undefined || !(0 <= index && index < this._annotationTypes.length)) {
+				this._annotationTypes.push(type);
+			} else {
+				this._annotationTypes.splice(index, 0, type);
+			}
 		},
 		/**
 		 * Gets the annotation type priority.  The priority is determined by the
@@ -393,6 +439,25 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 		}
 	};
 	
+	/** @private */
+	function binarySearch(array, offset, inclusive, low, high) {
+		var index;
+		if (low === undefined) { low = -1; }
+		if (high === undefined) { high = array.length; }
+		while (high - low > 1) {
+			index = Math.floor((high + low) / 2);
+			if (offset <= array[index].start) {
+				high = index;
+			} else if (inclusive && offset < array[index].end) {
+				high = index;
+				break;
+			} else {
+				low = index;
+			}
+		}
+		return high;
+	}
+	
 	/**
 	 * Constructs an annotation model.
 	 * 
@@ -432,7 +497,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 		addAnnotation: function(annotation) {
 			if (!annotation) { return; }
 			var annotations = this._annotations;
-			var index = this._binarySearch(annotations, annotation.start);
+			var index = binarySearch(annotations, annotation.start);
 			annotations.splice(index, 0, annotation);
 			annotation._annotationModel = this;
 			var e = {
@@ -617,7 +682,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			if (!add) { add = []; }
 			for (i = 0; i < add.length; i++) {
 				annotation = add[i];
-				index = this._binarySearch(annotations, annotation.start);
+				index = binarySearch(annotations, annotation.start);
 				annotation._annotationModel = this;
 				annotations.splice(index, 0, annotation);
 			}
@@ -648,22 +713,9 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			}
 		},
 		/** @ignore */
-		_binarySearch: function (array, offset) {
-			var high = array.length, low = -1, index;
-			while (high - low > 1) {
-				index = Math.floor((high + low) / 2);
-				if (offset <= array[index].start) {
-					high = index;
-				} else {
-					low = index;
-				}
-			}
-			return high;
-		},
-		/** @ignore */
 		_getAnnotationIndex: function(annotation) {
 			var annotations = this._annotations;
-			var index = this._binarySearch(annotations, annotation.start);
+			var index = binarySearch(annotations, annotation.start);
 			while (index < annotations.length && annotations[index].start === annotation.start) {
 				if (annotations[index] === annotation) {
 					return index;
@@ -811,8 +863,8 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			if (!ranges) {
 				ranges = [];
 			}
-			var mergedStyle, i;
-			for (i=0; i<ranges.length && styleRange; i++) {
+			var mergedStyle, i = binarySearch(ranges, styleRange.start, true);
+			for (; i<ranges.length && styleRange; i++) {
 				var range = ranges[i];
 				if (styleRange.end <= range.start) { break; }
 				if (styleRange.start >= range.end) { continue; }

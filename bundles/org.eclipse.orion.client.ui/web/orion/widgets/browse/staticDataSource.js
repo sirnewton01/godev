@@ -24,8 +24,10 @@ define([
 	"orion/editor/stylers/text_x-php/syntax",
 	"orion/editor/stylers/text_x-python/syntax",
 	"orion/editor/stylers/text_x-ruby/syntax",
-	'orion/editor/stylers/application_x-ejs/syntax'
-], function(Deferred, mStyler, mJS, mCss, mHtml, mJava, mJson, mPhp, mPython, mRuby, mEJS) {
+	'orion/editor/stylers/application_x-ejs/syntax',
+	'orion/editor/stylers/application_xml/syntax',
+	'orion/editor/stylers/text_x-yaml/syntax',
+], function(Deferred, mStyler, mJS, mCss, mHtml, mJava, mJson, mPhp, mPython, mRuby, mEJS, mXml, mYaml) {
 	var ContentTypes = [{	id: "text/plain",
 			name: "Text",
 			extension: ["txt"],
@@ -107,6 +109,23 @@ define([
 			name: "sh",
 			extension: ["sh"]
 		},
+		{	id: "application/browser-renderable",
+			name: "browser-renderable"
+		},
+		{	id: "application/pdf",
+			"extends": "application/browser-renderable",
+			name: "PDF",
+			extension: ["pdf"]
+		},
+		{	id: "application/octet-stream",
+			name: "octet-stream",
+			extension: ["exe", "bin", "doc", "ppt"]
+		},
+		{	id: "application/zip",
+			"extends": "application/octet-stream",
+			name: "ZIP",
+			extension: ["war", "jar", "zip", "rar"]
+		},
 		// Image types
 		{	id: "image/gif",
 			name: "GIF",
@@ -158,36 +177,47 @@ define([
 				this.styler.destroy();
 				this.styler = null;
 			}
+			var stylerAdapter = null;
 			if (fileContentType) {
 				switch(fileContentType.id) {
 					case "application/javascript": //$NON-NLS-0$
-						this.styler = new mStyler.TextStyler(textView, annotationModel, mJS.grammars, "orion.js"); //$NON-NLS-0$
+						stylerAdapter = new mStyler.createPatternBasedAdapter(mJS.grammars, "orion.js");
 						break;
 					case "application/x-ejs": //$NON-NLS-0$
-						this.styler = new mStyler.TextStyler(textView, annotationModel, mEJS.grammars, "orion.ejs"); //$NON-NLS-0$
+						stylerAdapter = new mStyler.createPatternBasedAdapter(mEJS.grammars, "orion.ejs"); //$NON-NLS-0$
 						break;
 					case "text/css": //$NON-NLS-0$
-						this.styler = new mStyler.TextStyler(textView, annotationModel, mCss.grammars, "orion.css"); //$NON-NLS-0$
+						stylerAdapter = new mStyler.createPatternBasedAdapter(mCss.grammars, "orion.css"); //$NON-NLS-0$
 						break;
 					case "text/html": //$NON-NLS-0$
-						this.styler = new mStyler.TextStyler(textView, annotationModel, mHtml.grammars, "orion.html"); //$NON-NLS-0$
+						stylerAdapter = new mStyler.createPatternBasedAdapter(mHtml.grammars, "orion.html"); //$NON-NLS-0$
 						break;
 					case "text/x-java-source": //$NON-NLS-0$
-						this.styler = new mStyler.TextStyler(textView, annotationModel, mJS.grammars, "orion.js"); //$NON-NLS-0$
+						stylerAdapter = new mStyler.createPatternBasedAdapter(mJS.grammars, "orion.js"); //$NON-NLS-0$
 						break;
 					case "application/json": //$NON-NLS-0$
-						this.styler = new mStyler.TextStyler(textView, annotationModel, mJson.grammars, "orion.json"); //$NON-NLS-0$
+						stylerAdapter = new mStyler.createPatternBasedAdapter(mJson.grammars, "orion.json"); //$NON-NLS-0$
 						break;
 					case "text/x-python": //$NON-NLS-0$
-						this.styler = new mStyler.TextStyler(textView, annotationModel, mPython.grammars, "orion.py"); //$NON-NLS-0$
+						stylerAdapter = new mStyler.createPatternBasedAdapter(mPython.grammars, "orion.py"); //$NON-NLS-0$
 						break;
 					case "text/x-ruby": //$NON-NLS-0$
-						this.styler = new mStyler.TextStyler(textView, annotationModel, mRuby.grammars, "orion.rb"); //$NON-NLS-0$
+						stylerAdapter = new mStyler.createPatternBasedAdapter(mRuby.grammars, "orion.rb"); //$NON-NLS-0$
 						break;
 					case "text/x-php": //$NON-NLS-0$
-						this.styler = new mStyler.TextStyler(textView, annotationModel, mPhp.grammars, "orion.php"); //$NON-NLS-0$
+						stylerAdapter = new mStyler.createPatternBasedAdapter(mPhp.grammars, "orion.php"); //$NON-NLS-0$
+						break;
+					case "application/xml": //$NON-NLS-0$
+					case "application/xhtml+xml": //$NON-NLS-0$
+						stylerAdapter = new mStyler.createPatternBasedAdapter(mXml.grammars, "orion.xml"); //$NON-NLS-0$
+						break;
+					case "text/x-yaml": //$NON-NLS-0$
+						stylerAdapter = new mStyler.createPatternBasedAdapter(mYaml.grammars, "orion.yaml"); //$NON-NLS-0$
 						break;
 				}
+			}
+			if(stylerAdapter) {
+				this.styler = new mStyler.TextStyler(textView, annotationModel, stylerAdapter); //$NON-NLS-0$
 			}
 			return new Deferred().resolve();
 		},

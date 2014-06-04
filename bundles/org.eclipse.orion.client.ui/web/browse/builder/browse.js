@@ -20,7 +20,7 @@ if (_all_script && _all_script.length && _all_script.length > 0) {
 					break;
 				}
 			} else {
-				var regex = /.*built-browse.*.js/;
+				var regex = /.*built-browser.*.js/;
 				if (_all_script[i].src && regex.exec(_all_script[i].src)) {
 					_browser_script_source = _all_script[i].src;
 					break;
@@ -49,6 +49,9 @@ define('browse/builder/browse', ['orion/widgets/browse/fileBrowser', 'orion/serv
 			if (arguments.length > 3) {
 				params.codeURL = arguments[3];
 			}
+			if (arguments.length > 4) {
+				params.snippetShareOptions = arguments[4];
+			}
 		} else {
 			params = params || {};
 		}
@@ -67,27 +70,31 @@ define('browse/builder/browse', ['orion/widgets/browse/fileBrowser', 'orion/serv
 				}
 			}
 		}
-
-		if (url.host === "github.com") {
-			pluginURL = new URL("../../plugins/GitHubFilePlugin.html?repo=" + url.href, _browser_script_source);
-		} else if (url.pathname.indexOf("/git/") === 0) {
-			pluginURL = new URL("/gerrit/plugins/gerritfs/static/plugins/GerritFilePlugin.html", url);
-			pluginURL.query.set("project", url.pathname.substring(5));
-		} else if (url.pathname.indexOf("/ccm") === 0) {
-			if (!base) {
-				var ccmPath = url.pathname.match(/^\/ccm[^/]*/);
-				base = new URL(ccmPath, repo).href;
+		try {
+			if (url.host === "github.com") {
+				pluginURL = new URL("../../plugins/GitHubFilePlugin.html?repo=" + url.href, _browser_script_source);
+			} else if (url.pathname.indexOf("/git/") === 0) {
+				pluginURL = new URL("/gerrit/plugins/gerritfs/static/plugins/GerritFilePlugin.html", url);
+				pluginURL.query.set("project", url.pathname.substring(5));
+			} else if (url.pathname.indexOf("/ccm") === 0) {
+				if (!base) {
+					var ccmPath = url.pathname.match(/^\/ccm[^/]*/);
+					base = new URL(ccmPath, repo).href;
+				}
+				pluginURL = new URL(base + "/service/com.ibm.team.filesystem.service.jazzhub.IOrionFilesystem/sr/pluginOrionWs.html?" + repo);
+				selectorNumber = 2;
+			} else if (url.pathname.indexOf("/project/") === 0) {
+				if (!base) {
+					throw "No Jazz SCM base server defined - " + repo;
+				}
+				pluginURL = new URL(base + "/service/com.ibm.team.filesystem.service.jazzhub.IOrionFilesystem/sr/pluginOrionWs.html?" + repo);
+				selectorNumber = 2;
+			} else {
+				throw "Bad Repo URL - " + repo;
 			}
-			pluginURL = new URL(base + "/service/com.ibm.team.filesystem.service.jazzhub.IOrionFilesystem/sr/pluginOrionWs.html?" + repo);
-			selectorNumber = 2;
-		} else if (url.pathname.indexOf("/project/") === 0) {
-			if (!base) {
-				base = new URL("/ccm01", repo).href;
-			}
-			pluginURL = new URL(base + "/service/com.ibm.team.filesystem.service.jazzhub.IOrionFilesystem/sr/pluginOrionWs.html?" + repo);
-			selectorNumber = 2;
-		} else {
-			throw "Bad Repo URL - " + repo;
+		} catch (exception) {
+			(new mFileBrowser.FileBrowser({parent: params.parentId, init: true}))._statusService.setProgressResult({Severity: "error", Message: exception}); //$NON-NLS-0$;
+			return;
 		}
 		var serviceRegistry = new mServiceRegistry.ServiceRegistry();
 		var plugins = {};
@@ -97,17 +104,27 @@ define('browse/builder/browse', ['orion/widgets/browse/fileBrowser', 'orion/serv
 			repoURL: repo,
 			baseURL: (selectorNumber === 2 ? base : null),
 			codeURL: params.codeURL,
+			snippetShareOptions: params.snippetShareOptions,
 			selectorNumber: selectorNumber,
 			rootName: params.rootName,
-			maxEditorLines: 300,
+			widgetSource: _browser_script_source ? {repo: params.repo, base: params.base, js: _browser_script_source , css: _browser_script_source.replace(/built-browser.*.js/, "built-browser.css")} : null,
+			maxEditorLines: params.snippetShareOptions && params.snippetShareOptions.maxL ? params.snippetShareOptions.maxL : 300,
 			init: true
 		});
 		var pluginRegistry = new mPluginRegistry.PluginRegistry(serviceRegistry, {
 			storage: {},
 			plugins: plugins
 		});
+		var errorMessage = "Could not connect to the repository " + repo + ".";
 		pluginRegistry.start().then(function() {
-			this._fileBrowser.startup(serviceRegistry);
+			var allReferences = serviceRegistry.getServiceReferences("orion.core.file"); //$NON-NLS-0$
+			if(allReferences.length === 0) {//If there is no file service reference, we treat it as plugin activation error.
+				this._fileBrowser._statusService.setProgressResult({Severity: "error", Message: errorMessage}); //$NON-NLS-0$
+			} else {//Plugin activation succeeds, start up the readonly widget.
+				this._fileBrowser.startup(serviceRegistry);
+			}
+		}.bind(this), function() {//The pluginRegistry starts with rejection(not sure if it is reachable though, we treat it as plugin activation error.
+			this._fileBrowser._statusService.setProgressResult({Severity: "error", Message: errorMessage}); //$NON-NLS-0$
 		}.bind(this));
 	}
 

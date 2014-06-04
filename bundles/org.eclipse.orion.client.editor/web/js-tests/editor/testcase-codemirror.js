@@ -12,8 +12,9 @@
 /*jslint */
 /*global define*/
 
-define(["orion/assert", "orion/editor/eventTarget", "orion/editor/textModel", "orion/editor/annotations", "orion/editor/mirror"],
-		function(assert, mEventTarget, mTextModel, mAnnotations, mMirror) {
+define(["chai/chai", "orion/editor/eventTarget", "orion/editor/textModel", "orion/editor/annotations", "orion/editor/mirror"],
+		function(chai, mEventTarget, mTextModel, mAnnotations, mMirror) {
+	var assert = chai.assert;
 	var tests = {};
 	
 	function SampleMode(codeMirror) {

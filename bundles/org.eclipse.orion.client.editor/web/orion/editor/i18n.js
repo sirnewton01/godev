@@ -17,7 +17,9 @@ define({
 				onLoad(languages);
 			});
 		} else {
-			onLoad({});
+			parentRequire(["orion/editor/config"], function(config) { //$NON-NLS-0$
+				onLoad((config && config.languages) || {});
+			});
 		}
 	}
 });

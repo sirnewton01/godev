@@ -115,6 +115,8 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 		
 		var editors = getEditors();
 		var fileCommands = [];
+		var genericEditorOpen;
+		var orionEditorId = "orion.editor";
 
 		for (var i=0; i < editors.length; i++) {
 			var editor = editors[i];
@@ -133,7 +135,15 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 				isEditor: (editor["default"] ? "default": "editor"), // Distinguishes from a normal fileCommand //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				validationProperties: editor.validationProperties
 			};
-			fileCommands.push({properties: properties, service: {}});
+			var command = {properties: properties, service: {}};
+			if (editor.id === orionEditorId) {
+				genericEditorOpen = command;
+			} else {
+				fileCommands.push(command);
+			}
+		}
+		if (genericEditorOpen) {
+			fileCommands.push(genericEditorOpen);
 		}
 		return fileCommands;
 	};
@@ -187,22 +197,27 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 					}
 				}
 				// now store any variable values and look for replacements
-				if (valid && validationProperty.variableName) {
+				var variableName = validationProperty.variableName, replacements = validationProperty.replacements;
+				if (valid && variableName) {
 					// store the variable values in the validator, keyed by variable name.  Also remember which item this value applies to.
-					validator[validationProperty.variableName] = value;
+					validator[variableName] = value;
 					validator.itemCached = item;
-					if (validationProperty.replacements) {
-						for (var i=0; i<validationProperty.replacements.length; i++) {
+					if (replacements) {
+						if (typeof value !== "string") {
+							window.console.log("Cannot replace " + variableName + ", value is not a string: " + value);
+							return valid;
+						}
+						for (var i=0; i<replacements.length; i++) {
 							var invalid = false;
-							if (validationProperty.replacements[i].pattern) {	
-								var from = validationProperty.replacements[i].pattern;
-								var to = validationProperty.replacements[i].replacement || "";
-								validator[validationProperty.variableName] = validator[validationProperty.variableName].replace(new RegExp(from), to);
+							if (replacements[i].pattern) {
+								var from = replacements[i].pattern;
+								var to = replacements[i].replacement || "";
+								validator[variableName] = validator[variableName].replace(new RegExp(from), to).replace(new RegExp(from), to);
 							} else {
 								invalid = true;
 							}
 							if (invalid) {
-								window.console.log("Invalid replacements specified in validation property.  " + validationProperty.replacements[i]); //$NON-NLS-0$
+								window.console.log("Invalid replacements specified in validation property.  " + replacements[i]); //$NON-NLS-0$
 							}
 						}
 					}

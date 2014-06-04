@@ -1,6 +1,8 @@
 
 @import "../css/layout.css";
 
+@import "../css/controls.css";
+
 @import "../css/images.css";
 
 @import "../css/sections.css"; 
@@ -36,6 +38,11 @@
 	padding-bottom: 5px;
 }
 
+.downloadLinkName {
+	padding-top: 20px;
+	padding-bottom: 20px;
+}
+
 .sectionWrapper, .sectionTable{
 	margin-left: 2px;
 	margin-right: 2px;
@@ -64,8 +71,8 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: calc(100% - 1px - 4px - 24px);
-	max-width: -webkit-calc(100% - 1px - 4px - 24px);
+	max-width: calc(100% - 1px - 4px - 35px);
+	max-width: -webkit-calc(100% - 1px - 4px - 35px);
 	-moz-user-select: -moz-none;
 	-webkit-user-select: none;
 	-ms-user-select: none;
@@ -117,6 +124,72 @@
 	/*background: none repeat scroll 0 0 #f7f7f7;*/
 }
 
+.commitInfoContainer {
+	border-bottom: 1px solid;
+	/*margin: 2px;*/
+	/*outline: 1px solid #02ADD0;*/
+	padding-left: 4px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	/*width: 100%;*/
+	border-color: #dadada;
+	color: #444;
+    background-color: #f0f7f9;
+	-webkit-box-sizing: initial !important;
+	box-sizing: initial !important;
+}
+
+.commitInfoMessagelink:hover {
+	color: #F58B0F !important;
+}
+
+.commitInfoMessagelink {
+	color: #02ADD0 !important;
+}
+
+.commitInfoMessageTextContainer {
+	padding-bottom: 1px;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+.commitInfoAutorContainer {
+	padding-bottom: 4px;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+.commitInfoLabelContainer {
+	float: left;
+	position: relative;
+	padding-bottom: 10px;
+	padding-top: 1px;
+	margin-right: 8px;
+	margin-left: 2px;
+	font-weight: bold;
+}
+
+.commitInfoAvatar {
+	float: left;
+	position: relative;
+	height: 32px;
+	vertical-align: text-top;
+	width: 32px;
+	border: 1px solid lightgrey;
+	padding: 2px;
+	margin-top: -1px;
+	margin-left: 2px;
+	margin-right: 8px;
+	box-sizing: initial !important;
+}
+
+.commitInfoMessageContainer {
+	position: relative;
+	white-space: normal;
+}
+
 .dropdownMenu > li {
 	-webkit-box-sizing: initial !important;
 	box-sizing: initial !important;
@@ -153,6 +226,8 @@
 	color: #444;
 	text-decoration: none;
 	line-height: 10pt;
+	margin-left: 0;
+	margin-right: 0;
 	white-space:nowrap;
 }
 
@@ -163,12 +238,17 @@ a.currentLocation:hover {
 	border-bottom: 1px dotted;
 }
 
-.imageViewTable {
+.binaryViewTable {
     width:100%;
     height:100%;
     text-align:center; 
     vertical-align:middle;
- }
+    min-height: 60px;
+}
+
+.binaryViewMessage {
+	padding: 6px; 
+}
 
 .messageViewTable {
     width:100%;
@@ -195,20 +275,20 @@ a.currentLocation:hover {
     background-color: #f5f7f9;
 }
 
-.repoUrlLink {
+.infoDropdownLink {
 	margin-top: 5px;
 	margin-right: 4px;
 	color: #02ADD0;
 	font-size: 1.1em;
 }
 
-.repoUrlLink:hover {
+.infoDropdownLink:hover {
 	text-decoration: underline;
 	color: #F58B0F;
 	cursor: pointer;
 }
 
-.repoUrlDropdown {
+.infoContainerDropdown {
 	width: 360px;
 	color: #666666;
 	overflow: hidden;
@@ -227,28 +307,43 @@ a.currentLocation:hover {
 	border: 1px solid #dadada;
 	margin-top: 1px;
 	margin-left: 9px;
-	width: 340px;
+	width: 328px;
 	height: 64px;
 	margin-bottom: 4px;
 	overflow: hidden;
 	outline: none !important;
 }
 
-.repoUrlHeader {
+.shareSnippetInput {
+	border: 1px solid #dadada;
+	margin-top: 1px;
+	margin-left: 9px;
+	width: 340px;
+	height: 24px;
+	margin-bottom: 4px;
+}
+
+.infoDropdownHeader {
 	margin-top: 3px;
 	margin-left: 9px;
 	width: 340px;
 	height: 18px;
 }
 
-.repoUrlHeaderTitle {
+.infoDropDownHolder {
+	margin-left: 4px;
+	display: inline-block;
+}
+
+.infoDropdownHeaderTitle {
 	float: right;
 	font-weight: bold;
 	/*font-size: 1em;*/
 }
 
-.repoUrlHeaderClose {
+.infoDropdownHeaderClose {
 	float: left;
+	color: grey;
 	padding-left: 0 !important;
 	font-size: 1.1em;
 	margin: 0 2px 0;
@@ -257,7 +352,7 @@ a.currentLocation:hover {
 	cursor: pointer;
 }
 
-.repoUrlHeaderClose:hover {
+.infoDropdownHeaderClose:hover {
 	color: #F58B0F; 
 }
 
@@ -277,7 +372,7 @@ a.currentLocation:hover {
 	color: #02ADD0;
 	padding-top: 2px;
 }
-.browserParentDome {
+.browserParentDom {
 	min-height: 215px !important;
 }
 .tooltip {

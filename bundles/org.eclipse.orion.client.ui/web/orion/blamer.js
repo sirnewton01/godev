@@ -14,8 +14,9 @@
 define ([
 	'orion/extensionCommands', //$NON-NLS-0$
 	'orion/PageLinks', //$NON-NLS-0$
-	'orion/URITemplate' //$NON-NLS-0$
-], function(mExtensionCommands, PageLinks, URITemplate) {
+	'orion/URITemplate', //$NON-NLS-0$
+	'orion/edit/editorContext'//$NON-NLS-0$
+], function(mExtensionCommands, PageLinks, URITemplate, EditorContext) {
 	
 	function getBlamer(serviceRegistry, inputManager) {
 		var metadata = inputManager.getFileMetadata();
@@ -40,7 +41,7 @@ define ([
 	function getBlame(serviceRegistry, inputManager){
 		var service = getBlamer(serviceRegistry, inputManager);
 		if (service) {
-			service.doBlame(inputManager.getInput()).then(function(results) {
+			var handleResult = function(results) {
 				var orionHome = PageLinks.getOrionHome();
 				for (var i=0; i<results.length; i++) {
 					var range = results[i];
@@ -50,7 +51,13 @@ define ([
 					range.CommitLink = uriTemplate.expand(params);
 				}
 				serviceRegistry.getService("orion.core.blame")._setAnnotations(results); //$NON-NLS-0$
-			});
+			};
+			if (service.computeBlame) {
+				var context = {metadata: inputManager.getFileMetadata()};
+				service.computeBlame(EditorContext.getEditorContext(serviceRegistry), context).then(handleResult);
+			} else {
+				service.doBlame(inputManager.getInput()).then(handleResult);
+			}
 		}
 	}
 	return {isVisible: isVisible, getBlame: getBlame}; 

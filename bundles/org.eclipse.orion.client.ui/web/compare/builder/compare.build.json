@@ -1,0 +1,22 @@
+({
+    baseUrl: '../../',
+	closure: {
+		CompilerOptions: {},
+		CompilationLevel: 'SIMPLE_OPTIMIZATIONS',
+		loggingLevel: 'WARNING'
+	},
+	paths: {
+        text: 'requirejs/text',
+        i18n: 'requirejs/i18n',
+	    domReady: 'requirejs/domReady'
+	},
+	name: "compare/builder/compare",
+	preserveLicenseComments: false,
+	uglify: {
+		ascii_only: true
+	},
+	wrap: {
+		start: "/* orion compare */ ", //start cannot be empty
+		end: " define(['compare/builder/compare'], function(compare) {return compare;});"
+	}
+})

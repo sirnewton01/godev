@@ -111,9 +111,9 @@ define(['orion/Deferred'], function(Deferred) {
 			aborted = true;
 			if (!cancelled) {
 				var cancelError = new Error("Cancel");
-	            cancelError.name = "Cancel";
-	            d.reject(cancelError);
-            }
+				cancelError.name = "Cancel";
+				d.reject(cancelError);
+			}
 		};
 		xhr.onload = function() {
 			var result = makeResult(url, options, xhr);

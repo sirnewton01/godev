@@ -8,8 +8,8 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*jslint sub:true*/
- /*global define document window Image */
+/*jslint amd:true sub:true*/
+/*global console document window  */
  
 define([
 	'orion/commands',
@@ -280,7 +280,7 @@ define([
 		 * This method is the actual implementation for collecting parameters and invoking a callback.
 		 * "forceCollect" specifies whether we should always collect parameters or consult the parameters description to see if we should.
 		 */
-		_collectAndInvoke: function(commandInvocation, forceCollect) {
+		_collectAndInvoke: function(commandInvocation, forceCollect, cancelCallback) {
 			if (commandInvocation) {
 				// Establish whether we should be trying to collect parameters. 
 				if (this._parameterCollector && commandInvocation.parameters && commandInvocation.parameters.hasParameters() && 
@@ -290,7 +290,7 @@ define([
 					// Consult shouldCollectParameters() again to verify we still need collection. Due to updateParameters(), the CommandInvocation
 					// could have dynamically set its parameters to null (meaning no collection should be done).
 					if (commandInvocation.parameters.shouldCollectParameters()) {
-						collecting = this._parameterCollector.collectParameters(commandInvocation);
+						collecting = this._parameterCollector.collectParameters(commandInvocation,cancelCallback);
 						// The parameter collector cannot collect.  We will do a default implementation using a popup.
 						if (!collecting) {
 							var tooltip = new mTooltip.Tooltip({
@@ -309,7 +309,7 @@ define([
 									originalFocusNode.focus();
 								}
 								tooltip.destroy();
-							})(parameterArea);
+							}, cancelCallback)(parameterArea);
 							tooltip.show();
 							window.setTimeout(function() {
 								focusNode.focus();
@@ -343,8 +343,8 @@ define([
 		 *
 		 * @param {orion.commands.CommandInvocation} commandInvocation the current invocation of the command 
 		 */
-		collectParameters: function(commandInvocation) {
-			this._collectAndInvoke(commandInvocation, true); 
+		collectParameters: function(commandInvocation,cancelCallback) {
+			this._collectAndInvoke(commandInvocation, true, cancelCallback); 
 		},
 		
 		/**
@@ -874,7 +874,13 @@ define([
 					if (command) {
 						invocation = new Commands.CommandInvocation(handler, items, userData, command, self);
 						invocation.domParent = parent;
-						var enabled = render && (command.visibleWhen ? command.visibleWhen(items) : true);
+						var enabled = false;
+						try {
+							enabled = render && (command.visibleWhen ? command.visibleWhen(items) : true);
+						} catch (e) {
+							console.log(e);
+							throw e;
+						}
 						// ensure that keybindings are bound to the current handler, items, and user data
 						if (self._activeBindings[command.id] && self._activeBindings[command.id].keyBinding) {
 							keyBinding = self._activeBindings[command.id];
@@ -907,7 +913,6 @@ define([
 						if (command.choiceCallback) {
 							// special case.  The item wants to provide a set of choices
 							var menuParent;
-							var nodeClass;
 							var nested;
 							if (renderType === "tool" || renderType === "button") { //$NON-NLS-1$ //$NON-NLS-0$
 								menuParent = parent;
@@ -915,8 +920,6 @@ define([
 								if (parent.nodeName.toLowerCase() === "ul") { //$NON-NLS-0$
 									menuParent = document.createElement("li"); //$NON-NLS-0$
 									parent.appendChild(menuParent);
-								} else {
-									nodeClass = "commandMargins"; //$NON-NLS-0$
 								}
 							} else {
 								menuParent = parent;

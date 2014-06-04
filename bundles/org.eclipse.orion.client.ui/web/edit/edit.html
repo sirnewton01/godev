@@ -3,7 +3,7 @@
     <head>
 		<meta name="copyright" content="Copyright (c) IBM Corporation and others 2010, 2014." >
 		<meta http-equiv="Content-Language" content="en-us">
-		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<link rel="icon" href="/images/edit.png" type="image/png">
 		<title>Editor</title>
 		<link rel="stylesheet" type="text/css" href="edit.css" />
@@ -18,16 +18,18 @@
 					domReady: 'requirejs/domReady'    
 				}
 			});
-			require(["edit.js"]);
+			require(["edit/edit"]);
 		</script>
     </head>
 
 	<body id="orion-editor" spellcheck="false" class="orionPage">
+		<!-- file input doesn't function properly on all web browsers if it is dynamically generated, we don't want the input to be visible -->
+		<input id="fileSelectorInput" type="file" multiple style="position:fixed; top: -100px;"/>
 		<div id="sideMenu" class="sideMenu"></div>
 		<div id="pageContent" class="content-fixedHeight">
 			<div id="sideMenuToggle" class="sideMenuToggle"></div>
 			<div id="pageToolbar" class="mainToolbar toolComposite toolbarLayout"></div>
-			<div id="innerPanels" style="position:absolute;width:100%;top:36px;bottom:0;">
+			<div id="innerPanels" class="innerPanels">
 				<div id="auxpane" class="auxpane sidePanelLayout hasSplit">
 					<div class="fixedToolbarHolder">
 						<div id="sidebarToolbar" class="sidebarToolbar mainToolbar toolComposite toolbarLayout"></div>

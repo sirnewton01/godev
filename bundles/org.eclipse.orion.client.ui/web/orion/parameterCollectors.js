@@ -138,31 +138,34 @@ define(['i18n!orion/nls/messages', 'require', 'orion/webui/littlelib'],
 
 		},
 		
-		collectParameters: function(commandInvocation) {
+		collectParameters: function(commandInvocation,cancelCallback) {
 			if (commandInvocation.parameters) {
 				if (commandInvocation.domNode) {
 					commandInvocation.domNode.classList.add("commandMarker"); //$NON-NLS-0$
 				}
-				return this.open(commandInvocation.domNode || commandInvocation.domParent, this.getFillFunction(commandInvocation));
+				return this.open(commandInvocation.domNode || commandInvocation.domParent, this.getFillFunction(commandInvocation,null,cancelCallback));
 			}
 			return false;
 		},
 		
-		getFillFunction: function(commandInvocation, closeFunction) {
+		getFillFunction: function(commandInvocation, closeFunction, cancelFunction) {
 			var self = this;
 			return function(parameterArea, dismissArea) {
 				var first = null;
 				var localClose = function() {
 					if (closeFunction) {
 						closeFunction();
-					} 
+					}
 					self.close();
 				};
 				var keyHandler = function(event) {
 					if (event.keyCode === lib.KEY.ENTER) {
 						self._collectAndCall(commandInvocation, parameterArea);
+						localClose();
+						lib.stop(event);
 					}
-					if (event.keyCode === lib.KEY.ESCAPE || event.keyCode === lib.KEY.ENTER) {
+					if (event.keyCode === lib.KEY.ESCAPE) {
+						if (typeof(cancelFunction) === 'function') cancelFunction();
 						localClose();
 						lib.stop(event);
 					}
@@ -275,6 +278,7 @@ define(['i18n!orion/nls/messages', 'require', 'orion/webui/littlelib'],
 				close.title = messages['Close'];
 				close.addEventListener("click", function(event) { //$NON-NLS-0$
 					localClose();
+					if (typeof(cancelFunction) === 'function') cancelFunction();
 				}, false);
 				return first;
 			};

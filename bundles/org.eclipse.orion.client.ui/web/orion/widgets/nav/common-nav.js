@@ -252,6 +252,12 @@ define([
 		scopeDown: function(item) {
 			this.scope(item.ChildrenLocation);
 		},
+		expandItem: function(item, reroot) {
+			return mExplorer.FileExplorer.prototype.expandItem.call(this, item, reroot).then(function(expandedItem) {
+				this.sidebarNavInputManager.dispatchEvent({type: "itemExpanded", item: expandedItem}); //$NON-NLS-0$
+				return expandedItem;
+			}.bind(this));
+		},
 		isCommandsVisible: function() {
 			var mainSplitter = mGlobalCommands.getMainSplitter();
 			if (mainSplitter) {
@@ -261,7 +267,7 @@ define([
 		},
 		// Returns a deferred that completes once file command extensions have been processed
 		registerCommands: function() {
-			var commandRegistry = this.commandRegistry, serviceRegistry = this.registry;
+			var commandRegistry = this.commandRegistry;
 			var fileActionsScope = this.fileActionsScope;
 			var editActionsScope = this.editActionsScope;
 			var viewActionsScope = this.viewActionsScope;
@@ -289,8 +295,9 @@ define([
 			commandRegistry.registerCommandContribution(fileActionsScope, "orion.importSFTP", 3, "orion.menuBarFileGroup/orion.importGroup"); //$NON-NLS-1$ //$NON-NLS-0$
 
 			// Export actions
-			commandRegistry.registerCommandContribution(fileActionsScope, "eclipse.downloadFile", 1, "orion.menuBarFileGroup/orion.exportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
-			commandRegistry.registerCommandContribution(fileActionsScope, "eclipse.exportSFTPCommand", 2, "orion.menuBarFileGroup/orion.exportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
+			commandRegistry.registerCommandContribution(fileActionsScope, "eclipse.downloadSingleFile", 1, "orion.menuBarFileGroup/orion.exportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
+			commandRegistry.registerCommandContribution(fileActionsScope, "eclipse.downloadFile", 2, "orion.menuBarFileGroup/orion.exportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
+			commandRegistry.registerCommandContribution(fileActionsScope, "eclipse.exportSFTPCommand", 3, "orion.menuBarFileGroup/orion.exportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
 
 			// Edit actions
 			commandRegistry.registerCommandContribution(editActionsScope, "eclipse.renameResource", 1, "orion.menuBarEditGroup/orion.renameGroup", false, renameBinding); //$NON-NLS-1$ //$NON-NLS-0$
@@ -332,8 +339,9 @@ define([
 			commandRegistry.registerCommandContribution(contextMenuActionsScope, "orion.importZipURL", 2, "orion.commonNavContextMenuEditGroup/orion.ImportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
 			commandRegistry.registerCommandContribution(contextMenuActionsScope, "orion.importSFTP", 3, "orion.commonNavContextMenuEditGroup/orion.ImportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
 
-			commandRegistry.registerCommandContribution(contextMenuActionsScope, "eclipse.downloadFile", 1, "orion.commonNavContextMenuEditGroup/orion.ExportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
-			commandRegistry.registerCommandContribution(contextMenuActionsScope, "eclipse.exportSFTPCommand", 2, "orion.commonNavContextMenuEditGroup/orion.ExportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
+			commandRegistry.registerCommandContribution(contextMenuActionsScope, "eclipse.downloadSingleFile", 1, "orion.commonNavContextMenuEditGroup/orion.ExportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
+			commandRegistry.registerCommandContribution(contextMenuActionsScope, "eclipse.downloadFile", 2, "orion.commonNavContextMenuEditGroup/orion.ExportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
+			commandRegistry.registerCommandContribution(contextMenuActionsScope, "eclipse.exportSFTPCommand", 3, "orion.commonNavContextMenuEditGroup/orion.ExportGroup"); //$NON-NLS-1$ //$NON-NLS-0$
 			
 			commandRegistry.addCommandGroup(viewActionsScope, "eclipse.openWith", 1000, messages["OpenWith"], "orion.menuBarViewGroup", null, null, null, "dropdownSelection"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			commandRegistry.addCommandGroup(viewActionsScope, "eclipse.fileCommandExtensions", 1000, messages["OpenRelated"], "orion.menuBarViewGroup"); //$NON-NLS-1$ //$NON-NLS-0$
@@ -349,25 +357,22 @@ define([
 				commandRegistry.registerCommandContribution(contextMenuActionsScope, commandId, 1, "orion.commonNavContextMenuEditGroup/orion.Extensions"); //$NON-NLS-0$
 			});
 
-			if (serviceRegistry.getServiceReferences("orion.projects").length > 0) { //$NON-NLS-0$
-				return this.preferences.getPreferences("/common-nav").then(function(prefs) { //$NON-NLS-0$
-					var show = prefs.get("showNewProjectCommands"); //$NON-NLS-0$
-					if (show === undefined || show) {
-						commandRegistry.addCommandGroup(fileActionsScope, "orion.projectsNewGroup", 100, messages["Project"], "orion.menuBarFileGroup/orion.newContentGroup"); //$NON-NLS-1$ //$NON-NLS-0$
-						commandRegistry.addCommandGroup(contextMenuActionsScope, "orion.projectsNewGroup", 100, messages["Project"], "orion.commonNavContextMenuEditGroup/orion.New"); //$NON-NLS-1$ //$NON-NLS-0$
-		
-						var position = 0;
-						ProjectCommands.getCreateProjectCommands(commandRegistry).forEach(function(command){
-							commandRegistry.registerCommandContribution(fileActionsScope, command.id, position, "orion.menuBarFileGroup/orion.newContentGroup/orion.projectsNewGroup"); //$NON-NLS-0$
-							commandRegistry.registerCommandContribution(contextMenuActionsScope, command.id, position, "orion.commonNavContextMenuEditGroup/orion.New/orion.projectsNewGroup"); //$NON-NLS-0$
-							position++;
-						});
-		
-						commandRegistry.registerCommandContribution(editActionsScope, "orion.project.initProject", 0, "orion.menuBarEditGroup");  //$NON-NLS-1$ //$NON-NLS-0$
-					}
-				});
-			}
-			return new Deferred().resolve();
+			return this.preferences.getPreferences("/common-nav").then(function(prefs) { //$NON-NLS-0$
+				var show = prefs.get("showNewProjectCommands"); //$NON-NLS-0$
+				if (show === undefined || show) {
+					commandRegistry.addCommandGroup(fileActionsScope, "orion.projectsNewGroup", 100, messages["Project"], "orion.menuBarFileGroup/orion.newContentGroup"); //$NON-NLS-1$ //$NON-NLS-0$
+					commandRegistry.addCommandGroup(contextMenuActionsScope, "orion.projectsNewGroup", 100, messages["Project"], "orion.commonNavContextMenuEditGroup/orion.New"); //$NON-NLS-1$ //$NON-NLS-0$
+	
+					var position = 0;
+					ProjectCommands.getCreateProjectCommands(commandRegistry).forEach(function(command){
+						commandRegistry.registerCommandContribution(fileActionsScope, command.id, position, "orion.menuBarFileGroup/orion.newContentGroup/orion.projectsNewGroup"); //$NON-NLS-0$
+						commandRegistry.registerCommandContribution(contextMenuActionsScope, command.id, position, "orion.commonNavContextMenuEditGroup/orion.New/orion.projectsNewGroup"); //$NON-NLS-0$
+						position++;
+					});
+	
+					commandRegistry.registerCommandContribution(editActionsScope, "orion.project.initProject", 0, "orion.menuBarEditGroup");  //$NON-NLS-1$ //$NON-NLS-0$
+				}
+			});
 		},
 		updateCommands: function(selections) {
 			var visible = this.isCommandsVisible();
@@ -426,8 +431,11 @@ define([
 					} else {
 						// context menu was triggered on sidebar itself,
 						// clear previous selections
-						this.selection.setSelections(null);
-						navHandler.refreshSelection(true, true);
+						var triggerX = event.offsetX === undefined ? event.layerX : event.offsetX;
+						if (triggerX > 0) { // X coordinate should be greater than 0 if mouse right button was used
+							this.selection.setSelections(null);
+							navHandler.refreshSelection(true, true);
+						}
 					}
 				}
 			}.bind(this);
@@ -458,16 +466,7 @@ define([
 			} else {
 				folderNode.classList.add("nav_fakelink"); //$NON-NLS-0$
 			}
-			folderNode.addEventListener("click", function() { //$NON-NLS-0$
-				this.explorer.editorInputManager.cachedMetadata = folder;
-			}.bind(this), false);
 			return folderNode;
-		},
-		updateFileNode: function(file, fileNode, isImage) {
-			mNavigatorRenderer.NavigatorRenderer.prototype.updateFileNode.call(this, file, fileNode, isImage);
-			fileNode.addEventListener("click", function() { //$NON-NLS-0$
-				this.explorer.editorInputManager.cachedMetadata = file;
-			}.bind(this), false);
 		},
 		/**
 		 * Overrides NavigatorRenderer.prototype.rowCallback

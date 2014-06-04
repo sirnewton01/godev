@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2011, 2012 IBM Corporation and others.
+ * Copyright (c) 2011, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -9,8 +9,8 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-
-/*global window ArrayBuffer addEventListener removeEventListener self XMLHttpRequest define exports module require console*/ (function(root, factory) { // UMD
+/*jslint amd:true*/
+/*global window addEventListener removeEventListener self XMLHttpRequest console module exports*/ (function(root, factory) { // UMD
     if (typeof define === "function" && define.amd) { //$NON-NLS-0$
         define(["orion/Deferred"], factory);
     } else if (typeof exports === "object") { //$NON-NLS-0$
@@ -29,7 +29,6 @@
         var _headers = headers;
         var _connected = false;
         var _target = null;
-        var _serviceRegistrations = [];
 
         var _currentMessageId = 0;
         var _currentObjectId = 0;
@@ -216,7 +215,7 @@
         }
 
         function _handleMessage(event) {
-            if (event.source !== _target) {
+            if (event.source !== _target && typeof window !== "undefined") {
                 return;
             }
             var message = (typeof event.data !== "string" ? event.data : JSON.parse(event.data)); //$NON-NLS-0$

@@ -9,6 +9,7 @@
  * Contributors:
  *     Andy Clement (VMware) - initial API and implementation
  *     Andrew Eisenberg (VMware) - implemented visitor pattern
+ * 	   IBM Corporation - bug fixes / improvements
  ******************************************************************************/
 
 /*global define */
@@ -16,10 +17,12 @@ define(function() {
 
 	return {
 		/**
-		 * Match ignoring case and checking camel case.
-		 * @param prefix
-		 * @param target
-		 * @return {Boolean}
+		 * @description Match ignoring case and checking camel case.
+		 * @function
+		 * @public
+		 * @param {String} prefix
+		 * @param {String} target
+		 * @returns {Boolean} If the two strings match
 		 */
 		looselyMatches: function(prefix, target) {
 			if (target === null || prefix === null) {
@@ -67,10 +70,12 @@ define(function() {
 		},
 	
 		/**
-		 * Convert an input string into parts delimited by upper case characters. Used for camel case matches.
+		 * @description Convert an input string into parts delimited by upper case characters. Used for camel case matches.
 		 * e.g. GroClaL = ['Gro','Cla','L'] to match say 'GroovyClassLoader'.
 		 * e.g. mA = ['m','A']
-		 * @param String str
+		 * @function
+		 * @public
+		 * @param {String} str
 		 * @return Array.<String>
 		 */
 		toCamelCaseParts: function(str) {
@@ -86,15 +91,38 @@ define(function() {
 			}
 			return parts.reverse();
 		},
-	
-		startsWith : function(str, start) {
-			return str.substr(0, start.length) === start;
+		/**
+		 * @description Returns if the string starts with the given prefix
+		 * @function
+		 * @public
+		 * @param {String} s The string to check
+		 * @param {String} pre The prefix 
+		 * @returns {Boolean} True if the string starts with the prefix
+		 */
+		startsWith : function(s, pre) {
+			return s.slice(0, pre.length) === pre;
 		},
 		
-		isUpperCase : function(char) {
-			return char >= 'A' && char <= 'Z';
+		/**
+		 * @description Returns if the given character is upper case or not considering the locale
+		 * @param {String} string A string of at least one char14acter
+		 * @return {Boolean} True iff the first character of the given string is uppercase
+		 */
+		isUpperCase : function(string) {
+			if (string.length < 1) {
+			return false;
+			}
+			if (isNaN(string.charCodeAt(0))) {
+				return false;
+			}
+			return string.toLocaleUpperCase().charAt(0) === string.charAt(0);
 		},
-		
+		/**
+		 * @description Creates a string with the same char repeated the given number of times
+		 * @param {String} char The character to repeat
+		 * @param {Number} times The number of times to repeaet the character
+		 * @returns {String} The new string
+		 */
 		repeatChar : function(char, times) {
 			var str = "";
 			for (var i = 0; i < times; i++) {
@@ -123,8 +151,12 @@ define(function() {
 		},
 		
 		/**
-		 * checks that offset is before the range
-		 * @return Boolean
+		 * @description Checks that offset is before the range
+		 * @function
+		 * @public
+		 * @param {Number} offset The offset
+		 * @param {Array} range The range array [start, end]
+		 * @return {Boolean} If the offset is before the range start
 		 */
 		isBefore : function(offset, range) {
 			if (!range) {
@@ -134,7 +166,7 @@ define(function() {
 		},
 		
 		/**
-		 * Determines if the offset is inside this member expression, but after the '.' and before the
+		 * @description Determines if the offset is inside this member expression, but after the '.' and before the
 		 * start of the property.
 		 * eg, the following returns true:
 		 *   foo   .^bar
@@ -142,7 +174,12 @@ define(function() {
 		 * The following returns false:
 		 *   foo   ^.  bar
 		 *   foo   .  b^ar
-		 * @return Boolean
+		 * @function
+		 * @public
+		 * @param {Number} offset The offset
+		 * @param {Object} memberExpr The MemberExpression AST node
+		 * @param {String} contents The backing compilation unit text
+		 * @return {Boolean} If the offset is in a member expression but after a '.'
 		 */
 		afterDot : function(offset, memberExpr, contents) {
 			// check for broken AST
@@ -175,6 +212,39 @@ define(function() {
 			}
 	
 			return dotLoc < offset;
+		},
+		
+		/**
+		 * @description Extracts all doccomments that fall inside the given range.
+		 * Side effect is to remove the array elements
+		 * @function
+		 * @public
+		 * @param {Array} doccomments The coments array from the AST
+		 * @param {Array} range The range array [start, end]
+		 * @return {Array} The array of comments within the given range
+		 * @since 6.0
+		 */
+		extractDocComments: function(doccomments, range) {
+			var start = 0, end = 0, i, docStart, docEnd;
+			for (i = 0; i < doccomments.length; i++) {
+				docStart = doccomments[i].range[0];
+				docEnd = doccomments[i].range[1];
+				if (!this.isBefore(docStart, range) || !this.isBefore(docEnd, range)) {
+					break;
+				}
+			}
+			if (i < doccomments.length) {
+				start = i;
+				for (i = i; i < doccomments.length; i++) {
+					docStart = doccomments[i].range[0];
+					docEnd = doccomments[i].range[1];
+					if (!this.inRange(docStart, range, true) || !this.inRange(docEnd, range, true)) {
+						break;
+					}
+				}
+				end = i;
+			}
+			return doccomments.splice(start, end-start);
 		}
 	};
 });

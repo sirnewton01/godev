@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012, 2013 IBM Corporation and others.
+ * Copyright (c) 2012, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -229,11 +229,12 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 	function SettingsRenderer(settingsList, serviceRegistry) {
 		this.serviceRegistry = serviceRegistry;
 		this.childWidgets = [];
-		SelectionRenderer.call(this, {/*registry: that.registry, actionScopeId: "sdsd",*/ cachePrefix: 'pluginSettings'}, settingsList); //$NON-NLS-0$
+		SelectionRenderer.call(this, {/*registry: that.registry, actionScopeId: "sdsd",*/ cachePrefix: 'pluginSettings', noRowHighlighting: true}, settingsList); //$NON-NLS-0$
 	}
 	SettingsRenderer.prototype = new SelectionRenderer();
 	SettingsRenderer.prototype.getCellElement = function(col_no, /*Setting*/ setting, rowElement) {
 		var sectionId = setting.getPid(), headerId = sectionId + 'header'; //$NON-NLS-0$
+		
 		var settingSection = document.createElement('section'); //$NON-NLS-0$
 		settingSection.id = sectionId;
 		settingSection.className = 'setting-row'; //$NON-NLS-0$
@@ -243,7 +244,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 		var sectionHeader = document.createElement('h3'); //$NON-NLS-0$
 		sectionHeader.id = headerId;
 		sectionHeader.className = 'setting-header'; //$NON-NLS-0$
-		sectionHeader.textContent = setting.getName(); // TODO nls
+//		sectionHeader.textContent = setting.getName(); // TODO nls
 
 		var propertiesElement = document.createElement('div'); //$NON-NLS-0$
 		propertiesElement.className = 'setting-content'; //$NON-NLS-0$
@@ -270,7 +271,6 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 		}
 		this.childWidgets = null;
 	};
-
 	/**
 	 * Explorer for SettingsList.
 	 */
@@ -303,9 +303,9 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 		this.render(parent, serviceRegistry, settings, options.title);
 	}
 	SettingsList.prototype = {
-		_makeSection: function(parent, sectionId, settings, title) {
+		_makeSection: function(parent, sectionId, setting, title) {
 			var section = new Section(parent, { id: sectionId, title: title, useAuxStyle: true,
-					getItemCount: function() { return settings.length; } });
+				canHide: true});
 			return section;
 		},
 		destroy: function() {
@@ -314,26 +314,26 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 		render: function(parent, serviceRegistry, settings, title) {
 			// FIXME Section forces a singleton id, bad
 			var idPrefix = 'pluginsettings-'; //$NON-NLS-0$
-			var sectionId = idPrefix + 'section'; //$NON-NLS-0$
-			var section = this._makeSection(parent, sectionId, settings, title);
 			
-			// Add a class name based on the category (all settings on the page have the same category currently)
-			if (settings.length > 0){
-				if(settings[0].category){
-					section.getContentElement().classList.add(settings[0].category + "SettingsTable"); //$NON-NLS-0$
+			for (var i=0; i<settings.length; i++) {
+				var sectionId = idPrefix + 'section' + i; //$NON-NLS-0$
+				var section = this._makeSection(parent, sectionId, settings[i], settings[i].getName());
+				// Add a class name based on the category (all settings on the page have the same category currently)
+				if(settings[i].category){
+					section.getContentElement().classList.add(settings[i].category + "SettingsTable"); //$NON-NLS-0$
 				}
+				
+				this.explorer = new SettingsListExplorer(serviceRegistry);
+				this.explorer.createTree(section.getContentElement().id, new mExplorer.SimpleFlatModel([settings[i]], 'setting-', //$NON-NLS-0$
+					function(item) {
+						return item.getPid();
+					}),
+					{	tableElement: 'div', //$NON-NLS-0$
+						tableBodyElement: 'div', //$NON-NLS-0$
+						tableRowElement: 'div', //$NON-NLS-0$
+						noSelection: true, // Until we support selection based commands, don't allow selection
+					});
 			}
-
-			this.explorer = new SettingsListExplorer(serviceRegistry);
-			this.explorer.createTree(section.getContentElement().id, new mExplorer.SimpleFlatModel(settings, 'setting-', //$NON-NLS-0$
-				function(item) {
-					return item.getPid();
-				}),
-				{	tableElement: 'div', //$NON-NLS-0$
-					tableBodyElement: 'div', //$NON-NLS-0$
-					tableRowElement: 'div', //$NON-NLS-0$
-					noSelection: true // Until we support selection based commands, don't allow selection
-				});
 		}
 	};
 

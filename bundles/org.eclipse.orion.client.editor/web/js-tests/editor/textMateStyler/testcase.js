@@ -12,8 +12,9 @@
 /*jslint laxbreak:true regexp:false*/
 /*global define eclipse */
 
-define(["orion/assert", "../mockTextView.js", "orion/editor/textMateStyler", "testGrammars.js"],
-		function(assert, mMockTextView, mTextMateStyler, mTestGrammars) {
+define(["chai/chai", "../mockTextView.js", "orion/editor/textMateStyler", "testGrammars.js"],
+		function(chai, mMockTextView, mTextMateStyler, mTestGrammars) {
+	var assert = chai.assert;
 	var tests = {};
 	
 	// TODO: run tests with both Windows and Linux delimiters since a few cases have failed with

@@ -186,9 +186,22 @@ define({
 	"vip": "Paste After Char or Line", //$NON-NLS-1$ //$NON-NLS-0$
 	"viP": "Paste Before Char or Line", //$NON-NLS-1$ //$NON-NLS-0$
 	"viStar": "Search Word Under Cursor", //$NON-NLS-1$ //$NON-NLS-0$
+	
+	"next": "Next", //$NON-NLS-1$ //$NON-NLS-0$
+	"previous": "Previous", //$NON-NLS-1$ //$NON-NLS-0$
+	"replace": "Replace", //$NON-NLS-1$ //$NON-NLS-0$
+	"replaceAll": "Replace All", //$NON-NLS-1$ //$NON-NLS-0$
+	"findWith": "Find With", //$NON-NLS-1$ //$NON-NLS-0$
+	"replaceWith": "Replace With", //$NON-NLS-1$ //$NON-NLS-0$
+	"caseInsensitive": "Aa", //$NON-NLS-1$ //$NON-NLS-0$
+	"regex": "/.*/", //$NON-NLS-1$ //$NON-NLS-0$
+	"wholeWord": "\\b", //$NON-NLS-1$ //$NON-NLS-0$
+	"caseInsensitiveTooltip": "Toggle Case Insensitive", //$NON-NLS-1$ //$NON-NLS-0$
+	"regexTooltip": "Toogle Regex", //$NON-NLS-1$ //$NON-NLS-0$
+	"wholeWordTooltip": "Toggle Whole Word", //$NON-NLS-1$ //$NON-NLS-0$
+	"closeTooltip": "Close", //$NON-NLS-1$ //$NON-NLS-0$
 
-
-	"replaceAll": "Replacing all...", //$NON-NLS-1$ //$NON-NLS-0$
+	"replacingAll": "Replacing all...", //$NON-NLS-1$ //$NON-NLS-0$
 	"replacedMatches": "Replaced ${0} matches", //$NON-NLS-1$ //$NON-NLS-0$
 	"nothingReplaced": "Nothing replaced", //$NON-NLS-1$ //$NON-NLS-0$
 	"notFound": "Not found" //$NON-NLS-1$ //$NON-NLS-0$

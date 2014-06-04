@@ -17,8 +17,9 @@ define([
 	'orion/webui/littlelib',
 	'orion/PageLinks',
 	'orion/widgets/userAssistance/UATaskPanel',
-	'orion/webui/dialog'
-], function(messages, require, lib, PageLinks, UATaskPanel, dialog) {
+	'orion/webui/dialog',
+	'orion/webui/dropdown'
+], function(messages, require, lib, PageLinks, UATaskPanel, dialog, Dropdown) {
 	
 	function UserMenu(options) {
 		this._displaySignOut = true;
@@ -60,18 +61,14 @@ define([
 		},
 		
 		_makeMenuItem: function(name, click) {
-			var element = document.createElement("span"); //$NON-NLS-0$
-			element.role = "menuitem";  //$NON-NLS-0$
-			element.tabIndex = 0; //$NON-NLS-0$
-			var text = document.createTextNode(name);
-			element.appendChild(text);
+			var li = Dropdown.createMenuItem(name);
+			var element = li.firstElementChild;
 			if(typeof this._dropDownItemClass === "string") {//$NON-NLS-0$
 				if(this._dropDownItemClass !== "") {
 					element.classList.add(this._dropDownItemClass);
 				}
-			} else {
-				element.classList.add("dropdownMenuItem"); //$NON-NLS-0$
 			}
+			
 			element.addEventListener("click", click, false); //$NON-NLS-0$
 			// onClick events do not register for spans when using the keyboard
 			element.addEventListener("keydown", function(e) { //$NON-NLS-0$
@@ -86,7 +83,6 @@ define([
 			var _self = this;
 			var authService = this.authenticatedServices[key].authService;
 			if (authService && authService.logout && this._displaySignOut){
-				var item = document.createElement("li");//$NON-NLS-0$
 				var element = this._makeMenuItem(messages["Sign Out"], function() {
 					authService.logout().then(function(){
 						_self.addUserItem(key, authService, _self.authenticatedServices[key].label);
@@ -104,8 +100,7 @@ define([
 						});
 					});
 				});
-				item.appendChild(element);
-				this._dropdownNode.appendChild(item);
+				this._dropdownNode.appendChild(element.parentNode);
 			}
 		},
 		
@@ -171,7 +166,6 @@ define([
 				}.bind(this));
 
 				if(this.keyAssistFunction){
-					var keyAssist = document.createElement("li"); //$NON-NLS-0$
 					var element = this._makeMenuItem(messages["Keyboard Shortcuts"], this.keyAssistFunction);
 					if(typeof this._keyAssistClass === "string") {//$NON-NLS-0$
 						if(this._keyAssistClass !== "") {
@@ -180,7 +174,7 @@ define([
 					} else {
 						element.classList.add("key-assist-menuitem"); //$NON-NLS-0$
 					}
-					keyAssist.appendChild(element);
+					var keyAssist = element.parentNode;
 					getCategory(0).appendChild(keyAssist);
 				}
 
@@ -188,9 +182,8 @@ define([
 				var getStartedServiceRef = serviceRegistry.getServiceReferences("orion.page.getstarted")[0]; //$NON-NLS-0$
 				if (getStartedServiceRef) {
 					var data = getStartedServiceRef.getProperty("data"); //$NON-NLS-0$
-					var getStarted = document.createElement('li');
 					var startElement = this._makeMenuItem("Getting Started", this.getStartedDialog.bind(this, data));
-					getStarted.appendChild(startElement);
+					var getStarted = startElement.parentNode;
 					getCategory(0).appendChild(getStarted);
 				}
 
@@ -199,11 +192,7 @@ define([
 				categories.sort(function(a, b) { return a - b; }).forEach(function(category, i) {
 					if (i < categories.length - 1 && !this._noSeparator) {
 						// Add a separator
-						var li = document.createElement("li"); //$NON-NLS-0$
-						li.classList.add("dropdownSeparator"); //$NON-NLS-0$
-						var element = document.createElement("span"); //$NON-NLS-0$
-						element.classList.add("dropdownSeparator"); //$NON-NLS-0$
-						li.appendChild(element);
+						var li = Dropdown.createSeparator();
 						category.appendChild(li);
 					}
 					_self._dropdownNode.appendChild(category);
@@ -221,7 +210,7 @@ define([
 		},
 		
 		getStartedDialog: function(getStartedData){
-			var taskPanel = new UATaskPanel( null, true, getStartedData );
+			new UATaskPanel( null, true, getStartedData );
 		},
 		
 		setKeyAssist: function(keyAssistFunction){

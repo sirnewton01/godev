@@ -1,5 +1,5 @@
 .fileBrowserParentOuter{
-	border: 1px solid;
+	/*border: 1px solid;*/
 	vertical-align: middle;
 	border-color: blue;
 	overflow: hidden;
@@ -11,7 +11,7 @@
 }
 
 .fileBrowserParent{
-	border: 1px solid;
+	/*border: 1px solid;*/
 	vertical-align: middle;
 	border-color: blue;
 	overflow: hidden;

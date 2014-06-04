@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global exports module define setTimeout*/
+/*global exports module define setTimeout process document MutationObserver*/
 
 (function(root, factory) { // UMD
     if (typeof define === "function" && define.amd) { //$NON-NLS-0$
@@ -31,19 +31,65 @@
         running = false;
     }
 
+	var runAsync = (function() {
+		if (typeof process !== "undefined" && typeof process.nextTick === "function") {
+			var nextTick = process.nextTick;
+    		return function() {
+    			nextTick(run);
+    		};
+		} else if (typeof MutationObserver === "function") {
+			var div = document.createElement("div");
+			var observer = new MutationObserver(run);
+			observer.observe(div, {
+            	attributes: true
+        	});
+        	return function() {
+        		div.setAttribute("class", "_tick");
+        	};
+		}
+		return function() {
+			setTimeout(run, 0);
+		};
+	})();
+
     function enqueue(fn) {
         queue.push(fn);
         if (!running) {
             running = true;
-            setTimeout(run, 0);
+            runAsync();
         }
     }
 
     function noReturn(fn) {
-        return function() {
-            fn.apply(undefined, arguments);
+        return function(result) {
+            fn(result);
         };
     }
+    
+    function settleDeferred(fn, result, deferred) {
+    	try {
+    		var listenerResult = fn(result);
+    		var listenerThen = listenerResult && (typeof listenerResult === "object" || typeof listenerResult === "function") && listenerResult.then;
+    		if (typeof listenerThen === "function") {
+    			if (listenerResult === deferred.promise) {
+    				deferred.reject(new TypeError());
+    			} else {
+    				var listenerResultCancel = listenerResult.cancel;
+    				if (typeof listenerResultCancel === "function") {
+    					deferred._parentCancel = listenerResultCancel.bind(listenerResult);
+    				} else {
+    					delete deferred._parentCancel;
+    				}
+    				listenerThen.call(listenerResult, noReturn(deferred.resolve), noReturn(deferred.reject), noReturn(deferred.progress));
+    			}
+    		} else {
+    			deferred.resolve(listenerResult);
+    		}
+    	} catch (e) {
+    		deferred.reject(e);
+    	}
+    }
+
 
     /**
      * @name orion.Promise
@@ -87,46 +133,16 @@
      */
     function Deferred() {
         var result, state, listeners = [],
-            _this = this,
-            _protected = {};
-
-        Object.defineProperty(this, "_protected", {
-            value: function(secret) {
-                if (secret !== queue) {
-                    throw new Error("protected");
-                }
-                return _protected;
-            }
-        });
+            _this = this;
 
         function notify() {
             var listener;
             while ((listener = listeners.shift())) {
                 var deferred = listener.deferred;
                 var methodName = state === "fulfilled" ? "resolve" : "reject"; //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$
-                if (typeof listener[methodName] === "function") { //$NON-NLS-0$
-                    try {
-                        var fn = listener[methodName];
-                        var listenerResult = fn(result);
-                        var listenerThen = listenerResult && (typeof listenerResult === "object" || typeof listenerResult === "function") && listenerResult.then;
-                        if (typeof listenerThen === "function") {
-                            if (listenerResult === deferred.promise) {
-                                deferred.reject(new TypeError());
-                            } else {
-                                var listenerResultCancel = listenerResult.cancel;
-                                if (typeof listenerResultCancel === "function") {
-                                    deferred._protected(queue).parentCancel = listenerResultCancel.bind(listenerResult);
-                                } else {
-                                    delete deferred._protected(queue).parentCancel;
-                                }
-                                listenerThen.call(listenerResult, noReturn(deferred.resolve), noReturn(deferred.reject), noReturn(deferred.progress));
-                            }
-                        } else {
-                            deferred.resolve(listenerResult);
-                        }
-                    } catch (e) {
-                        deferred.reject(e);
-                    }
+                var fn = listener[methodName];
+                if (typeof fn === "function") { //$NON-NLS-0$
+                	settleDeferred(fn, result, deferred);
                 } else {
                     deferred[methodName](result);
                 }
@@ -134,7 +150,7 @@
         }
 
         function _reject(error) {
-            delete _protected.parentCancel;
+            delete _this._parentCancel;
             state = "rejected";
             result = error;
             if (listeners.length) {
@@ -143,17 +159,14 @@
         }
 
         function _resolve(value) {
-            var called = false;
-
             function once(fn) {
-                return function(value) {
-                    if (!called) {
-                        called = true;
-                        fn(value);
+                return function(result) {
+                    if (!state || state === "assumed") {
+                          fn(result);
                     }
                 };
             }
-            delete _protected.parentCancel;
+            delete _this._parentCancel;
             try {
                 var valueThen = value && (typeof value === "object" || typeof value === "function") && value.then;
                 if (typeof valueThen === "function") {
@@ -175,7 +188,7 @@
                         }
                         result = value;
                         valueThen.call(value, once(_resolve), once(_reject));
-                        _protected.parentCancel = valueCancel.bind(value);
+                        _this._parentCancel = valueCancel.bind(value);
                     }
                 } else {
                     state = "fulfilled";
@@ -190,9 +203,9 @@
         }
 
         function cancel() {
-            var parentCancel = _protected.parentCancel;
+            var parentCancel = _this._parentCancel;
             if (parentCancel) {
-                delete _protected.parentCancel;
+                delete _this._parentCancel;
                 parentCancel();
             } else if (!state) {
                 var cancelError = new Error("Cancel");
@@ -257,29 +270,28 @@
         };
 
         this.cancel = function() {
-            if (_protected.parentCancel) {
+            if (_this._parentCancel) {
                 setTimeout(cancel, 0);
             } else {
                 cancel();
             }
-
             return _this;
         };
 
         // Note: "then" ALWAYS returns before having onResolve or onReject called as per http://promises-aplus.github.com/promises-spec/
         this.then = function(onFulfill, onReject, onProgress) {
-            var listener = {
+        	var deferred = new Deferred();
+            deferred._parentCancel = _this.promise.cancel;
+            listeners.push({
                 resolve: onFulfill,
                 reject: onReject,
                 progress: onProgress,
-                deferred: new Deferred()
-            };
-            listeners.push(listener);
-            listener.deferred._protected(queue).parentCancel = _this.promise.cancel.bind(_this);
+                deferred: deferred
+            });
             if (state === "fulfilled" || state === "rejected") {
                 enqueue(notify);
             }
-            return listener.deferred.promise;
+            return deferred.promise;
         };
 
         /**

@@ -9,12 +9,12 @@
  * Contributors:
  *	 IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define module require exports */
+/*global define module require exports console */
 (function(root, factory) {
-	if(typeof exports === 'object') {
+	if(typeof exports === 'object') {  //$NON-NLS-0$
 		module.exports = factory(require, exports, module);
 	}
-	else if(typeof define === 'function' && define.amd) {
+	else if(typeof define === 'function' && define.amd) {  //$NON-NLS-0$
 		define(['require', 'exports', 'module'], factory);
 	}
 	else {
@@ -24,8 +24,15 @@
 		root.rules.noundef = factory(req, exp, mod);
 	}
 }(this, function(require, exports, module) {
+	/**
+	 * @name module.exports
+	 * @description Rule exports
+	 * @function
+	 * @param context
+	 * @returns {Object} Rule exports
+	 */
 	module.exports = function(context) {
-		"use strict";
+		"use strict";  //$NON-NLS-0$
 		
 		/**
 		 * @description Checks a set of tokens for the given node to see if the trailing one
@@ -34,13 +41,18 @@
 		 * @param {Object} node The AST node
 		 */
 		function checkForSemicolon(node) {
-			var tokens = context.getTokens(node);
-			var len = tokens.length;
-			var t = tokens[len - 1];
-			if (t && t.type === "Punctuator" && t.value === ";") {
-				return;
+			try {
+				var tokens = context.getTokens(node);
+				var len = tokens.length;
+				var t = tokens[len - 1];
+				if (t && t.type === "Punctuator" && t.value === ";") {  //$NON-NLS-0$  //$NON-NLS-1$
+					return;
+				}
+				context.report(node, "Missing semicolon.", null, t /* expose the bad token */);
 			}
-			context.report(node, "Missing semicolon.", null, t /* expose the bad token */);
+			catch(ex) {
+				console.log(ex);
+			}
 		}
 
 		/**
@@ -50,22 +62,27 @@
 		 * @param {Object} node The AST node
 		 */
 		function checkVariableDeclaration(node) {
-			var ancestors = context.getAncestors(node),
-			    parent = ancestors[ancestors.length - 1],
-			    parentType = parent.type;
-			if ((parentType === "ForStatement" && parent.init === node) || (parentType === "ForInStatement" && parent.left === node)){
-				// One of these cases, no semicolon token is required after the VariableDeclaration:
-				// for(var x;;)
-				// for(var x in y)
-				return;
+			try {
+				var ancestors = context.getAncestors(node),
+				    parent = ancestors[ancestors.length - 1],
+				    parentType = parent.type;
+				if ((parentType === "ForStatement" && parent.init === node) || (parentType === "ForInStatement" && parent.left === node)){  //$NON-NLS-0$  //$NON-NLS-1$
+					// One of these cases, no semicolon token is required after the VariableDeclaration:
+					// for(var x;;)
+					// for(var x in y)
+					return;
+				}
+				checkForSemicolon(node);
 			}
-			checkForSemicolon(node);
+			catch(ex) {
+				console.log(ex);
+			}
 		}
 
 		return {
-			"VariableDeclaration": checkVariableDeclaration,
-			"ExpressionStatement": checkForSemicolon,
-			"ReturnStatement": checkForSemicolon,
+			"VariableDeclaration": checkVariableDeclaration,  //$NON-NLS-0$
+			"ExpressionStatement": checkForSemicolon,  //$NON-NLS-0$
+			"ReturnStatement": checkForSemicolon,  //$NON-NLS-0$
 		};
 	};
 	return module.exports;

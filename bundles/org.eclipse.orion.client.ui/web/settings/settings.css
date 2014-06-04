@@ -141,6 +141,7 @@
 
 .setting-content {
 	margin: 0;
+	width: 70%;
 	vertical-align: middle;
 }
 
@@ -149,7 +150,7 @@
 }
 
 .setting-label {
-	min-width: 210px;
+	min-width: 30%;
 	display: inline-block;
 }
 

@@ -9,11 +9,12 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global window define URL XMLHttpRequest BlobBuilder*/
-/*jslint forin:true devel:true browser:true regexp:false*/
+/*global URL*/
+/*jslint forin:true devel:true amd:true browser:true regexp:false*/
 
 
-define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], function(Deferred, xhr, _, operation) {
+define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation", "orion/form"], function(Deferred, xhr, _, operation, form) {
+
 	/**
 	 * An implementation of the file service that understands the Orion 
 	 * server file API. This implementation is suitable for invocation by a remote plugin.
@@ -48,13 +49,6 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 
 	function _xhr(method, url, options) {
 		return xhr(method, cleanseUrl(url), options);
-	}
-
-	/**
-	 * http://tools.ietf.org/html/rfc5023#section-9.7.1
-	 */
-	function encodeSlug(s) {
-		return s.replace(/([^\u0020-\u007e]|%)+/g, encodeURIComponent);
 	}
 
 	// Wrap orion/xhr to handle long-running operations.
@@ -112,6 +106,18 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 				} else {//If the search string is empty, we have to simulate a file name search on *.fileType.
 					newKeyword = "NameLower:*." + searchParams.fileType;
 					newSort = newSort.replace("Path", "NameLower");
+				}
+			} else if (searchParams.fileNamePatterns && (searchParams.fileNamePatterns.length > 0)) {
+				//If the search string is not empty, we just combine the file type.
+				if(newKeyword !== ""){
+					//If the search string contains white space, we should add double quotes at both ends. 
+					if(newKeyword.indexOf(" ") >= 0){
+						newKeyword = "\"" + newKeyword + "\"";
+					}
+					newKeyword = encodeURIComponent(newKeyword) + "+Name:" + searchParams.fileNamePatterns.join("/");
+				} else {//If the search string is empty, we have to simulate a file name search on *.fileType.
+					newKeyword = "Name:" + searchParams.fileNamePatterns.join("/");
+					newSort = newSort.replace("Path", "Name");
 				}
 			} else if(newKeyword.indexOf(" ") >= 0){//If the search string contains white space, we should add double quato at both end.
 				newKeyword = encodeURIComponent("\"" + newKeyword + "\"");
@@ -176,7 +182,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 			return _xhr("POST", this.workspaceBase, {
 				headers: {
 					"Orion-Version": "1",
-					"Slug": encodeSlug(name)
+					"Slug": form.encodeSlug(name)
 				},
 				timeout: 15000
 			}).then(function(result) {
@@ -295,7 +301,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 				headers: {
 					"Orion-Version": "1",
 					"X-Create-Options" : "no-overwrite",
-					"Slug": encodeSlug(folderName),
+					"Slug": form.encodeSlug(folderName),
 					"Content-Type": "application/json;charset=UTF-8"
 				},
 				data: JSON.stringify({
@@ -325,7 +331,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 				headers: {
 					"Orion-Version": "1",
 					"X-Create-Options" : "no-overwrite",
-					"Slug": encodeSlug(fileName),
+					"Slug": form.encodeSlug(fileName),
 					"Content-Type": "application/json;charset=UTF-8"
 				},
 				data: JSON.stringify({
@@ -402,7 +408,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 			return _xhr("POST", targetLocation, {
 				headers: {
 					"Orion-Version": "1",
-					"Slug": encodeSlug(name),
+					"Slug": form.encodeSlug(name),
 					"X-Create-Options": "no-overwrite," + (isMove ? "move" : "copy"),
 					"Content-Type": "application/json;charset=UTF-8"
 				},
@@ -563,6 +569,8 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 		 * @param {Boolean} searchParams.regEx Optional. The option of regular expression search.
 		 * @param {integer} searchParams.start Optional. The zero based strat number for the range of the returned hits. E.g if there are 1000 hits in total, then 5 means the 6th hit.
 		 * @param {integer} searchParams.rows Optional. The number of hits of the range. E.g if there are 1000 hits in total and start=5 and rows=40, then the return range is 6th-45th.
+		 * @param {String} searchParams.fileNamePatterns Optional. The file name patterns within which to search. If specified, search will be performed under files which match the provided patterns. Patterns should be comma-separated and may use "*" and "?" as wildcards. 
+		 *															E.g. "*" means all files. "*.html,test*.js" means all html files html files and all .js files that start with "test".
 		 */
 		search: function(searchParams) {
 			var query = _generateLuceneQuery(searchParams);
@@ -583,36 +591,40 @@ define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation"], fun
 		}
 	};
 	
-	function _call2(method, url, headers, body) {
-		var d = new Deferred(); // create a promise
-		var xhr = new XMLHttpRequest();
-		try {
-			xhr.open(method, cleanseUrl(url));
-			if (headers) {
-				Object.keys(headers).forEach(function(header){
-					xhr.setRequestHeader(header, headers[header]);
-				});
-			}
-			xhr.responseType = "arraybuffer";
-			xhr.send(body);
-			xhr.onload = function() {
-				d.resolve({
-					status: xhr.status,
-					statusText: xhr.statusText,
-					headers: xhr.getAllResponseHeaders(),
-					response: xhr.response //builder.getBlob()
-				});
-			};
-		} catch (e) {
-			d.reject(e);
+	function _handleError(error) {
+		var errorMessage = "Unknown Error";
+		if(error.status && error.status === 404) {
+			errorMessage = "File not found.";
+		} else if (error.xhr && error.xhr.statusText){
+			errorMessage = error.xhr.statusText;
 		}
-		return d; // return the promise immediately
+		var errorObj = {Severity: "Error", Message: errorMessage};
+		error.responseText = JSON.stringify(errorObj);
+		return new Deferred().reject(error);
+	}
+	
+	function _call2(method, url, headerData, body) {
+		var options = {
+			//timeout: 15000,
+			responseType: "arraybuffer",
+			headers: headerData ? headerData : {"Orion-Version": "1"},
+			data: body,
+			log: false
+		};
+		return _xhr(method, url, options).then(function(result) {
+			return result.response;
+		}, function(error) { return _handleError(error);}).then(function(result) {
+			if (this.makeAbsolute) {
+				_normalizeLocations(result);
+			}
+			return result;
+		}.bind(this));
 	}
 
 	if (window.Blob) {
 		FileServiceImpl.prototype.readBlob = function(location) {
 			return _call2("GET", location).then(function(result) {
-				return result.response;
+				return result;
 			});
 		};
 

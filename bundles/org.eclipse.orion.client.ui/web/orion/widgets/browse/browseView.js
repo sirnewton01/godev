@@ -20,8 +20,9 @@ define([
 	'orion/objects',
 	'orion/Deferred',
 	'orion/webui/dropdown',
+	'orion/widgets/browse/commitInfoRenderer',
 	'orion/section'
-], function(messages, mExplorerTable, mNavigatorRenderer, mMarkdownView, PageUtil, URITemplate, lib, objects, Deferred, mDropdown, mSection) {
+], function(messages, mExplorerTable, mNavigatorRenderer, mMarkdownView, PageUtil, URITemplate, lib, objects, Deferred, mDropdown, mCommitInfoRenderer, mSection) {
 	
 	var FileExplorer = mExplorerTable.FileExplorer;
 	var NavigatorRenderer = mNavigatorRenderer.NavigatorRenderer;
@@ -50,9 +51,6 @@ define([
 				folderNode.addEventListener("click", function(){this.explorer.clickHandler(folder.Location);}.bind(this)
 				, false);
 			}
-			folderNode.addEventListener("click", function() { //$NON-NLS-0$
-				this.explorer.editorInputManager.cachedMetadata = folder;
-			}.bind(this), false);
 			return folderNode;
 		},
 		/**
@@ -60,9 +58,6 @@ define([
 		 */
 		updateFileNode: function(file, fileNode, isImage) {
 			mNavigatorRenderer.NavigatorRenderer.prototype.updateFileNode.call(this, file, fileNode, isImage);
-			fileNode.addEventListener("click", function() { //$NON-NLS-0$
-				this.explorer.editorInputManager.cachedMetadata = file;
-			}.bind(this), false);
 			if (this.explorer.readonly && fileNode.tagName === "A") { //$NON-NLS-0$
 				if(this.explorer.clickHandler){
 					fileNode.href = "javascript:void(0)";
@@ -105,6 +100,12 @@ define([
 		 */
 		getExpandImage: function() {
 			return null;
+		},
+		/**
+		 * override NavigatorRenderer's prototype
+		 */
+		getDisplayTime: function(timeStamp) {
+			return mCommitInfoRenderer.calculateTime(timeStamp);
 		}
 	});
 	
@@ -124,7 +125,7 @@ define([
 		this.commandRegistry = options.commandRegistry;
 		this.contentTypeRegistry = options.contentTypeRegistry;
 		this.readonly = options.readonly;
-		this.folderViewer = options.fodlerViewer;
+		this.folderViewer = options.folderViewer;
 		this.editorInputManager = options.editorInputManager;
 		this.breadCrumbMaker = options.breadCrumbMaker;
 		this.clickHandler = options.clickHandler;
@@ -182,6 +183,7 @@ define([
 	 */
 	function BrowseView(options) {
 		this._parent = options.parent;
+		this._browser = options.browser;
 		this._metadata = options.metadata;
 		this.editorInputManager = options.inputManager;
 		this.fileClient = options.fileService;
@@ -192,11 +194,12 @@ define([
 		this.readonly = true;
 		this.editorView = options.editorView;
 		this._maxEditorLines = options.maxEditorLines;
-		this.imageView = options.imageView;
+		this.binaryView = options.binaryView;
 		this.messageView = options.messageView;
 		this.breadCrumbInHeader = options.breadCrumbInHeader;
 		this.isMarkdownView = options.isMarkdownView;
-		this.repoURLHandler =  options.repoURLHandler;
+		this.infoDropDownHandlers =  options.infoDropDownHandlers;
+		this.snippetShareOptions = options.snippetShareOptions;
 		this.breadCrumbMaker = options.breadCrumbMaker;
 		this.branchSelector = options.branchSelector;
 		this.componentSelector = options.componentSelector;
@@ -250,34 +253,45 @@ define([
 						this.sectionContents.classList.add("browseSectionWrapper"); 
 						this._foldersSection.setContent(this.sectionContents);
 						//Render the action node
-						if(!this.messageView && this.repoURLHandler) {
+						if(!this.messageView && this.infoDropDownHandlers && this.infoDropDownHandlers.length > 0) {
 							var actionNode = this._foldersSection.getActionElement();
 							if(actionNode) {
 								lib.empty(actionNode);
+								this._destroyInfoDropDowns();
 								var letfNode = document.createElement("div"), rightNode=document.createElement("div");
 								letfNode.classList.add("layoutLeft");
 								rightNode.classList.add("layoutRight");
 								actionNode.appendChild(letfNode);
 								actionNode.appendChild(rightNode);
 								this.actionNode = rightNode;
-								var range = document.createRange();
-								range.selectNode(letfNode);
-								var repoURLFragment = range.createContextualFragment(this.repoURLHandler.RepoURLTriggerTemplate);
-								letfNode.appendChild(repoURLFragment);
-								this.repoURLDropdown = new mDropdown.Dropdown({
-									triggerNode: lib.node("orion.browse.repoURLTrigger"), 
-									dropdown: lib.node("orion.browse.repoURLDropdown")
-								});
-								this.repoURLDropdown.getItems = function() {
-									lib.node("orion.browse.repoURLInput").value = this.repoURLHandler.promptValue;
-									return [lib.node("orion.browse.repoURLInput")];
-								}.bind(this);
-								this.repoURLDropdown._positionDropdown = function(evt) {
-									this._dropdownNode.style.left = "";
-									this._dropdownNode.style.top = "";
-									this._dropdownNode.style.left = this._triggerNode.offsetLeft + this._triggerNode.offsetWidth - this._dropdownNode.offsetWidth  + "px";
-									lib.node("orion.browse.repoURLInput").select();
-								}.bind(this.repoURLDropdown);
+								
+								this.infoDropDownHandlers.forEach(function(handler) {
+									var dropdownHolder = document.createElement("div")
+									dropdownHolder.classList.add("infoDropDownHolder");
+									letfNode.appendChild(dropdownHolder);
+									var range = document.createRange();
+									range.selectNode(dropdownHolder);
+									var infoFragment = range.createContextualFragment(handler.popupTemplate);
+									dropdownHolder.appendChild(infoFragment);
+									var infoDropDown = new mDropdown.Dropdown({
+										triggerNode: lib.node(handler.triggerNodeId), 
+										dropdown: lib.node(handler.dropdownNodeId)
+									});
+									infoDropDown.getItems = function() {
+										var inputNode = lib.node(handler.popupTextAreaId);
+										inputNode.value = handler.getTextAreaValue();
+										return [inputNode];
+									};
+									infoDropDown._focusDropdownNode = function() {
+										lib.node(handler.popupTextAreaId).select();
+									};
+									infoDropDown._positionDropdown = function() {
+										this._dropdownNode.style.left = "";
+										this._dropdownNode.style.top = "";
+										this._dropdownNode.style.left = this._triggerNode.offsetLeft + this._triggerNode.offsetWidth - this._dropdownNode.offsetWidth  + "px";
+									}.bind(infoDropDown);
+									this.infoDropDowns.push(infoDropDown);
+								}.bind(this));
 							}
 						} else if (!this.messageView) {
 							this.actionNode =  this._foldersSection.getActionElement();
@@ -297,6 +311,13 @@ define([
 								titleNode.appendChild(this.componentSelector.parentNode);
 								this.componentSelector.refresh();
 							}
+							if(this.snippetShareOptions && this.snippetShareOptions.oHref) {
+								var titleLink = document.createElement("a"); //$NON-NLS-0$
+								titleLink.href = this.snippetShareOptions.oHref;
+								titleLink.appendChild(document.createTextNode("Click here to see the original file."));
+								titleLink.classList.add("downloadLinkName"); //$NON-NLS-0$
+								titleNode.appendChild(titleLink);
+							}
 						}
 						//Render the bread crumb 
 						if(this.breadCrumbMaker) {
@@ -312,6 +333,15 @@ define([
 								this.breadCrumbMaker(bcNode, this._foldersSection.getHeaderElement().offsetWidth - 5);
 							}
 						}
+						//Render the branch level commit information 
+						var commitInfo = this.branchSelector ? this.branchSelector.getCommitInfo() : null;
+						if(commitInfo) {
+							var commitNodeContainer = document.createElement("div");
+							commitNodeContainer.classList.add("commitInfoContainer"); 
+							this.sectionContents.appendChild(commitNodeContainer);
+							new mCommitInfoRenderer.CommitInfoRenderer({parent: commitNodeContainer, commitInfo: commitInfo}).render(this.componentSelector ? "Delivery" : "Commit", true);
+						}
+						//Render the section contents
 						if(this.messageView) {
 							if(typeof this.messageView.message === "string") {
 								this.updateMessageContents(this.messageView.message, this.messageView.classes ? this.messageView.classes : ["messageViewTable"], this.messageView.tdClass);
@@ -320,28 +350,39 @@ define([
 							this.sectionContents.appendChild(this.editorView.getParent());
 							this.editorView.getParent().style.height = "30px"; //$NON-NLS-0$
 							this.editorView.create();
-							var textView = this.editorView. editor.getTextView();
+							this.resetTextModel = this.snippetShareOptions && this.snippetShareOptions.e ? true : false;
+							var textView = this.editorView.editor.getTextView();
 							textView.getModel().addEventListener("Changed", this._editorViewModelChangedListener = function(e){ //$NON-NLS-0$
-								var linesToRender = textView.getModel().getLineCount();
+								var textModel = textView.getModel();
+								if(this.resetTextModel) {
+									var newContents = textModel.getText(this.snippetShareOptions.s ?  this.snippetShareOptions.s : 0, this.snippetShareOptions.e);
+									this.resetTextModel = false;
+									textModel.setText(newContents);
+									return;
+								}
+								var linesToRender = textModel.getLineCount();
 								if(this._maxEditorLines && this._maxEditorLines > 0 && linesToRender >this._maxEditorLines) {
 									linesToRender = this._maxEditorLines;
 								}
 								var textViewheight = textView.getLineHeight() * linesToRender + 20;
 								this.editorView.getParent().style.height = textViewheight + "px"; //$NON-NLS-0$
+								if(this._browser) {
+									this._browser.onTextViewCreated(textView);
+								}
 							}.bind(this));
 							this.editor = this.editorView.editor;
 						} else if(this.isMarkdownView) {
 							div = document.createElement("div"); //$NON-NLS-0$
 							this.markdownView.displayContents(div, this._metadata);
 							this.sectionContents.appendChild(div);
-						} else if(this.imageView) {
-							if(this.imageView.image) {
-								this.updateImage(this.imageView.image);
+						} else if(this.binaryView) {
+							if(this.binaryView.domElement) {
+								this.updateBinaryView(this.binaryView.domElement, this.binaryView.message);
 							}						
 						} else {
 							this.folderNavExplorer = new FolderNavExplorer({
 								parentId: navNode,
-								fodlerViewer: this,
+								folderViewer: this,
 								readonly: this.readonly,
 								breadCrumbMaker: this.breadCrumbMaker,
 								clickHandler: this.clickHandler,
@@ -367,17 +408,24 @@ define([
 			var sectionsOrder = ["folderNav", "readme"];
 			renderSections.apply(this, [sectionsOrder]);
 		},
-		updateImage: function(image) {
-			var imageTable = document.createElement("table");
-			imageTable.classList.add("imageViewTable");
-			var tr = document.createElement("tr");
-			var td = document.createElement("td"); 
-			var imageContent = document.createElement("div");
-			imageContent.appendChild(image);
-			td.appendChild(imageContent);
+		updateBinaryView: function(domElement, message) {
+			var binaryTable = document.createElement("table");
+			binaryTable.classList.add("binaryViewTable");
+			var tr, td;
+			tr = document.createElement("tr");
+			td = document.createElement("td"); 
+			if(message){
+				var messageDiv = document.createElement("div");
+				messageDiv.textContent = message;
+				messageDiv.classList.add("binaryViewMessage");
+				td.appendChild(messageDiv);
+			}
+			var binaryContent = document.createElement("div");
+			binaryContent.appendChild(domElement);
+			td.appendChild(binaryContent);
 			tr.appendChild(td);
-			imageTable.appendChild(tr);
-			this.sectionContents.appendChild(imageTable);
+			binaryTable.appendChild(tr);
+			this.sectionContents.appendChild(binaryTable);
 		},
 		updateMessageContents: function(message, messageClasses, tdClass, doNotEmpty) {
 			var messageTable = document.createElement("table");
@@ -405,7 +453,7 @@ define([
 			if(this._metadata && this._metadata.Projects){ //this is a workspace root
 				this.displayWorkspaceView();
 			}
-			if(this.editorView || this.imageView || this.isMarkdownView || this.messageView) {
+			if(this.editorView || this.binaryView || this.isMarkdownView || this.messageView) {
 				this.displayBrowseView(this._metadata);
 			} else if(this._metadata.Children){
 				this.displayBrowseView(this._metadata);
@@ -416,6 +464,14 @@ define([
 				}.bind(this));
 			}
 		},
+		_destroyInfoDropDowns: function() {
+			if(this.infoDropDowns) {
+				this.infoDropDowns.forEach(function(infoDropDown){
+					infoDropDown.destroy();
+				});
+			}
+			this.infoDropDowns = [];
+		},
 		destroy: function() {
 			if(this.editorView) {
 				this.editorView. editor.getTextView().getModel().removeEventListener("Changed", this._editorViewModelChangedListener); //$NON-NLS-0$
@@ -425,9 +481,7 @@ define([
 			if (this.folderNavExplorer) {
 				this.folderNavExplorer.destroy();
 			}
-			if(this.repoURLDropdown) {
-				this.repoURLDropdown.destroy();
-			}
+			this._destroyInfoDropDowns();
 			this.folderNavExplorer = null;
 			if (this._node && this._node.parentNode) {
 				this._node.parentNode.removeChild(this._node);

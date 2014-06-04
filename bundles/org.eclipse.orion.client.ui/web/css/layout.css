@@ -236,6 +236,14 @@ hard-coded numbers elsewhere.
     overflow: auto;
 }
 
+.sidePanelVerticalLayout {
+	display: block;
+	position: absolute;
+	top: 0;
+	height: 33%;
+	width: 100%;
+}
+
 .sidePanelVerticalLayoutAnimation {
 	-webkit-transition: height 0.5s ease;
 	-moz-transition: height 0.5s ease;
@@ -264,6 +272,13 @@ hard-coded numbers elsewhere.
 	-moz-transition: left 0.5s ease;
 	-o-transition: left 0.5s ease;
 	transition: left 0.5s ease;
+}
+
+.mainPanelVerticalLayout {
+	display: block;
+	position: absolute;
+	bottom: 0;
+	width: 100%;
 }
 
 .mainPanelVerticalLayoutAnimation {
@@ -597,4 +612,11 @@ hard-coded numbers elsewhere.
 .mainContent{
 	position:absolute;
 	left:50px;
+}
+
+.innerPanels{
+	position:absolute;
+	width:100%;
+	top:36px;
+	bottom:0;
 }

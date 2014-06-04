@@ -103,11 +103,23 @@ define([
 		editor: "orion.editor",
 		excludedContentTypes: ["image/*"]});
 
-	var MARKDOWN_EDITOR_ID = "orion.viewer.markdown";
+	var MARKDOWN_VIEWER_ID = "orion.viewer.markdown";
 	provider.registerService("orion.edit.editor", {}, {
-		id: MARKDOWN_EDITOR_ID,
+		id: MARKDOWN_VIEWER_ID,
 		nameKey: "Orion Markdown Viewer",
 		nls: "orion/nls/messages",
+		uriTemplate: "../edit/edit.html#{,Location,params*},editor=" + MARKDOWN_VIEWER_ID});
+
+	provider.registerService("orion.navigate.openWith", {}, {
+			editor: MARKDOWN_VIEWER_ID,
+			contentType: ["text/x-markdown"]});
+
+	var MARKDOWN_EDITOR_ID = "orion.editor.markdown";
+	provider.registerService("orion.edit.editor", {}, {
+		id: MARKDOWN_EDITOR_ID,
+		nameKey: "Orion Markdown Editor",
+		nls: "orion/nls/messages",
+		default: true,
 		uriTemplate: "../edit/edit.html#{,Location,params*},editor=" + MARKDOWN_EDITOR_ID});
 
 	provider.registerService("orion.navigate.openWith", {}, {

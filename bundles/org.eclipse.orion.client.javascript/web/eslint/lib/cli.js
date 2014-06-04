@@ -3,12 +3,14 @@
  * @author Nicholas C. Zakas
  */
 
+"use strict";
+
 /*
  * The CLI object should *not* call process.exit() directly. It should only return
  * exit codes. This allows other programs to use the CLI object and still control
  * when the program exits.
  */
-
+/* global require module console process */
 //------------------------------------------------------------------------------
 // Requirements
 //------------------------------------------------------------------------------
@@ -18,9 +20,9 @@ var options = require("./options"),
     path = require("path"),
     rules = require("./rules"),
     eslint = require("./eslint"),   // TODO: More formatters
-    existsSync = fs.existsSync || path.existsSync,
     Config = require("./config");
 
+var existsSync = fs.existsSync || path.existsSync;
 
 
 //------------------------------------------------------------------------------
@@ -37,20 +39,32 @@ function isDirectory(name){
     }
 }
 
-function getFiles(dir){
+function getFiles(dir, configHelper){
     var files = [];
 
     try {
         fs.statSync(dir);
     } catch (ex){
+        /* istanbul ignore next too hard to make fs.stat fail */
         return [];
     }
 
     function traverse(dir, stack){
         stack.push(dir);
-        fs.readdirSync(stack.join("/")).forEach(function(file){
-            var filePath = stack.concat([file]).join("/"),
+        try {
+            configHelper.cacheExclusions(path.join.apply(path, stack));
+        } catch(e) {
+            /* istanbul ignore next Error handling doesn't need testing */
+            console.log(e.message);
+        }
+        fs.readdirSync(path.join.apply(path, stack)).forEach(function(file){
+            var filePath = path.join.apply(path, stack.concat([file])),
                 stat = fs.statSync(filePath);
+
+            //if this file or directory is excluded from linting, skip over it.
+            if (configHelper.checkForExclusion(path.resolve(filePath))) {
+                return;
+            }
 
             if (file[0] === ".") {
                 return;
@@ -72,9 +86,16 @@ function storeResults(filename, messages) {
     results.push({filePath: filename, messages: messages});
 }
 
+/**
+ * Outputs the results of the linting.
+ * @param {Config} config The configuration options for the results.
+ * @returns {boolean} True if the printing succeeds, false if not.
+ * @private
+ */
 function printResults(config) {
     var formatter,
-        formatterPath;
+        formatterPath,
+        output;
 
     if (existsSync(path.resolve(process.cwd(), config.format))) {
         formatterPath = path.resolve(process.cwd(), config.format);
@@ -84,10 +105,13 @@ function printResults(config) {
 
     try {
         formatter = require(formatterPath);
-        console.log(formatter(results, config));
+        output = formatter(results, config);
+        if (output) {
+            console.log(output);
+        }
         return true;
     } catch (ex) {
-        console.log("Could not find formatter '%s'.", config.format);
+        console.error("Could not find formatter '%s'.", config.format);
         return false;
     }
 
@@ -111,7 +135,7 @@ function processFile(filename, configHelper) {
 
     if (existsSync(filePath)) {
         config = configHelper.getConfig(filePath);
-        text = fs.readFileSync(path.resolve(filename), "utf8");
+        text = fs.readFileSync(path.resolve(filename), "utf8").replace(/^#![^\r\n]+[\r\n]/, "");
         messages = eslint.verify(text, config);
     } else {
         messages = [{
@@ -156,7 +180,7 @@ function processFiles(files, configHelper) {
     files.forEach(function(file) {
 
         if (isDirectory(file)) {
-            fullFileList = fullFileList.concat(getFiles(file));
+            fullFileList = fullFileList.concat(getFiles(file, configHelper));
         } else {
             fullFileList.push(file);
         }
@@ -184,26 +208,35 @@ var cli = {
 
     /**
      * Executes the CLI based on an array of arguments that is passed in.
-     * @param {String[]} argv The array of arguments to process.
+     * @param {string|Array|Object} args The arguments to process.
      * @returns {int} The exit code for the operation.
      */
-    execute: function(argv) {
+    execute: function(args) {
 
-        var currentOptions = options.parse(argv),
-            files = currentOptions._,
+        var currentOptions,
+            files,
             configHelper,
             result;
+
+        try {
+          currentOptions = options.parse(args);
+        } catch (error) {
+          console.error(error.message);
+          return 1;
+        }
+
+        files = currentOptions._;
 
         // Ensure results from previous execution are not printed.
         results = [];
 
-        if (currentOptions.v) { // version from package.json
+        if (currentOptions.version) { // version from package.json
 
             console.log("v" + require("../package.json").version);
 
-        } else if (currentOptions.h || !files.length) {
+        } else if (currentOptions.help || !files.length) {
 
-            options.help();
+            console.log(options.generateHelp());
 
         } else {
 

@@ -148,7 +148,25 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 			if (settings.background) {		
 				result.push("\tbackground-color: " + settings.background + ";"); //$NON-NLS-1$ //$NON-NLS-0$
 			}
+			
 			result.push("}"); //$NON-NLS-0$
+			
+			result.push("." + themeClass + " .textviewLeftRuler {"); //$NON-NLS-1$ //$NON-NLS-0$
+			
+			if(settings.leftRuler){
+				result.push("\tborder-right: 1px solid " + settings.leftRuler + ";"); //$NON-NLS-1$ //$NON-NLS-0$
+			}
+			
+			result.push("}"); //$NON-NLS-0$
+			
+			result.push("." + themeClass + " .textviewRightRuler {"); //$NON-NLS-1$ //$NON-NLS-0$
+			
+			if(settings.rightRuler){
+				result.push("\tborder-left: 1px solid " + settings.rightRuler + ";"); //$NON-NLS-1$ //$NON-NLS-0$
+			}
+			
+			result.push("}"); //$NON-NLS-0$
+			
 			
 			function defineRule(className, value, isBackground) {
 				if (value) {
@@ -176,9 +194,11 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 			defineRule("string-quoted", settings.string, false); //$NON-NLS-0$
 			defineRule("meta.annotation.currentLine", settings.currentLine, true); //$NON-NLS-0$
 			defineRule("keyword", settings.keyword, false); //$NON-NLS-0$
-			defineRule("string", settings.string, false); //$NON-NLS-0$
+			defineRule("string", settings.string, false); //$NON-NLS-0$\
+			defineRule("constant", settings.constant, false); //$NON-NLS-0$
 			defineRule("comment", settings.comment, false); //$NON-NLS-0$
 			defineRule("comment.block.documentation", settings.comment, false); //$NON-NLS-0$
+			defineRule("keyword.other.documentation.markup", settings.comment, false); //$NON-NLS-0$
 			defineRule("keyword.other.documentation.markup", settings.comment, false); //$NON-NLS-0$
 
 			return result.join("\n"); //$NON-NLS-0$

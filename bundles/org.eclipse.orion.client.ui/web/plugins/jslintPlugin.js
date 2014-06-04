@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2010, 2013 IBM Corporation and others.
+ * Copyright (c) 2010, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -21,11 +21,6 @@ define([
 			onevar: false, plusplus: false, regexp: true, strict: false, undef: true, white: false
 	};
 	var validationOptions = DEFAULT_VALIDATION_OPTIONS;
-	var isEnabledFor = {
-		'application/javascript': false,
-		'application/json': true,
-		'text/html': true
-	};
 
 	function jslint(contents) {
 		JSLINT(contents, validationOptions);
@@ -81,9 +76,6 @@ define([
 	 * @param {String} contents Text of file.
 	 */
 	function _computeProblems(options, contents) {
-		if (isEnabledFor[options.contentType] === false) {
-			return {problems: []};
-		}
 		var result = jslint(contents);
 		var problems = [];
 		var i;
@@ -148,10 +140,6 @@ define([
 		// ManagedService
 		updated: function(properties) {
 			if (properties) {
-				if (typeof properties.enabled === "boolean") {
-					// At the moment this setting only controls .js files
-					isEnabledFor['application/javascript'] = !!properties.enabled;
-				}
 				if (typeof properties.options === "string") {
 					var options = properties.options;
 					if (!/^\s*$/.test(options)) {
@@ -183,80 +171,25 @@ define([
 		}
 	};
 
-	/**
-	 * Generates outline for an HTML document.
-	 * @param {String} contents
-	 * @returns {Object[]} Outline model
-	 */
-	function htmlOutline(contents) {
-		var outline = [];
-		var pattern = /id=['"]\S*["']/gi, // experimental: |<head[^>]*|<body[^>]*|<script[^>]*/gi;
-		    match;
-		while ((match = pattern.exec(contents)) !== null) {
-			var start = match.index,
-			    name = match[0],
-			    end;
-			if (name[0]==='<') {
-				name = "&lt;" + name.substring(1) + "&gt;";
-				start += 1;
-				end = start + name.length;
-			} else {
-				start += 4;
-				name = name.substring(4, name.length-1);
-				end = start+name.length;
-			}
-			var element = {
-				label: name,
-				children: null,
-				start: start,
-				end: end
-			};
-			outline.push(element);
-		}
-		return outline;
-	}
-
-	var outlineService = {
-		computeOutline: function(editorContext, context) {
-			return editorContext.getText().then(function(contents) {
-				var contentType = context.contentType;
-				if (contentType === "text/html") {
-					return htmlOutline(contents);
-				}
-			});
-		}
-	};
-
 	var headers = {
 		name: "Orion JSLint Service",
 		version: "1.0",
-		description: "This plugin provides JSLint functionality for outlining and validating JavaScript code."
+		description: "This plugin provides JSLint functionality for validating JSON."
 	};
 
 	var provider = new PluginProvider(headers);
 	provider.registerService(["orion.edit.validator", "orion.cm.managedservice"], validationService, {
-		contentType: ["application/javascript", "application/json", "text/html"],
+		contentType: ["application/json"],
 		pid: "jslint.config"
-	});
-	provider.registerService("orion.edit.outliner", outlineService, {
-		contentType: ["text/html"],	// TODO separate out HTML outline
-		nameKey: "Flat outline",
-		nls: "orion/editor/nls/messages",
-		id: "orion.edit.outliner.jslint"
 	});
 	provider.registerService("orion.core.setting",
 		{},
 		{	settings: [
 				{	pid: 'jslint.config',
 					name: 'JSLint Validator',
-					tags: 'validation javascript js jslint'.split(' '),
+					tags: 'validation HTML JSON jslint'.split(' '),
 					category: 'validation',
 					properties: [
-						{	id: 'enabled',
-							name: 'Use JSLint to check JavaScript code',
-							defaultValue: true,
-							type: 'boolean'
-						},
 						{	id: 'options',
 							name: 'Options to pass to JSLint (/*jslint ..*/)',
 							type: 'string'
@@ -265,7 +198,6 @@ define([
 				}
 			]
 		});
-	//validationService.dispatchEvent = serviceProvider.dispatchEvent;
 	provider.connect();
 
 });

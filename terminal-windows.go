@@ -9,8 +9,8 @@ package main
 import (
 	"io"
 	"os/exec"
-	"syscall"
 	"strconv"
+	"syscall"
 )
 
 type term struct {
@@ -25,13 +25,13 @@ type term struct {
 }
 
 func (t *term) Close() error {
-	killCmd := exec.Command("taskkill", "/F", "/T", "/PID", strconv.FormatInt(int64(t.cmd.Process.Pid),10))
+	killCmd := exec.Command("taskkill", "/F", "/T", "/PID", strconv.FormatInt(int64(t.cmd.Process.Pid), 10))
 	err := killCmd.Run()
 
 	if err != nil {
 		return err
 	}
-	
+
 	return err
 }
 
@@ -65,33 +65,33 @@ func (t *term) Write(b []byte) (n int, err error) {
 
 			return 0, nil
 		}
-		
+
 		// Check for the enter key pressed on vt-100 and add the
 		//  extra LF after the CR
 		if b[i] == '\r' {
-			_,err := t.stdin.Write([]byte{'\r', '\n'})
+			_, err := t.stdin.Write([]byte{'\r', '\n'})
 			if err != nil {
 				return 0, err
 			}
-			
+
 			t.outByte <- '\n'
 			continue
 		}
-		
+
 		// Change the DEL to a BS
 		if b[i] == 127 {
-			_,err := t.stdin.Write([]byte{8})
+			_, err := t.stdin.Write([]byte{8})
 			if err != nil {
 				return 0, err
 			}
-			
+
 			t.outByte <- 8
 			continue
 		}
-		
+
 		// Echo the characters back
 		t.outByte <- b[i]
-		_,err := t.stdin.Write([]byte{b[i]})
+		_, err := t.stdin.Write([]byte{b[i]})
 		if err != nil {
 			return 0, err
 		}
@@ -149,7 +149,7 @@ func (t *term) start() error {
 func start(c *exec.Cmd) (io.ReadCloser, io.WriteCloser, error) {
 	c.SysProcAttr = &syscall.SysProcAttr{}
 	//c.SysProcAttr.CreationFlags = 16 // CREATE_NEW_CONSOLE
-	
+
 	stdin, err := c.StdinPipe()
 
 	if err != nil {

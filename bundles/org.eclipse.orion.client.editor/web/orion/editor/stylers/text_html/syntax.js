@@ -11,83 +11,41 @@
 
 /*global define*/
 
-define("orion/editor/stylers/text_html/syntax", ["orion/editor/stylers/lib/syntax", "orion/editor/stylers/application_javascript/syntax", "orion/editor/stylers/text_css/syntax", "orion/editor/stylers/text_x-php/syntax", "orion/editor/stylers/application_xml/syntax"], //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-	function(mLib, mJS, mCSS, mPHP, mXML) {
+define("orion/editor/stylers/text_html/syntax", ["orion/editor/stylers/lib/syntax", "orion/editor/stylers/application_javascript/syntax", "orion/editor/stylers/text_css/syntax", "orion/editor/stylers/application_xml/syntax"], //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+	function(mLib, mJS, mCSS, mXML) {
 
-	var grammars = mLib.grammars.concat(mJS.grammars).concat(mCSS.grammars).concat(mPHP.grammars).concat(mXML.grammars);
+	var grammars = mLib.grammars.concat(mJS.grammars).concat(mCSS.grammars).concat(mXML.grammars);
 	grammars.push({
-		id: "orion.html",
-		contentTypes: ["text/html"],
+		id: "orion.html", //$NON-NLS-0$
+		contentTypes: ["text/html"], //$NON-NLS-0$
 		patterns: [
 			{
-				include: "orion.xml"
-			}, {
-				begin: "(?i)(<style)([^>]*)(>)",
-				end: "(?i)(</style>)",
+				begin: "(?i)(<style)([^>]*)(>)", //$NON-NLS-0$
+				end: "(?i)(</style>)", //$NON-NLS-0$
 				captures: {
-					1: {name: "entity.name.tag.html"},
-					3: {name: "entity.name.tag.html"}
+					1: {name: "entity.name.tag.html"}, //$NON-NLS-0$
+					3: {name: "entity.name.tag.html"} //$NON-NLS-0$
 				},
-				contentName: "source.css.embedded.html",
+				contentName: "source.css.embedded.html", //$NON-NLS-0$
 				patterns: [
-					{
-						include: "orion.css"
-					}
+					{include: "orion.css"} //$NON-NLS-0$
 				]
 			}, {
-				begin: "(?i)<script\\s*>|<script\\s.*?(?:language\\s*=\\s*(['\"])javascript\\1|type\\s*=\\s*(['\"])(?:text|application)/(?:javascript|ecmascript)\\2).*?>",
-				end: "(?i)</script>",
+				begin: "(?i)<script\\s*>|<script\\s.*?(?:language\\s*=\\s*(['\"])javascript\\1|type\\s*=\\s*(['\"])(?:text|application)/(?:javascript|ecmascript)\\2).*?>", //$NON-NLS-0$
+				end: "(?i)</script>", //$NON-NLS-0$
 				captures: {
-					0: {name: "entity.name.tag.html"}
+					0: {name: "entity.name.tag.html"} //$NON-NLS-0$
 				},
-				contentName: "source.js.embedded.html",
+				contentName: "source.js.embedded.html", //$NON-NLS-0$
 				patterns: [
-					{
-						include: "orion.js"
-					}
+					{include: "orion.js"} //$NON-NLS-0$
 				]
-			}, {
-				begin: "(?i)<script\\s.*?(?:language\\s*=\\s*(['\"])php\\1|type\\s*=\\s*(['\"])text/x-php\\2).*?>",
-				end: "(?i)</script>",
-				captures: {
-					0: {name: "entity.name.tag.html"}
-				},
-				contentName: "source.php.embedded.html",
-				patterns: [
-					{
-						include: "orion.php"
-					}
-				]
-			}, {
-				begin: "(?i)<\\?(?:=|php)?(?:\\s|$)",
-				end: "\\?>",
-				captures: {
-					0: {name: "entity.name.declaration.php"}
-				},
-				contentName: "source.php.embedded.html",
-				patterns: [
-					{
-						include: "orion.php"
-					}
-				]
-			}, {
-				begin: "<%=?(?:\\s|$)",
-				end: "%>",
-				captures: {
-					0: {name: "entity.name.declaration.php"}
-				},
-				contentName: "source.php.embedded.html",
-				patterns: [
-					{
-						include: "orion.php"
-					}
-				]
-			}
-		],
-		repository: {
-			/* override orion.xml#xmlDeclaration (no-op) */
-			xmlDeclaration: {}
-		}
+			},
+			{include: "orion.xml#comment"}, //$NON-NLS-0$
+			{include: "orion.xml#doctype"}, //$NON-NLS-0$
+			{include: "orion.xml#tag"}, //$NON-NLS-0$
+			{include: "orion.xml#ampersandEscape"} //$NON-NLS-0$
+		]
 	});
 	return {
 		id: grammars[grammars.length - 1].id,

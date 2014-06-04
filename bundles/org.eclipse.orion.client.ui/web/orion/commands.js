@@ -220,7 +220,7 @@ define([
 			} else {
 				processKey(evt);
 			}
-		};
+		}
 		
 		function CommandsProxy() {
 			this._init();
@@ -418,22 +418,12 @@ define([
 		return element;
 	}
 	
-	function appendKeyBindingString(element, keyBindingString) {
-		var span = document.createElement("span"); //$NON-NLS-0$
-		span.classList.add("dropdownKeyBinding"); //$NON-NLS-0$
-		span.appendChild(document.createTextNode(keyBindingString));
-		element.appendChild(span);
-	}
-	
 	function createCommandMenuItem(parent, command, commandInvocation, keyBinding, callback, keyBindingString) {
-		var element;
+		var element, li;
 		var dropdown = parent.dropdown;
 		if (command.hrefCallback) {
-			element = document.createElement("a"); //$NON-NLS-0$
-			var span = document.createElement("span");
-			span.appendChild(document.createTextNode(command.name));
-			span.classList.add("dropdownCommandName"); //$NON-NLS-0$
-			element.appendChild(span);
+			li = Dropdown.createMenuItem(command.name, "a"); //$NON-NLS-0$
+			element = li.firstElementChild;
 			var href = command.hrefCallback.call(commandInvocation.handler, commandInvocation);
 			if (href.then){
 				href.then(function(l){
@@ -450,12 +440,8 @@ define([
 				}
 			}, false);
 		} else {
-			element = document.createElement("span"); //$NON-NLS-0$
-			element.tabIndex = 0;
-			var span = document.createElement("span");
-			span.appendChild(document.createTextNode(command.name));
-			span.classList.add("dropdownCommandName"); //$NON-NLS-0$
-			element.appendChild(span);
+			li = Dropdown.createMenuItem(command.name); //$NON-NLS-0$
+			element = li.firstElementChild;
 			var onClick = callback || command.callback;
 			if (onClick) {
 				command.onClick = onClick;
@@ -471,9 +457,7 @@ define([
 				}, false);
 			}
 		}
-		element.className = "dropdownMenuItem"; //$NON-NLS-0$
-		element.role = "menuitem";  //$NON-NLS-0$
-		
+
 		if (command.tooltip) {
 			/* nested menu items may represent commands, hence require tooltips */
 			element.commandTooltip = new Tooltip.Tooltip({
@@ -484,11 +468,11 @@ define([
 		}
 		
 		if (keyBindingString) {
-			appendKeyBindingString(element, keyBindingString);
+			Dropdown.appendKeyBindingString(element, keyBindingString);
 		}
-		var li = document.createElement("li"); //$NON-NLS-0$
+		
 		parent.appendChild(li);
-		li.appendChild(element); //$NON-NLS-0$
+		
 		if (keyBinding) {
 			localKeyBindings[command.id] = { keyBinding: keyBinding, command: command, invocation: commandInvocation };
 		}
@@ -665,7 +649,7 @@ define([
 					node.classList.add("dropdownMenuItem"); //$NON-NLS-0$
 					if (addCheck) {
 						var check = document.createElement("span"); //$NON-NLS-0$
-						check.classList.add("check");
+						check.classList.add("check"); //$NON-NLS-0$
 						check.appendChild(document.createTextNode(choice.checked ? "\u25CF" : "")); //$NON-NLS-1$ //$NON-NLS-0$
 						node.appendChild(check);
 					}

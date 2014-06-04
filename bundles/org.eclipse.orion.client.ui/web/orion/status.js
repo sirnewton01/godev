@@ -237,13 +237,11 @@ define([
 			image.classList.add("imageSprite"); //$NON-NLS-0$
 			image.classList.add("progressIcon"); //$NON-NLS-0$
 			var removedClasses = [];
-			var alt = "info"; //$NON-NLS-0$
 			if (status.Severity) {
 				switch (status.Severity) {
 				case "Warning": //$NON-NLS-0$
 					fallbackMessage = messages.UnknownWarning;
 					imageClass = "core-sprite-warning"; //$NON-NLS-0$
-					alt = "warning"; //$NON-NLS-0$
 					extraClass="progressWarning"; //$NON-NLS-0$
 					removedClasses.push("progressInfo");
 					removedClasses.push("progressError");
@@ -252,7 +250,6 @@ define([
 					break;
 				case "Error": //$NON-NLS-0$
 					imageClass = "core-sprite-error"; //$NON-NLS-0$
-					alt = "error"; //$NON-NLS-0$
 					extraClass="progressError"; //$NON-NLS-0$
 					removedClasses.push("progressWarning");
 					removedClasses.push("progressInfo");

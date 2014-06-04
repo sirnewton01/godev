@@ -39,6 +39,7 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 		this.searchHelper = (this._searchOnName || this._buildSkeletonOnly) ? null: mSearchUtils.generateSearchHelper(searchParams);
 		this._location = options && options.location;
 		this._childrenLocation = options && options.childrenLocation ? options.childrenLocation : this._location;   
+		this._reportOnCancel = options && options.reportOnCancel;   
 		this._cancelled = false;
 		this._statusService = this.registry.getService("orion.page.message"); //$NON-NLS-0$
 		this._progressService = this.registry.getService("orion.page.progress"); //$NON-NLS-0$
@@ -60,16 +61,18 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 			this.contentTypesCache = ct;
 			var crawler = this;
 			this._visitRecursively(this._childrenLocation).then(function(){
-				if(!crawler._cancelled) {
+				//We only report the result on the completion in two cases: 1.If there is no cancellation 2.If the option reportResultOnCancel is true
+				if(!crawler._cancelled || crawler._reportOnCancel){//If it is in simulating mode we need to report the result anyway
 					crawler._reportResult();
+				} 
+				//Normally if a cancellation happens it goes to error handler. But in corner cases that deferred.resolve is faster than deferred.cancel we need to capture the case
+				if(crawler._cancelled) {
+					crawler._HandleStatus({name: "Cancel"}); //$NON-NLS-0$
 				}
 			}.bind(crawler),
 			function(error){
 				crawler._reportResult();
-				if(crawler._statusService && error.name === "Cancel") { //$NON-NLS-0$
-					console.log("Crawling search cancelled. Deferred array length : " + crawler._deferredArray.length); //$NON-NLS-0$
-					crawler._statusService.setProgressResult({Message: messages["Search cancelled by user"], Severity: "Warning"}); //$NON-NLS-0$
-				}
+				crawler._HandleStatus(error); 
 			}.bind(crawler));
 		}.bind(this));
 	};
@@ -157,6 +160,13 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 		}.bind(this)); 
 	};
 		
+	SearchCrawler.prototype._HandleStatus = function(error){
+		if(this._statusService && error.name === "Cancel") { //$NON-NLS-0$
+			console.log("Crawling search cancelled. Deferred array length : " + this._deferredArray.length); //$NON-NLS-0$
+			this._statusService.setProgressResult({Message: messages["Search cancelled by user"], Severity: "Warning"}); //$NON-NLS-0$
+		}
+	};
+		
 	SearchCrawler.prototype._reportResult = function(){
 		this._sort(this.fileLocations);
 		var response = {numFound: this.fileLocations.length, docs: this.fileLocations };
@@ -171,16 +181,17 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 		return 0;
 	};
 	
-	SearchCrawler.prototype._onFileType = function(contentType){
-		if(this.searchHelper.params.fileType){
-			if(this.searchHelper.params.fileType === mSearchUtils.ALL_FILE_TYPE){
-				return true;
-			}
-			return contentType.extension.indexOf(this.searchHelper.params.fileType) >= 0;
+	SearchCrawler.prototype._fileNameMatches = function(fileName){
+		var matches = true;
+		if(this.searchHelper.params.fileNamePatterns){
+			matches = this.searchHelper.params.fileNamePatterns.some(function(pattern){
+				var regExpPattern = "^" + pattern.replace(/([*?])/g, ".$1") + "$"; // add line start, line end, and convert user input * and ? to .* and .? //$NON-NLS-0$
+				return fileName.match(regExpPattern);
+			});
 		}
-		return true;
+		return matches;
 	};
-
+	
 	SearchCrawler.prototype._visitRecursively = function(directoryLocation){
 		var results = [];
 		var _this = this;
@@ -196,7 +207,7 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 						results.push(_this._buildSingleSkeleton(children[i]));
 					}else if(!_this._cancelled) {
 						var contentType = mContentTypes.getFilenameContentType(children[i].Name, _this.contentTypesCache);
-						if(contentType && (contentType['extends'] === "text/plain" || contentType.id === "text/plain") && _this._onFileType(contentType)){ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+						if(contentType && (contentType['extends'] === "text/plain" || contentType.id === "text/plain") && _this._fileNameMatches(children[i].Name)){ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 							var fileDeferred = _this._sniffSearch(children[i]);
 							results.push(fileDeferred);
 							_this._deferredArray.push(fileDeferred);

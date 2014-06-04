@@ -358,6 +358,7 @@ function(messages, require, lib, i18nUtil, mSearchUtils, mSearchCrawler, navigat
 				caseSensitive: advancedOptions ? advancedOptions.caseSensitive : undefined,
 				regEx: advancedOptions ? advancedOptions.regEx : undefined,
 				fileType: advancedOptions ? advancedOptions.fileType : undefined,
+				fileNamePatterns: (advancedOptions && advancedOptions.fileNamePatterns) ? advancedOptions.fileNamePatterns : undefined,
 				keyword: keyword,
 				replace: advancedOptions ? advancedOptions.replace : undefined
 			};

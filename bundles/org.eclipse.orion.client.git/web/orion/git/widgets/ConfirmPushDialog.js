@@ -30,6 +30,7 @@ define([ 'i18n!git/nls/gitmessages', 'orion/webui/dialog'], function(messages, d
 		this.location = options.location;
 		this.dialog2 = options.dialog;
 		this.func = options.func;
+		this._afterHiding = options.closeCallback;
 		
 		this.buttons = [];
 		if (this.dialog2)

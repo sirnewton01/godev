@@ -11,12 +11,14 @@
 /*global window define document localStorage */
 
 define([
-	'require',
 	'orion/EventTarget',
+	'orion/util',
 	'orion/webui/littlelib'
-], function(require, EventTarget, lib) {
+], function(EventTarget, util, lib) {
 
-	var MIN_SIDE_NODE_WIDTH = 5;//The minimium width/height of the splitted nodes by the splitter
+	var MIN_SIDE_NODE_WIDTH = 5; //The minimium width/height of the splitted nodes by the splitter
+	var ORIENTATION_HORIZONTAL = "horizontal"; //$NON-NLS-0$
+	var ORIENTATION_VERTICAL = "vertical"; //$NON-NLS-0$
 
 	/**
 	 * @name orion.webui.Splitter
@@ -61,7 +63,18 @@ define([
 			if (!this.$sideNode) { throw "no dom node for side panel found"; } //$NON-NLS-0$
 			this.$mainNode = lib.node(options.mainPanel);
 			if (!this.$mainNode) { throw "no dom node for main panel found"; } //$NON-NLS-0$
-			this._vertical = options.vertical;
+			this._vertical = options.vertical || false;
+
+			var classList = this.$node.classList;
+			classList.add("split"); //$NON-NLS-0$
+			classList.add(this._vertical ? "splitVerticalLayout" : "splitLayout"); //$NON-NLS-1$ //$NON-NLS-0$
+			classList = this.$sideNode.classList;
+			classList.add("hasSplit"); //$NON-NLS-0$
+			classList.add(this._vertical ? "sidePanelVerticalLayout" : "sidePanelLayout"); //$NON-NLS-1$ //$NON-NLS-0$
+			classList = this.$mainNode.classList;
+			classList.add("hasSplit"); //$NON-NLS-0$
+			classList.add(this._vertical ? "mainPanelVerticalLayout" : "mainPanelLayout"); //$NON-NLS-1$ //$NON-NLS-0$
+
 			this._prefix = "/orion/splitter/" + (this.$node.id || document.body.id || "");  //$NON-NLS-0$
 			if (options.toggle) {
 				this._thumb = document.createElement("div"); //$NON-NLS-0$
@@ -84,12 +97,68 @@ define([
 			this.$node.style.visibility = "visible"; //$NON-NLS-0$
 			this.$mainNode.style.display = "block"; //$NON-NLS-0$
 			this.$sideNode.style.display = "block"; //$NON-NLS-0$
-			this.$node.addEventListener("mousedown", this._mouseDown.bind(this), false); //$NON-NLS-0$
-			window.addEventListener("mouseup", this._mouseUp.bind(this), false); //$NON-NLS-0$
+			if (util.isIOS || util.isAndroid) {
+				this.$node.addEventListener("touchstart", this._touchStart.bind(this), false); //$NON-NLS-0$
+				if (this._thumb) {
+					this._thumb.addEventListener("touchstart", this._touchStart.bind(this), false); //$NON-NLS-0$
+				}
+				this.$node.addEventListener("touchmove", this._touchMove.bind(this), false); //$NON-NLS-0$
+				this.$node.addEventListener("touchend", this._touchEnd.bind(this), false); //$NON-NLS-0$
+			} else {
+				this.$node.addEventListener("mousedown", this._mouseDown.bind(this), false); //$NON-NLS-0$
+				window.addEventListener("mouseup", this._mouseUp.bind(this), false); //$NON-NLS-0$
+			}
 			window.addEventListener("resize", this._resize.bind(this), false);  //$NON-NLS-0$
 		},
 		isClosed: function() {
 			return this._closed;
+		},
+		getOrientation: function() {
+			return this._vertical ? ORIENTATION_VERTICAL : ORIENTATION_HORIZONTAL;
+		},		
+		setOrientation: function(value) {
+			var vertical = value === ORIENTATION_VERTICAL;
+			if (vertical === this._vertical) {
+				return;
+			}
+
+			this._vertical = vertical;
+
+			var classList = this.$node.classList;
+			classList.toggle("splitLayout"); //$NON-NLS-0$
+			classList.toggle("splitVerticalLayout"); //$NON-NLS-0$
+			this.$node.style.left = "";
+			this.$node.style.top = "";
+			
+			classList = this.$sideNode.classList;
+			classList.toggle("sidePanelLayout"); //$NON-NLS-0$
+			classList.toggle("sidePanelVerticalLayout"); //$NON-NLS-0$
+			this.$sideNode.style.left = "";
+			this.$sideNode.style.top = "";
+			this.$sideNode.style.width = "";
+			this.$sideNode.style.height = "";
+			
+			classList = this.$mainNode.classList;
+			classList.toggle("mainPanelLayout"); //$NON-NLS-0$ 
+			classList.toggle("mainPanelVerticalLayout"); //$NON-NLS-0$
+			this.$mainNode.style.left = "";
+			this.$mainNode.style.top = "";
+			this.$mainNode.style.width = "";
+			this.$mainNode.style.height = "";
+
+			if (this._thumb) {
+				classList = this._thumb.classList;
+				classList.toggle("splitThumbLayout"); //$NON-NLS-0$
+				classList.toggle("splitVerticalThumbLayout"); //$NON-NLS-0$
+			}
+
+			this._initializeFromStoredSettings();
+			if (this._closed) {
+				this._closed = false;        // _thumbDown will toggle it, so turn it off and then call _thumbDown.
+				this._thumbDown(true, true); // do not animate. do not persist the initial state
+			} else {
+				this._adjustToSplitPosition();
+			}
 		},
 		/**
 		 * Toggle the open/closed state of the side panel.
@@ -179,9 +248,7 @@ define([
 					localStorage.setItem(this._prefix+"/yPosition", this._splitTop);  //$NON-NLS-1$ //$NON-NLS-0$
 				}
 				var top = this._splitTop;
-				if (this.$node.parentNode.style.position === "relative") { //$NON-NLS-0$
-					top = this._splitTop - parentRect.top;
-				}
+				top = this._splitTop - parentRect.top;
 				this.$sideNode.style.height = top + "px"; //$NON-NLS-0$
 				this.$sideNode.style.display = "block"; //$NON-NLS-0$
 				this.$node.style.top = top + "px"; //$NON-NLS-0$
@@ -193,9 +260,7 @@ define([
 					localStorage.setItem(this._prefix+"/xPosition", this._splitLeft);  //$NON-NLS-1$ //$NON-NLS-0$
 				}
 				var left = this._splitLeft;
-				if (this.$node.parentNode.style.position === "relative") { //$NON-NLS-0$
-					left = this._splitLeft - parentRect.left;
-				}
+				left = this._splitLeft - parentRect.left;
 				this.$sideNode.style.width = left + "px"; //$NON-NLS-0$
 				this.$sideNode.style.display = "block"; //$NON-NLS-0$
 				this.$node.style.left = left + "px"; //$NON-NLS-0$
@@ -295,6 +360,44 @@ define([
 			this.$mainNode.classList.add(this._vertical ? "mainPanelVerticalLayoutAnimation" : "mainPanelLayoutAnimation"); //$NON-NLS-1$ //$NON-NLS-0$
 			this.$node.classList.add(this._vertical ? "splitVerticalLayoutAnimation" : "splitLayoutAnimation"); //$NON-NLS-1$ //$NON-NLS-0$
 		},
+		
+		_down: function() {
+			this.$node.classList.add("splitTracking"); //$NON-NLS-0$
+			this.$mainNode.classList.add("panelTracking"); //$NON-NLS-0$
+			this.$sideNode.classList.add("panelTracking"); //$NON-NLS-0$
+		},
+		
+		_move: function(clientX, clientY) {
+			var parentRect = lib.bounds(this.$node.parentNode);
+			if (this._vertical) {
+				this._splitTop = clientY;
+				if(this._splitTop < parentRect.top + MIN_SIDE_NODE_WIDTH) {//If the top side of the splitted node is shorter than the min size
+					this._splitTop = parentRect.top + MIN_SIDE_NODE_WIDTH;
+				} else if(this._splitTop > parentRect.top + parentRect.height - MIN_SIDE_NODE_WIDTH) {//If the bottom side of the splitted node is shorter than the min size
+					this._splitTop = parentRect.top + parentRect.height - MIN_SIDE_NODE_WIDTH;
+				}
+				var top = this._splitTop;
+				top = this._splitTop - parentRect.top;
+				this.$node.style.top = top + "px"; //$NON-NLS-0$
+			} else {
+				this._splitLeft = clientX;
+				if(this._splitLeft < parentRect.left + MIN_SIDE_NODE_WIDTH) {//If the left side of the splitted node is narrower than the min size
+					this._splitLeft = parentRect.left + MIN_SIDE_NODE_WIDTH;
+				} else if(this._splitLeft > parentRect.left + parentRect.width - MIN_SIDE_NODE_WIDTH) {//If the right side of the splitted node is narrower than the min size
+					this._splitLeft = parentRect.left + parentRect.width - MIN_SIDE_NODE_WIDTH;
+				}
+				var left = this._splitLeft;
+				left = this._splitLeft - parentRect.left;
+				this.$node.style.left = left + "px"; //$NON-NLS-0$
+			}
+			this._adjustToSplitPosition(true);	
+		},
+		
+		_up: function() {
+			this.$node.classList.remove("splitTracking"); //$NON-NLS-0$
+			this.$mainNode.classList.remove("panelTracking"); //$NON-NLS-0$
+			this.$sideNode.classList.remove("panelTracking"); //$NON-NLS-0$
+		},
 
 		_mouseDown: function(event) {
 			if (event.target === this._thumb) {
@@ -304,9 +407,7 @@ define([
 			if (this._tracking) {
 				return;
 			}
-			this.$node.classList.add("splitTracking"); //$NON-NLS-0$
-			this.$mainNode.classList.add("panelTracking"); //$NON-NLS-0$
-			this.$sideNode.classList.add("panelTracking"); //$NON-NLS-0$
+			this._down(event);
 			this._tracking = this._mouseMove.bind(this);
 			window.addEventListener("mousemove", this._tracking); //$NON-NLS-0$
 			lib.setFramesEnabled(false);
@@ -315,31 +416,7 @@ define([
 
 		_mouseMove: function(event) {
 			if (this._tracking) {
-				var parentRect = lib.bounds(this.$node.parentNode);
-				if (this._vertical) {
-					this._splitTop = event.clientY;
-					if(this._splitTop < parentRect.top + MIN_SIDE_NODE_WIDTH) {//If the top side of the splitted node is shorter than the min size
-						this._splitTop = parentRect.top + MIN_SIDE_NODE_WIDTH;
-					} else if(this._splitTop > parentRect.top + parentRect.height - MIN_SIDE_NODE_WIDTH) {//If the bottom side of the splitted node is shorter than the min size
-						this._splitTop = parentRect.top + parentRect.height - MIN_SIDE_NODE_WIDTH;
-					}
-					var top = this._splitTop;
-					top = this._splitTop - parentRect.top;
-					this.$node.style.top = top + "px"; //$NON-NLS-0$
-				} else {
-					this._splitLeft = event.clientX;
-					if(this._splitLeft < parentRect.left + MIN_SIDE_NODE_WIDTH) {//If the left side of the splitted node is narrower than the min size
-						this._splitLeft = parentRect.left + MIN_SIDE_NODE_WIDTH;
-					} else if(this._splitLeft > parentRect.left + parentRect.width - MIN_SIDE_NODE_WIDTH) {//If the right side of the splitted node is narrower than the min size
-						this._splitLeft = parentRect.left + parentRect.width - MIN_SIDE_NODE_WIDTH;
-					}
-					var left = this._splitLeft;
-					//TODO why multiple by 2?
-					left = this._splitLeft - 2 * parentRect.left;
-					this.$node.style.left = left + "px"; //$NON-NLS-0$
-				}
-				this._adjustToSplitPosition(true);
-				lib.stop(event);
+				this._move(event.clientX, event.clientY);
 			}
 		},
 
@@ -348,14 +425,46 @@ define([
 				lib.setFramesEnabled(true);
 				window.removeEventListener("mousemove", this._tracking); //$NON-NLS-0$
 				this._tracking = null;
-				this.$node.classList.remove("splitTracking"); //$NON-NLS-0$
-				this.$mainNode.classList.remove("panelTracking"); //$NON-NLS-0$
-				this.$sideNode.classList.remove("panelTracking"); //$NON-NLS-0$
+				this._up();
 				lib.stop(event);
+			}
+		},
+		
+		_touchStart: function(event) {
+			var touches = event.touches;
+			if (touches.length === 1) {
+				lib.stop(event);
+				if (event.target === this._thumb) {
+					return this._thumbDown();
+				}
+				this._down(event);
+				this._touching = true;
+			}
+		},
+		
+		_touchMove: function(event) {
+			if (this._touching) {
+				var touches = event.touches;
+				if (touches.length === 1) {
+					var touch = touches[0];
+					this._move(touch.clientX, touch.clientY);
+				}
+			}
+		},
+		
+		_touchEnd: function(event) {
+			var touches = event.touches;
+			if (touches.length === 0) {
+				this._touching = false;
+				this._up();
 			}
 		}
 	};
 	Splitter.prototype.constructor = Splitter;
 	//return the module exports
-	return {Splitter: Splitter};
+	return {
+		Splitter: Splitter,
+		ORIENTATION_HORIZONTAL: ORIENTATION_HORIZONTAL,
+		ORIENTATION_VERTICAL: ORIENTATION_VERTICAL
+	};
 });

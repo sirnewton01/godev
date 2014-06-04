@@ -24,7 +24,7 @@ define(['i18n!orion/operations/nls/messages',  'require', 'orion/webui/littlelib
 			this.operationsClient = operationsClient;
 			this.actionScopeId = actionScopeId;
 			this.renderer = new exports.OperationsRenderer({commandService: commandRegistry, actionScopeId: this.actionScopeId}, this);
-		};
+		}
 
 		OperationsExplorer.prototype = new mExplorer.Explorer();
 		
@@ -73,14 +73,14 @@ define(['i18n!orion/operations/nls/messages',  'require', 'orion/webui/littlelib
 							operation.deferred.then(success.bind(this), failure.bind(this), progress.bind(this));
 							return;
 						}
-						if(error.HttpCode==404 && error.JsonData && error.JsonData.taskNotFound){
+						if(error.HttpCode===404 && error.JsonData && error.JsonData.taskNotFound){
 							globalOperations.remove(this);
 							delete operations[this];
 							that._loadOperationsList.bind(that)(operations);
 							return;
 						}
 						operations[this].operation = operations[this].operation || {};
-						if(error.Severity=="Cancel"){
+						if(error.Severity==="Cancel"){
 							operations[this].operation.type = "abort";
 						}else{
 							operations[this].operation.type = "error";
@@ -154,7 +154,7 @@ define(['i18n!orion/operations/nls/messages',  'require', 'orion/webui/littlelib
 			this._init(options);
 			this.options = options;
 			this.explorer = explorer;
-		};
+		}
 		
 		OperationsRenderer.prototype = new mExplorer.SelectionRenderer();
 		

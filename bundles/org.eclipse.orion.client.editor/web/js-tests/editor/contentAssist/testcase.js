@@ -8,24 +8,35 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define setTimeout*/
+/*global define window setTimeout document*/
 define([
 	'orion/Deferred',
-	'orion/assert',
+	'chai/chai',
 	'orion/editor/textModel',
 	'js-tests/editor/mockTextView',
 	'orion/editor/contentAssist'
-], function(Deferred, assert, mTextModel, mMockTextView, mContentAssist) {
+], function(Deferred, chai, mTextModel, mMockTextView, mContentAssist) {
+	var assert = chai.assert;
 	var ContentAssist = mContentAssist.ContentAssist,
+		ContentAssistWidget = mContentAssist.ContentAssistWidget,
+		ContentAssistMode = mContentAssist.ContentAssistMode,
 	    TextModel = mTextModel.TextModel,
 	    MockTextView = mMockTextView.MockTextView;
 
+	function getNewView() {
+		return new MockTextView({parent: document.createElement("div")});
+	}
+	
+	function getNewContentAssist(view) {
+		return new ContentAssist(view);
+	}
+	
 	function withData(func) {
-		var view = new MockTextView({});
-		var contentAssist = new ContentAssist(view);
+		var view = getNewView();
+		var contentAssist = getNewContentAssist(view);
 		return func(view, contentAssist);
 	}
-
+	
 	/**
 	 * Sets the text in a TextView. An appearance of '@@@' in the text will be replaced by the editing caret.
 	 * @returns {Number} The caret offset
@@ -90,6 +101,25 @@ define([
 	}
 
 	/**
+	 * Sets up a dummy editorContextProvider on the contentAssist so we can test the Orion 5.0+ API.
+	 */
+	function setEditorContextProvider(contentAssist) {
+		var mockEditorContext = {
+			foo: function() {}
+		};
+		contentAssist.setEditorContextProvider({
+			getEditorContext: function() {
+				return mockEditorContext;
+			},
+			getOptions: function() {
+				return {
+					__contributed: "blort"
+				};
+			}
+		});
+	}
+
+	/**
 	 * Like assertProviderInvoked(), but tests the v4 content assist API.
 	 */
 	function assertProviderInvoked_v4(text, providerCallback) {
@@ -116,19 +146,7 @@ define([
 			};
 
 			var provider = providerCallback(checkParams);
-			var mockEditorContext = {
-				foo: function() {}
-			};
-			contentAssist.setEditorContextProvider({
-				getEditorContext: function() {
-					return mockEditorContext;
-				},
-				getOptions: function() {
-					return {
-						__contributed: "blort"
-					};
-				}
-			});
+			setEditorContextProvider(contentAssist);
 			contentAssist.setProviders([ provider ]);
 			contentAssist.activate();
 		});
@@ -136,6 +154,55 @@ define([
 	}
 
 	var tests = {};
+
+	tests.test_getsetProviders = function() {
+		withData(function(view, contentAssist) {
+			var p1 = { computeContentAssist: function() {} };
+			var p2 = {
+				id: "test.provider2", provider: { computeContentAssist: function() {} }
+			};
+			contentAssist.setProviders([p1, p2]);
+			var providers = contentAssist.getProviders();
+			assert.equal(providers.length, 2);
+			assert.equal(providers[0].provider, p1); // p1 should have been wrapped into a provider info
+			assert.equal(providers[1], p2); // p2 should have been returned as-is
+		});
+	};
+
+	// Make sure we can't mutate the backing array of content assist providers from outside
+	tests.test_getProviders_mutate = function() {
+		withData(function(view, contentAssist) {
+			var p1 = { computeContentAssist: function() {} },
+			    providersIn = [p1];
+			contentAssist.setProviders(providersIn);
+			providersIn.pop();
+			assert.equal(contentAssist.getProviders().length, 1, "Mutation does not change backing array");
+			contentAssist.getProviders().pop();
+			assert.equal(contentAssist.getProviders().length, 1, "Mutation does not change backing array");
+		});
+	};
+
+	// Test that the provider having charTriggers leads to automatic invocation of that provider
+	tests.test_charTriggers = function() {
+		var d = new Deferred();
+		withData(function(view, contentAssist) {
+			var p1 = {
+					id: "p1",
+					charTriggers: /</,
+					provider : {
+						computeContentAssist: function() {
+							d.resolve("we were invoked");
+						}
+					}
+			};
+			contentAssist.setProviders([p1]);
+			contentAssist.setAutoTriggerEnabled(true);
+			setEditorContextProvider(contentAssist);
+			view._handleKeyPress(createKeyPressEvent('<'));
+		});
+		return d;
+	};
+
 	// Tests that ContentAssist calls a provider's computeProposals() method with the expected parameters.
 	tests.testComputeProposals = function() {
 		var text = 'this is the first line\nthis is the second line@@@';
@@ -156,9 +223,7 @@ define([
 		});
 	};
 	
-	// Tests that active ContentAssist will not call providers as we type but rather
-	// will filter the proposals itself.
-	tests.testFiltering = function() {
+	function filterTestImpl(delayMS) {
 		var init = new Deferred(),
 			first = new Deferred(),
 		    second = new Deferred(),
@@ -180,10 +245,18 @@ define([
 						if (current.unselectable) {
 							previous++;
 						}
-						return previous
+						return previous;
 					}, 0);
 					assert.strictEqual(3, event.data.proposals.length - numUnselectable); // applicable proposals: "b", "ba", "ab"
-					init.resolve();
+					
+					if (delayMS) {
+						window.setTimeout(function(){
+							init.resolve();
+						}, delayMS);
+					} else {
+						init.resolve();
+					}
+					
 				} catch (e) {
 					init.reject(e); 
 				}
@@ -194,7 +267,13 @@ define([
 					assert.strictEqual("foo b", view.getText());
 					assert.strictEqual(view.getCaretOffset(), view.getModel().getCharCount());
 					assert.strictEqual(2, event.data.proposals.length); // applicable proposals: "b", "ba"
-					first.resolve();
+					if (delayMS) {
+						window.setTimeout(function(){
+							first.resolve();
+						}, delayMS);
+					} else {
+						first.resolve();
+					}
 				} catch (e) {
 					first.reject(e); 
 				}
@@ -227,10 +306,16 @@ define([
 				// 'foo '
 				contentAssist.removeEventListener('ProposalsComputed', initialComputedEvent);
 				contentAssist.addEventListener('ProposalsComputed', firstFilter);
-				
+
 				// Start filtering
 				// 'foo b'
-				view._handleKeyPress(createKeyPressEvent('b'));
+				if (delayMS) {
+					window.setTimeout(function(){
+						view._handleKeyPress(createKeyPressEvent('b'));
+					}, delayMS);
+				} else {
+					view._handleKeyPress(createKeyPressEvent('b'));
+				}
 			});
 			first.then(function() {
 				// Continue filtering
@@ -238,9 +323,195 @@ define([
 				contentAssist.removeEventListener('ProposalsComputed', firstFilter);
 				contentAssist.addEventListener('ProposalsComputed', secondFilter);
 
-				view._handleKeyPress(createKeyPressEvent('a'));
+				// continue filtering
+				// 'foo a'
+				if (delayMS) {
+					window.setTimeout(function(){
+						view._handleKeyPress(createKeyPressEvent('a'));
+					}, delayMS);
+				} else {
+					view._handleKeyPress(createKeyPressEvent('a'));
+				}
 			});
 		});
+		return deferred;
+	}
+	
+	
+	// Tests that active ContentAssist will not call providers as we type but rather
+	// will filter the proposals itself.
+	tests.testFiltering = function() {
+		return filterTestImpl(0);
+	};
+	
+	// Tests that content assist filtering will behave as expected if a 
+	// delay is introduced between the sequence of events
+	tests.testFilteringWith200MSDelay = function() {
+		return filterTestImpl(200);
+	};
+	
+	// Tests that content assist filtering will behave as expected if a 
+	// delay is introduced between the sequence of events
+	tests.testFilteringWith500MSDelay = function() {
+		return filterTestImpl(500);
+	};
+	
+	tests.testFiltering2 = function() {
+		var init = new Deferred(),
+			first = new Deferred(),
+		    second = new Deferred(),
+		    third = new Deferred(),
+		    fourth = new Deferred(),
+		    fifth = new Deferred(),
+		    deferred = Deferred.all([init, first, second, third, fourth, fifth]);
+		var view = getNewView();
+		var contentAssist = getNewContentAssist(view);
+		var dummyNode = document.createElement("div");
+		var contentAssistWidget = new ContentAssistWidget(contentAssist, dummyNode);
+		contentAssistWidget.selectNode = function(){}; //override selectNode() since we aren't testing it here
+		// creating a mode so that deactivation is triggered by it
+		var contentAssistMode = new ContentAssistMode(contentAssist, contentAssistWidget);
+		var delayMS = 100;
+		
+		setText(view, 'foo @@@');
+		var expectedText = "foo ";
+		
+		var provider = {
+			computeProposals: function(buffer, actualOffset, context) {
+				return undefined;
+			}
+		};
+		
+		var provider2 = {
+			computeProposals: function(buffer, actualOffset, context) {
+				return [{proposal: "b"}, {proposal: "baa"}, {proposal: "ab"}];
+			}
+		};
+		
+		var provider3 = {
+			computeProposals: function(buffer, actualOffset, context) {
+				return [undefined];
+			}
+		};
+		
+		contentAssist.setProviders([ provider, provider2, provider3 ]);
+
+		function proposalsComputedListener(boundUserArgs, event) {
+			var boundDeferred = boundUserArgs.boundDeferred;
+			try {
+				contentAssist.removeEventListener('ProposalsComputed', boundUserArgs.currentFunction);
+				assert.strictEqual(expectedText, view.getText());
+				assert.strictEqual(view.getCaretOffset(), view.getModel().getCharCount());
+				var numUnselectable = event.data.proposals.reduce(function(previous, current){
+					if (current.unselectable) {
+						previous++;
+					}
+					return previous;
+				}, 0);
+				assert.strictEqual(boundUserArgs.expectedNumProposals, event.data.proposals.length - numUnselectable);
+				if (delayMS) {
+					window.setTimeout(function(){
+						boundDeferred.resolve();
+					}, delayMS);
+				} else {
+					boundDeferred.resolve();
+				}
+			} catch (e) {
+				boundDeferred.reject(e); 
+			}
+		}
+		
+		function addProposalsComputedListener(boundDeferred, expectedNumProposals) {
+			var boundUserArgs = {
+				boundDeferred: boundDeferred,
+				expectedNumProposals: expectedNumProposals
+			};
+			boundUserArgs.currentFunction = proposalsComputedListener.bind(this, boundUserArgs);
+			contentAssist.addEventListener('ProposalsComputed', boundUserArgs.currentFunction);
+		}
+		
+		addProposalsComputedListener(init, 3);
+		contentAssist.activate();
+		
+		init.then(function() {
+			expectedText = "foo b";
+			addProposalsComputedListener(first, 2);
+
+			// Start filtering
+			// 'foo b'
+			if (delayMS) {
+				window.setTimeout(function(){
+					view._handleKeyPress(createKeyPressEvent('b'));
+				}, delayMS);
+			} else {
+				view._handleKeyPress(createKeyPressEvent('b'));
+			}
+		});
+		
+		first.then(function() {
+			// Continue filtering
+			// 'foo ba'
+			expectedText = "foo ba";
+			addProposalsComputedListener(second, 1);
+			
+			if (delayMS) {
+				window.setTimeout(function(){
+					view._handleKeyPress(createKeyPressEvent('a'));
+				}, delayMS);
+			} else {
+				view._handleKeyPress(createKeyPressEvent('a'));
+			}
+		});
+		
+		function deactivatingHandler(){
+			contentAssist.removeEventListener('Deactivating', deactivatingHandler);
+			third.resolve();
+			window.setTimeout(function(){
+				third.resolve();
+			}, 500);
+		}
+		
+		second.then(function(){
+			contentAssist.addEventListener('Deactivating', deactivatingHandler);
+			
+			view._handleKeyPress(createKeyPressEvent('x'));
+		});
+
+		third.then(function(){
+			setText(view, 'foo b@@@');
+			expectedText = "foo b";
+			addProposalsComputedListener(fourth, 3);
+			
+			provider.computeProposals = function(buffer, actualOffset, context) {
+				return [undefined];
+			};
+			
+			provider2.computeProposals = function(buffer, actualOffset, context) {
+				return [{proposal: "aa"}];
+			};
+			
+			provider3.computeProposals = function(buffer, actualOffset, context) {
+				return [{proposal: "ab"}, {proposal: "za"}];
+			};
+			
+			contentAssist.activate();	
+		});
+		
+		fourth.then(function(){
+			// Continue filtering
+			// 'foo ba'
+			expectedText = "foo ba";
+			addProposalsComputedListener(fifth, 2);
+			
+			if (delayMS) {
+				window.setTimeout(function(){
+					view._handleKeyPress(createKeyPressEvent('a'));
+				}, delayMS);
+			} else {
+				view._handleKeyPress(createKeyPressEvent('a'));
+			}
+		});
+		
 		return deferred;
 	};
 
@@ -286,7 +557,7 @@ define([
 						if (current.unselectable) {
 							previous++;
 						}
-						return previous
+						return previous;
 					}, 0);
 					assert.strictEqual(1, event.data.proposals.length - numUnselectable, 'Got right # of proposals');
 					assert.deepEqual(event.data.proposals[0], proposal);
@@ -325,7 +596,7 @@ define([
 				{
 					computeProposals: function() {
 						d2.resolve();
-						return new Deferred().reject('i rejected');
+						return new Deferred().reject(new Error('i rejected'));
 					}
 				},
 				{
@@ -345,6 +616,24 @@ define([
 			return {
 				computeContentAssist: checkParamsCallback
 			};
+		});
+	};
+
+	// Tests that contentAssist.initialize() calls each provider's initialize method
+	tests.test_initialize = function() {
+		withData(function(view, contentAssist) {
+			var d1 = new Deferred(), d2 = new Deferred();
+			var provider1 = {
+				initialize: d1.resolve.bind(d1),
+				computeContentAssist: function() {}
+			},
+			provider2 = {
+				initialize: d2.resolve.bind(d2),
+				computeContentAssist: function() {}
+			};
+			contentAssist.setProviders([provider1, provider2]);
+			contentAssist.initialize();
+			return Deferred.all([d1, d2]);
 		});
 	};
 

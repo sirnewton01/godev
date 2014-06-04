@@ -18,7 +18,7 @@ define(['orion/Deferred'], function(Deferred) {
 	 * @param {Function} setUp Invoked before the testBody is attempted. This function can return a promise.
 	 * @param {Function} tearDown Invoked after the testBody has been attempted.
 	 * @param {Function} testBody The test body. This can return a promise or an immediate result.
-	 * @returns {Function} An asynchronous test function.
+	 * @returns {Function} A function that returns a Promises
 	 */
 	function makeTest(setUp, tearDown, testBody) {
 		return function() {

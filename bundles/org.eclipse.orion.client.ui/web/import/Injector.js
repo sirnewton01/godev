@@ -29,12 +29,7 @@ define(['require', 'orion/Deferred', 'orion/xhr', 'orion/form', 'orion/URL-shim'
 	/**
 	 * @param {Boolean} data.createUser True to create a new user, false to use an existing user.
 	 * @param {Object} [data.userInfo=null] User data for creating new user, or for logging in.
-	 * When <code>createUser</code> is true, a guest user may be created by providing the following parameters in userInfo:
-	 * <dl>
-	 *  <dt>{Boolean} data.userInfo.Guest</dt> <dd><code>true</code></dd>
-	 *  <dt>{String} [data.userInfo.Name]</dt> <dd>Optional, provides the display name for the guest user.</dd>
-	 * </ul>
-	 * Alternatively, a regular Orion account may created by providing the following parameters in userInfo:
+	 * When <code>createUser</code> is true, an Orion account may created by providing the following parameters in userInfo:
 	 * <dl>
 	 *  <dt>{String} data.userInfo.Email</dt> <dd>Required. May be user for email validation.</dd>
 	 *  <dt>{String} data.userInfo.Login</dt> <dd>Required.</dd>

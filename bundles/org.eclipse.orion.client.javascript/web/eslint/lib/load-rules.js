@@ -1,4 +1,4 @@
-
+/* global require exports define module process __dirname */
 (function(root, factory) {
     if(typeof exports === 'object') {
         module.exports = factory(require, exports, module);
@@ -13,6 +13,8 @@
         root.loadRules = factory(req, exp, mod);
     }
 }(this, function(require, exports, module) {
+"use strict";
+
 var fs = require("fs"),
     path = require("path");
 
@@ -30,6 +32,5 @@ module.exports = function(rulesDir) {
     });
     return rules;
 };
-
     return module.exports;
 }));

@@ -18,7 +18,7 @@
 	font-weight: bold;
 }
 
-.entity.name.tag, .entity-name-tag {
+.entity.name, .entity-name-tag {
 	color: #CC4C07;
 }
 
@@ -61,12 +61,44 @@
 	font-weight: bold;
 }
 
-.markup.heading, .markup-heading {
+.markup.bold {
 	font-weight: bold;
 }
 
-.markup.quote, .markup-quote {
+.markup.heading, .markup-heading {
+	color: blue;
+}
+
+.markup.italic {
 	font-style: italic;
+}
+
+.markup.list {
+	color: #CC4C07;
+}
+
+.markup.other.separator {
+	color: #00008F;
+}
+
+.markup.other.strikethrough {
+	text-decoration: line-through;
+}
+
+.markup.other.table {
+	color: #3C802C;
+}
+
+.markup.quote, .markup-quote {
+	color: #446fbd;
+}
+
+.markup.raw {
+	font-family: monospace
+}
+
+.markup.underline.link {
+	text-decoration: underline;
 }
 
 .meta.annotation.currentLine {

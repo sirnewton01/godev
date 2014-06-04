@@ -40,7 +40,7 @@ define(["orion/xhr", "orion/plugin", "domReady!"], function(xhr, PluginProvider)
 			});
 		},
 		remove: function(name, key){
-			return xhr("DELETE", this.location + name +"?key=" + key, {
+			return xhr("DELETE", this.location + name +"?key=" + encodeURIComponent(key), {
 				headers: {
 					"Orion-Version": "1"
 				},

@@ -93,6 +93,47 @@ define([
 			}
 		}
 	}
+	/**
+	 * Trims messages, skips empty lines until non-empty one is found
+	 */
+	function trimCommitMessage(message) {
+		var splitted = message.split(/\r\n|\n/);
+		var iterator = 0;
+		
+		while(splitted.length > 0 && /^\s*$/.test(splitted[iterator])) {
+			iterator++;
+		}
+		var maxMessageLength = 100;
+		if (splitted[iterator].length > maxMessageLength) return splitted[iterator].substring(0,maxMessageLength)+'...'; //$NON-NLS-0$
+		return splitted[iterator];
+	}
+	
+	/**
+	 * Returns Change-Id and Signed-off-by of a commit if present
+	 */
+	function getGerritFooter(message) {
+		
+		var splitted = message.split(/\r\n|\n/);
+		var footer = {};
+		var changeIdCount = 0, 
+			signedOffByPresent = false;
+		for (var i = splitted.length-1; i >= 0; --i) {
+			var changeId = "Change-Id: ";	//$NON-NLS-0$
+			var signedOffBy = "Signed-off-by: ";	//$NON-NLS-0$
+			if (splitted[i].indexOf(changeId) === 0) {
+				footer.changeId = splitted[i].substring(changeId.length,splitted[i].length);
+				if (++changeIdCount > 1) {
+					footer = {};
+					break;
+				};
+			} else if (!signedOffByPresent && splitted[i].indexOf(signedOffBy) === 0) {
+				footer.signedOffBy = splitted[i].substring(signedOffBy.length,splitted[i].length);
+				signedOffBy = true;
+			}
+		}
+		
+		return footer;
+	}
 
 	return {
 		statusUILocation: statusUILocation,
@@ -101,6 +142,8 @@ define([
 		isChange: isChange,
 		hasStagedChanges: hasStagedChanges,
 		hasUnstagedChanges: hasUnstagedChanges,
-		parseSshGitUrl: parseSshGitUrl
+		parseSshGitUrl: parseSshGitUrl,
+		trimCommitMessage: trimCommitMessage,
+		getGerritFooter: getGerritFooter
 	};
 });

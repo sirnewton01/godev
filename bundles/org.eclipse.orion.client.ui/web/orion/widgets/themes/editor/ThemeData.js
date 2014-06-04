@@ -11,13 +11,18 @@
 /*global widgets orion window console define localStorage ActiveXObject DOMParser*/
 /*jslint browser:true*/
 
-define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'], 
-	function(messages, mTextTheme) {
+define([
+		'i18n!orion/settings/nls/messages',
+		'orion/editor/textTheme',
+		'orion/widgets/themes/ThemeVersion'
+], function(messages, mTextTheme, THEMES_VERSION) {
 
-		/**
-		 * Version string for theme data. Please update this string whenever you change the style of a themable element.
-		 */
-		var THEMES_VERSION = "5.0";
+	// *******************************************************************************
+	//
+	// If you change any styles in this file, you must increment the version number
+	// in ThemeVersion.js.
+	//
+	// *******************************************************************************
 
 		/* Synchronizing colors and styles for HTML, CSS and JS files like this ...
 	
@@ -31,7 +36,6 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 			darkSeaGreen	Comments	Comments	Comments
 			cornFlowerblue	String		String		String
 			----------------------------------------------- */
-	
 
 		function StyleSet(){
 		
@@ -43,7 +47,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 			return resultString + result;
 		}
 		
-		var defaultFont = '"Consolas", "Monaco", "Vera Mono", "monospace"';
+		var defaultFont = '"Consolas", "Monaco", "Vera Mono", monospace';
 		var defaultFontSize = '10pt';
 
 		function ThemeData() {
@@ -64,10 +68,13 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 		eclipse.lineNumberEven = '#444';
 		eclipse.lineNumber = '#444';
 		eclipse.currentLine = '#EAF2FE';
+		eclipse.constant = 'blue';
 		eclipse.tag = 'darkorange';
 		eclipse.attribute = 'cadetBlue';
 		eclipse.fontFamily = defaultFont;
 		eclipse.fontSize = defaultFontSize;
+		eclipse.rightRuler = '#DDDDDD';
+		eclipse.leftRuler = '#DDDDDD'; 
 
 		this.styles.push(eclipse);
 
@@ -81,14 +88,17 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 		prospecto.text = '#333';
 		prospecto.string = '#446FBD';
 		prospecto.overviewRuler = 'white';
-		prospecto.lineNumberOdd = 'silver';
-		prospecto.lineNumberEven = 'silver';
-		prospecto.lineNumber = 'silver';
+		prospecto.lineNumberOdd = '#CCCCCC';
+		prospecto.lineNumberEven = '#CCCCCC';
+		prospecto.lineNumber = '#CCCCCC';
 		prospecto.currentLine = '#EAF2FE';
 		prospecto.tag = '#CC4C07';
 		prospecto.attribute = 'cadetBlue';
 		prospecto.fontFamily = defaultFont;
 		prospecto.fontSize = defaultFontSize;
+		prospecto.rightRuler = '#EEEEEE';
+		prospecto.leftRuler = '#EEEEEE';
+		prospecto.constant = 'darkOrchid';
 
 
 		this.styles.push(prospecto);
@@ -109,8 +119,11 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 		blue.currentLine = 'white';
 		blue.tag = 'cornFlowerBlue';
 		blue.attribute = 'cadetBlue';
+		blue.rightRuler = 'white';
+		blue.leftRuler = 'white';
 		blue.fontFamily = defaultFont;
 		blue.fontSize = defaultFontSize;
+		blue.constant = 'blue';
 
 		this.styles.push(blue);
 
@@ -118,7 +131,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 
 		ambience.name = 'Ambience';
 		ambience.annotationRuler = '#3D3D3D';
-		ambience.background = '#202020';
+		ambience.background = 'darkgrey';
 		ambience.comment = 'mediumslateblue';
 		ambience.keyword = 'cornFlowerBlue';
 		ambience.text = 'darkseagreen';
@@ -130,8 +143,11 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 		ambience.currentLine = 'lightcyan';
 		ambience.tag = 'cornFlowerBlue';
 		ambience.attribute = 'cadetBlue';
+		ambience.rightRuler = '#baa289';
+		ambience.leftRuler = '#baa289';
 		ambience.fontFamily = defaultFont;
 		ambience.fontSize = defaultFontSize;
+		ambience.constant = 'blue';
 
 		this.styles.push(ambience);
 
@@ -151,29 +167,35 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 		tierra.currentLine = '#baa289';
 		tierra.tag = 'darkred';
 		tierra.attribute = 'cadetBlue';
+		tierra.rightRuler = '#baa289';
+		tierra.leftRuler = '#baa289';
 		tierra.fontFamily = defaultFont;
 		tierra.fontSize = defaultFontSize;
+		tierra.constant = 'blue';
 
 		this.styles.push(tierra);
 
 		var nimbus = new StyleSet();
 
 		nimbus.name = 'Nimbus';
-		nimbus.annotationRuler = '#444';
-		nimbus.background = 'dimgray';
+		nimbus.annotationRuler = '#232323';
+		nimbus.background = '#333333';
 		nimbus.comment = 'darkseagreen';
 		nimbus.keyword = 'darkorange';
-		nimbus.text = 'white';
+		nimbus.text = '#DDDDDD';
 		nimbus.string = 'cornflowerblue';
-		nimbus.overviewRuler = '#444';
-		nimbus.lineNumberOdd = '#aaa';
-		nimbus.lineNumberEven = '#aaa';
-		nimbus.lineNumber = '#aaa';
-		nimbus.currentLine = '#aabfbb';
+		nimbus.overviewRuler = '#232323';
+		nimbus.lineNumberOdd = '#555555';
+		nimbus.lineNumberEven = '#555555';
+		nimbus.lineNumber = '#555555';
+		nimbus.currentLine = 'dimgrey';
 		nimbus.tag = 'darkorange';
 		nimbus.attribute = 'cadetBlue';
+		nimbus.rightRuler = '#3a3a3a';
+		nimbus.leftRuler = '#3a3a3a';
 		nimbus.fontFamily = defaultFont;
 		nimbus.fontSize = defaultFontSize;
+		nimbus.constant = '#01B199';
 
 		this.styles.push(nimbus);
 
@@ -193,8 +215,11 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 		adelante.currentLine = '#9e937b';
 		adelante.tag = '#AF473B';
 		adelante.attribute = 'cadetBlue';
+		adelante.rightRuler = '#9e937b';
+		adelante.leftRuler = '#9e937b';
 		adelante.fontFamily = defaultFont;
 		adelante.fontSize = defaultFontSize;
+		adelante.constant = 'blue';
 
 		this.styles.push(adelante);
 
@@ -208,14 +233,17 @@ define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme'],
 		raspberry.text = 'dimgray';
 		raspberry.string = 'darkorange';
 		raspberry.overviewRuler = 'seashell';
-		raspberry.lineNumberOdd = '#E73E36';
-		raspberry.lineNumberEven = '#E73E36';
+		raspberry.lineNumberOdd = '#f6b8b6';
+		raspberry.lineNumberEven = '#f6b8b6';
 		raspberry.lineNumber = '#E73E36';
 		raspberry.currentLine = '#F5B1AE';
 		raspberry.tag = '#E73E36';
 		raspberry.attribute = 'cadetBlue';
+		raspberry.rightRuler = '#fbdfde';
+		raspberry.leftRuler = '#fbdfde';
 		raspberry.fontFamily = defaultFont;
 		raspberry.fontSize = defaultFontSize;
+		raspberry.constant = 'blue';
 
 		this.styles.push(raspberry);
 

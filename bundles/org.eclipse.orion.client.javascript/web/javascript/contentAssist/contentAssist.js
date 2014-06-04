@@ -12,773 +12,125 @@
  *   IBM Corporation - Various improvements
  ******************************************************************************/
 
-/*global esprima doctrine*/
-/*jslint amd:true*/
+/*global doctrine:true define:true */
 define([
-	'javascript/contentAssist/typeEnvironment', 
-	'javascript/contentAssist/typeInference', 
-	'javascript/contentAssist/typeUtils', 
-	'javascript/contentAssist/proposalUtils', 
-	'orion/Deferred',
-	'orion/objects',
-	'esprima',
-	'estraverse'
-], function(typeEnv, typeInf, typeUtils, proposalUtils, Deferred, Objects, Esprima, Estraverse) {
+	'javascript/contentAssist/typeEnvironment',  //$NON-NLS-0$
+	'javascript/contentAssist/typeInference',  //$NON-NLS-0$
+	'javascript/contentAssist/typeUtils',  //$NON-NLS-0$
+	'javascript/contentAssist/proposalUtils',  //$NON-NLS-0$
+	'orion/editor/templates', //$NON-NLS-0$
+	'orion/editor/stylers/application_javascript/syntax', //$NON-NLS-0$
+	'javascript/contentAssist/templates',  //$NON-NLS-0$
+	'orion/Deferred',  //$NON-NLS-0$
+	'orion/objects',  //$NON-NLS-0$
+	'estraverse',  //$NON-NLS-0$
+	'javascript/contentAssist/indexer'  //$NON-NLS-0$
+], function(typeEnv, typeInf, typeUtils, proposalUtils, mTemplates, JSSyntax, Templates, Deferred, Objects, Estraverse, Indexer) {
 
 	/**
-	 * @description Convert an array of parameters into a string and also compute linked editing positions
-	 * @param {String} name The name of the function
-	 * @param {Object} typeObj The type object of the function
-	 * @param {Number} offset The offset into the source
-	 * @return {Object} The function proposal object
+	 * @description Creates a new delegate to create keyword and template proposals
 	 */
-	function calculateFunctionProposal(name, typeObj, offset) {
-		var params = typeObj.params || [];
-		var positions = [];
-		var completion = name + '(';
-		var plen = params.length;
-		for (var p = 0; p < plen; p++) {
-			if (params[p].name === 'new' || params[p].name === 'this') {
-				continue;
-			}
-			if (p > 0) {
-				completion += ', ';
-			}
-			var param = params[p];
-			var optional, rest;
-			if (param.type === 'OptionalType') {
-				param = param.expression;
-				optional=true;
-			}
-
-			if (param.type === 'RestType') {
-				param = param.expression;
-				rest = true;
-			}
-
-			var argName = param.name || 'arg' + p;
-			if (rest) {
-				argName = '...' + argName;
-			}
-			if (optional) {
-				argName = '[' + argName + ']';
-			}
-			positions.push({offset:offset+completion.length+1, length: argName.length});
-			completion += argName;
-		}
-		completion += ')';
-		return {completion: completion, positions: positions.length === 0 ? null : positions};
-	}
-
-	/**
-	 * @description Determines if we should bother visiting the AST to compute proposals
-	 * @param {Object} ast The backing AST to visit
-	 * @param {Number} offset The offset into the source
-	 * @param {String} prefix The text prefix to complete on
-	 * @param {String} contents The text of the file
-	 * @return {Object} Returns the deferred node and the completion kind 
-	 */
-	function shouldVisit(ast, offset, prefix, contents) {
-		var parents = [];
-		Estraverse.traverse(ast, {
-			skipped: false,
-			enter: function(node) {
-				this.skipped = false;
-				// extras prop is where we stuff everything that we have added
-				if (!node.extras) {
-					node.extras = {};
-				}
-				// the program node is always in range even if the range numbers do not line up
-				if ((node.range && proposalUtils.inRange(offset-1, node.range)) || 
-					node.type === Estraverse.Syntax.Program) {
-					if (node.type === Estraverse.Syntax.Identifier) {
-						return Estraverse.VisitorOption.Break;
-					}
-					parents.push(node);
-					if ((node.type === Estraverse.Syntax.FunctionDeclaration || 
-							node.type === Estraverse.Syntax.FunctionExpression) &&
-							node.nody && proposalUtils.isBefore(offset, node.body.range)) {
-						// completion occurs on the word "function"
-						return Estraverse.VisitorOption.Break;
-					}
-					// special case where we are completing immediately after a '.'
-					if (node.type === Estraverse.Syntax.MemberExpression && 
-							!node.property && proposalUtils.afterDot(offset, node, contents)) {
-						return Estraverse.VisitorOption.Break;
-					}
-				} else {
-					this.skipped = true;
-					return Estraverse.VisitorOption.Skip;
-				}
-			},
-			leave: function(node) {
-				if(!this.skipped) {
-					// if we have reached the end of an inRange block expression then
-					// this means we are completing on an empty expression
-					if (node.type === Estraverse.Syntax.Program || (node.type === Estraverse.Syntax.BlockStatement) &&
-							proposalUtils.inRange(offset, node.range)) {
-								return Estraverse.VisitorOption.Break;
-					}
-					parents.pop();
-				}
-			}
-		});
-
-		// determine if we need to defer infering the enclosing function block
-		var toDefer;
-		if (parents && parents.length) {
-			var parent = parents.pop();
-			for (var i = parents.length - 1; i >= 0; i--) {
-				if ((parents[i].type === Estraverse.Syntax.FunctionDeclaration || 
-						parents[i].type === Estraverse.Syntax.FunctionExpression) &&
-						!(parents[i].id && proposalUtils.inRange(offset, parents[i].id.range, true))) {
-					toDefer = parents[i];
-					break;
-				}
-			}
-			switch(parent.type) {
-				case Estraverse.Syntax.MemberExpression: 
-					if (parent.property && proposalUtils.inRange(offset-1, parent.property.range)) {
-						// on the right hand side of a property, eg: foo.b^
-						return { kind : "member", toDefer : toDefer };
-					} else if (proposalUtils.inRange(offset-1, parent.range) && proposalUtils.afterDot(offset, parent, contents)) {
-						// on the right hand side of a dot with no text after, eg: foo.^
-						return { kind : "member", toDefer : toDefer };
-					}
-					break
-				case Estraverse.Syntax.Program:
-				case Estraverse.Syntax.BlockStatement:
-					// completion at a new expression
-					if (!prefix) {
-					}
-					break;
-				case Estraverse.Syntax.VariableDeclarator:
-					if(!parent.init || proposalUtils.isBefore(offset, parent.init.range)) {
-						return null;
-					}
-					break;
-				case Estraverse.Syntax.FunctionDeclaration:
-				case Estraverse.Syntax.FunctionExpression:
-					if(proposalUtils.isBefore(offset, parent.body.range)) {
-						return true;						
-					}
-					break;
-			}
-		}
-		return { kind : "top", toDefer : toDefer };
-	}
-
-	/**
-	 * @description Extracts all doccomments that fall inside the given range.
-	 * Side effect is to remove the array elements
-	 * @param Array.<{range:Array.<Number}>> doccomments
-	 * @param Array.<Number> range
-	 * @return {{value:String,range:Array.<Number>}} array elements that are removed
-	 */
-	function extractDocComments(doccomments, range) {
-		var start = 0, end = 0, i, docStart, docEnd;
-		for (i = 0; i < doccomments.length; i++) {
-			docStart = doccomments[i].range[0];
-			docEnd = doccomments[i].range[1];
-			if (!proposalUtils.isBefore(docStart, range) || !proposalUtils.isBefore(docEnd, range)) {
-				break;
-			}
-		}
-		if (i < doccomments.length) {
-			start = i;
-			for (i = i; i < doccomments.length; i++) {
-				docStart = doccomments[i].range[0];
-				docEnd = doccomments[i].range[1];
-				if (!proposalUtils.inRange(docStart, range, true) || !proposalUtils.inRange(docEnd, range, true)) {
-					break;
-				}
-			}
-			end = i;
-		}
-		return doccomments.splice(start, end-start);
-	}
-
-	/**
-	 * @description Create the description portion of the proposal
-	 * @private
-	 * @param {Object} propType The type description
-	 * @param {Object} env The currently computed type environment
-	 * @returns {String} the description for the proposal
-	 */
-	function createProposalDescription(propType, env) {
-		switch(propType.type) {
-			case 'FunctionType':
-				if(propType.result && propType.result.type === "UndefinedLiteral") {
-					return "";
-				}
-				break;
-		}
-		return " : " + typeUtils.createReadableType(propType, env);
-	}
-
-	/**
-	 * @description Create the array of inferred proposals
-	 * @param {String} targetTypeName The name of the type to find
-	 * @param {Object} env The backing type environment
-	 * @param {String} completionKind The kind of the completion
-	 * @param {String} prefix The start of the expression to complete
-	 * @param {Number} replaceStart The offset into the source where to start the completion
-	 * @param {Object} proposals The object that attach computed proposals to
-	 * @param {Number} relevance The ordering relevance of the proposals
-	 * @param {Object} visited Those types visited thus far while computing proposals (to detect cycles)
-	 */
-	function createInferredProposals(targetTypeName, env, completionKind, prefix, replaceStart, proposals, relevance, visited) {
-		var prop, propTypeObj, propName, res, type = env.lookupQualifiedType(targetTypeName), proto = type.$$proto;
-		if (!relevance) {
-			relevance = 100;
-		}
-		// start at the top of the prototype hierarchy so that duplicates can be removed
-		if (proto) {
-			var cycle = false;
-			if (visited) {
-				if (visited[proto.typeObj.name]) {
-					cycle = true;
-				}
-			} else {
-				visited = {};
-			}
-			if (!cycle) {
-				visited[proto.typeObj.name] = true;
-				createInferredProposals(proto.typeObj.name, env, completionKind, prefix, replaceStart, proposals, relevance - 10, visited);
-			}
-		}
-
-		// add a separator proposal
-		proposals['---dummy' + relevance] = {
-			proposal: '',
-			name: '',
-			description: '---------------------------------',
-			relevance: relevance -1,
-			style: 'hr',
-			unselectable: true
-		};
-
-		// need to look at prototype for global and window objects
-		// so need to traverse one level up prototype hierarchy if
-		// the next level is not Object
-		var realProto = Object.getPrototypeOf(type);
-		var protoIsObject = !Object.getPrototypeOf(realProto);
-		for (prop in type) {
-			if (type.hasOwnProperty(prop) || (!protoIsObject && realProto.hasOwnProperty(prop))) {
-				if (prop.charAt(0) === "$" && prop.charAt(1) === "$") {
-					// special property
-					continue;
-				}
-				if (!proto && prop.indexOf("$_$") === 0) {
-					// no prototype that means we must decode the property name
-					propName = prop.substring(3);
-				} else {
-					propName = prop;
-				}
-				if (propName === "this" && completionKind === "member") {
-					// don't show "this" proposals for non-top-level locations
-					// (eg- this.this is wrong)
-					continue;
-				}
-				if (!type[prop].typeObj) {
-					// minified files sometimes have invalid property names (eg- numbers).  Ignore them)
-					continue;
-				}
-				if (proposalUtils.looselyMatches(prefix, propName)) {
-					propTypeObj = type[prop].typeObj;
-					// if propTypeObj is a reference to a function type,
-					// extract the actual function type
-					if ((env._allTypes[propTypeObj.name]) && (env._allTypes[propTypeObj.name].$$fntype)) {
-						propTypeObj = env._allTypes[propTypeObj.name].$$fntype;
-					}
-					if (propTypeObj.type === 'FunctionType') {
-						res = calculateFunctionProposal(propName,
-								propTypeObj, replaceStart - 1);
-						proposals["$"+propName] = {
-							proposal: res.completion,
-							name: res.completion,
-							description: createProposalDescription(propTypeObj, env),
-							positions: res.positions,
-							escapePosition: replaceStart + res.completion.length,
-							// prioritize methods over fields
-							relevance: relevance + 5,
-							style: 'emphasis',
-							overwrite: true
-						};
-					} else {
-						proposals["$"+propName] = {
-							proposal: propName,
-							relevance: relevance,
-							name: propName,
-							description: createProposalDescription(propTypeObj, env),
-							style: 'emphasis',
-							overwrite: true
-						};
-					}
-				}
-			}
-		}
-	}
-	
-	/**
-	 * @description Creates the collection of non-inferred proposals and adds them to the 
-	 * given proposals object
-	 * @param {Object} environment The type environment
-	 * @param {String} prefix The prefix of the porposal
-	 * @param {Number} replaceStart The offset to start replacing from
-	 * @param {Object} proposals The proposals object
-	 */
-	function createNoninferredProposals(environment, prefix, replaceStart, proposals) {
-		var proposalAdded = false;
-		// a property to return is one that is
-		//  1. defined on the type object
-		//  2. prefixed by the prefix
-		//  3. doesn't already exist
-		//  4. is not an internal property
-		function isInterestingProperty(type, prop) {
-			return type.hasOwnProperty(prop) && prop.indexOf(prefix) === 0 && !proposals['$' + prop] && prop !== '$$proto'&& prop !== '$$isBuiltin' &&
-			prop !== '$$fntype' && prop !== '$$newtype' && prop !== '$$prototype';
-		}
+	function TemplateProvider() {
+ 	}
+ 	
+	TemplateProvider.prototype = new mTemplates.TemplateContentAssist(JSSyntax.keywords, []);
+	Objects.mixin(TemplateProvider.prototype, {
+		uninterestingChars: ":!@#$^&*.?<>", //$NON-NLS-0$
 		/**
-		 * @description Walks over the given type object collection proposals
-		 * @param {Object} type The type object to check
+		 * @description Override from TemplateContentAssist
 		 */
-		function forType(type) {
-			for (var prop in type) {
-				if (isInterestingProperty(type, prop)) {
-					var propType = type[prop].typeObj;
-					if (propType.type === 'FunctionType') {
-						var res = calculateFunctionProposal(prop, propType, replaceStart - 1);
-						proposals[prop] = {
-							proposal: res.completion.substring(prefix.length),
-							name: prop,
-							description: createProposalDescription(propType, environment),
-							positions: res.positions,
-							escapePosition: replaceStart + res.completion.length,
-							// prioritize methods over fields
-							relevance: -99,
-							style: 'noemphasis'
-						};
-						proposalAdded = true;
-					} else {
-						proposals[prop] = {
-							proposal: prop.substring(prefix.length),
-							name: prop,
-							description: createProposalDescription(propType, environment),
-							relevance: -100,
-							style: 'noemphasis'
-						};
-						proposalAdded = true;
+		isValid: function(prefix, buffer, offset/*, context*/) {
+			var char = buffer.charAt(offset-prefix.length-1);
+			return !char || this.uninterestingChars.indexOf(char) === -1;
+		},
+		
+		/**
+		 * @desription override
+		 */
+		getKeywordProposals: function(prefix, completionKind) {
+			var proposals = [];
+			switch(completionKind.kind) {
+				case 'top':
+					proposals = this._createKeywordProposals(this._keywords, prefix);
+					break;
+				case 'prop':
+					proposals = this._createKeywordProposals(['false', 'function', 'new', 'null', 'this', 'true', 'typeof', 'undefined'], prefix);
+					break;
+			}
+			if(proposals.length > 0) {
+				proposals.splice(0, 0,{
+					proposal: '',
+					description: 'Keywords', //$NON-NLS-0$
+					style: 'noemphasis_title_keywords', //$NON-NLS-0$
+					unselectable: true
+				});	
+			}
+			return proposals;
+		},
+		
+		/**
+		 * @description Creates proposal entries from the given array of candidate keywords
+		 * @function
+		 * @private
+		 * @param {Array} keywords The array of keywords
+		 * @param {String} prefix The completion prefix
+		 * @returns {Array} The array of proposal objects
+		 * @since 6.0
+		 */
+		_createKeywordProposals: function(keywords, prefix) {
+			var proposals = [];
+			var len = keywords.length;
+			for (var i = 0; i < len; i++) {
+				if (keywords[i].slice(0, prefix.length) === prefix) {
+					proposals.push({
+						proposal: keywords[i].slice(prefix.length), 
+						description: keywords[i], 
+						style: 'noemphasis_keyword'//$NON-NLS-0$
+					});
+				}
+			}
+			return proposals;
+		},
+		
+		/**
+		 * @description override
+		 */
+		getTemplateProposals: function(prefix, offset, context, completionKind) {
+			var proposals = [];
+			var templates = Templates.getTemplatesForKind(completionKind.kind); //this.getTemplates();
+			for (var t = 0; t < templates.length; t++) {
+				var template = templates[t];
+				if (template.match(prefix)) {
+					var proposal = template.getProposal(prefix, offset, context);
+					this.removePrefix(prefix, proposal);
+					proposals.push(proposal);
+				}
+			}
+			
+			if (0 < proposals.length) {
+				//sort the proposals by name
+				proposals.sort(function(p1, p2) {
+					if (p1.name < p2.name) {
+						return -1;
 					}
-				}
-			}
-		}
-		var allTypes = environment.getAllTypes();
-		for (var typeName in allTypes) {
-			// need to traverse into the prototype
-			if (allTypes[typeName].$$proto) {
-				forType(allTypes[typeName]);
-			}
-		}
-		if (proposalAdded) {
-			proposals['---dummy'] = {
-				proposal: '',
-				name: '',
-				description: 'Non-inferred proposals',
-				relevance: -98,
-				style: 'noemphasis',
-				unselectable: true
-			};
-		}
-	}
-	/**
-	 * @description Visits the given type object
-	 * @param {Object} typeObj The type object to check
-	 * @param {Function} operation The function to call on nodes
-	 */
-	function visitTypeStructure(typeObj, operation) {
-		if (typeof typeObj !== 'object') {
-			return;
-		}
-		switch (typeObj.type) {
-			case 'NullableLiteral':
-			case 'AllLiteral':
-			case 'NullLiteral':
-			case 'UndefinedLiteral':
-			case 'VoidLiteral':
-				// leaf nodes
-				return;
-			case 'NameExpression':
-				operation(typeObj, operation);
-				return;
-			case 'ArrayType':
-				visitTypeStructure(typeObj.expression, operation);
-				// fall-through
-			case 'UnionType':
-				if (typeObj.elements) {
-					typeObj.elements.forEach(function(elt) { visitTypeStructure(elt, operation); });
-				}
-				return;
-			case 'RecordType':
-				if (typeObj.fields) {
-					typeObj.fields.forEach(function(elt) { visitTypeStructure(elt, operation); });
-				}
-				return;
-			case 'FieldType':
-				visitTypeStructure(typeObj.expression, operation);
-				return;
-			case 'FunctionType':
-				// do we need to check for serialized functions???
-				if (typeObj.params) {
-					typeObj.params.forEach(function(elt) { visitTypeStructure(elt, operation); });
-				}
-				if (typeObj.result) {
-					visitTypeStructure(typeObj.result, operation);
-				}
-				return;
-			case 'ParameterType':
-				// TODO FIXADE uncomment to make the size of summaries smaller
-				// by not including parameter types in summary.
-//				typeObj.expression = { name: 'Object', type: 'NameExpression' };
-				visitTypeStructure(typeObj.expression, operation);
-				return;
-
-			case 'TypeApplication':
-				if (typeObj.applications) {
-					typeObj.applications.forEach(function(elt) { visitTypeStructure(elt, operation); });
-				}
-				// fall-through
-			case 'RestType':
-			case 'NonNullableType':
-			case 'OptionalType':
-			case 'NullableType':
-				visitTypeStructure(typeObj.expression, operation);
-				return;
-		}
-	}
-
-	/** 
-	 * @description finds unreachable types from the given type name and marks them as already seen
-	 * @param {String} currentTypeName The type name
-	 * @param {Object} allTypes The root type object
-	 * @param {Object} alreadySeen The type object with signatures tagged as already seen (if they have been)
-	 */
-	function findUnreachable(currentTypeName, allTypes, alreadySeen) {
-		var currentType = allTypes[currentTypeName];
-		var operation = function(typeObj, operation) {
-			if (alreadySeen[typeObj.name]) {
-				// prevent infinite recursion for circular refs
-				return;
-			}
-			alreadySeen[typeObj.name] = true;
-			findUnreachable(typeObj.name, allTypes, alreadySeen);
-		};
-		if (currentType) {
-			for(var prop in currentType) {
-				if (currentType.hasOwnProperty(prop) && prop !== '$$isBuiltin' ) {
-					var propType = prop === '$$fntype' ? currentType[prop] : currentType[prop].typeObj;
-					// don't count $$newtype as keeping a type reachable, since we inline function types
-					if (prop === '$$newtype') { continue; }
-					// must visit the type strucutre
-					visitTypeStructure(propType, operation);
-				}
-			}
-		}
-	}
-
-	/**
-	 * @description Before we can remove empty objects from the type graph, we need to update
-	 * the properties currently pointing to those types.  Make them point to the
-	 * closest non-empty type in their prototype hierarchy (most likely, this is Object).
-	 * @param {Object} currentTypeObject The current object context
-	 * @param {Object} allTypes The root type object
-	 * @param {Object} empties The object of empty types
-	 * @param {Object} alreadySeen The type object of already seen types
-	 */
-	function fixMissingPointers(currentTypeObj, allTypes, empties, alreadySeen) {
-		alreadySeen = alreadySeen || {};
-		var operation = function(typeObj, operation) {
-			while (empties[typeObj.name]) {
-				// change this to the first non-empty prototype of the empty type
-				typeObj.name = allTypes[typeObj.name].$$proto.typeObj.name;
-				if (!typeObj.name) {
-					typeObj.name = 'Object';
-				}
-			}
-			if (alreadySeen[typeObj.name]) {
-				return;
-			}
-			alreadySeen[typeObj.name] = true;
-			var currentType = allTypes[typeObj.name];
-			if (currentType) {
-				for(var prop in currentType) {
-					if (currentType.hasOwnProperty(prop) && prop !== '$$isBuiltin' ) {
-						var propType = prop === '$$fntype' ? currentType[prop] : currentType[prop].typeObj;
-						// must visit the type strucutre
-						visitTypeStructure(propType, operation);
+					if (p1.name > p2.name) {
+						return 1;
 					}
-				}
+					return 0;
+				});
+				// if any templates were added to the list of 
+				// proposals, add a title as the first element
+				proposals.splice(0, 0, {
+					proposal: '',
+					description: 'Templates', //$NON-NLS-0$
+					style: 'noemphasis_title', //$NON-NLS-0$
+					unselectable: true
+				});
 			}
-		};
-		visitTypeStructure(currentTypeObj, operation);
-	}
-
-	/**
-	 * @description If the typeObj is a reference to a function type
-	 * @param {Object} typeObj The type object
-	 * @param {Object} allTypes The root type object
-	 * @returns {Boolean} If the given type object is a NameExpression and is known in the given type collection
-	 * and that its name references a function type
-	 */
-	function fnTypeRef(typeObj, allTypes) {
-		return typeObj.type === "NameExpression" &&
-			allTypes[typeObj.name] && allTypes[typeObj.name].$$fntype;
-	}
-
-	/**
-	 * @description Inline all the function types referenced from the function type
-	 * def, by replacing references to object types with a $$fntype
-	 * property to the value of the $$fntype property
-	 * @param {Object} def The function type
-	 * @param {Object} allTypes The root type object
-	 * @param {Object} fnTypes The function type collector
-	 */
-	function inlineFunctionTypes(def,allTypes,fnTypes) {
-		if (def.params) {
-			for (var i = 0; i < def.params.length; i++) {
-				var paramType = def.params[i];
-				if (fnTypeRef(paramType, allTypes)) {
-					if (fnTypes) { fnTypes[paramType.name] = true; }
-					inlineFunctionTypes(allTypes[paramType.name].$$fntype,allTypes,fnTypes);
-					def.params[i] = allTypes[paramType.name].$$fntype;
-				}
-			}
-		}
-		if (def.result) {
-			if (fnTypeRef(def.result, allTypes)) {
-				if (fnTypes) { fnTypes[def.result.name] = true; }
-				inlineFunctionTypes(allTypes[def.result.name].$$fntype,allTypes,fnTypes);
-				def.result = allTypes[def.result.name].$$fntype;
-			}
-		}
-	}
-
-	/**
-	 * //TODO should this be moved to the environment to filter types as they are added / asked for?
-	 * @description Filters types from the environment that should not be exported
-	 * @param {Object} environment The type environment
-	 * @param {Number} kind The kind 
-	 * @param {Object} moduleTypeObj The type object for the module
-	 * @param {Object} provided The object of provided types
-	 */
-	function filterTypes(environment, kind, moduleTypeObj, provided) {
-		var moduleTypeName = doctrine.type.stringify(moduleTypeObj, {compact: true});
-		var allTypes = environment.getAllTypes();
-		allTypes.clearDefaultGlobal();
-
-
-		// recursively walk the type tree to find unreachable types and delete them, too
-		var reachable = { };
-		var wasReachable = true;
-		if (moduleTypeObj.type !== "NameExpression") {
-			// TODO FIXADE duplicated code
-			visitTypeStructure(moduleTypeObj, function(typeObj, operation) {
-				if (reachable[typeObj.name]) {
-					// prevent infinite recursion for circular refs
-					return;
-				}
-				reachable[typeObj.name] = true;
-				findUnreachable(typeObj.name, allTypes, reachable);
-			});
-		} else {
-			// first remove any types that are unreachable
-			findUnreachable(moduleTypeName, allTypes, reachable);
-			if (!reachable[moduleTypeName]) {
-				// not really reachable, but need to keep it for now to track empties
-				reachable[moduleTypeName] = true;
-				wasReachable = false;
-			}
-		}
-		for (var prop in allTypes) {
-			if (allTypes.hasOwnProperty(prop) && !reachable[prop]) {
-				delete allTypes[prop];
-			}
-		}
-
-		// now find empty types
-		var empties = {};
-		Object.keys(allTypes).forEach(function(key) {
-			if (typeUtils.isEmpty(key, allTypes)) {
-				empties[key] = true;
-			}
-		});
-		// now fix up pointers to empties
-		fixMissingPointers(moduleTypeObj, allTypes, empties);
-
-		if (!wasReachable) {
-			delete allTypes[moduleTypeName];
-		}
-		// don't need the empty types any more
-		Object.keys(empties).forEach(function(key) {
-			delete allTypes[key];
-		});
-
-		// for now, we delete *all* object types representing functions,
-		// "inlining" the function type wherever it appears
-		// TODO devise a serialized representation for function types with
-		// properties
-		var fnTypes = {};
-
-		// now reformat the types so that they are combined and serialized
-		Object.keys(allTypes).forEach(function(typeName) {
-		    var type = allTypes[typeName];
-			for (var defName in type) {
-				if (type.hasOwnProperty(defName)) {
-					var def = type[defName];
-					if (defName === '$$fntype') {
-						// here, we still need to "inline" function types for parameters
-						// and result
-						// TODO make this a visitor?
-						inlineFunctionTypes(def, allTypes, fnTypes);
-					} else {
-						var typeObj = def.typeObj;
-						if (fnTypeRef(typeObj, allTypes)) {
-							fnTypes[typeObj.name] = true;
-							typeObj = allTypes[typeObj.name].$$fntype;
-						}
-						def.typeSig = doctrine.type.stringify(typeObj, {compact: true});
-						delete def._typeObj;
-					}
-				}
-			}
-		});
-
-		if (typeof provided === 'object') {
-			for (var defName in provided) {
-				if (provided.hasOwnProperty(defName)) {
-					var def = provided[defName];
-					if (defName === '$$fntype') {
-						inlineFunctionTypes(def, allTypes, fnTypes);
-					} else {
-						if (def.typeObj) {
-							var typeObj = def.typeObj;
-							if (fnTypeRef(typeObj, allTypes)) {
-								fnTypes[typeObj.name] = true;
-								typeObj = allTypes[typeObj.name].$$fntype;
-							}
-							def.typeSig = doctrine.type.stringify(typeObj, {compact: true});
-							delete def._typeObj;
-						}
-					}
-				}
-			}
-		}
-
-		// finally, delete all function types
-		Object.keys(fnTypes).forEach(function(key) {
-			delete allTypes[key];
-		});
-
-	}
-
-	var browserRegExp = /browser\s*:\s*true/;
-	var nodeRegExp = /node\s*:\s*true/;
-	var amdRegExp = /amd\s*:\s*true/;
-	
-	/**
-	 * @description Find the global objects given the AST comments and the lint options
-	 * @param {Array} comments The array of comment nodes from the AST
-	 * @param {Object} lintOptions The lint options
-	 */
-	function findGlobalObject(comments, lintOptions) {
-		for (var i = 0; i < comments.length; i++) {
-			var comment = comments[i];
-			if (comment.type === "Block" && (comment.value.substring(0, "jslint".length) === "jslint" ||
-											  comment.value.substring(0,"jshint".length) === "jshint")) {
-				// the lint options section.  now look for the browser or node
-				if (comment.value.match(browserRegExp) || comment.value.match(amdRegExp)) {
-					return "Window";
-				} else if (comment.value.match(nodeRegExp)) {
-					return "Module";
-				} else {
-					return "Global";
-				}
-			}
-		}
-		if (lintOptions && lintOptions.options) {
-			if (lintOptions.options.browser === true) {
-				return "Window";
-			} else if (lintOptions.options.node === true) {
-				return "Module";
-			}
-		}
-		return "Global";
-	}
-	
-	/**
-	 * @description Filter and sort the completion proposals from the given proposal collector.
-	 * Proposals are sorted by relevance and name and added to an array.
-	 * @param {Object} proposalsObj The object with all of the completion proposals
-	 * @returns {Array} The sorted proposals array
-	 */
-	function filterAndSortProposals(proposalsObj) {
-		// convert from object to array
-		var proposals = [];
-		for (var prop in proposalsObj) {
-			if (proposalsObj.hasOwnProperty(prop)) {
-				proposals.push(proposalsObj[prop]);
-			}
-		}
-		proposals.sort(function(l,r) {
-			// sort by relevance and then by name
-			if (l.relevance > r.relevance) {
-				return -1;
-			} else if (r.relevance > l.relevance) {
-				return 1;
-			}
-
-			var ldesc = l.name.toLowerCase();
-			var rdesc = r.name.toLowerCase();
-			if (ldesc < rdesc) {
-				return -1;
-			} else if (rdesc < ldesc) {
-				return 1;
-			}
-			return 0;
-		});
-
-		// filter trailing and leading dummies, as well as double dummies
-		var toRemove = [];
-
-		// now remove any leading or trailing dummy proposals as well as double dummies
-		var i = proposals.length -1;
-		while (i >= 0 && proposals[i].description.indexOf('---') === 0) {
-			toRemove[i] = true;
-			i--;
-		}
-		i = 0;
-		while (i < proposals.length && proposals[i].description.indexOf('---') === 0) {
-			toRemove[i] = true;
-			i++;
-		}
-		i += 1;
-		while (i < proposals.length) {
-			if (proposals[i].description.indexOf('---') === 0 && proposals[i-1].description.indexOf('---') === 0) {
-				toRemove[i] = true;
-			}
-			i++;
-		}
-
-		var newProposals = [];
-		for (i = 0; i < proposals.length; i++) {
-			if (!toRemove[i]) {
-				newProposals.push(proposals[i]);
-			}
-		}
-
-		return newProposals;
-	}
-
+			
+			return proposals;
+		},
+	});
 
 	/**
 	 * @description Creates a new JSContentAssist object
@@ -788,16 +140,27 @@ define([
 	 * @param {Object} [indexer] An indexer to load / work with supplied indexes
 	 * @param {Object} lintOptions the given jslint options from the source
 	 */
-	function JSContentAssist(astManager, indexer, lintOptions) {
+	function JSContentAssist(astManager, lintOptions) {
 		this.astManager = astManager;
-		this.indexer = indexer;
+		this.indexer = new Indexer();
 		this.lintOptions = lintOptions;
+		this.provider = new TemplateProvider();
 	}
 
 	/**
 	 * Main entry point to provider
 	 */
 	Objects.mixin(JSContentAssist.prototype, {
+
+		browserRegExp: /browser\s*:\s*true/,
+		nodeRegExp: /node\s*:\s*true/,
+		amdRegExp: /amd\s*:\s*true/,
+
+		/**
+		 * Called by the framework to initialize this provider before any <tt>computeContentAssist</tt> calls.
+		 */
+		initialize: function() {
+		},
 
 		/**
 		 * @description Implements the Orion content assist API v4.0
@@ -812,10 +175,16 @@ define([
 				var ast = results[0], buffer = results[1];
 				return self._computeProposalsFromAST(ast, buffer, params);
 			});
+
 		},
 		/**
-		 * Reshapes typedefs into the expected format, sets up indexData
-		 * @returns {orion.Promise}
+		 * @description Reshapes typedefs into the expected format, sets up indexData
+		 * @function
+		 * @private
+		 * @param {orion.editor.EditorContext} editorContext The editor context
+		 * @param {Object} context The selection context from the editor
+		 * @returns {orion.Promise} The promise to compute the indices
+		 * @since 5.0
 		 */
 		_createIndexData: function(editorContext, context) {
 			if (!this.indexer) {
@@ -838,30 +207,22 @@ define([
 			}
 			return this.indexDataPromise;
 		},
+		
+		/**
+		 * @description Computes inferred proposals from the backing AST
+		 * @function
+		 * @private
+		 * @param {Object} ast The AST
+		 * @param {String} buffer The text for the backing compilation unit
+		 * @param {Object} context The assist context
+		 */
 		_computeProposalsFromAST: function(ast, buffer, context) {
-			/**
-			 * @description An empty promise
-			 * @returns {orion.Promise} An empty promise that does no work
-			 */
-			function emptyArrayPromise() {
-				var d = new Deferred();
-				d.resolve([]);
-				return d.promise;
+			if(!ast || (context.selection && context.selection.start !== context.selection.end)) {
+				return this._noProposals();
 			}
-			if (context.selection && context.selection.start !== context.selection.end) {
-				// only propose if an empty selection.
-				return emptyArrayPromise();
-			}
-
-			var root = ast;
-			if (!root) {
-				// assume a bad parse
-				return emptyArrayPromise();
-			}
-
 			var offset = context.offset;
 			// note that if selection has length > 0, then just ignore everything past the start
-			var completionKind = shouldVisit(root, offset, context.prefix, buffer);
+			var completionKind = this._getCompletionContext(ast, offset, buffer);
 			if (completionKind) {
 				var self = this;
 				return typeEnv.createEnvironment({
@@ -869,28 +230,449 @@ define([
 					uid : "local",
 					offset : offset,
 					indexer: self.indexer,
-					globalObjName : findGlobalObject(root.comments, self.lintOptions),
-					comments : root.comments
+					globalObjName : self._findGlobalObject(ast.comments, self.lintOptions),
+					comments : ast.comments
 				}).then(function(environment) {
 					// must defer inferring the containing function block until the end
 					environment.defer = completionKind.toDefer;
 					if (environment.defer) {
 						// remove these comments from consideration until we are inferring the deferred
-						environment.deferredComments = extractDocComments(environment.comments, environment.defer.range);
+						environment.deferredComments = proposalUtils.extractDocComments(environment.comments, environment.defer.range);
 					}
-					var target = typeInf.inferTypes(root, environment, self.lintOptions);
+					var target = typeInf.inferTypes(ast, environment, self.lintOptions);
 					var proposalsObj = { };
-					createInferredProposals(target, environment, completionKind.kind, context.prefix, offset - context.prefix.length, proposalsObj);
-					if (context.includeNonInferred) {
-						// include the entire universe as potential proposals
-						createNoninferredProposals(environment, context.prefix, offset - context.prefix.length, proposalsObj);
-					}
-					return filterAndSortProposals(proposalsObj);
+					self._createInferredProposals(target, environment, completionKind.kind, context.prefix, offset - context.prefix.length, proposalsObj);
+					return [].concat(self._filterAndSortProposals(proposalsObj), 
+									 self._createTemplateProposals(context, completionKind, buffer),
+									 self._createKeywordProposals(context, completionKind, buffer));
 				});
 			} else {
 				// invalid completion location
-				return emptyArrayPromise();
+				return this._noProposals();
 			}
+		},
+		
+		/**
+		 * @description The promoise for reporting no proposals
+		 * @function
+		 * @private
+		 * @returns {orion.Promise} The promise to return an empty array
+		 * @since 6.0
+		 */
+		_noProposals: function() {
+			var d = new Deferred();
+			d.resolve([]);
+			return d.promise;
+		},
+		
+		/**
+		 * @description Create the keyword proposals
+		 * @function
+		 * @private
+		 * @param {Object} context The completion context
+		 * @param {Object} completionKind The computed completion kind to make
+		 * @param {String} buffer The compilation unit buffer
+		 * @returns {Array} The array of keyword proposals
+		 * @since 6.0
+		 */
+		_createKeywordProposals: function(context, completionKind, buffer) {
+			if((typeof context.keyword === 'undefined' || context.keyword) && 
+					this.provider.isValid(context.prefix, buffer, context.offset, context)) {
+				return this.provider.getKeywordProposals(context.prefix, completionKind);
+			}
+			return [];
+		},
+		
+		/**
+		 * @description Create the template proposals
+		 * @function
+		 * @private
+		 * @param {Object} context The completion context
+		 * @param {Object} completionKind The computed completion kind to make
+		 * @param {String} buffer The compilation unit buffer
+		 * @returns {Array} The array of template proposals
+		 * @since 6.0
+		 */
+		_createTemplateProposals: function(context, completionKind, buffer) {
+			if((typeof context.template === 'undefined' || context.template) && 
+					this.provider.isValid(context.prefix, buffer, context.offset, context)) {
+				return this.provider.getTemplateProposals(context.prefix, context.offset, context, completionKind);
+			}
+			return [];
+		},
+		
+		/**
+		 * @description Create the array of inferred proposals
+		 * @function
+		 * @private
+		 * @param {String} targetTypeName The name of the type to find
+		 * @param {Object} env The backing type environment
+		 * @param {String} completionKind The kind of the completion
+		 * @param {String} prefix The start of the expression to complete
+		 * @param {Number} replaceStart The offset into the source where to start the completion
+		 * @param {Object} proposals The object that attach computed proposals to
+		 * @param {Number} relevance The ordering relevance of the proposals
+		 * @param {Object} visited Those types visited thus far while computing proposals (to detect cycles)
+		 */
+		_createInferredProposals: function(targetTypeName, env, completionKind, prefix, replaceStart, proposals, relevance, visited) {
+			var prop, propTypeObj, propName, res, type = env.lookupQualifiedType(targetTypeName), proto = type.$$proto;
+			if (!relevance) {
+				relevance = 100;
+			}
+			// start at the top of the prototype hierarchy so that duplicates can be removed
+			if (proto) {
+				var cycle = false;
+				if (visited) {
+					if (visited[proto.typeObj.name]) {
+						cycle = true;
+					}
+				} else {
+					visited = {};
+				}
+				if (!cycle) {
+					visited[proto.typeObj.name] = true;
+					this._createInferredProposals(proto.typeObj.name, env, completionKind, prefix, replaceStart, proposals, relevance - 10, visited);
+				}
+			}
+	
+			// add a separator proposal
+			proposals['---dummy' + relevance] = {
+				proposal: '',
+				name: '',
+				description: '---------------------------------',
+				relevance: relevance -1,
+				style: 'hr',
+				unselectable: true
+			};
+	
+			// need to look at prototype for global and window objects
+			// so need to traverse one level up prototype hierarchy if
+			// the next level is not Object
+			var realProto = Object.getPrototypeOf(type);
+			var protoIsObject = !Object.getPrototypeOf(realProto);
+			for (prop in type) {
+				if (type.hasOwnProperty(prop) || (!protoIsObject && realProto.hasOwnProperty(prop))) {
+					if (prop.charAt(0) === "$" && prop.charAt(1) === "$") {
+						// special property
+						continue;
+					}
+					if (!proto && prop.indexOf("$_$") === 0) {
+						// no prototype that means we must decode the property name
+						propName = prop.substring(3);
+					} else {
+						propName = prop;
+					}
+					if (propName === "this" && completionKind === "member") {
+						// don't show "this" proposals for non-top-level locations
+						// (eg- this.this is wrong)
+						continue;
+					}
+					if (!type[prop].typeObj) {
+						// minified files sometimes have invalid property names (eg- numbers).  Ignore them)
+						continue;
+					}
+					if (proposalUtils.looselyMatches(prefix, propName)) {
+						propTypeObj = type[prop].typeObj;
+						// if propTypeObj is a reference to a function type,
+						// extract the actual function type
+						if ((env._allTypes[propTypeObj.name]) && (env._allTypes[propTypeObj.name].$$fntype)) {
+							propTypeObj = env._allTypes[propTypeObj.name].$$fntype;
+						}
+						if (propTypeObj.type === 'FunctionType') {
+							res = this._calculateFunctionProposal(propName,
+									propTypeObj, replaceStart - 1);
+							proposals["$"+propName] = {
+								proposal: res.completion,
+								name: res.completion,
+								description: this._createProposalDescription(propTypeObj, env),
+								positions: res.positions,
+								escapePosition: replaceStart + res.completion.length,
+								// prioritize methods over fields
+								relevance: relevance + 5,
+								style: 'emphasis',
+								overwrite: true
+							};
+						} else {
+							proposals["$"+propName] = {
+								proposal: propName,
+								relevance: relevance,
+								name: propName,
+								description: this._createProposalDescription(propTypeObj, env),
+								style: 'emphasis',
+								overwrite: true
+							};
+						}
+					}
+				}
+			}
+		},
+		
+		/**
+		 * @description Convert an array of parameters into a string and also compute linked editing positions
+		 * @function
+		 * @private
+		 * @param {String} name The name of the function
+		 * @param {Object} typeObj The type object of the function
+		 * @param {Number} offset The offset into the source
+		 * @return {Object} The function proposal object
+		 */
+		_calculateFunctionProposal: function(name, typeObj, offset) {
+			var params = typeObj.params || [];
+			var positions = [];
+			var completion = name + '(';
+			var plen = params.length;
+			for (var p = 0; p < plen; p++) {
+				if (params[p].name === 'new' || params[p].name === 'this') {
+					continue;
+				}
+				if (p > 0) {
+					completion += ', ';
+				}
+				var param = params[p];
+				var optional, rest;
+				if (param.type === 'OptionalType') {
+					param = param.expression;
+					optional=true;
+				}
+	
+				if (param.type === 'RestType') {
+					param = param.expression;
+					rest = true;
+				}
+	
+				var argName = param.name || 'arg' + p;
+				if (rest) {
+					argName = '...' + argName;
+				}
+				if (optional) {
+					argName = '[' + argName + ']';
+				}
+				positions.push({offset:offset+completion.length+1, length: argName.length});
+				completion += argName;
+			}
+			completion += ')';
+			return {completion: completion, positions: positions.length === 0 ? null : positions};
+		},
+		
+		/**
+		 * @description Create the description portion of the proposal
+		 * @function
+		 * @private
+		 * @param {Object} propType The type description
+		 * @param {Object} env The currently computed type environment
+		 * @returns {String} the description for the proposal
+		 */
+		_createProposalDescription: function(propType, env) {
+			switch(propType.type) {
+				case 'FunctionType':
+					if(propType.result && propType.result.type === "UndefinedLiteral") {
+						return "";
+					}
+					break;
+			}
+			return " : " + typeUtils.createReadableType(propType, env);
+		},
+		
+		/**
+		 * @description Filter and sort the completion proposals from the given proposal collector.
+		 * Proposals are sorted by relevance and name and added to an array.
+		 * @function
+		 * @private
+		 * @param {Object} proposalsObj The object with all of the completion proposals
+		 * @returns {Array} The sorted proposals array
+		 */
+		_filterAndSortProposals: function(proposalsObj) {
+			// convert from object to array
+			var proposals = [];
+			for (var prop in proposalsObj) {
+				if (proposalsObj.hasOwnProperty(prop)) {
+					proposals.push(proposalsObj[prop]);
+				}
+			}
+			proposals.sort(function(l,r) {
+				// sort by relevance and then by name
+				if (l.relevance > r.relevance) {
+					return -1;
+				} else if (r.relevance > l.relevance) {
+					return 1;
+				}
+	
+				var ldesc = l.name.toLowerCase();
+				var rdesc = r.name.toLowerCase();
+				if (ldesc < rdesc) {
+					return -1;
+				} else if (rdesc < ldesc) {
+					return 1;
+				}
+				return 0;
+			});
+	
+			// filter trailing and leading dummies, as well as double dummies
+			var toRemove = [];
+	
+			// now remove any leading or trailing dummy proposals as well as double dummies
+			var i = proposals.length -1;
+			while (i >= 0 && proposals[i].description.indexOf('---') === 0) {
+				toRemove[i] = true;
+				i--;
+			}
+			i = 0;
+			while (i < proposals.length && proposals[i].description.indexOf('---') === 0) {
+				toRemove[i] = true;
+				i++;
+			}
+			i += 1;
+			while (i < proposals.length) {
+				if (proposals[i].description.indexOf('---') === 0 && proposals[i-1].description.indexOf('---') === 0) {
+					toRemove[i] = true;
+				}
+				i++;
+			}
+	
+			var newProposals = [];
+			for (i = 0; i < proposals.length; i++) {
+				if (!toRemove[i]) {
+					newProposals.push(proposals[i]);
+				}
+			}
+	
+			return newProposals;
+		},
+		
+		/**
+		 * @description Find the global objects given the AST comments and the lint options
+		 * @function
+		 * @private
+		 * @param {Array} comments The array of comment nodes from the AST
+		 * @param {Object} lintOptions The lint options
+		 */
+		_findGlobalObject: function(comments, lintOptions) {
+			for (var i = 0; i < comments.length; i++) {
+				var comment = comments[i];
+				if (comment.type === "Block" && (comment.value.substring(0, "jslint".length) === "jslint" ||
+												  comment.value.substring(0,"jshint".length) === "jshint")) {
+					// the lint options section.  now look for the browser or node
+					if (comment.value.match(this.browserRegExp) || comment.value.match(this.amdRegExp)) {
+						return "Window";
+					} else if (comment.value.match(this.nodeRegExp)) {
+						return "Module";
+					} else {
+						return "Global";
+					}
+				}
+			}
+			if (lintOptions && lintOptions.options) {
+				if (lintOptions.options.browser === true) {
+					return "Window";
+				} else if (lintOptions.options.node === true) {
+					return "Module";
+				}
+			}
+			return "Global";
+		},
+		
+		/**
+		 * @description Computes the context for the completion to take place
+		 * @param {Object} ast The backing AST to visit
+		 * @param {Number} offset The offset into the source
+		 * @param {String} contents The text of the file
+		 * @return {Object} Returns the deferred node and the completion kind
+		 * @since 6.0
+		 */
+		_getCompletionContext: function(ast, offset, contents) {
+			var parents = [];
+			Estraverse.traverse(ast, {
+				skipped: false,
+				/*override*/
+				enter: function(node) {
+					this.skipped = false;
+					// extras prop is where we stuff everything that we have added
+					if (!node.extras) {
+						node.extras = {};
+					}
+					// the program node is always in range even if the range numbers do not line up
+					if ((node.range && proposalUtils.inRange(offset-1, node.range)) || 
+						node.type === Estraverse.Syntax.Program) {
+						if (node.type === Estraverse.Syntax.Identifier) {
+							return Estraverse.VisitorOption.Break;
+						}
+						parents.push(node);
+						if ((node.type === Estraverse.Syntax.FunctionDeclaration || 
+								node.type === Estraverse.Syntax.FunctionExpression) &&
+								node.body && proposalUtils.isBefore(offset, node.body.range)) {
+							// completion occurs on the word "function"
+							return Estraverse.VisitorOption.Break;
+						}
+						// special case where we are completing immediately after a '.'
+						if (node.type === Estraverse.Syntax.MemberExpression && 
+								!node.property && proposalUtils.afterDot(offset, node, contents)) {
+							return Estraverse.VisitorOption.Break;
+						}
+					} else {
+						this.skipped = true;
+						return Estraverse.VisitorOption.Skip;
+					}
+				},
+				/*override*/
+				leave: function(node) {
+					if(!this.skipped) {
+						// if we have reached the end of an inRange block expression then
+						// this means we are completing on an empty expression
+						if (node.type === Estraverse.Syntax.Program || (node.type === Estraverse.Syntax.BlockStatement) &&
+								proposalUtils.inRange(offset, node.range)) {
+									return Estraverse.VisitorOption.Break;
+						}
+						parents.pop();
+					}
+				}
+			});
+	
+			// determine if we need to defer infering the enclosing function block
+			var toDefer;
+			if (parents && parents.length) {
+				var parent = parents.pop();
+				for (var i = parents.length - 1; i >= 0; i--) {
+					if ((parents[i].type === Estraverse.Syntax.FunctionDeclaration || 
+							parents[i].type === Estraverse.Syntax.FunctionExpression) &&
+							!(parents[i].id && proposalUtils.inRange(offset, parents[i].id.range, true))) {
+						toDefer = parents[i];
+						break;
+					}
+				}
+				switch(parent.type) {
+					case Estraverse.Syntax.MemberExpression: 
+						if (parent.property && proposalUtils.inRange(offset-1, parent.property.range)) {
+							// on the right hand side of a property, eg: foo.b^
+							return { kind : 'member', toDefer : toDefer };
+						} else if (proposalUtils.inRange(offset-1, parent.range) && proposalUtils.afterDot(offset, parent, contents)) {
+							// on the right hand side of a dot with no text after, eg: foo.^
+							return { kind : 'member', toDefer : toDefer };
+						}
+						break
+					case Estraverse.Syntax.Program:
+					case Estraverse.Syntax.BlockStatement:
+						break;
+					case Estraverse.Syntax.VariableDeclarator:
+						if(!parent.init || proposalUtils.isBefore(offset, parent.init.range)) {
+							return null;
+						}
+						break;
+					case Estraverse.Syntax.FunctionDeclaration:
+					case Estraverse.Syntax.FunctionExpression:
+						if(proposalUtils.isBefore(offset, parent.body.range)) {
+							return true;						
+						}
+						break;
+					case Estraverse.Syntax.Property:
+						if(proposalUtils.inRange(offset-1, parent.value.range)) {
+							return { kind : 'prop', toDefer : toDefer };
+						}
+						return null;
+					case Estraverse.Syntax.SwitchStatement:
+						return {kind: 'swtch', toDefer: toDefer};
+				}
+			}
+			return { kind : 'top', toDefer : toDefer };
 		}
 	});
 	

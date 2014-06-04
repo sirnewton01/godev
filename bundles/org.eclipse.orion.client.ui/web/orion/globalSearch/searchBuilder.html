@@ -1,70 +1,36 @@
+	<div class="searchMainOptionBlock">
+		<div id="searchInputFieldWrapper" class="searchPageInputFieldWrapper">
+		   	<input type="text" id="advSearchInput" class="searchPageInputField">
+		  	<button id="previousSearchButton" class="orionButton previousSearchButton" tabindex="-1">
+		  		<span class="core-sprite-openarrow" class="previousSearchArrow"></span>
+			</button>
+			<span id="advSearchCmd"></span>
+		</div>
+		<div id="replaceWrapper" class="replaceWrapper replaceWrapperHidden">
+			<div id="replaceInputFieldWrapper" class="searchPageInputFieldWrapper">
+			   	<input type="text" id="advReplaceInput" class="searchPageInputField replaceInputField">
+				<span id="advReplacePreviewCmd"></span>
+			</div>	
+		</div>
+		<a id="toggleReplaceLink" class="toggleDisplayLink"></a>
+	</div>
+	
 	<div class="searchOptionBlock">
-		<table>
-			<tr>
-				<td>
-					<input type="text" class="search-control" style="min-width:20em;" id="advSearchInput"></input>
-				</td>
-				<td>
-					<span id="advSearchCmd" ></span>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<input type="text" class="search-control" style="min-width:20em;" id="advReplaceInput"></input>
-				</td>
-				<td>
-					<span id="advReplacePreviewCmd" ></span>
-				</td>
-			</tr>
-		</table>
+		<label id="advSearchCaseSensitiveLabel" class="searchCheckboxLabel" for="advSearchCaseSensitive"></label><input type="checkbox" id="advSearchCaseSensitive" class="searchCheckbox">
+		<span class="layoutRight">
+			<label id="advSearchRegExLabel" class="searchCheckboxLabel" for="advSearchRegEx"></label><input type="checkbox" id="advSearchRegEx" class="searchCheckbox">
+		</span>
 	</div>
 	<div class="searchOptionBlock">
-		<table>
-			<tr>
-				<td>
-					<label id="advSearchTypeLabel"  class="search-label"></label>
-				</td>
-				<td>
-					<select id="advSearchTypes" class="search-control" style="min-width:10em;"></select>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<label id="advSortByLabel"  class="search-label"></label>
-				</td>
-				<td>
-					<select id="advSortBy" class="search-control" style="min-width:10em;"></select>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<label id="advSearchCaseSensitiveLabel" class="search-label" ></label>
-				</td>
-				<td>
-					<input type="checkbox" id="advSearchCaseSensitive" class="search-control"></input>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<label id="advSearchRegExLabel"  class="search-label"></label>
-				</td>
-				<td>
-					<input type="checkbox" id="advSearchRegEx" class="search-control"></input>
-				</td>
-			</tr>
-		</table>
-	</div>
-	<div class="searchOptionBlock">
-		<table>
-			<tr>
-				<td>
-					<input type="text" class="search-control" style="min-width:20em;" id="advSaveSearchInput"></input>
-				</td>
-				<td>
-					<span id="advSaveSearchCmd" ></span>
-				</td>
-			</tr>
-		</table>
-	</div>
-	<div class="searchOptionBlock" id="moreOptions">
+		<div id="fileNamePatternsLabel" class="searchLabel"></div>
+		<input id="fileNamePatternsInput" type="text" class="fileNamePatternsInput">
+		<span id="fileNamePatternsHint" class="fileNamePatternsHint"></span>
+		
+		<div id="searchScope" class="searchScope">
+			<div id="searchScopeLabel" class="searchLabel"></div>
+			<span id="searchScopeInputWrapper" class="searchScopeInputWrapper">
+				<span id="searchScopeElementWrapper" class="searchScopeElementWrapper"></span>
+				<button id="searchScopeSelectButton" class="commandButton core-sprite-outline searchScopeSelectButton"></button>
+			</span>
+		</div>
 	</div>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (C) 2013, IBM Corporation and others.
+
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License v1.0
+    (http://www.eclipse.org/legal/epl-v10.html),
+    and the Eclipse Distribution License v1.0
+    (http://www.eclipse.org/org/documents/edl-v10.html).
+
+    Contributors:
+      IBM Corporation - initial implementation
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>org.eclipse.orion</groupId>
+	<artifactId>org.eclipse.orion.client.webtools</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>eclipse-plugin</packaging>
+
+	<parent>
+		<groupId>org.eclipse.orion</groupId>
+		<artifactId>org.eclipse.orion.client.parent</artifactId>
+		<version>1.0.0-SNAPSHOT</version>
+		<relativePath>../..</relativePath>
+	</parent>
+
+</project>

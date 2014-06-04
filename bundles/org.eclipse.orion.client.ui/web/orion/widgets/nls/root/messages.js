@@ -77,5 +77,7 @@ define({
 	"Upload..." : "Upload...",
 	"For a list of available commands type '${0}'.": "For a list of available commands type '${0}'.",
 	"Main Pages": "Main Pages",
-	"Related Links": "Related Links"
+	"Related Links": "Related Links",
+	"Yes": "Yes",
+	"No": "No"
 });

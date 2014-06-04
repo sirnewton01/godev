@@ -145,6 +145,12 @@ define("orion/editor/templates", [], function() { //$NON-NLS-0$
 				templates.push(new Template(json[j].prefix, json[j].description, json[j].template, json[j].name));
 			}
 		},
+		/**
+		 * Called by the content assist engine to initialize this provider before any <tt>computeProposals()</tt> calls.
+		 * This implementation does nothing; subclasses may override.
+		 */
+		initialize: function() {
+		},
 		computeProposals: function(buffer, offset, context) {
 			var prefix = this.getPrefix(buffer, offset, context);
 			var proposals = [];

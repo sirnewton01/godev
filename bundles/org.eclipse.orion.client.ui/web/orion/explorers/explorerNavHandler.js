@@ -42,6 +42,7 @@ exports.ExplorerNavHandler = (function() {
 	 * <ul>
 	 * <li><code>"cursorOnly"</code>: No selection of model items is allowed.</li>
 	 * <li><code>"singleSelection"</code>: Up to 1 model item can be selected.</li>
+	 * <li><code>"readonlySelection"</code>: Selection cannot be changed while this selection policy is set.</li>
 	 * <li><code>null</code>: Zero or more model items can be selected. This is the default.</li>
 	 * </ul>
 	 * @param {Function} [options.postDefaultFunc] If this function provides addtional behaviors after the default behavior. Some explorers may want to do something else when the cursor is changed, etc.
@@ -255,6 +256,9 @@ exports.ExplorerNavHandler = (function() {
 			if (this._selectionPolicy === policy) {
 				return;
 			}
+			if(this._selectionPolicy === "readonlySelection" || policy === "readonlySelection"){
+				this._toggleSelectionClass("disabledRow", policy==="readonlySelection");
+			}
 			this._selectionPolicy = policy;
 			if(this._selectionPolicy === "cursorOnly"){ //$NON-NLS-0$
 				this._clearSelection(true);
@@ -262,6 +266,9 @@ exports.ExplorerNavHandler = (function() {
 		},
 		
 		setSelection: function(model, toggling, shiftSelectionAnchor){
+			if(this._selectionPolicy === "readonlySelection"){
+				return;
+			}
 			if(this._selectionPolicy === "cursorOnly"){ //$NON-NLS-0$
 				if(toggling && this.explorer.renderer._useCheckboxSelection){
 					this._checkRow(model,true);
@@ -517,6 +524,20 @@ exports.ExplorerNavHandler = (function() {
 			}
 		},
 		
+		_toggleSelectionClass: function(className, on){
+			this._selections.forEach(function(selection){
+				var selectedDiv = this.getRowDiv(selection);
+				if(!selectedDiv){
+					return;
+				}
+				if(on){
+					selectedDiv.classList.add(className);
+				} else {
+					selectedDiv.classList.remove(className);
+				}
+			}.bind(this));
+		},
+		
 		_setCursorOnItem: function(forward, selecting) {
 			this.cursorOn(null, false, forward);
 			if(selecting){
@@ -573,7 +594,7 @@ exports.ExplorerNavHandler = (function() {
 		},
 		
 		onClick: function(model, mouseEvt)	{
-			if (this.isDisabled(this.getRowDiv(model))) {
+			if (this._selectionPolicy === "readonlySelection" || this.isDisabled(this.getRowDiv(model))) {
 				lib.stop(mouseEvt);
 			} else {
 				var twistieSpan = lib.node(this.explorer.renderer.expandCollapseImageId(this.model.getId(model)));

@@ -11,36 +11,30 @@
 
 /*global define*/
 
-define("orion/editor/stylers/application_x-ejs/syntax", ["orion/editor/stylers/lib/syntax", "orion/editor/stylers/application_javascript/syntax", "orion/editor/stylers/application_xml/syntax"], //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+define("orion/editor/stylers/application_x-ejs/syntax", ["orion/editor/stylers/lib/syntax", "orion/editor/stylers/application_javascript/syntax", "orion/editor/stylers/application_xml/syntax"], //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 	function(mLib, mJS, mXML) {
 
 	var grammars = mLib.grammars.concat(mJS.grammars).concat(mXML.grammars);
 	grammars.push({
-		id: "orion.ejs",
-		contentTypes: ["application/x-ejs"],
+		id: "orion.ejs", //$NON-NLS-0$
+		contentTypes: ["application/x-ejs"], //$NON-NLS-0$
 		patterns: [
+			{include: "orion.xml#comment"}, //$NON-NLS-0$
+			{include: "orion.xml#doctype"}, //$NON-NLS-0$
 			{
-				include: "orion.xml"
-			}, {
-				begin: "<%=?(?:\\s|$)",
-				end: "%>",
+				begin: "<%=?(?:\\s|$)", //$NON-NLS-0$
+				end: "%>", //$NON-NLS-0$
 				captures: {
-					0: {name: "entity.name.declaration.js"}
+					0: {name: "entity.name.declaration.js"} //$NON-NLS-0$
 				},
-				contentName: "source.js.embedded.ejs",
+				contentName: "source.js.embedded.ejs", //$NON-NLS-0$
 				patterns: [
-					{
-						include: "orion.js"
-					}
+					{include: "orion.js"} //$NON-NLS-0$
 				]
-			}
-		],
-		repository: {
-			/* override orion.xml#doctype (no-op) */
-			doctype: {},
-			/* override orion.xml#xmlDeclaration (no-op) */
-			xmlDeclaration: {}
-		}
+			},
+			{include: "orion.xml#tag"}, //$NON-NLS-0$
+			{include: "orion.xml#ampersandEscape"} //$NON-NLS-0$
+		]
 	});
 	return {
 		id: grammars[grammars.length - 1].id,

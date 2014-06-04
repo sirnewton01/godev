@@ -402,5 +402,12 @@ define({
 	"Revert changes introduced by the commit into your active branch": "Revert changes introduced by the commit into your active branch",
 	". Could not revert into active branch": ". Could not revert into active branch",
 	"Login": "Login",
-	"Authentication required for: ${0}. ${1} and re-try the request.": "Authentication required for: ${0}. ${1} and re-try the request."
+	"Authentication required for: ${0}. ${1} and re-try the request.": "Authentication required for: ${0}. ${1} and re-try the request.",
+	"Remember my committer name and email:":"Remember my committer name and email:",
+	"Successfully edited ${0} to have value ${1}":"Successfully edited ${0} to have value ${1}",
+	"Successfully added ${0} with value ${1}":"Successfully added ${0} with value ${1}",
+	"Signed-off-by: ":"Signed-off-by: ",
+	"Change-Id: ":"Change-Id: ",
+	"REJECTED_NONFASTFORWARD":"Push is non-fastforward and was rejected. Use Fetch to see new commits that must be merged.",
+	"Commit and Push" : "Commit and Push"
 });

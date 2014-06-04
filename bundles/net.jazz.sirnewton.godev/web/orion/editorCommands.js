@@ -97,12 +97,9 @@ define([
 						}
 					}
 					window.removeEventListener("message", _messageHandler, false); //$NON-NLS-0$
-					iframe.parentNode.removeChild(iframe);
-					
-					// GODEV CUSTOMIZATION START
-					// https://bugs.eclipse.org/bugs/show_bug.cgi?id=424675
-					delegatedParent.parentNode.removeChild(delegatedParent);
-					// GODEV CUSTOMIZATION END
+					if (delegatedParent.parentNode) {
+						delegatedParent.parentNode.removeChild(delegatedParent);
+					}
 				}
 			}
 		}, false);
@@ -612,7 +609,7 @@ define([
 					deferred.then(function(commandOptions){
 						var command = makeCommand(info, service, commandOptions);
 						self.commandService.addCommand(command);
-						self.commandService.registerCommandContribution(self.toolbarId, command.id, position, "orion.menuBarToolsGroup", false, createKeyBinding(info.key)); //$NON-NLS-0$
+						self.commandService.registerCommandContribution(self.toolbarId, command.id, position, "orion.menuBarToolsGroup", info.bindingOnly, createKeyBinding(info.key)); //$NON-NLS-0$
 					});
 					position++;
 				});

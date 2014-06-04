@@ -28,12 +28,19 @@
 
 			<!-- User identity menu and Progress -->
 			<div id="userMenu" class="spacingRight layoutRight" style="color:#ccc;line-height:16px;">
+				<div id="progressPane" class="progressWatch" tabindex="0" role="progressbar">
+					<div id="watchButton" class="watchButton"></div>
+					<div id="watchBody" class="watchBody">
+						<span class="hand longMinute">
+							<span class="darkSide"></span>
+						</span>
+						<span class="hand longHour">
+							<span class="darkSide"></span>
+						</span>
+					</div>
+				</div>
+				
 				<div style="position: absolute;right: 0px;top:0;width: 39px;height:36px; z-index:-50;border-left: 1px solid #ddd;"></div>
-
-				<!-- Progress indicator -->
-				<img class="progressPane" id="progressPane" tabindex="0" role="progressbar"></img>
-
-				<!-- User identity menu -->
 				<span id="userTrigger" tabindex="0" role="button" class="dropdownTrigger" style="z-index:2;">
 				</span>
 				<ul id="userDropdown" class="dropdownMenu" role="menu"></ul>

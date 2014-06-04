@@ -47,6 +47,7 @@ define(['i18n!git/nls/gitmessages', 'require', 'orion/browserCompatibility', 'or
 		// define commands
 		mGitCommands.createFileCommands(serviceRegistry, commandRegistry, explorer, "pageActions", "selectionTools"); //$NON-NLS-1$ //$NON-NLS-0$
 		mGitCommands.createGitClonesCommands(serviceRegistry, commandRegistry, explorer, "pageActions", "selectionTools", fileClient); //$NON-NLS-1$ //$NON-NLS-0$
+		mGitCommands.createSharedCommands(serviceRegistry, commandRegistry, explorer, "pageActions", "selectionTools", fileClient); //$NON-NLS-1$ //$NON-NLS-0$
 		mGitCommands.createGitStatusCommands(serviceRegistry, commandRegistry, explorer);
 
 		// page command contributions

@@ -732,9 +732,10 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		while (!annotation && iter.hasNext()) {
 			var a = iter.next();
 			if (!this.isAnnotationTypeVisible(a.type)) { continue; }
+			if (model.getLineAtOffset(a.start) !== model.getLineAtOffset(start)) { continue; }
 			annotation = a;
 		}
-		if (annotation && model.getLineAtOffset(annotation.start) === model.getLineAtOffset(start)) {
+		if (annotation) {
 			var tooltip = mTooltip.Tooltip.getTooltip(this._view);
 			if (tooltip) {
 				tooltip.setTarget(null);
@@ -748,12 +749,26 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 	};
 	/** @ignore */
 	FoldingRuler.prototype._getTooltipContents = function(lineIndex, annotations) {
-		if (annotations.length === 1) {
-			if (annotations[0].expanded) {
-				return null;
+		if (annotations.length > 0) {
+			var view = this._view;
+			var model = view.getModel();
+			var start = model.getLineStart(lineIndex);
+			if (model.getBaseModel) {
+				start = model.mapOffset(start);
+				model = model.getBaseModel();
+			}
+			var mapLineIndex = model.getLineAtOffset(start);
+			for (var i = 0; i < annotations.length; i++) {
+				var a = annotations[i];
+				if (!this.isAnnotationTypeVisible(a.type)) { continue; }
+				if (model.getLineAtOffset(a.start) !== mapLineIndex) { continue; }
+				if (annotations[i].expanded) {
+					break;
+				}
+				return AnnotationRuler.prototype._getTooltipContents.call(this, lineIndex, [a]);
 			}
 		}
-		return AnnotationRuler.prototype._getTooltipContents.call(this, lineIndex, annotations);
+		return null;
 	};
 	/** @ignore */
 	FoldingRuler.prototype._onAnnotationModelChanged = function(e) {

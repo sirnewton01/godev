@@ -105,11 +105,14 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 	function ContentAssist(textView) {
 		this.textView = textView;
 		this.state = State.INACTIVE;
-		this.resetProviderInfoArray();
+		this.clearProviders();
 		var self = this;
-		this.contentAssistListener = {
+		this._textViewListeners = {
 			onModelChanging: (function(event) {
 				this._latestModelChangingEvent = event;
+				if (event) {
+					this._updateFilterText(event);	
+				}
 			}).bind(this),
 			onSelection: (function(event) {
 				if (this.isDeactivatingChange(this._latestModelChangingEvent, event)) {
@@ -119,7 +122,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 						if (this.state === State.ACTIVE) {
 							this.setState(State.FILTERING);
 						}
-						this.filterProposals(event);
+						this.filterProposals();
 					}
 				}
 				this._latestModelChangingEvent = null;
@@ -179,10 +182,10 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			this.dispatchEvent({type: "ProposalApplied", data: data}); //$NON-NLS-0$
 			return true;
 		},
-		activate: function(providerInfoArray, autoTriggered) {
+		activate: function(providers, autoTriggered) {
 			if (this.state === State.INACTIVE) {
 				this._autoTriggered = autoTriggered ? true : false;
-				this.setState(State.ACTIVE, providerInfoArray);
+				this.setState(State.ACTIVE, providers);
 			}
 		},
 		deactivate: function() {
@@ -202,7 +205,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			
 			var isPriorToInitialCaretOffset = selectionEvent.newValue.start < this._initialCaretOffset;
 			
-			if (isPriorToInitialCaretOffset) {
+			if (isPriorToInitialCaretOffset || !event) {
 				isDeactivating = true;
 			} else if (event) {
 				isDeactivating = (event.removedLineCount > 0) || (event.addedLineCount > 0);
@@ -211,21 +214,17 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			return isDeactivating;
 		},
 		/** @private */
-		setState: function(state, /* Optional. Array of providers to pass to dispatched event.*/ providerInfoArray) {
+		setState: function(state, /* Optional. Array of providers to pass to dispatched event.*/ providers) {
 			var eventType;
 			if (state === State.ACTIVE) {
-				this._filterText = "";
 				eventType = "Activating"; //$NON-NLS-0$
 				if (this._mode) { this._mode.setActive(true); }
-				
 			} else if (state === State.INACTIVE) {
 				eventType = "Deactivating"; //$NON-NLS-0$
 				if (this._mode) { this._mode.setActive(false); }
-				this._initialCaretOffset = -1;
-				this._filterText = "";
 			}
 			if (eventType) {
-				this.dispatchEvent({type: eventType, providerInfoArray: providerInfoArray});
+				this.dispatchEvent({type: eventType, providers: providers});
 			}
 			this.state = state;
 			this.onStateChange(state);
@@ -236,20 +235,13 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		/** @private */
 		onStateChange: function(state) {
 			if (state === State.INACTIVE) {
-				if (this.listenerAdded) {
-					this._latestModelChangingEvent = null;
-					this.textView.removeEventListener("ModelChanging", this.contentAssistListener.onModelChanging); //$NON-NLS-0$
-					this.textView.removeEventListener("Scroll", this.contentAssistListener.onScroll); //$NON-NLS-0$
-					this.textView.removeEventListener("Selection", this.contentAssistListener.onSelection); //$NON-NLS-0$
-					this.listenerAdded = false;
-				}
+				this._removeTextViewListeners();
+				this._filterText = "";
+				this._initialCaretOffset = -1;
+				this._computedProposals = null;
 			} else if (state === State.ACTIVE) {
-				if (!this.listenerAdded) {
-					this.textView.addEventListener("ModelChanging", this.contentAssistListener.onModelChanging); //$NON-NLS-0$
-					this.textView.addEventListener("Scroll", this.contentAssistListener.onScroll); //$NON-NLS-0$
-					this.textView.addEventListener("Selection", this.contentAssistListener.onSelection); //$NON-NLS-0$
-					this.listenerAdded = true;
-				}
+				this._filterText = "";
+				this._addTextViewListeners();
 				this.computeProposals();
 			}
 		},
@@ -257,21 +249,30 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		 * Computes the proposals at the TextView's current caret offset.
 		 */
 		computeProposals: function() {
-			var self = this;
-			
 			// figure out initial offset, it should be the minimum between 
 			// the beginning of the selection and the current caret offset
 			var offset = this.textView.getCaretOffset();
 			var sel = this.textView.getSelection();
 			var selectionStart = Math.min(sel.start, sel.end);			
 			this._initialCaretOffset = Math.min(offset, selectionStart);
+			this._computedProposals = null;
 			
 			this._computeProposals(this._initialCaretOffset).then(function(proposals) {
-				self._computedProposals = proposals;
-				if (!self.isActive()) { return; }
-				var displayProposals = self._flatten(proposals);
-				self.dispatchEvent({type: "ProposalsComputed", data: {proposals: displayProposals}, autoApply: !self._autoTriggered}); //$NON-NLS-0$
-			});
+				if (this.isActive()) {
+					var flatProposalArray = this._flatten(proposals);
+					//check if flattened proposals form a valid array with at least one entry
+					if (flatProposalArray && Array.isArray(flatProposalArray) && (0 < flatProposalArray.length)) {
+						this._computedProposals = proposals;
+					}
+					this.dispatchEvent({type: "ProposalsComputed", data: {proposals: flatProposalArray}, autoApply: !this._autoTriggered}); //$NON-NLS-0$
+					if (this._computedProposals && this._filterText) {
+						// force filtering here because user entered text after
+						// computeProposals() was called but before the plugins
+						// returned the computed proposals
+						this.filterProposals(true);
+					}
+				}
+			}.bind(this));
 		},
 		/** @private */
 		getPrefixStart: function(model, end) {
@@ -288,13 +289,25 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			}
 		},
 		/**
+		 * Initializes the providers. A provider must define an <tt>initialize()</tt> method to be initialized.
+		 * @since 6.0
+		 */
+		initialize: function() {
+			this._providers.forEach(function(info) {
+				var provider = info.provider;
+				if (typeof provider.initialize === "function") {//$NON-NLS-0$
+					provider.initialize();
+				}
+			});
+		},
+		/**
 		 * Retrieves the proposals at the given offset.
 		 * @private
 		 * @param {Number} offset The caret offset.
 		 * @returns {Deferred} A promise that will provide the proposals.
 		 */
 		_computeProposals: function(offset) {
-			var providerInfoArray = this._providerInfoArray;
+			var providerInfoArray = this._providers;
 			var textView = this.textView;
 			var sel = textView.getSelection();
 			var model = textView.getModel(), mapOffset = offset;
@@ -337,100 +350,91 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 					}
 					proposals = self.progress ? self.progress.progress(promise, "Generating content assist proposal") : promise; //$NON-NLS-0$
 				} catch (e) {
-					self.handleError(e);
+					return new Deferred().reject(e);
 				}
 				return Deferred.when(proposals);
 			});
+			// TODO should we allow error to propagate instead of handling here?
 			return Deferred.all(promises, this.handleError);
 		},
 
-		filterProposals: function(event) {
-			var text = "";
-			var removedCharCount = 0;
-			if (this._latestModelChangingEvent) {
-				text = this._latestModelChangingEvent.text;
-				removedCharCount = this._latestModelChangingEvent.removedCharCount;
-			} else {
-				// the selection was changed but not the model, do nothing for now
-				return;
-			}
+		filterProposals: function(force) {
+			if (this._computedProposals && (this._latestModelChangingEvent || force)) {
+				var model = this.textView.getModel();
+				if (model.getBaseModel) {
+					model = model.getBaseModel();
+				}
+				var prefixStart = this.getPrefixStart(model, this._initialCaretOffset);
+				var prefixText = this.textView.getText(prefixStart, this._initialCaretOffset);
+				
+				// filter proposals based on prefixes and _filterText
+				var proposals = []; //array of arrays of proposals
+				this._computedProposals.forEach(function(proposalArray) {
+					if (proposalArray && Array.isArray(proposalArray)) {
+						var includedProposals = proposalArray.filter(function(proposal) {
+							if (!proposal) {
+								return false;
+							}
+							
+							if ((STYLES[proposal.style] === STYLES.hr)
+								|| (STYLES[proposal.style] === STYLES.noemphasis_title)) {
+								return true;
+							}
+							
+							var proposalString = "";
+							if (proposal.overwrite) {
+								if (proposal.name) {
+									proposalString = proposal.name;
+								} else if (proposal.proposal) {
+									proposalString = proposal.proposal;
+								} else {
+									return false; // unknown format
+								}
 			
-			// update this._filterText based on the modification info
-			// contained in the event
-			if (removedCharCount) {
-				var lastIndex = this._filterText.length - removedCharCount;
-				this._filterText = this._filterText.substring(0, lastIndex);
-			}
-			if (text) {
-				this._filterText = this._filterText.concat(text);
-			}
-			
-			var model = this.textView.getModel();
-			if (model.getBaseModel) {
-				model = model.getBaseModel();
-			}
-			
-			var prefixStart = this.getPrefixStart(model, this._initialCaretOffset);
-			var prefixText = this.textView.getText(prefixStart, this._initialCaretOffset);
-			
-			// filter proposals based on prefixes and _filterText
-			var proposals = []; //array of arrays of proposals
-			this._computedProposals.forEach(function(proposalArray) {
-				var includedProposals = proposalArray.filter(function(proposal) {
-					if ((STYLES[proposal.style] === STYLES.hr)
-						|| (STYLES[proposal.style] === STYLES.noemphasis_title)) {
-						return true;
-					}
-					
-					var proposalString = "";
-					if (proposal.overwrite) {
-						if (proposal.name) {
-							proposalString = proposal.name;
-						} else if (proposal.proposal) {
-							proposalString = proposal.proposal;
-						} else {
-							return false; // unknown format
-						}
-	
-						return (0 === proposalString.indexOf(prefixText + this._filterText));
+								return (0 === proposalString.indexOf(prefixText + this._filterText));
+								
+							} else if (proposal.name || proposal.proposal) {
+								var activated = false;
+								// try matching name
+								if (proposal.name) {
+									activated = (0 === proposal.name.indexOf(prefixText + this._filterText));	
+								}
+								
+								// try matching proposal text
+								if (!activated && proposal.proposal) {
+									activated = (0 === proposal.proposal.indexOf(this._filterText));
+								}
+								
+								return activated;
+							} else if (typeof proposal === "string") { //$NON-NLS-0$
+								return 0 === proposal.indexOf(this._filterText);
+							} else {
+								return false;
+							}
+						}, this);
 						
-					} else if (proposal.name || proposal.proposal) {
-						var activated = false;
-						// try matching name
-						if (proposal.name) {
-							activated = (0 === proposal.name.indexOf(prefixText + this._filterText));	
+						if (includedProposals.length > 0) {
+							proposals.push(includedProposals);	
 						}
-						
-						// try matching proposal text
-						if (!activated && proposal.proposal) {
-							activated = (0 === proposal.proposal.indexOf(this._filterText));
-						}
-						
-						return activated;
-					} else if (typeof proposal === "string") { //$NON-NLS-0$
-						return 0 === proposal.indexOf(this._filterText);
-					} else {
-						return false;
 					}
 				}, this);
 				
-				if (includedProposals.length > 0) {
-					proposals.push(includedProposals);	
+				var flatProposalArray = [];
+				if (proposals) {
+					// filter out extra separators and titles
+					proposals = this._removeExtraUnselectableElements(proposals);
+					flatProposalArray = this._flatten(proposals);
 				}
-			}, this);
-			
-			// filter out extra separators and titles
-			proposals = this._removeExtraUnselectableElements(proposals);
-			
-			var displayProposals = this._flatten(proposals);
-			
-			this.dispatchEvent({type: "ProposalsComputed", data: {proposals: displayProposals}, autoApply: false}); //$NON-NLS-0$
+				
+				this.dispatchEvent({type: "ProposalsComputed", data: {proposals: flatProposalArray}, autoApply: false}); //$NON-NLS-0$
+			}
 		},
 		
 		/**
 		 * Helper method which removes extra separators and titles from
 		 * an array containing arrays of proposals from the various providers.
 		 * @param{Array[]} proposals An array with each element containing an array of proposals
+		 * @returns {Array} An array without the extra unselectable elements
 		 */
 		_removeExtraUnselectableElements: function(proposals) {
 			// get rid of extra separators and titles
@@ -477,14 +481,14 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		 * object and if all of the other IDs are also generated using this method.
 		 */
 		_generateProviderId: function() {
-			if (this._uniqueProviderIdCounter) {
-				this._uniqueProviderIdCounter++;
+			if (this._idcount) {
+				this._idcount++;
 			} else {
-				this._uniqueProviderIdCounter = 0;
+				this._idcount = 0;
 			}
-			return "ContentAssistGeneratedID_" +  this._uniqueProviderIdCounter;
+			return "ContentAssistGeneratedID_" +  this._idcount; //$NON-NLS-0$
 		},
-		
+
 		/**
 		 * Sets whether or not automatic content assist triggering is enabled.
 		 * @param {Boolean} enableAutoTrigger
@@ -493,49 +497,63 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			this._autoTriggerEnabled = enableAutoTrigger;
 			this._updateAutoTriggerListenerState();
 		},
-		
+
+		/**
+		 * @name orion.editor.ContentAssistProviderInfo
+		 * @class Encapsulates a content assist provider and its automatic triggers.
+		 *
+		 * @property {String} id Unique ID of this provider.
+		 * @property {RegExp} charTriggers A regular expression matching the characters that, when typed,
+		 * will cause this provider to be activated automatically by the content assist engine.
+		 * @property {RegExp} excludedStyles A regular expression matching the style names that are
+		 * exclusions to this provider's <tt>charTriggers</tt> matching.
+		 * @property {orion.editor.ContentAssistProvider} provider The actual content assist provider.
+		 */
+
 		/**
 		 * Sets the content assist providers that this ContentAssist will consult to obtain proposals.
-		 * @param {orion.editor.ContentAssistProvider[]} providers The providers.
+		 *
+		 * @param {orion.editor.ContentAssistProvider[]|orion.edit.ContentAssistProviderInfo[]} providers The
+		 * providers. Each element may be either a plain {@link orion.editor.ContentAssistProvider}, or a
+		 * {@link orion.edit.ContentAssistProviderInfo}.
 		 */
 		setProviders: function(providers) {
-			var providerInfoArray = providers.map(function(provider){
-				return {
-					provider: provider,
-					id: this._generateProviderId()
-				}
-			}, this);
-			
-			this.setProviderInfoArray(providerInfoArray);
+			var _self = this;
+			this.setProviderInfoArray(providers.map(function(p) {
+				// Wrap any plain Provider into a ProviderInfo
+				return p.id ? p : {
+					provider: p,
+					id: _self._generateProviderId()
+				};
+			}));
 		},
-		
+
 		/**
-		 * Sets the array of content assist provider info that this ContentAssist will 
-		 * consult to obtain proposals and automatic triggers.
-		 * @param {Array { provider: orion.editor.ContentAssistProvider, 
-		 * 				   id: {String},
-		 * 				   charTriggers: {RegExp},
-		 * 				   excludedStyles: {RegExp}
-		 * 				  }
-		 * 		 } providers The providers.
+		 * @private
 		 */
 		setProviderInfoArray: function(providerInfoArray) {
-			this.resetProviderInfoArray();
+			this.clearProviders();
 			
-			this._providerInfoArray = providerInfoArray;
+			this._providers = providerInfoArray;
 			this._charTriggersInstalled = providerInfoArray.some(function(info){
 				return info.charTriggers;
 			});
 			this._updateAutoTriggerListenerState();
 		},
-		
-		resetProviderInfoArray: function() {
-			this._providerInfoArray = [];
+
+		/**
+		 * @returns orion.edit.ContentAssistProviderInfo[]
+		 */
+		getProviders: function() {
+			return this._providers.slice();
+		},
+
+		clearProviders: function() {
+			this._providers = [];
 			this._charTriggersInstalled = false;
 			this._updateAutoTriggerListenerState();
 		},
 
-		
 		/**
 		 * Sets the progress handler that will display progress information, if any are generated by content assist providers.
 		 */
@@ -556,22 +574,31 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			
 			return arrayOrObjectArray.reduce(function(prev, curr) {
 				var returnValue = prev;
+				var filteredArray = null;
+				
+				if (curr && Array.isArray(curr)) {
+					filteredArray = curr.filter(function(element){
+						return element; //filter out falsy elements
+					});	
+				}
 				
 				// add current proposal array to flattened array
 				// skip current elements that are not arrays
-				if (Array.isArray(curr) && curr.length > 0) {		
-					var first = curr;
+				if (filteredArray && Array.isArray(filteredArray) && (filteredArray.length > 0)) {
+					var first = filteredArray;
 					var last = prev;
+					var filteredArrayStyle = filteredArray[0].style;
 					
-					if (curr[0].style && (0 === STYLES[curr[0].style].indexOf(STYLES.noemphasis))) {
+					if (filteredArrayStyle && (0 === STYLES[filteredArrayStyle].indexOf(STYLES.noemphasis))) {
 						// the style of the first element starts with noemphasis
 						// add these proposals to the end of the array
 						first = prev;
-						last = curr;
+						last = filteredArray;
 					}
 					
 					if (first.length > 0) {
-						if (first[first.length - 1].style && (STYLES.hr !== STYLES[first[first.length - 1].style])) {
+						var firstArrayStyle = first[first.length - 1].style;
+						if (firstArrayStyle && (STYLES.hr !== STYLES[firstArrayStyle])) {
 							// add separator between proposals from different providers 
 							// if the previous array didn't already end with a separator
 							first = first.concat({
@@ -591,43 +618,41 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			}, []);
 		},
 		
-		_triggerListener: function(event) {
-			if (this._styleAccessor) {
-				var caretOffset = this.textView.getCaretOffset();
-				var stylesAtOffset = null;
-				var providerInfosToActivate = [];
-				
-				if (this._charTriggersInstalled) {
-					var currentChar = this.textView.getText(caretOffset - 1, caretOffset);
-					
-					this._providerInfoArray.forEach(function(info) {
-						// check if the charTriggers RegExp matches the currentChar
-						// we're assuming that this will fail much more often than
-						// the excludedStyles test so do this first for better performance
-						var charTriggers = info.charTriggers;
-						if (charTriggers && charTriggers.test(currentChar)) {
-							var isExcluded = false;
-							var excludedStyles = info.excludedStyles;
-							if (excludedStyles) {
-								if (!stylesAtOffset) {
-									// lazily initialize this variable to avoid getting the styles
-									// for every model modification, only ones that may trigger
-									stylesAtOffset = this._styleAccessor.getStyles(caretOffset - 1);
-								}
-								// check if any of the styles match the excludedStyles RegExp
-								isExcluded = stylesAtOffset.some(function (element) {
-									return excludedStyles.test(element.style);
-								});
+		_triggerListener: function(/*event*/) {
+			var caretOffset = this.textView.getCaretOffset();
+			var stylesAtOffset = null;
+			var providerInfosToActivate = [];
+
+			if (this._charTriggersInstalled) {
+				var currentChar = this.textView.getText(caretOffset - 1, caretOffset);
+
+				this._providers.forEach(function(info) {
+					// check if the charTriggers RegExp matches the currentChar
+					// we're assuming that this will fail much more often than
+					// the excludedStyles test so do this first for better performance
+					var charTriggers = info.charTriggers;
+					if (charTriggers && charTriggers.test(currentChar)) {
+						var isExcluded = false;
+						var excludedStyles = info.excludedStyles;
+						if (this._styleAccessor && excludedStyles) {
+							if (!stylesAtOffset) {
+								// lazily initialize this variable to avoid getting the styles
+								// for every model modification, only ones that may trigger
+								stylesAtOffset = this._styleAccessor.getStyles(caretOffset - 1);
 							}
-							if (!isExcluded) {
-								providerInfosToActivate.push(info);
-							}
+							// check if any of the styles match the excludedStyles RegExp
+							isExcluded = stylesAtOffset.some(function (element) {
+								return excludedStyles.test(element.style);
+							});
 						}
-					}, this);
-					
-					if (providerInfosToActivate.length > 0) {
-						this.activate(providerInfosToActivate, true);
+						if (!isExcluded) {
+							providerInfosToActivate.push(info);
+						}
 					}
+				}, this);
+
+				if (providerInfosToActivate.length > 0) {
+					this.activate(providerInfosToActivate, true);
 				}
 			}
 		},
@@ -651,6 +676,39 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 				// install the listener if necessary
 				this.textView.addEventListener("Modify", this._boundTriggerListener); //$NON-NLS-0$
 				this._triggerListenerInstalled = true;
+			}
+		},
+		
+		_addTextViewListeners: function() {
+			if (!this._textViewListenersAdded) {
+				this.textView.addEventListener("ModelChanging", this._textViewListeners.onModelChanging); //$NON-NLS-0$
+				this.textView.addEventListener("Scroll", this._textViewListeners.onScroll); //$NON-NLS-0$
+				this.textView.addEventListener("Selection", this._textViewListeners.onSelection); //$NON-NLS-0$
+				this._textViewListenersAdded = true;
+			}
+		},
+		
+		_removeTextViewListeners: function() {
+			if (this._textViewListenersAdded) {
+				this._latestModelChangingEvent = null;
+				this.textView.removeEventListener("ModelChanging", this._textViewListeners.onModelChanging); //$NON-NLS-0$
+				this.textView.removeEventListener("Scroll", this._textViewListeners.onScroll); //$NON-NLS-0$
+				this.textView.removeEventListener("Selection", this._textViewListeners.onSelection); //$NON-NLS-0$
+				this._textViewListenersAdded = false;
+			}
+		},
+		
+		_updateFilterText: function(modelChangingEvent) {
+			// update this._filterText based on the modification info
+			// contained in the event
+			var removedCharCount = modelChangingEvent.removedCharCount;
+			if (removedCharCount) {
+				var lastIndex = this._filterText.length - removedCharCount;
+				this._filterText = this._filterText.substring(0, lastIndex);
+			}
+			var text = modelChangingEvent.text;
+			if (text) {
+				this._filterText = this._filterText.concat(text);
 			}
 		}
 	};
@@ -937,7 +995,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			}
 		}
 		
-		this.parentNode.addEventListener("scroll", this.onScroll.bind(this)); //$NON-NLS-0$
+		textUtil.addEventListener(this.parentNode, "scroll", this.onScroll.bind(this)); //$NON-NLS-0$
 		
 		var self = this;
 		this.textViewListener = {
@@ -996,7 +1054,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		createAccessible: function() {
 			var mode = this._contentAssistMode;
 			var self = this;
-			this.parentNode.addEventListener("keydown", function(evt) { //$NON-NLS-0$
+			textUtil.addEventListener(this.parentNode, "keydown", function(evt) { //$NON-NLS-0$
 				if (!evt) { evt = window.event; }
 				if (evt.preventDefault) {
 					evt.preventDefault();

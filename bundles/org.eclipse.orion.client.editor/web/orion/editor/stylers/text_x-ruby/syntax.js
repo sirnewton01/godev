@@ -11,7 +11,7 @@
 
 /*global define*/
 
-define("orion/editor/stylers/text_x-ruby/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-0$
+define("orion/editor/stylers/text_x-ruby/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-1$ //$NON-NLS-0$
 	var keywords = [
 		"alias", "alias_method", "and", "attr_reader", "attr_writer", "attr_accessor", "attr", //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		"BEGIN", "begin", "break", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
@@ -37,42 +37,49 @@ define("orion/editor/stylers/text_x-ruby/syntax", ["orion/editor/stylers/lib/syn
 
 	var grammars = mLib.grammars;
 	grammars.push({
-		id: "orion.ruby",
-		contentTypes: ["text/x-ruby"],
+		id: "orion.ruby", //$NON-NLS-0$
+		contentTypes: ["text/x-ruby"], //$NON-NLS-0$
 		patterns: [
+			{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+			{include: "orion.lib#string_singleQuote"}, //$NON-NLS-0$
 			{
-				include: "orion.lib"
-			}, {
-				match: "#.*",
-				name: "comment.line.number-sign.ruby",
-				patterns: [
-					{
-						include: "orion.lib#todo_comment_singleLine"
-					}
-				]
-			}, {
-				begin: "^=begin",
-				end: "^=end",
-				name: "comment.block.ruby",
-				patterns: [
-					{
-						match: "(\\b)(TODO)(\\b)(((?!\\*/).)*)",
-						name: "meta.annotation.task.todo",
-						captures: {
-							2: {name: "keyword.other.documentation.task"},
-							4: {name: "comment.block"}
-						}
-					}
-				]
-			}, {
 				match: "/(?![\\s])(?:\\\\.|[^/])+/(?:[ioxmuesn]\\b)?", //$NON-NLS-0$
 				name: "string.regexp.ruby" //$NON-NLS-0$
 			}, {
-				match: "\\b0[bB][01]+\\b",
-				name: "constant.numeric.binary.ruby"
+				match: {match: "#.*", literal: "#"}, //$NON-NLS-0$
+				name: "comment.line.number-sign.ruby", //$NON-NLS-0$
+				patterns: [
+					{include: "orion.lib#todo_comment_singleLine"} //$NON-NLS-0$
+				]
 			}, {
-				match: "\\b(?:" + keywords.join("|") + ")\\b",
-				name: "keyword.control.ruby"
+				begin: {match: "^=begin\\b", literal: "=begin"}, //$NON-NLS-0$
+				end: {match: "^=end\\b", literal: "=end"}, //$NON-NLS-0$
+				name: "comment.block.ruby", //$NON-NLS-0$
+				patterns: [
+					{
+						match: "(\\b)(TODO)(\\b)(((?!\\*/).)*)", //$NON-NLS-0$
+						name: "meta.annotation.task.todo", //$NON-NLS-0$
+						captures: {
+							2: {name: "keyword.other.documentation.task"}, //$NON-NLS-0$
+							4: {name: "comment.block"} //$NON-NLS-0$
+						}
+					}
+				]
+			},
+			{include: "orion.lib#brace_open"}, //$NON-NLS-0$
+			{include: "orion.lib#brace_close"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_open"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_close"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_open"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_close"}, //$NON-NLS-0$
+			{include: "orion.lib#number_decimal"}, //$NON-NLS-0$
+			{include: "orion.lib#number_hex"}, //$NON-NLS-0$
+			{
+				match: "\\b0[bB][01]+\\b", //$NON-NLS-0$
+				name: "constant.numeric.binary.ruby" //$NON-NLS-0$
+			}, {
+				match: "\\b(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				name: "keyword.control.ruby" //$NON-NLS-0$
 			}
 		]
 	});

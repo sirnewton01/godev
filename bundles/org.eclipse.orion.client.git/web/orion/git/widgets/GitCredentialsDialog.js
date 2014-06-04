@@ -67,6 +67,7 @@ define([ 'i18n!git/nls/gitmessages', 'orion/git/gitPreferenceStorage', 'orion/we
 		this.modal = true;
 		this.messages = messages;
 		this.options = options;
+		this._afterHiding = options.closeCallback;
 
 		if (!this.options.username && !this.options.password && !this.options.privatekey && !this.options.passphrase) {
 			this.options.username = true;

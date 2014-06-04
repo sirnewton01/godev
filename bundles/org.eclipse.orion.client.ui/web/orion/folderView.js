@@ -53,9 +53,6 @@ define([
 				folderNode.href = "javascript:void(0)"; //$NON-NLS-0$
 				folderNode.addEventListener("click", function(){this.explorer.clickHandler(folder.Location);}.bind(this), false); //$NON-NLS-0$
 			}
-			folderNode.addEventListener("click", function() { //$NON-NLS-0$
-				this.explorer.editorInputManager.cachedMetadata = folder;
-			}.bind(this), false);
 			return folderNode;
 		},
 		/**
@@ -63,9 +60,6 @@ define([
 		 */
 		updateFileNode: function(file, fileNode, isImage) {
 			mNavigatorRenderer.NavigatorRenderer.prototype.updateFileNode.call(this, file, fileNode, isImage);
-			fileNode.addEventListener("click", function() { //$NON-NLS-0$
-				this.explorer.editorInputManager.cachedMetadata = file;
-			}.bind(this), false);
 			if (this.explorer.readonly && fileNode.tagName === "A") { //$NON-NLS-0$
 				if(this.explorer.clickHandler){
 					fileNode.href = "javascript:void(0)"; //$NON-NLS-0$
@@ -211,9 +205,6 @@ define([
 	}
 	FolderView.prototype = /** @lends orion.FolderView.prototype */ {
 		_init: function(){
-			if(this.serviceRegistry && this.serviceRegistry.getServiceReferences("orion.projects").length===0){ //$NON-NLS-0$
-				this.showProjectView = false;
-			}
 			this.markdownView = new mMarkdownView.MarkdownView({
 				fileClient : this.fileClient,
 				canHide: !this.readonly,

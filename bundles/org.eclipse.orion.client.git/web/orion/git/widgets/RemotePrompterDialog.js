@@ -147,6 +147,7 @@ define([ 'i18n!git/nls/gitmessages', 'orion/webui/dialog', 'orion/explorers/expl
 		this.gitClient = options.gitClient;
 		this.hideNewBranch = options.hideNewBranch;
 		this.serviceRegistry = options.serviceRegistry;
+		this._afterHiding = options.closeCallback;
 
 		this.buttons = [];
 
@@ -161,6 +162,9 @@ define([ 'i18n!git/nls/gitmessages', 'orion/webui/dialog', 'orion/explorers/expl
 		isDefault: true,
 		id: "remoteOk"
 		});
+		
+		// Start the dialog initialization.
+		this._initialize();
 	};
 
 	RemotePrompterDialog.prototype._bindToDom = function(parent) {
@@ -178,8 +182,6 @@ define([ 'i18n!git/nls/gitmessages', 'orion/webui/dialog', 'orion/explorers/expl
 	};
 
 	RemotePrompterDialog.prototype._beforeShowing = function() {
-		// Start the dialog initialization.
-		this._initialize();
 		this._loadRemoteChildren();
 	};
 	

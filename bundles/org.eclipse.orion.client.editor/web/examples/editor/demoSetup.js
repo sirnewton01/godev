@@ -99,7 +99,6 @@ define(["require",
 		vi = new mVI.VIMode(view);
 		emacs = new mEmacs.EmacsMode(view);
 		updateKeyMode(view, options);
-		updateMarginRuler(view, options);
 		
 		/* Undo stack */
 		var undoStack = exports.undoStack = new mUndoStack.UndoStack(view, 200);
@@ -222,6 +221,7 @@ define(["require",
 			view.addRuler(foldingRuler);
 		}
 		view.addRuler(overviewRuler);
+		updateMarginRuler(view, options);
 		return view;
 	}
 	exports.checkView = checkView;

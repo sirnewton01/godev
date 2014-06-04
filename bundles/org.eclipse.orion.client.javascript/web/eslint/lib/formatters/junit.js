@@ -2,6 +2,7 @@
  * @fileoverview jUnit Reporter
  * @author Jamund Ferguson
  */
+"use strict";
 
 /*jshint node:true*/
 
@@ -38,12 +39,12 @@ function getMessageType(message, rules) {
  *  - &apos; is the escape sequence for '
  *  - &amp; is the escape sequence for &
  *
- * @param {String} message to escape
- * @return escaped message as {String}
+ * @param {string} message message to escape
+ * @returns {string} escaped message
  */
-function escapeSpecialCharacters(str) {
+function escapeSpecialCharacters(message) {
 
-    str = str || "";
+    message = message || "";
     var pairs = {
         "&": "&amp;",
         "\"": "&quot;",
@@ -52,7 +53,7 @@ function escapeSpecialCharacters(str) {
         ">": "&gt;"
     };
 
-    return str.replace(/[&"'<>]/g, function(c) {
+    return message.replace(/[&"'<>]/g, function(c) {
         return pairs[c];
     });
 
@@ -86,6 +87,7 @@ module.exports = function(results, config) {
             output += "line " + (message.line || 0) +  ", col ";
             output += (message.column || 0) + ", " + getMessageType(message, rules);
             output += " - " + escapeSpecialCharacters(message.message);
+            output += (message.ruleId ? " (" + message.ruleId + ")" : "");
             output += "]]>";
             output += "</" + type + ">";
             output += "</testcase>\n";

@@ -11,7 +11,7 @@
 
 /*global define*/
 
-define("orion/editor/stylers/text_css/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-0$
+define("orion/editor/stylers/text_css/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-1$ //$NON-NLS-0$
 	var keywords = [
 		"alignment-adjust", "alignment-baseline", "animation-delay", "animation-direction", "animation-duration", "animation-iteration-count", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		"animation-name", "animation-play-state", "animation-timing-function", "animation", "appearance", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
@@ -54,30 +54,42 @@ define("orion/editor/stylers/text_css/syntax", ["orion/editor/stylers/lib/syntax
 
 	var grammars = mLib.grammars;
 	grammars.push({
-		id: "orion.css",
-		contentTypes: ["text/css"],
+		id: "orion.css", //$NON-NLS-0$
+		contentTypes: ["text/css"], //$NON-NLS-0$
 		patterns: [
 			{
-				include: "orion.lib"
+				begin: "'(?:\\\\.|[^\\\\'])*\\\\$", //$NON-NLS-0$
+				end: "^(?:$|(?:\\\\.|[^\\\\'])*('|[^\\\\]$))", //$NON-NLS-0$
+				name: "string.quoted.single.css" //$NON-NLS-0$
 			}, {
-				include: "orion.c-like#comment_block"
-			}, {
-				match: "(?:-webkit-|-moz-|-ms-|\\b)(?:" + keywords.join("|") + ")\\b",
-				name: "keyword.control.css"
-			}, {
-				match: "(?i)\\b-?(?:\\.\\d+|\\d+\\.?\\d*)(?:%|em|ex|ch|rem|vw|vh|vmin|vmax|in|cm|mm|pt|pc|px|deg|grad|rad|turn|s|ms|Hz|kHz|dpi|dpcm|dppx)?\\b",
-				name: "constant.numeric.value.css"
-			}, {
-				begin: "(['\"])(?:\\\\.|[^\\\\\\1])*\\\\$", //$NON-NLS-0$
-				end: "^(?:$|(?:\\\\.|[^\\\\\\1])*(\\1|[^\\\\]$))", //$NON-NLS-0$
-				name: "string.quoted.multiline.css" //$NON-NLS-0$
+				begin: '"(?:\\\\.|[^\\\\"])*\\\\$', //$NON-NLS-0$
+				end: '^(?:$|(?:\\\\.|[^\\\\"])*("|[^\\\\]$))', //$NON-NLS-0$
+				name: "string.quoted.double.css" //$NON-NLS-0$
+			},
+			{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+			{include: "orion.lib#string_singleQuote"}, //$NON-NLS-0$
+			{include: "orion.c-like#comment_block"}, //$NON-NLS-0$
+			{include: "orion.lib#brace_open"}, //$NON-NLS-0$
+			{include: "orion.lib#brace_close"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_open"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_close"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_open"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_close"}, //$NON-NLS-0$
+			{include: "orion.lib#number_decimal"}, //$NON-NLS-0$
+			{include: "#number_hex"}, //$NON-NLS-0$
+			{
+				match: "(?i)\\b-?(?:\\.\\d+|\\d+\\.?\\d*)(?:%|em|ex|ch|rem|vw|vh|vmin|vmax|in|cm|mm|pt|pc|px|deg|grad|rad|turn|s|ms|Hz|kHz|dpi|dpcm|dppx)?\\b", //$NON-NLS-0$
+				name: "constant.numeric.value.css" //$NON-NLS-0$
+			},
+			{			
+				match: "(?:-webkit-|-moz-|-ms-|-o-|\\b)(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				name: "keyword.control.css" //$NON-NLS-0$
 			}
 		],
 		repository: {
-			/* override orion.lib#number_hex */
 			number_hex: {
-				match: "#[0-9A-Fa-f]+\\b",
-				name: "constant.numeric.hex.css"
+				match: "#[0-9A-Fa-f]+\\b", //$NON-NLS-0$
+				name: "constant.numeric.hex.css" //$NON-NLS-0$
 			}
 		}
 	});

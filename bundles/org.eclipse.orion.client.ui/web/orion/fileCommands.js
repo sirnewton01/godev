@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2011, 2013 IBM Corporation and others.
+ * Copyright (c) 2011, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -12,11 +12,11 @@
 /*global window define orion XMLHttpRequest confirm*/
 /*jslint sub:true*/
 
-define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 'orion/i18nUtil', 'orion/uiUtils', 'orion/fileUtils', 'orion/commands', 
+define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 'orion/i18nUtil', 'orion/uiUtils', 'orion/fileUtils', 'orion/commands', 'orion/fileDownloader',
 	'orion/commandRegistry', 'orion/extensionCommands', 'orion/contentTypes', 'orion/compare/compareUtils', 
-	'orion/Deferred', 'orion/webui/dialogs/DirectoryPrompterDialog', 'orion/webui/dialogs/SFTPConnectionDialog', 'orion/webui/dialogs/ImportDialog',
-	'orion/EventTarget'],
-	function(messages, require, lib, i18nUtil, mUIUtils, mFileUtils, mCommands, mCommandRegistry, mExtensionCommands, mContentTypes, mCompareUtils, Deferred, DirPrompter, SFTPDialog, ImportDialog, EventTarget){
+	'orion/Deferred', 'orion/webui/dialogs/DirectoryPrompterDialog', 'orion/webui/dialogs/SFTPConnectionDialog',
+	'orion/EventTarget', 'orion/form'],
+	function(messages, require, lib, i18nUtil, mUIUtils, mFileUtils, mCommands, mFileDownloader, mCommandRegistry, mExtensionCommands, mContentTypes, mCompareUtils, Deferred, DirPrompter, SFTPDialog, EventTarget, form){
 
 	/**
 	 * Utility methods
@@ -71,37 +71,73 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 
 	 * events describing the file upload.
 	 * @param {Boolean} unzip
 	 * @param {Boolean} force
+	 * @param {Object} handlers Optional. An object which contains handlers for the different events that the upload can fire.
+	 * 			handlers.progress The handler function that should be called when progress occurs.
+	 * 			handlers.load The handler function that should be called when the transfer completes successfully.
+	 * 			handlers.error The handler function that should be called if the transfer fails.
+	 * 			handlers.abort The handler function that should be called if the transfer is cancelled by the user.
+	 * 			handlers.loadend The handler function that should be called when the transfer completes (regardless of success or failure).
+	 * @param {Boolean} preventNotification Optional. true if a model event should not be dispatched after the file is uploaded, false otherwise
+	 * @returns {XMLHttpRequest} The XMLHttpRequest object that was created and used for the upload.
 	 */
-	fileCommandUtils.uploadFile = function(targetFolder, file, explorer, unzip, force) { 
-		this.req = new XMLHttpRequest();
-		this.req.open('post', force ? targetFolder.ImportLocation + (targetFolder.ImportLocation.indexOf("?")>0 ? "&force=true" : "?force=true") : targetFolder.ImportLocation, true); //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		this.req.setRequestHeader("X-Requested-With", "XMLHttpRequest"); //$NON-NLS-1$ //$NON-NLS-0$
-		this.req.setRequestHeader("Slug", file.name); //$NON-NLS-0$
+	fileCommandUtils.uploadFile = function(targetFolder, file, explorer, unzip, force, handlers, preventNotification) { 
+		var req = new XMLHttpRequest();
+		
+		if (handlers) {
+			if (handlers.progress) {
+				//transfer in progress
+				req.upload.addEventListener("progress", handlers.progress, false);
+			}
+			if (handlers.load) {
+				//transfer finished successfully
+				req.upload.addEventListener("load", handlers.load, false);	
+			}
+			if (handlers.error) {
+				//transfer failed
+				req.upload.addEventListener("error", handlers.error, false);	
+			}
+			if (handlers.abort) {
+				//transfer cancelled
+				req.upload.addEventListener("abort", handlers.abort, false);
+			}
+			if (handlers.loadend) {
+				//transfer finished, status unknown
+				req.addEventListener("loadend", handlers.loadend, false);
+			}
+		}
+		
+		req.open('post', force ? targetFolder.ImportLocation + (targetFolder.ImportLocation.indexOf("?")>0 ? "&force=true" : "?force=true") : targetFolder.ImportLocation, true); //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		req.setRequestHeader("X-Requested-With", "XMLHttpRequest"); //$NON-NLS-1$ //$NON-NLS-0$
+		req.setRequestHeader("Slug", form.encodeSlug(file.name)); //$NON-NLS-0$
 		// TODO if we want to unzip zip files, don't use this...
 		if (!unzip) {
-			this.req.setRequestHeader("X-Xfer-Options", "raw"); //$NON-NLS-1$ //$NON-NLS-0$
+			req.setRequestHeader("X-Xfer-Options", "raw"); //$NON-NLS-1$ //$NON-NLS-0$
 		}
-		this.req.setRequestHeader("Content-Type", file.type); //$NON-NLS-0$
-		this.req.onreadystatechange = function(state) {
-			if(this.req.readyState === 4) {
-				if (this.req.status === 400){
+		req.setRequestHeader("Content-Type", "application/octet-stream"); //$NON-NLS-0$
+		req.onreadystatechange = function(state) {
+			if(req.readyState === 4) {
+				if (req.status === 400){
 					var result = {};
 					try{
-						result = JSON.parse(this.req.responseText);
+						result = JSON.parse(req.responseText);
 					}catch(e){
 					}
 					if(result.JsonData && result.JsonData.ExistingFiles){
 						var confirmFunction = (explorer && explorer.serviceRegistry) ? explorer.serviceRegistry.getService("orion.page.dialog").confirm : confirm; //$NON-NLS-0$
 						if(confirmFunction(result.Message + "\nWould you like to retry the import with force overwriting?")){
-							fileCommandUtils.uploadFile(targetFolder, file, explorer, unzip, true);
+							fileCommandUtils.uploadFile(targetFolder, file, explorer, unzip, true, handlers);
 							return;
 						}
 					}
 				}
-				dispatchModelEventOn({ type: "create", parent: targetFolder, newValue: null /* haven't fetched the new file in Orion yet */ }); //$NON-NLS-0$
+				if (!preventNotification) {
+					dispatchModelEventOn({ type: "create", parent: targetFolder, newValue: null /* haven't fetched the new file in Orion yet */ }); //$NON-NLS-0$	
+				}
 			}
 		}.bind(this);
-		this.req.send(file);
+		req.send(file);
+		
+		return req;
 	};
 
 	/**
@@ -184,14 +220,13 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 
 
 	
 	function getNewItemName(explorer, item, domId, defaultName, onDone) {
-		var refNode, name, tempNode;
+		var refNode, name;
 		var hideRefNode = true;
 		var insertAsChild = false;
 		
-		var nodes = explorer.makeNewItemPlaceHolder(item, domId, null, true);
-		if (nodes) {
-			refNode = nodes.refNode;
-			tempNode = nodes.tempNode;
+		var placeholder = explorer.makeNewItemPlaceholder(item, domId, true);
+		if (placeholder) {
+			refNode = placeholder.refNode;
 			hideRefNode = false;
 			insertAsChild = true;
 		} else {
@@ -204,15 +239,6 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 
 					onDone(name);
 				}
 			};
-			var destroy = function() {
-				try {
-					if (tempNode && tempNode.parentNode) {
-						tempNode.parentNode.removeChild(tempNode);
-					}	
-				} catch (err) {
-					// tempNode already removed, do nothing
-				}
-			};
 			
 			mUIUtils.getUserText({
 				id: domId+"EditBox", //$NON-NLS-0$
@@ -220,7 +246,7 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 
 				hideRefNode: hideRefNode,
 				initialText: defaultName,
 				onComplete: done,
-				onEditDestroy: destroy,
+				onEditDestroy: placeholder.destroyFunction,
 				isInitialValid: true,
 				insertAsChild: insertAsChild
 			});
@@ -592,7 +618,8 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 
 						return false;
 					});
 				}
-				var deferred = fileClient.moveFile(moveLocation, parent.Location, newText);
+				var parentLocation = parent.Location || parent.WorkspaceLocation;
+				var deferred = fileClient.moveFile(moveLocation, parentLocation, newText);
 				progressService.showWhile(deferred, i18nUtil.formatMessage(messages["Renaming ${0}"], moveLocation)).then(
 					function(newItem) {
 						if (!item.parent) {
@@ -732,6 +759,31 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 
 			} 
 		});
 		commandService.addCommand(compareWithCommand);
+		
+		var downloadSingleFileCommand = new mCommands.Command({
+			name : messages["Download"],
+			tooltip: messages["Download_tooltips"], 
+			id: "eclipse.downloadSingleFile", //$NON-NLS-0$
+			visibleWhen: function(item) {
+				if (!explorer || !explorer.isCommandsVisible()) {
+					return false;
+				}
+				if (Array.isArray(item)) {
+					if(item.length === 1 && !item[0].Directory){
+						return true;
+					}
+				}
+				return false;
+			},
+			callback: function(data) {
+				var statusService = serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
+				var downloader = new mFileDownloader.FileDownloader(fileClient, statusService, progressService);
+				var items = Array.isArray(data.items) ? data.items : [data.items];
+				var contentType = contentTypeService.getFilenameContentType(items[0].Name);
+				downloader.downloadFromLocation(items[0], contentType);
+			} 
+		});
+		commandService.addCommand(downloadSingleFileCommand);
 		
 		var deleteCommand = new mCommands.Command({
 			name: messages["Delete"],
@@ -918,7 +970,7 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 
 
 		var importZipURLCommand = new mCommands.Command({
 			name: messages["Import from HTTP..."],
-			tooltip: messages["Copy a file from a URL and optionally unzip it"],
+			tooltip: messages["Import a file from a URL and optionally unzip it"],
 			id: "orion.importZipURL", //$NON-NLS-0$
 			parameters: zipURLParameters,
 			callback: function(data) {
@@ -970,7 +1022,7 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 
 			description: messages["Create a folder that links to an existing folder on the server."],
 			imageClass: "core-sprite-link", //$NON-NLS-0$
 			id: "orion.new.linkProject", //$NON-NLS-0$
-			parameters: new mCommandRegistry.ParametersDescription([new mCommandRegistry.CommandParameter('name', 'text', 'Name:', 'New Folder'), new mCommandRegistry.CommandParameter('url', 'url', messages['Server path:'], '')]), //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			parameters: new mCommandRegistry.ParametersDescription([new mCommandRegistry.CommandParameter('name', 'text', messages['Name:'], messages['New Folder']), new mCommandRegistry.CommandParameter('url', 'url', messages['Server path:'], '')]), //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			callback: function(data) {
 				var createFunction = function(name, url) {
 					if (name && url) {
@@ -1035,19 +1087,31 @@ define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 
 		commandService.addCommand(goIntoCommand);
 					
 		var importCommand = new mCommands.Command({
-			name : messages["Import local file..."],
-			tooltip: messages["Copy files and folders from your local file system"],
+			name : messages["File or zip archive"],
+			tooltip: messages["Import a file or zip archive from your local file system"],
 			imageClass: "core-sprite-importzip", //$NON-NLS-0$
 			id: "orion.import", //$NON-NLS-0$
 			callback : function(data) {
 				var item = getTargetFolder(data.items);
-				var dialog = new ImportDialog.ImportDialog({
-					importLocation: item.ImportLocation,
-					func: function() {
-						dispatchModelEvent({ type: "import", target: item }); //$NON-NLS-0$
+				var fileInput = lib.node("fileSelectorInput");
+				var cloneInput = fileInput.cloneNode(); // clone file input before its value is changed
+
+				var changeListener = function(){ //$NON-NLS-0$
+					if (fileInput.files && fileInput.files.length > 0) {
+						for (var i = 0; i < fileInput.files.length; i++) {
+							explorer._uploadFile(item, fileInput.files.item(i), true);
+						}
 					}
-				});
-				dialog.show();
+					
+					fileInput.removeEventListener("change", changeListener);
+				};
+				
+				fileInput.addEventListener("change", changeListener);
+				fileInput.click();
+				
+				//replace original fileInput so that "change" event always fires
+				fileInput.parentNode.replaceChild(cloneInput, fileInput);
+				
 			},
 			visibleWhen: checkFolderSelection
 		});

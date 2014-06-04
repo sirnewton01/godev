@@ -2911,8 +2911,10 @@ Terminal.prototype.reverseIndex = function() {
 
 // ESC c Full Reset (RIS).
 Terminal.prototype.reset = function() {
-  Terminal.call(this, this.options);
-  this.refresh(0, this.rows - 1);
+    this.options.rows = this.rows;
+ 	this.options.cols = this.cols;
+ 	Terminal.call(this, this.options);
+  	this.refresh(0, this.rows - 1);	
 };
 
 // ESC H Tab Set (HTS is 0x88).

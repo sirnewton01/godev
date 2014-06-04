@@ -734,7 +734,7 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
         this._commandService.registerCommandContribution("pageActions", "orion.globalSearch.showCompare", 2, "orion.searchActions.unlabeled"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
         this._commandService.registerCommandContribution("pageActions", "orion.globalSearch.replaceAll", 3, "orion.searchActions.unlabeled"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 
-         var showAllCmd = new mCommands.Command({
+        var showAllCmd = new mCommands.Command({
             name: messages["Show All"],
             tooltip: messages["Show all the results in one page"],
             id: "orion.search.showAll", //$NON-NLS-0$
@@ -1193,42 +1193,7 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
             }, 100);
         });
     };
-
-
-    SearchResultExplorer.prototype.addSavedSearch = function(searchName, query) {
-        this.registry.getService("orion.core.savedSearches").addSearch(searchName, query); //$NON-NLS-0$
-    };
-
-    SearchResultExplorer.prototype.saveSearch = function(searchParams) {
-        if (!this.model._provideSearchHelper) {
-            return;
-        }
-        var query = mSearchUtils.generateSearchHref(searchParams).split("#")[1]; //$NON-NLS-0$
-        var qName = query;
-
-        if (typeof(this.model._provideSearchHelper().displayedSearchTerm) === "string" && typeof(searchParams.resource) === "string") { //$NON-NLS-1$ //$NON-NLS-0$
-            qName = "\'" + this.model._provideSearchHelper().displayedSearchTerm + "\' in "; // +queryObj.location; //$NON-NLS-1$ //$NON-NLS-0$
-            if (searchParams.resource.length > 0) {
-                this.registry.getService("orion.page.progress").progress(this.fileClient.read(searchParams.resource, true), "Getting file metadata " + searchParams.resource).then( //$NON-NLS-1$ //$NON-NLS-0$
-
-                function(meta) {
-                    var parentName = mSearchUtils.fullPathNameByMeta(meta.Parents);
-                    var fullName = parentName.length === 0 ? meta.Name : parentName + "/" + meta.Name; //$NON-NLS-0$
-                    this.addSavedSearch(qName + fullName, query);
-                }.bind(this),
-
-                function(error) {
-                    console.error("Error loading file meta data: " + error.message); //$NON-NLS-0$
-                    this.addSavedSearch(qName + "root", query); //$NON-NLS-0$
-                }.bind(this));
-            } else {
-                this.addSavedSearch(qName + "root", query); //$NON-NLS-0$
-            }
-        } else {
-            this.addSavedSearch(qName, query);
-        }
-    };
-
+    
     SearchResultExplorer.prototype.caculateNextPage = function() {
         var pagingParams = this.model.getPagingParams();
         if ((pagingParams.start + pagingParams.rows) >= pagingParams.totalNumber) {
@@ -1331,15 +1296,12 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
     SearchResultExplorer.prototype.onExpand = function(modelToExpand, childPosition, callback) {
         if (modelToExpand && modelToExpand.children && modelToExpand.children.length > 0 && typeof(childPosition) === "string") { //$NON-NLS-0$
             var childIndex = 0;
-            var forward = true;
             if (childPosition === "first") { //$NON-NLS-0$
                 childIndex = 0;
             } else if (childPosition === "last") { //$NON-NLS-0$
                 childIndex = modelToExpand.children.length - 1;
-                forward = false;
             } else {
                 childIndex = JSON.parse(childPosition);
-                forward = false;
             }
             if (typeof(childIndex) === "string" || childIndex < 0 || childIndex >= modelToExpand.children.length) { //$NON-NLS-0$
                 childIndex = 0;

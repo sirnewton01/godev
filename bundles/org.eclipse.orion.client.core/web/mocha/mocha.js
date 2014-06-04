@@ -4258,11 +4258,36 @@ Runnable.prototype.run = function(fn){
     return done(new Error('--async-only option in use without declaring `done()`'));
   }
 
-  // sync
+  // sync (or promise-returning)
   try {
-    if (!this.pending) this.fn.call(ctx);
-    this.duration = new Date - start;
-    fn();
+    if (!this.pending) {
+      var result = this.fn.call(ctx);
+      // Handle a test that returns a promise
+      if (result && typeof result.then === "function") {
+        // Check 'ms' again in case the test called timeout()
+        ms = this.timeout();
+        if (ms) {
+          this.timer = setTimeout(function(){
+            done(new Error('timeout of ' + ms + 'ms exceeded'));
+            self.timedOut = true;
+          }, ms);
+        }
+        result.then(function() {
+          this.duration = new Date - start;
+          done();
+        }, function(value) {
+          this.duration = new Date - start;
+          // Ensure that a nully rejection value fails the test.
+          if (value === null || typeof value === "undefined")
+            value = new Error("Failed, no reason provided");
+          done(value);
+        });
+      } else {
+        // Default Mocha sync case
+        this.duration = new Date - start;
+        fn();
+      }
+    }
   } catch (err) {
     fn(err);
   }

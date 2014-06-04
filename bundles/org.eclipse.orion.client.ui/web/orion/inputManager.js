@@ -14,19 +14,20 @@
 /*jslint browser:true*/
 define([
 	'i18n!orion/edit/nls/messages',
+	'orion/explorers/navigatorRenderer',
 	'orion/i18nUtil',
 	'orion/Deferred',
 	'orion/EventTarget',
 	'orion/objects',
 	'orion/PageUtil'
-], function(messages, i18nUtil, Deferred, EventTarget, objects, PageUtil) {
+], function(messages, mNavigatorRenderer, i18nUtil, Deferred, EventTarget, objects, PageUtil) {
 
 	function Idle(options){
 		this._document = options.document || document;
 		this._timeout = options.timeout;
 		//TODO: remove listeners if there are no clients
 		//TODO: add support for multiple clients with different timeouts
-		var events = ["keypress","keydown","keyup","mousemove","mousedown","mousemove"]; //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+		var events = ["keypress","keydown","keyup"]; //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$
 		var reset = function (e) { this._resetTimer(); }.bind(this);
 		for (var i = 0; i < events.length; i++) {
 			var event = events[i];
@@ -131,8 +132,12 @@ define([
 		 * a filesystem root URL, the original read() operation is instead performed on the workspace.
 		 */
 		_read: function(location /**, readArgs*/) {
-			if (this.cachedMetadata && this.cachedMetadata.Location === location) {
-				return new Deferred().resolve(this.cachedMetadata);
+			var cachedMetadata = this.cachedMetadata || mNavigatorRenderer.getClickedItem();
+			if (cachedMetadata && cachedMetadata.Location === location &&
+				cachedMetadata.Parents && cachedMetadata.Attributes &&
+				cachedMetadata.ETag
+			) {
+				return new Deferred().resolve(cachedMetadata);
 			}
 			var fileClient = this.fileClient;
 			var readArgs = Array.prototype.slice.call(arguments, 1);
@@ -488,10 +493,13 @@ define([
 		_getSaveDiffsEnabled: function() {
 			return this._saveDiffsEnabled && this._acceptPatch !== null && this._acceptPatch.indexOf("application/json-patch") !== -1; //$NON-NLS-0$
 		},
+		_unknownContentTypeAsText: function() {// Return true if we think unknown content type is text type
+			return true;
+		},
 		_isText: function(metadata) {
 			var contentType = this.contentTypeRegistry.getFileContentType(metadata);
 			// Allow unkownn content types to be loaded as text files
-			if (!contentType) { return true; }
+			if (!contentType) { return this._unknownContentTypeAsText(); }
 			var textPlain = this.contentTypeRegistry.getContentType("text/plain"); //$NON-NLS-0$
 			return this.contentTypeRegistry.isExtensionOf(contentType, textPlain);
 		},

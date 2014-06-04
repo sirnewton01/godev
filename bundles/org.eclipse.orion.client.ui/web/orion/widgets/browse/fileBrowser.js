@@ -21,7 +21,6 @@ define([
 	'orion/explorers/navigatorRenderer',
 	'orion/widgets/browse/readonlyEditorView',
 	'orion/widgets/browse/resourceSelector',
-	'orion/markdownView',
 	'orion/commandRegistry',
 	'orion/fileClient',
 	'orion/contentTypes',
@@ -31,19 +30,23 @@ define([
 	'orion/URITemplate',
 	'orion/objects',
 	'orion/EventTarget',
-	'text!orion/widgets/browse/repoUrlTrigger.html',
 	'text!orion/widgets/browse/repoAndBaseUrlTrigger.html',
+	'text!orion/widgets/browse/repoUrlTrigger.html',
+	'text!orion/widgets/browse/shareSnippetTrigger.html',
 	'orion/commands',
 	'orion/webui/littlelib',
+	'orion/i18nUtil',
+	'orion/fileDownloader',
+	'orion/util',
 	'orion/URL-shim'
 ], function(
-	PageUtil, mInputManager, mBreadcrumbs, mBrowseView, mNavigatorRenderer, mReadonlyEditorView, mResourceSelector, mMarkdownView,
-	mCommandRegistry, mFileClient, mContentTypes, mStaticDataSource, mEmptyFileClient, Deferred, URITemplate, objects, EventTarget, RepoURLTriggerTemplate, RepoAndBaseURLTriggerTemplate, mCommands, lib
+	PageUtil, mInputManager, mBreadcrumbs, mBrowseView, mNavigatorRenderer, mReadonlyEditorView, mResourceSelector,
+	mCommandRegistry, mFileClient, mContentTypes, mStaticDataSource, mEmptyFileClient, Deferred, URITemplate, objects, 
+	EventTarget, RepoAndBaseURLTriggerTemplate, RepoURLTriggerTemplate, ShareSnippetTriggerTemplate, mCommands, lib, i18nUtil, mFileDownloader, util
 ) {
 	
-	function ResourceChangeHandler(options) {
+	function ResourceChangeHandler() {
 		EventTarget.attach(this);
-		//this.resourceSelector = options.resourceSelector;
 	}
 	
 	function statusService(fileBrowser){
@@ -63,24 +66,76 @@ define([
 		}
 	});
 	
-	function repoURLHandler(repoURL, baseURL){
-		this.repoURL = repoURL;
+	function repoURLHandler(repoURL, baseURL, fileBrowser){
+		this.triggerNodeId = "orion.browse.repoURLTrigger";
+		this.dropdownNodeId = "orion.browse.repoURLDropdown";
+		this.popupTextAreaId = "orion.browse.repoURLInput";
+		
 		this.baseURL = baseURL;
-		if(this.baseURL) {
-			this.RepoURLTriggerTemplate = RepoAndBaseURLTriggerTemplate;
-			var found = this.repoURL.match(/\/([^\/]+)\/([^\/]+)$/);
-			if (found) {
-				this.promptValue = "teamRepository=" + this.baseURL + "\n" +
-								   "userId=" + decodeURIComponent(found[1]) + "\n" + 
-								   "userName=" + decodeURIComponent(found[1]) + "\n" + 
-								   "projectAreaName=" + decodeURIComponent(found[1]) + " | " + decodeURIComponent(found[2]);
-			} else {
-				this.promptValue = this.baseURL;
-			}
+		this.repoURL = repoURL;
+		this.fileBrowser = fileBrowser;
+		
+		if (this.baseURL) {
+			this.popupTemplate = RepoAndBaseURLTriggerTemplate;
 		} else {
-			this.RepoURLTriggerTemplate = RepoURLTriggerTemplate;
-			this.promptValue = this.repoURL;
+			this.popupTemplate = RepoURLTriggerTemplate;
 		}
+		
+		this.getTextAreaValue = function() {
+			if(this.baseURL) {
+				var found = this.repoURL.match(/\/([^\/]+)\/([^\/]+)$/);
+				if (found) {
+					this.popupTextAreaValue = "teamRepository=" + this.baseURL + "\n" +
+									   "userId=" + decodeURIComponent(found[1]) + "\n" + 
+									   "userName=" + decodeURIComponent(found[1]) + "\n" + 
+									   "projectAreaName=" + decodeURIComponent(found[1]) + " | " + decodeURIComponent(found[2]);
+								
+					// Check if we can find a stream ID to put into the configuration
+					var file = this.fileBrowser._branchSelector.getActiveResource(this.fileBrowser._branchSelector.activeResourceLocation);
+					
+					if (file && file.RTCSCM && file.RTCSCM.ItemId) {
+						this.popupTextAreaValue = this.popupTextAreaValue + "\nstreamId="+ file.RTCSCM.ItemId;
+					}
+				} else {
+					this.popupTextAreaValue = this.baseURL;
+				}
+			} else {
+				this.popupTextAreaValue = this.repoURL;
+			}
+		
+			return this.popupTextAreaValue;
+		}.bind(this);
+	}
+	
+	function shareSnippetHandler(widgetSource){
+		this.widgetSource = widgetSource;
+		this.triggerNodeId = "orion.browse.shareSnippetTrigger";
+		this.dropdownNodeId = "orion.browse.shareSnippetDropdown";
+		this.popupTextAreaId = "orion.browse.shareSnippetInput";
+		this.popupTemplate = ShareSnippetTriggerTemplate;
+		this.tags = '<div id="${0}"></div><link rel="stylesheet" type="text/css" href="${1}"/><script src="${2}"></script>' +
+					'<script> orion.browse.browser("${3}","${4}",${5},null,{maxL:20,oHref:"${6}",fURI:"${7}",s:${8},e:${9}});</script>';
+		this.getTextAreaValue = function() {
+			if(this.textView) {
+				var snippetContainerId = "snippet_container_" + Math.floor((Math.random()*1000000)+1);
+				var selection = this.textView.getSelection();
+				var start = 0;
+				var end = 0;
+				if(selection.start !== selection.end) {
+					start = selection.start;
+					end = selection.end;
+				}
+				var originalHref = new URITemplate("#{,resource,params*}").expand({resource:this.currentSnippetURI, params: {start: start, end: end}});
+				var url = new URL(window.location.href);
+				url.hash = originalHref;
+				var base = this.widgetSource.base ? '"' + this.widgetSource.base + '"' : 'null';
+	
+            	var tagString = i18nUtil.formatMessage(this.tags, snippetContainerId, this.widgetSource.css, this.widgetSource.js, snippetContainerId, 
+            										   this.widgetSource.repo, base, url.href, this.currentSnippetURI, start, end);
+				return tagString;
+			}
+			return "Nothing to share";
+		}.bind(this);
 	}
 	
 	/**
@@ -107,8 +162,16 @@ define([
 	 * @name orion.browse.FileBrowser
 	 */
 	function FileBrowser(options) {
+		var url = new URL(window.location.href);
+		this.shareSnippet = url.query.get("shareSnippet") === "true" && options.widgetSource;
+		if(this.shareSnippet) {
+			this.widgetSource = options.widgetSource;
+		}
 		this._parentDomNode = lib.node(options.parent);//Required
-		this._parentDomNode.classList.add("browserParentDome");
+		this.snippetShareOptions = options.snippetShareOptions;
+		if(!this.snippetShareOptions) {
+			this._parentDomNode.classList.add("browserParentDom");
+		} 
 		if(options.fileClient) {
 			this._fileClient = options.fileClient;
 		} else if(options.serviceRegistry) {
@@ -139,7 +202,7 @@ define([
 			} 
 		}
 		this._breadCrumbInHeader= options.breadCrumbInHeader;
-		this._resourceChangeHandler = new ResourceChangeHandler(options.repo);
+		this._resourceChangeHandler = new ResourceChangeHandler();
 		this._resourceChangeHandler.addEventListener("resourceChanged", function(event){
 			if(!this._componentSelector || !event || !event.newResource || !event.newResource.selectorAllItems) {
 				return;
@@ -147,12 +210,22 @@ define([
 			this._componentSelector.allItems = event.newResource.selectorAllItems;
 			var currentComponentLocation = event.defaultChild;
 			if(!currentComponentLocation) {
+				var firstDirLocation = null;
 				event.newResource.selectorAllItems.some(function(component){
 					if(component.Directory) {
-						currentComponentLocation = component.Location;
-						return true;
+						if(!firstDirLocation) {//Remember the first directory in the component list
+							firstDirLocation = component.Location;
+						}
+						//If the component name contains "default", we should set it as default in the selector
+						if(component.Name && component.Name.toLowerCase().indexOf("default") >= 0) { //$NON-NLS-0$
+							currentComponentLocation = component.Location;
+							return true;
+						}
 					}
 				});
+				if(!currentComponentLocation) {//If no component name contains "default", use the first directory as the defaul. 
+					currentComponentLocation = firstDirLocation;
+				}
 				if(event.changeHash) {
 					window.location = new URITemplate("#{,resource,params*}").expand({resource:currentComponentLocation});
 				} else {
@@ -160,7 +233,6 @@ define([
 				}
 			}
 			var activeComp = this._componentSelector.getActiveResource(currentComponentLocation);
-			this._componentSelector.activeResourceName = activeComp.Name;
 			this._componentSelector.activeResourceLocation = activeComp.Location;
 			this._componentSelector.refresh();
 		}.bind(this)); 
@@ -180,9 +252,11 @@ define([
 			
 			this._uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
 			
-			window.addEventListener("hashchange", function() { //$NON-NLS-0$
-				this.refresh(PageUtil.hash());
-			}.bind(this));
+			if(!this.snippetShareOptions) {
+				window.addEventListener("hashchange", function() { //$NON-NLS-0$
+					this.refresh(PageUtil.hash());
+				}.bind(this));
+			}
 			if(this._fileClient) {
 				this.startup();
 			}
@@ -191,10 +265,10 @@ define([
 			var editCodeCommand = new mCommands.Command({
 				imageClass: "core-sprite-edit", //$NON-NLS-0$
 				id: "orion.browse.gotoEdit",
-				visibleWhen: function(item) {
+				visibleWhen: function() {
 					return true;
 				},
-				hrefCallback : function(data) {
+				hrefCallback : function() {
 					return this.codeURL ? this.codeURL : (new URL("code", window.location.href)).href;
 				}.bind(this)			
 			});
@@ -205,10 +279,15 @@ define([
 			if(serviceRegistry) {
 				this._fileClient = new mFileClient.FileClient(serviceRegistry);	
 			}
-			if(this.repoURL) {
-				this.repoURLHandler = new repoURLHandler(this.repoURL, this.baseURL);
+			if(this.shareSnippet) {
+				this.shareSnippetHandler = new shareSnippetHandler(this.widgetSource);
 			}
-			this._registerCommands();
+			if(this.repoURL) {
+				this.repoURLHandler = this.snippetShareOptions ? null : new repoURLHandler(this.repoURL, this.baseURL, this);
+			}
+			if(!this.snippetShareOptions) {
+				//this._registerCommands();
+			}
 			this._inputManager = new mInputManager.InputManager({
 				fileClient: this._fileClient,
 				statusReporter: this._statusReport,
@@ -221,62 +300,63 @@ define([
 					return new Deferred().resolve(resource);
 				};
 			}
-			
+			this._inputManager._unknownContentTypeAsText = function() {
+				return true;
+			};
 			this._inputManager.addEventListener("InputChanged", function(evt) { //$NON-NLS-0$
 				if(!evt.metadata || !evt.input) {
 					return;
 				}
 				var metadata = evt.metadata;
-				if(this._branches && this._branchSelector){
-					var activeBranchName = this._branches[0].Name;
-					this._activeBranchLocation = this._branches[0].Location;
-					this._activeComponentLocation = null;
-					var newLocation = null;
-					if(metadata.Parents) {
-						if(metadata.Parents.length > 0) {
-							activeBranchName = metadata.Parents[metadata.Parents.length-1].Name;
-							this._activeBranchLocation = metadata.Parents[metadata.Parents.length-1].Location;
-							if(metadata.Parents.length > 1) {
-								this._activeComponentLocation = metadata.Parents[metadata.Parents.length-2].Location;
-							} else {
+				if(!this.snippetShareOptions) {
+					if(this._branches && this._branchSelector){
+						this._activeBranchLocation = this._branches[0].Location;
+						this._activeComponentLocation = null;
+						var newLocation = null;
+						if(metadata.Parents) {
+							if(metadata.Parents.length > 0) {//The input change happens on a sub folder of a branch, we need to find the branch in its parent chain
+								this._activeBranchLocation = metadata.Parents[metadata.Parents.length-1].Location;
+								if(metadata.Parents.length > 1) {
+									this._activeComponentLocation = metadata.Parents[metadata.Parents.length-2].Location;
+								} else {
+									this._activeComponentLocation = metadata.Location;
+								}
+							} else {//The input change happens jsut on a branch, we need to we need to set the commit information in the branch selector
+								this._activeBranchLocation = metadata.Location;
 								this._activeComponentLocation = metadata.Location;
 							}
-						} else {
-							activeBranchName = metadata.Name;
-							this._activeBranchLocation = metadata.Location;
+							//TODO: in the future if the root fetchChildren provides the commit information in each child that represents a branch, we dod not nee to do this
+							this._branchSelector.setCommitInfo(this._activeBranchLocation, metadata.LastCommit);
+						} else {//The input change happens on the root directory of a repo, we need to set the default to "master" if it exist
+							this._branches.some(function(branch){
+								if(branch.Name.toLowerCase() === "master") { //$NON-NLS-0$
+									this._activeBranchLocation = branch.Location;
+									newLocation = branch.Location;
+									return true;
+								}
+							}.bind(this));
+							newLocation = newLocation || this._branches[0].Location;
+							this._activeBranchLocation = this._activeBranchLocation || this._branches[0].Location;
 						}
-					} else {
-						this._branches.some(function(branch){
-							if(branch.Name.toLowerCase() === "master") { //$NON-NLS-0$
-								activeBranchName = branch.Name;
-								this._activeBranchLocation = branch.Location;
-								newLocation = branch.Location;
-								return true;
+						this._branchSelector.activeResourceLocation = this._activeBranchLocation;
+						
+						if(this._showComponent) {
+							this._branchSelector.setActiveResource({resource: this._branchSelector.getActiveResource(this._activeBranchLocation), changeHash: false,  defaultChild: this._activeComponentLocation});
+							if(!this._activeComponentLocation) {
+								return;
 							}
-						}.bind(this));
-						newLocation = newLocation || this._branches[0].Location;
-						this._activeBranchLocation = this._activeBranchLocation || this._branches[0].Location;
-					}
-					this._branchSelector.activeResourceName = activeBranchName;
-					this._branchSelector.activeResourceLocation = this._activeBranchLocation;
-					
-					if(this._showComponent) {
-						this._branchSelector.setActiveResource({resource: this._branchSelector.getActiveResource(this._activeBranchLocation), changeHash: metadata.Parents,  defaultChild: this._activeComponentLocation});
-						if(!this._activeComponentLocation) {
+						} else if(newLocation){
+							this.refresh(new URITemplate("{,resource}").expand({resource:newLocation}));
 							return;
 						}
-					} else if(newLocation){
-						this.refresh(new URITemplate("{,resource}").expand({resource:newLocation}));
-						return;
+					}
+					this._breadCrumbName = evt.name;
+					this._breadCrumbTarget = metadata;
+					if (evt.input === null || evt.input === undefined) {
+						this._breadCrumbName = this._lastRoot ? this._lastRoot.Name : "";
+						this._breadCrumbTarget = this._lastRoot;
 					}
 				}
-				this._breadCrumbName = evt.name;
-				this._breadCrumbTarget = metadata;
-				if (evt.input === null || evt.input === undefined) {
-					this._breadCrumbName = this._lastRoot ? this._lastRoot.Name : "";
-					this._breadCrumbTarget = this._lastRoot;
-				}
-				//this._breadCrumbMaker("localBreadCrumb");
 				var view = this._getEditorView(evt.input, evt.contents, metadata);
 				this._setEditor(view ? view.editor : null);
 				evt.editor = this._editor;
@@ -291,51 +371,59 @@ define([
 				statusReporter: function(message, type, isAccessible) {this._statusReport(message, type, isAccessible);}.bind(this)
 			};
 			this._editorView = new mReadonlyEditorView.ReadonlyEditorView(editorOptions);
-			if(this._showBranch) {
-				var branchSelectorContainer = document.createElement("div"); //$NON-NLS-0$
-				branchSelectorContainer.classList.add("resourceSelectorContainer"); //$NON-NLS-0$
-				var rootURL = this._fileClient.fileServiceRootURL("");
-				this._fileClient.fetchChildren(rootURL).then(function(contents){
-					if(contents && contents.length > 0) {
-						this._branches = contents;
-						this._branchSelector = new mResourceSelector.ResourceSelector({
-							commandRegistry: this._commandRegistry,
-							fileClient: this._fileClient,
-							parentNode: branchSelectorContainer,
-							labelHeader: this._showComponent ? "Stream" : "Branch",
-							resourceChangeDispatcher: this._showComponent ? this._resourceChangeHandler : null,
-							fetchChildren: this._showComponent ? true : false,
-							commandScopeId: "orion.browse.brSelector", //$NON-NLS-0$
-							dropDownId: "orion.browse.switchbr", //$NON-NLS-0$
-							dropDownTooltip: this._showComponent ? "Select a stream" : "Select a branch", //$NON-NLS-0$
-							activeResourceName: "default",
-							allItems: contents
-						});
-						if(this._showComponent){
-							var compSelectorContainer = document.createElement("div"); //$NON-NLS-0$
-							compSelectorContainer.classList.add("resourceSelectorContainer"); //$NON-NLS-0$
-							compSelectorContainer.classList.add("componentSelectorContainer"); //$NON-NLS-0$
-							this._componentSelector = new mResourceSelector.ResourceSelector({
+			if(!this.snippetShareOptions) {
+				if(this._showBranch) {
+					var branchSelectorContainer = document.createElement("div"); //$NON-NLS-0$
+					branchSelectorContainer.classList.add("resourceSelectorContainer"); //$NON-NLS-0$
+					var rootURL = this._fileClient.fileServiceRootURL("");
+					this._fileClient.fetchChildren(rootURL).then(function(contents){
+						if(contents && contents.length > 0) {
+							contents.sort(function(a, b) {
+								var	n1 = a.Name && a.Name.toLowerCase();
+								var	n2 = b.Name && b.Name.toLowerCase();
+								if (n1 < n2) { return -1; }
+								if (n1 > n2) { return 1; }
+								return 0;
+							}); 
+							this._branches = contents;
+							this._branchSelector = new mResourceSelector.ResourceSelector({
 								commandRegistry: this._commandRegistry,
 								fileClient: this._fileClient,
-								parentNode: compSelectorContainer,
-								labelHeader: "Component",
-								commandScopeId: "orion.browse.compSelector", //$NON-NLS-0$
-								dropDownId: "orion.browse.switchcomp", //$NON-NLS-0$
-								dropDownTooltip: "Select a componet", //$NON-NLS-0$
-								activeResourceName: "default",
+								parentNode: branchSelectorContainer,
+								labelHeader: this._showComponent ? "Stream" : "Branch",
+								resourceChangeDispatcher: this._showComponent ? this._resourceChangeHandler : null,
+								fetchChildren: this._showComponent ? true : false,
+								commandScopeId: "orion.browse.brSelector", //$NON-NLS-0$
+								dropDownId: "orion.browse.switchbr", //$NON-NLS-0$
+								dropDownTooltip: this._showComponent ? "Select a stream" : "Select a branch", //$NON-NLS-0$
 								allItems: contents
 							});
+							if(this._showComponent){
+								var compSelectorContainer = document.createElement("div"); //$NON-NLS-0$
+								compSelectorContainer.classList.add("resourceSelectorContainer"); //$NON-NLS-0$
+								compSelectorContainer.classList.add("componentSelectorContainer"); //$NON-NLS-0$
+								this._componentSelector = new mResourceSelector.ResourceSelector({
+									commandRegistry: this._commandRegistry,
+									fileClient: this._fileClient,
+									parentNode: compSelectorContainer,
+									labelHeader: "Component",
+									commandScopeId: "orion.browse.compSelector", //$NON-NLS-0$
+									dropDownId: "orion.browse.switchcomp", //$NON-NLS-0$
+									dropDownTooltip: "Select a component", //$NON-NLS-0$
+									allItems: contents
+								});
+							}
 						}
-					}
+						this.refresh(PageUtil.hash());
+					}.bind(this),
+					function(error){
+						mInputManager.handleError(this._statusService, error);
+					}.bind(this));
+				} else {
 					this.refresh(PageUtil.hash());
-				}.bind(this),
-				function(error){
-					console.log(error);
-					mInputManager.handleError(this._statusService, error);
-				}.bind(this));
+				}
 			} else {
-				this.refresh(PageUtil.hash());
+				this.refresh(new URITemplate("{,resource}").expand({resource:this.snippetShareOptions.fURI}));
 			}
 		},
 		_switchView: function(view) {
@@ -405,11 +493,13 @@ define([
 				if(this._componentSelector) {
 					if(resource.Parents) {
 						if(resource.Parents.length === 1) {//Skip the branch level parents
-							resource.Parents[resource.Parents.length -1].skip = true;
+							resource.Parents[0].skip = true;
 							resource.skip = true;
-						} else if(resource.Parents.length > 1) {//Skip the componet level parents
+						} else if(resource.Parents.length > 1) {//Skip the component level parents
 							resource.Parents[resource.Parents.length -1].skip = true;
 							resource.Parents[resource.Parents.length -2].skip = true;
+						} else {
+							resource.skip = true;
 						}
 					}
 				} else if(this._branchSelector && resource.Parents) {
@@ -420,12 +510,20 @@ define([
 					}
 				}
 				var workspaceRootURL = (fileClient && resource && resource.Location) ? fileClient.fileServiceRootURL(resource.Location) : null;
+				var bcRootName = this.rootName ? this.rootName : workspaceRootURL;
+				if(this._componentSelector) {
+					//TODO: We need a better way to show the root of a repo
+					//bcRootName = "Component Root(" + this._componentSelector.getActiveResource().Name + ")";
+				} else {
+					//TODO: We need a better way to show the root of a repo
+					//bcRootName = "Branch Root(" + this._branchSelector.getActiveResource().Name + ")";
+				}
 				new mBreadcrumbs.BreadCrumbs({
 					container: locationNode,
 					maxLength: options.maxLength,
 					resource: resource,
 					rootSegmentName: breadcrumbRootName,
-					workspaceRootSegmentName: this.rootName ? this.rootName : workspaceRootURL,
+					workspaceRootSegmentName: bcRootName,
 					workspaceRootURL: this._calculateRootURL(workspaceRootURL),
 					makeFinalHref: options.makeBreadcrumFinalLink,
 					makeHref: options.makeBreadcrumbLink
@@ -440,11 +538,60 @@ define([
 			}
 			return workspaceRootURL;
 		},
+		onTextViewCreated: function(textView) {
+			if(this.shareSnippetHandler) {
+				this.shareSnippetHandler.textView = textView;
+				this.shareSnippetHandler.currentSnippetURI = (this._currentURI && this._currentURI.length > 0) ? this._currentURI : "";
+			}
+			if(!this.snippetShareOptions) {
+				var editorParams = PageUtil.matchResourceParameters();
+				if(editorParams && editorParams.end && editorParams.end !== editorParams.start) {
+					window.setTimeout(function() {
+						textView.setSelection(editorParams.start, editorParams.end, true);}, 500);
+				}
+			}
+		},
+		_isKnownBinary: function(cType) {
+			var binaryType = this._contentTypeService.getContentType("application/octet-stream"); //$NON-NLS-0$
+			return this._contentTypeService.isExtensionOf(cType, binaryType);
+		},
+		_isBrowserRenderable: function(cType) {
+			var renderableType = this._contentTypeService.getContentType("application/browser-renderable"); //$NON-NLS-0$
+			return this._contentTypeService.isExtensionOf(cType, renderableType);
+		},
+		_testBlobURLSupported: function(contents, cType) {
+			var blobObj= new Blob([contents],{type: cType.id});
+			var objectURLLink = URL.createObjectURL(blobObj);
+		   	var downloadLink = document.createElement("image"); 
+		   	downloadLink.setAttribute("src", objectURLLink); 
+		   	//downloadLink.style.width = 640+"px"; 
+			//downloadLink.style.height = 480+"px"; 
+			downloadLink.onerror = function() {
+				this._statusService.setProgressResult({Severity: "error", Message: "This type of file is not supportef in Safri. Please use Chrome or FireFox."});									
+			}.bind(this);
+		},
+		_generateViewLink: function(contents, metadata, cType, browseViewOptons, message) {
+			var downloadLink = document.createElement("a"); //$NON-NLS-0$
+			var blobObj = new Blob([contents],{type: cType.id});
+			downloadLink.href = URL.createObjectURL(blobObj);
+			downloadLink.classList.add("downloadLinkName"); //$NON-NLS-0$
+			downloadLink.appendChild(document.createTextNode("View " + metadata.Name));
+			browseViewOptons.binaryView = {domElement: downloadLink, message: message};
+		},
+		_generateDownloadLink: function(contents, metadata, cType, browseViewOptons, message) {
+			var downloader = new mFileDownloader.FileDownloader(this._fileClient);
+			var linkElement = downloader.downloadFromBlob(contents, metadata.Name, cType, true, true);
+			linkElement.classList.add("downloadLinkName"); //$NON-NLS-0$
+			linkElement.appendChild(document.createTextNode("Download " + metadata.Name));
+			browseViewOptons.binaryView = {domElement: linkElement, message: message};
+		},
 		_getEditorView: function(input, contents, metadata) {
 			var view = null;
 			if (metadata && input) {
+				this._currentURI = metadata.Location;
 				var browseViewOptons = {
 					parent: this._parentDomNode,
+					browser: this,
 					maxEditorLines: this._maxEditorLines,
 					breadCrumbInHeader: this._breadCrumbInHeader,
 					metadata: metadata,
@@ -453,25 +600,52 @@ define([
 					commandRegistry: this._commandRegistry,
 					contentTypeRegistry: this._contentTypeService,
 					inputManager: this._inputManager,
-					repoURLHandler: this.repoURLHandler,
+					infoDropDownHandlers: this.repoURLHandler ? [this.repoURLHandler] : [],
 					fileService: this._fileClient,
+					snippetShareOptions: this.snippetShareOptions,
 					//clickHandler: function(location) {this.refresh(location);}.bind(this),
-					breadCrumbMaker: function(bcContainer, maxLength) {this._breadCrumbMaker(bcContainer, maxLength);}.bind(this)
+					breadCrumbMaker: this.snippetShareOptions ? null: function(bcContainer, maxLength) {this._breadCrumbMaker(bcContainer, maxLength);}.bind(this)
 				};
 				if (!metadata.Directory) {
+					if(this.shareSnippetHandler) {
+						this.shareSnippetHandler.textView = null;
+					}
 					var cType = this._contentTypeService.getFileContentType(metadata);
-					if(!cType) {
-						browseViewOptons.editorView = this._editorView;
+					if(!cType) {//The content type is not registered
+						if(this._inputManager._unknownContentTypeAsText) {//If we treate 
+							browseViewOptons.editorView = this._editorView;
+							if(this.shareSnippetHandler) {
+								browseViewOptons.infoDropDownHandlers.unshift(this.shareSnippetHandler);
+							}
+						} else {
+							this.makeDownloadLink();
+						}
+					} else if(this._isKnownBinary(cType)) {
+						if(mFileDownloader.downloadSupported()) {
+							this._generateDownloadLink(contents, metadata, cType, browseViewOptons);
+						} else {
+							this._generateViewLink(contents, metadata, {id: "text/plain"}, browseViewOptons, 
+							'Directly downloading the contents of files is not supported in your browser. You can click the link below, then save the resulting page using "Save As...".');
+						}
+					} else if(this._isBrowserRenderable(cType)) {
+						if(util.isIE) {//IE(tested on 10 and 11) does not support objectURL on a link yet. http://stackoverflow.com/questions/17951644/can-i-open-object-url-in-ie
+							this._generateDownloadLink(contents, metadata, cType, browseViewOptons);
+						} else {
+							this._generateViewLink(contents, metadata, cType, browseViewOptons);
+						}
 					} else if(cType.id === "text/x-markdown") {
 						browseViewOptons.isMarkdownView = true;
 					} else if(!mNavigatorRenderer.isImage(cType)) {
 						browseViewOptons.editorView = this._editorView;
+						if(this.shareSnippetHandler) {
+							browseViewOptons.infoDropDownHandlers.unshift(this.shareSnippetHandler);
+						}
 					} else {
 						var objectURL = URL.createObjectURL(new Blob([contents],{type: cType.id}));
 						var image = document.createElement("img"); //$NON-NLS-0$
 						image.src = objectURL;
 						image.classList.add("readonlyImage"); //$NON-NLS-0$
-						browseViewOptons.imageView = {image: image};
+						browseViewOptons.binaryView = {domElement: image};
 					}
 				}
 				view = new mBrowseView.BrowseView(browseViewOptons);

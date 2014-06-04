@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2009, 2013 IBM Corporation and others.
+ * Copyright (c) 2009, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -97,6 +97,14 @@ eclipse.UsersList = (function(){
 				this.queryObject.rows = parseInt(result.users_rows, 10);
 				this.queryObject.length = parseInt(result.users_length, 10);
 				return result.users;
+			}.bind(this),function(error) {
+				var display = {};
+				display.Severity = "Error"; //$NON-NLS-0$
+				display.HTML = false;
+				display.Message = messages["Permission to view user list denied."]; //$NON-NLS-0$
+				this.registry.getService("orion.page.message").setProgressResult(display); //$NON-NLS-0$
+				var progress = lib.node("progress");  //$NON-NLS-0$
+				lib.empty(progress);
 			}.bind(this));
 	};
 

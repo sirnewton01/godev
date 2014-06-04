@@ -9,9 +9,14 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global esprima*/
-/*jslint amd:true*/
+/*global URL */
+/*jslint amd:true */
+/*
+ * This module may be loaded in a web worker or a regular Window. Therefore it must NOT use the DOM or other
+ * APIs not available in workers.
+ */
 define([
+	'esprima',
 	'javascript/astManager',
 	'javascript/contentAssist/indexFiles/mongodbIndex',
 	'javascript/contentAssist/indexFiles/mysqlIndex',
@@ -20,50 +25,49 @@ define([
 	'javascript/contentAssist/indexFiles/expressIndex',
 	'javascript/contentAssist/indexFiles/amqpIndex',
 	'javascript/contentAssist/contentAssist',
-	'javascript/contentAssist/indexer',
-	'javascript/eslint/validator',
+	'javascript/validator',
 	'javascript/occurrences',
 	'javascript/outliner',
-	'orion/i18nUtil',
 	'orion/plugin',
-	'orion/editor/jsTemplateContentAssist',
+	'orion/util',
+	'javascript/commands/generateDocCommand',
 	'orion/editor/stylers/application_javascript/syntax',
 	'orion/editor/stylers/application_json/syntax',
 	'orion/editor/stylers/application_schema_json/syntax',
 	'orion/editor/stylers/application_x-ejs/syntax'
-], function(ASTManager, MongodbIndex, MysqlIndex, PostgresIndex, RedisIndex, ExpressIndex, AMQPIndex, ContentAssist, Indexer, EslintValidator, Occurrences, Outliner,
-		i18nUtil, PluginProvider, jsTemplateContentAssist, mJS, mJSON, mJSONSchema, mEJS) {
+], function(Esprima, ASTManager, MongodbIndex, MysqlIndex, PostgresIndex, RedisIndex, ExpressIndex, AMQPIndex, ContentAssist, 
+			EslintValidator, Occurrences, Outliner,	PluginProvider, Util, GenerateDocCommand, mJS, mJSON, mJSONSchema, mEJS) {
 
 	/**
 	 * Plug-in headers
 	 */
 	var headers = {
-		name: "Orion JavaScript Tool Support",
-		version: "1.0",
-		description: "This plugin provides JavaScript tools support for Orion, like editing, search, navigation, validation, and code completion."
+		name: "Orion JavaScript Tool Support", //$NON-NLS-0$
+		version: "1.0", //$NON-NLS-0$
+		description: "This plugin provides JavaScript tools support for Orion, like editing, search, navigation, validation, and code completion." //$NON-NLS-0$
 	};
 	var provider = new PluginProvider(headers);
 	
 	/**
 	 * Register the JavaScript content types
 	 */
-	provider.registerServiceProvider("orion.core.contenttype", {}, {
+	provider.registerService("orion.core.contenttype", {}, { //$NON-NLS-0$
 		contentTypes: [
-			{	id: "application/javascript",
-				"extends": "text/plain",
-				name: "JavaScript",
-				extension: ["js"],
-				imageClass: "file-sprite-javascript modelDecorationSprite"
-			}, {id: "application/json",
-				"extends": "text/plain",
-				name: "JSON",
-				extension: ["json"],
-				imageClass: "file-sprite-javascript modelDecorationSprite"
-			}, {id: "application/x-ejs",
-				"extends": "text/plain",
-				name: "Embedded Javascript",
-				extension: ["ejs"],
-				imageClass: "file-sprite-javascript modelDecorationSprite"
+			{	id: "application/javascript", //$NON-NLS-0$
+				"extends": "text/plain", //$NON-NLS-0$
+				name: "JavaScript", //$NON-NLS-0$
+				extension: ["js"], //$NON-NLS-0$
+				imageClass: "file-sprite-javascript modelDecorationSprite" //$NON-NLS-0$
+			}, {id: "application/json", //$NON-NLS-0$
+				"extends": "text/plain", //$NON-NLS-0$
+				name: "JSON", //$NON-NLS-0$
+				extension: ["json", "pref"], //$NON-NLS-0$ //$NON-NLS-1$
+				imageClass: "file-sprite-javascript modelDecorationSprite" //$NON-NLS-0$
+			}, {id: "application/x-ejs", //$NON-NLS-0$
+				"extends": "text/plain", //$NON-NLS-0$
+				name: "Embedded Javascript", //$NON-NLS-0$
+				extension: ["ejs"], //$NON-NLS-0$
+				imageClass: "file-sprite-javascript modelDecorationSprite" //$NON-NLS-0$
 			}
 		]
 	});
@@ -71,164 +75,211 @@ define([
 	/**
 	 * Create the AST manager
 	 */
-	var astManager = new ASTManager.ASTManager();
+	var astManager = new ASTManager.ASTManager(Esprima);
 
 	/**
 	 * Register AST manager as Model Change listener
 	 */
-	provider.registerServiceProvider("orion.edit.model", {
-			onModelChanging: astManager.updated.bind(astManager)
+	provider.registerService("orion.edit.model", {  //$NON-NLS-0$
+			onModelChanging: astManager.updated.bind(astManager),
+			onDestroy: astManager.updated.bind(astManager)
 		},
 		{
-			contentType: ["application/javascript"],
-			types: ["ModelChanging"]
+			contentType: ["application/javascript"],  //$NON-NLS-0$
+			types: ["ModelChanging", 'Destroy']  //$NON-NLS-0$  //$NON-NLS-1$
 	});
-
+	
+	provider.registerServiceProvider("orion.edit.command",  //$NON-NLS-0$
+			new GenerateDocCommand.GenerateDocCommand(astManager), 
+			{
+				nameKey : 'generateDocName',  //$NON-NLS-0$
+				tooltipKey : 'generateDocTooltip',  //$NON-NLS-0$
+   				id : "generate.js.doc.comment",  //$NON-NLS-0$
+   				nls: 'javascript/nls/messages',  //$NON-NLS-0$
+   				key : [ "j", false, true, !Util.isMac, Util.isMac],  //$NON-NLS-0$
+   				contentType: ['application/javascript']  //$NON-NLS-0$
+ 			}
+ 	);
+	
 	/**
 	 * Register the jsdoc-based outline
 	 */
-	provider.registerServiceProvider("orion.edit.outliner", new Outliner.JSOutliner(astManager),
-		{ contentType: ["application/javascript"],
-		  name: "Source Outline",
-		  title: "JavaScript source outline",
-		  id: "orion.javascript.outliner.source"
+	provider.registerService("orion.edit.outliner", new Outliner.JSOutliner(astManager),  //$NON-NLS-0$
+		{ contentType: ["application/javascript"],  //$NON-NLS-0$
+			nls: 'javascript/nls/messages',  //$NON-NLS-0$
+		  	nameKey: 'sourceOutline',  //$NON-NLS-0$
+		  	titleKey: 'sourceOutlineTitle',  //$NON-NLS-0$
+		  	id: "orion.javascript.outliner.source"  //$NON-NLS-0$
 	});
 
 	/**
 	 * Register the mark occurrences support
 	 */
-	provider.registerService("orion.edit.occurrences", new Occurrences.JavaScriptOccurrences(astManager),
+	provider.registerService("orion.edit.occurrences", new Occurrences.JavaScriptOccurrences(astManager),  //$NON-NLS-0$
 		{
-			contentType: ["application/javascript"]	//$NON-NLS-0$
+			contentType: ["application/javascript", "text/html"]	//$NON-NLS-0$ //$NON-NLS-1$
 	});
 	
-	/**
-	 * Register the content assist support
-	 */
-	provider.registerService("orion.edit.contentassist",
-		new jsTemplateContentAssist.JSTemplateContentAssistProvider(),
-		{	name: "JavaScript content assist",
-			contentType: ["application/javascript"]
-		});
-	provider.registerServiceProvider("orion.edit.contentassist", new ContentAssist.JSContentAssist(astManager, new Indexer()), 
+	provider.registerService("orion.edit.contentassist", new ContentAssist.JSContentAssist(astManager),  //$NON-NLS-0$
 		{
-			contentType: ["application/javascript"],
-			name: "JavaScript content assist",
-			id: "orion.edit.contentassist.javascript",
-			charTriggers: "[.]",
-			excludedStyles: "(comment.*|string.*)"
+			contentType: ["application/javascript"],  //$NON-NLS-0$
+			nls: 'javascript/nls/messages',  //$NON-NLS-0$
+			name: 'contentAssist',  //$NON-NLS-0$
+			id: "orion.edit.contentassist.javascript",  //$NON-NLS-0$
+			charTriggers: "[.]",  //$NON-NLS-0$
+			excludedStyles: "(comment.*|string.*)"  //$NON-NLS-0$
 	});	
 
 	/**
 	 * Register the ESLint validator
 	 */
-	provider.registerServiceProvider(["orion.edit.validator", "orion.cm.managedservice"], new EslintValidator(astManager),
+	provider.registerService(["orion.edit.validator", "orion.cm.managedservice"], new EslintValidator(astManager),  //$NON-NLS-0$  //$NON-NLS-1$
 		{
-			contentType: ["application/javascript"],
-			pid: 'eslint.config'
+			contentType: ["application/javascript", "text/html"],  //$NON-NLS-0$
+			pid: 'eslint.config'  //$NON-NLS-0$
 		});
 
 	/**
 	 * ESLint settings
 	 */
-	provider.registerService("orion.core.setting",
+	var ignore = 0, warning = 1, error = 2, severities = [
+		{labelKey: 'ignore',  value: ignore},  //$NON-NLS-0$
+		{labelKey: 'warning', value: warning},  //$NON-NLS-0$
+		{labelKey: 'error',   value: error}  //$NON-NLS-0$
+	];
+	provider.registerService("orion.core.setting",  //$NON-NLS-0$
 		{},
 		{	settings: [
-				{	pid: "eslint.config",
-					name: "ESLint Validator",
-					tags: "validation javascript js eslint".split(" "),
-					category: "validation",
+				{	pid: "eslint.config",  //$NON-NLS-0$
+					nls: 'javascript/nls/messages',  //$NON-NLS-0$
+					nameKey: 'eslintValidator',  //$NON-NLS-0$
+					tags: "validation javascript js eslint".split(" "),  //$NON-NLS-0$  //$NON-NLS-1$
+					category: "validation",  //$NON-NLS-0$
 					properties: [
-						{	id: "validate_eqeqeq",
-							name: "Discouraged '==' use",
-							type: "number",
-							defaultValue: 1,
-							options: [
-								{label: "Ignore", value:0},
-								{label: "Warning", value:1},
-								{label: "Error", value:2}
-							]
+						{
+							id: "no-new-array", //$NON-NLS-0$
+							nameKey: "no-new-array", //$NON-NLS-0$
+							type: "number", //$NON-NLS-0$
+							defaultValue: warning, //$NON-NLS-0$
+							options: severities //$NON-NLS-0$
 						},
-						{	id: "validate_func_decl",
-							name: "No JSDoc on function declarations",
-							type: "number",
-							defaultValue: 0,
-							options: [
-							    {label: "Ignore", value:0},
-							    {label: "Warning", value:1},
-							    {label: "Error", value:2}
-							]
+						{
+							id: "no-new-func", //$NON-NLS-0$
+							nameKey: "no-new-func", //$NON-NLS-0$
+							type: "number", //$NON-NLS-0$
+							defaultValue: warning, //$NON-NLS-0$
+							options: severities //$NON-NLS-0$
 						},
-						{	id: "validate_func_expr",
-							name: "No JSDoc on function expressions",
-							type: "number",
-							defaultValue: 0,
-							options: [
-							    {label: "Ignore", value:0},
-							    {label: "Warning", value:1},
-							    {label: "Error", value:2}
-							]
+						{
+							id: "no-new-object", //$NON-NLS-0$
+							nameKey: "no-new-object", //$NON-NLS-0$
+							type: "number", //$NON-NLS-0$
+							defaultValue: warning, //$NON-NLS-0$
+							options: severities //$NON-NLS-0$
 						},
-						{	id: "validate_use_before_define",
-							name: "Member used before definition",
-							type: "number",
-							defaultValue: 1,
-							options: [
-								{label: "Ignore", value:0},
-								{label: "Warning", value:1},
-								{label: "Error", value:2}
-							]
+						{
+							id: "no-new-wrappers", //$NON-NLS-0$
+							nameKey: "no-new-wrappers", //$NON-NLS-0$
+							type: "number", //$NON-NLS-0$
+							defaultValue: warning, //$NON-NLS-0$
+							options: severities //$NON-NLS-0$
 						},
-						{	id: "validate_missing_semi",
-							name: "Missing semicolons",
-							type: "number",
-							defaultValue: 1,
-							options: [
-								{label: "Ignore", value:0},
-								{label: "Warning", value:1},
-								{label: "Error", value:2}
-							]
+						{	id: "validate_curly",  //$NON-NLS-0$
+							nameKey: 'curly',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: ignore,
+							options: severities
 						},
-						{	id: "validate_no_undef",
-							name: "Undefined member use",
-							type: "number",
-							defaultValue: 2,
-							options: [
-								{label: "Ignore", value:0},
-								{label: "Warning", value:1},
-								{label: "Error", value:2}
-							]
+						{	id: "validate_debugger",  //$NON-NLS-0$
+							nameKey: 'noDebugger',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
+							options: severities
 						},
-						{	id: "validate_unnecessary_semi",
-							name: "Unnecessary semicolons",
-							type: "number",
-							defaultValue: 1,
-							options: [
-								{label: "Ignore", value:0},
-								{label: "Warning", value:1},
-								{label: "Error", value:2}
-							]
+						{	id: "validate_dupe_obj_keys",  //$NON-NLS-0$
+							nameKey: 'noDupeKeys',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: error,
+							options: severities
 						},
-						{	id: "validate_no_unused_vars",
-							name: "Unused variables",
-							type: "number",
-							defaultValue: 1,
-							options: [
-								{label: "Ignore", value:0},
-								{label: "Warning", value:1},
-								{label: "Error", value:2}
-							]
+						{	id: "validate_eqeqeq",  //$NON-NLS-0$
+							nameKey: 'eqeqeq',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
+							options: severities
 						},
-						{	id: "validate_no_redeclare",
-							name: "Variable re-declarations",
-							type: "number",
-							defaultValue: 1,
-							options: [
-								{label: "Ignore", value:0},
-								{label: "Warning", value:1},
-								{label: "Error", value:2}
-							]
-						}
+						{	id: "validate_eval",  //$NON-NLS-0$
+							nameKey: 'noEval',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: ignore,
+							options: severities
+						},
+						{	id: "validate_func_decl",  //$NON-NLS-0$
+							nameKey: 'docFuncDecl',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: ignore,
+							options: severities
+						},
+						{	id: "validate_func_expr",  //$NON-NLS-0$
+							nameKey: 'docFuncExpr',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: ignore,
+							options: severities
+						},
+						{	id: "validate_missing_semi",  //$NON-NLS-0$
+							nameKey: 'missingSemi',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
+							options: severities
+						},
+						{	id: "validate_new_parens",  //$NON-NLS-0$
+							nameKey: 'newParens',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: error,
+							options: severities
+						},
+						{	id: "validate_no_redeclare",  //$NON-NLS-0$
+							nameKey: 'varRedecl',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
+							options: severities
+						},
+						{	id: "validate_no_undef",  //$NON-NLS-0$
+							nameKey: 'undefMember',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: error,
+							options: severities
+						},
+						{	id: "validate_no_unused_vars",  //$NON-NLS-0$
+							nameKey: 'unusedVars',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
+							options: severities
+						},
+						{	id: "validate_unnecessary_semi",  //$NON-NLS-0$
+							nameKey: 'unnecessarySemis',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
+							options: severities
+						},
+						{	id: "validate_unused_params",  //$NON-NLS-0$
+							nameKey: 'unusedParams',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
+							options: severities
+						},
+						{	id: "validate_use_before_define",  //$NON-NLS-0$
+							nameKey: 'useBeforeDefine',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
+							options: severities
+						},
+						{	id: "validate_use_isnan",  //$NON-NLS-0$
+							nameKey: 'useIsNaN',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: error,
+							options: severities
+						},
 					]
 				}
 			]
@@ -239,40 +290,40 @@ define([
 	 */
 	var grammars = mJS.grammars.concat(mJSON.grammars).concat(mJSONSchema.grammars).concat(mEJS.grammars);
 	grammars.forEach(function(current) {
-		provider.registerServiceProvider("orion.edit.highlighter", {}, current);	
+		provider.registerService("orion.edit.highlighter", {}, current);
 	}.bind(this));
 
 	/**
 	 * Register type definitions for known JS libraries
 	 */
-	provider.registerServiceProvider("orion.core.typedef", {}, {
-		id: "node.redis",
-		type: "tern",
+	provider.registerService("orion.core.typedef", {}, {  //$NON-NLS-0$
+		id: "node.redis",  //$NON-NLS-0$
+		type: "tern",  //$NON-NLS-0$
 		defs: RedisIndex
 	});
-	provider.registerServiceProvider("orion.core.typedef", {}, {
-		id: "node.mysql",
-		type: "tern",
+	provider.registerService("orion.core.typedef", {}, {  //$NON-NLS-0$
+		id: "node.mysql",  //$NON-NLS-0$
+		type: "tern",  //$NON-NLS-0$
 		defs: MysqlIndex
 	});
-	provider.registerServiceProvider("orion.core.typedef", {}, {
-		id: "node.postgres",
-		type: "tern",
+	provider.registerService("orion.core.typedef", {}, {  //$NON-NLS-0$
+		id: "node.postgres",  //$NON-NLS-0$
+		type: "tern",  //$NON-NLS-0$
 		defs: PostgresIndex
 	});
-	provider.registerServiceProvider("orion.core.typedef", {}, {
-		id: "node.mongodb",
-		type: "tern",
+	provider.registerService("orion.core.typedef", {}, {  //$NON-NLS-0$
+		id: "node.mongodb",  //$NON-NLS-0$
+		type: "tern",  //$NON-NLS-0$
 		defs: MongodbIndex
 	});
-	provider.registerServiceProvider("orion.core.typedef", {}, {
-		id: "node.express",
-		type: "tern",
+	provider.registerService("orion.core.typedef", {}, {  //$NON-NLS-0$
+		id: "node.express",  //$NON-NLS-0$
+		type: "tern", //$NON-NLS-0$
 		defs: ExpressIndex
 	});
-	provider.registerServiceProvider("orion.core.typedef", {}, {
-		id: "node.amqp",
-		type: "tern",
+	provider.registerService("orion.core.typedef", {}, {  //$NON-NLS-0$
+		id: "node.amqp",  //$NON-NLS-0$
+		type: "tern",  //$NON-NLS-0$
 		defs: AMQPIndex
 	});
 

@@ -340,7 +340,7 @@ define(['domReady', 'orion/xhr', 'orion/PageUtil', 'orion/webui/littlelib', 'per
 
 	function revealLogin( event ){
 		if( handleSelectionEvent( event ) ){
-			event.stopPropagation();
+			lib.stop(event);
 			document.getElementById('orionOpen').style.visibility = 'hidden';
 			document.getElementById('orionRegister').style.visibility = 'hidden';
 			document.getElementById('orionLoginForm').style.visibility = '';

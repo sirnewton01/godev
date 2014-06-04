@@ -100,20 +100,18 @@ define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', '
 				sidebar: this
 			}));
 			
-			if (this.serviceRegistry.getServiceReferences("orion.projects").length > 0) { //$NON-NLS-0$
-				this.projectViewMode = new ProjectNavViewMode({
-					commandRegistry: commandRegistry,
-					contentTypeRegistry: contentTypeRegistry,
-					preferences: this.preferences,
-					fileClient: fileClient,
-					editorInputManager: editorInputManager,
-					parentNode: parentNode,
-					sidebarNavInputManager: this.sidebarNavInputManager,
-					serviceRegistry: serviceRegistry,
-					toolbarNode: toolbarNode,
-					sidebar: this
-				});
-			}
+			this.projectViewMode = new ProjectNavViewMode({
+				commandRegistry: commandRegistry,
+				contentTypeRegistry: contentTypeRegistry,
+				preferences: this.preferences,
+				fileClient: fileClient,
+				editorInputManager: editorInputManager,
+				parentNode: parentNode,
+				sidebarNavInputManager: this.sidebarNavInputManager,
+				serviceRegistry: serviceRegistry,
+				toolbarNode: toolbarNode,
+				sidebar: this
+			});
 
 			// Outliner is responsible for adding its view mode(s) to this sidebar
 			this.outliner = new mOutliner.Outliner({

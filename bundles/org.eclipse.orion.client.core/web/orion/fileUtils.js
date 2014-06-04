@@ -29,6 +29,13 @@ define(['require', 'i18n!orion/nls/messages', 'orion/URL-shim'], function(requir
 		return location;
 	}
 	
+	//cache this
+	var _workspaceUrlHref;
+	if(!require.toUrl){
+		_workspaceUrlHref =(new URL("/", window.location.href)).href;
+	} else {
+		_workspaceUrlHref =(new URL(require.toUrl("workspace"), window.location.href)).href;
+	}
 	/**
 	 * Determines if the path represents the workspace root
 	 * @name orion.util#isAtRoot
@@ -41,9 +48,8 @@ define(['require', 'i18n!orion/nls/messages', 'orion/URL-shim'], function(requir
 		if (path === "/workspace") {
 			return true; // sad but true
 		}
-		var workspaceUrl = new URL(require.toUrl("workspace"), window.location.href);
 		var pathUrl = new URL(path, window.location.href);
-		return pathUrl.href.indexOf(workspaceUrl.href) === 0; //$NON-NLS-0$
+		return pathUrl.href.indexOf(_workspaceUrlHref) === 0; //$NON-NLS-0$
 	}
 	
 	//return module exports

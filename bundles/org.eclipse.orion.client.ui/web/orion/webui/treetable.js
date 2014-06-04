@@ -9,8 +9,8 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*jslint forin:true devel:true*/
-/*global define document*/
+/*jslint amd:true forin:true devel:true*/
+/*global console document*/
 
 define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, lib) {
 
@@ -249,13 +249,13 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 			var id = typeof(itemOrId) === "string" ? itemOrId : this._treeModel.getId(itemOrId); //$NON-NLS-0$
 			var row = lib.node(id);
 			if (row) {
+				var tree = this;
 				if (row._expanded) {
 					if (postExpandFunc) {
 						postExpandFunc.apply(tree, args);
 					}
 					return;
 				}
-				var tree = this;
 				this._renderer.updateExpandVisuals(row, "progress"); //$NON-NLS-0$
 				this._treeModel.getChildren(row._item, function(children) {
 					if (tree.destroyed) { return; }

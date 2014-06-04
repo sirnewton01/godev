@@ -9,13 +9,12 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define esprima*/
+/*global define*/
 define([
-	'esprima',
 	'orion/Deferred',
 	'orion/objects',
 	'orion/serialize'
-], function(Esprima, Deferred, Objects, Serialize) {
+], function(Deferred, Objects, Serialize) {
 	/**
 	 * @description Object of error types
 	 * @since 5.0
@@ -35,9 +34,14 @@ define([
 	 * Provides a shared AST.
 	 * @name javascript.ASTManager
 	 * @class Provides a shared AST.
+	 * @param {Object} esprima The esprima parser that this ASTManager will use.
 	 */
-	function ASTManager() {
+	function ASTManager(esprima) {
+		this.parser = esprima;
 		this.cache = null;
+		if (!this.parser) {
+			throw new Error("Missing parser");
+		}
 	}
 	
 	Objects.mixin(ASTManager.prototype, /** @lends javascript.ASTManager.prototype */ {
@@ -63,11 +67,12 @@ define([
 		 */
 		parse: function(text) {
 			try {
-				var ast = esprima.parse(text, {
+				var ast = this.parser.parse(text, {
 					range: true,
 					tolerant: true,
 					comment: true,
-					tokens: true
+					tokens: true,
+					attachComment: true
 				});
 			} catch (e) {
 				// The "tolerant" Esprima sometimes blows up from parse errors in initial statements of code.
@@ -89,7 +94,7 @@ define([
 		 * @returns {Object} A new, empty AST object
 		 */
 		_emptyAST: function(text) {
-			var charCount = (text && typeof text.length === "number") ? text.length : 0;
+			var charCount = (text && typeof text.length === "number") ? text.length : 0;  //$NON-NLS-0$
 			return {
 				type: "Program", //$NON-NLS-0$
 				body: [],
@@ -124,7 +129,7 @@ define([
 		 * Notifies the AST manager of a change to the model.
 		 * @param {Object} event
 		 */
-		updated: function(event) {
+		updated: function(/*event*/) {
 			this.cache = null;
 		}
 	});

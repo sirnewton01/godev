@@ -127,7 +127,8 @@ define(['examples/editor/textStyler', 'orion/editor/textStyler', 'orion/editor/t
 						for(var key in this.orionGrammars) {
 						    grammars.push(this.orionGrammars[key]);
 						}
-						styler = new mTextStyler2.TextStyler(textView, annotationModel, grammars, provider.getProperty("id"));
+						var stylerAdapter = new mTextStyler2.createPatternBasedAdapter(grammars, provider.getProperty("id"));
+						styler = new mTextStyler2.TextStyler(textView, annotationModel, stylerAdapter);
 					}
 				}
 			}
@@ -142,7 +143,6 @@ define(['examples/editor/textStyler', 'orion/editor/textStyler', 'orion/editor/t
 	 * <p>Requires service {@link orion.core.ContentTypeRegistry}</p>
 	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry Registry to look up highlight providers from.
 	 * @param {orion.core.ContentType} [contentTypeService=null] A stand alone content type service that is not registered in theservice registry.
-	 
 	 */
 	function SyntaxHighlighter(serviceRegistry, contentTypeService) {
 		this.serviceRegistry = serviceRegistry;

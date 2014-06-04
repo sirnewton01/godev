@@ -2,6 +2,7 @@
  * @fileoverview JSLint XML reporter
  * @author Ian Christian Myers
  */
+"use strict";
 
  //------------------------------------------------------------------------------
  // Helper Functions
@@ -18,12 +19,12 @@
  *  - &apos; is the escape sequence for '
  *  - &amp; is the escape sequence for &
  *
- * @param {String} message to escape
- * @return escaped message as {String}
+ * @param {string} message to escape
+ * @returns {string} escaped message
  */
-function escapeSpecialCharacters(str) {
+function escapeSpecialCharacters(message) {
 
-    str = str || "";
+    message = message || "";
     var pairs = {
         "&": "&amp;",
         "\"": "&quot;",
@@ -32,7 +33,7 @@ function escapeSpecialCharacters(str) {
         ">": "&gt;"
     };
 
-    return str.replace(/[&"'<>]/g, function(c) {
+    return message.replace(/[&"'<>]/g, function(c) {
         return pairs[c];
     });
 
@@ -41,7 +42,7 @@ function escapeSpecialCharacters(str) {
 //------------------------------------------------------------------------------
 // Public Interface
 //------------------------------------------------------------------------------
-
+/* global module */
 module.exports = function(results) {
 
     var output = "";
@@ -58,7 +59,8 @@ module.exports = function(results) {
             output += "<issue line=\"" + message.line + "\" " +
                 "char=\"" + message.column + "\" " +
                 "evidence=\"" + escapeSpecialCharacters(message.source) + "\" " +
-                "reason=\"" + escapeSpecialCharacters(message.message) + "\" />";
+                "reason=\"" + escapeSpecialCharacters(message.message) +
+                (message.ruleId ? " (" + message.ruleId + ")" : "") + "\" />";
         });
 
         output += "</file>";

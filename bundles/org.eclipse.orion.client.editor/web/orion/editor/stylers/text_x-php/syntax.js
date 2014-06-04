@@ -40,47 +40,62 @@ define("orion/editor/stylers/text_x-php/syntax", ["orion/editor/stylers/lib/synt
 
 	var grammars = mLib.grammars;
 	grammars.push({
-		id: "orion.php",
-		contentTypes: ["text/x-php"],
+		id: "orion.php", //$NON-NLS-0$
+		contentTypes: ["text/x-php"], //$NON-NLS-0$
 		patterns: [
 			{
-				include: "orion.lib#doc_block"
-			}, {
-				include: "orion.c-like"
-			}, {
-				match: "(?i)<\\?(?:=|php)?(?:\\s|$)",
-				name: "entity.name.declaration.php",
-			}, {
-				match: "<%=?(?:\\s|$)",
-				name: "entity.name.declaration.php",
-			}, {
-				match: "#.*",
-				name: "comment.line.number-sign.php",
+				begin: "(?i)<(\\?|%(?!php))(?:=|php)?(?:\\s|$)", //$NON-NLS-0$
+				end: "[\\1]>", //$NON-NLS-0$
+				captures: {
+					0: {name: "entity.name.declaration.php"} //$NON-NLS-0$
+				},
+				contentName: "source.php.embedded", //$NON-NLS-0$
 				patterns: [
+					{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+					{include: "orion.lib#string_singleQuote"}, //$NON-NLS-0$
+					{include: "orion.c-like#comment_singleLine"}, //$NON-NLS-0$
+					{include: "orion.lib#doc_block"}, //$NON-NLS-0$
+					{include: "orion.c-like#comment_block"}, //$NON-NLS-0$
 					{
-						include: "orion.lib#todo_comment_singleLine"
+						match: {match: "#.*", literal: "#"}, //$NON-NLS-0$
+						name: "comment.line.number-sign.php", //$NON-NLS-0$
+						patterns: [
+							{include: "orion.lib#todo_comment_singleLine"} //$NON-NLS-0$
+						]
+					}, {
+						begin: "<<<(\\w+)$", //$NON-NLS-0$
+						end: "^\\1;$", //$NON-NLS-0$
+						name: "string.unquoted.heredoc.php" //$NON-NLS-0$
+					}, {
+						begin: "<<<'(\\w+)'$", //$NON-NLS-0$
+						end: "^\\1;$", //$NON-NLS-0$
+						name: "string.unquoted.heredoc.nowdoc.php" //$NON-NLS-0$
+					},
+					{include: "orion.lib#brace_open"}, //$NON-NLS-0$
+					{include: "orion.lib#brace_close"}, //$NON-NLS-0$
+					{include: "orion.lib#bracket_open"}, //$NON-NLS-0$
+					{include: "orion.lib#bracket_close"}, //$NON-NLS-0$
+					{include: "orion.lib#parenthesis_open"}, //$NON-NLS-0$
+					{include: "orion.lib#parenthesis_close"}, //$NON-NLS-0$
+					{
+						match: "\\b0[bB][01]+\\b", //$NON-NLS-0$
+						name: "constant.numeric.binary.php" //$NON-NLS-0$
+					},
+					{include: "orion.lib#number_decimal"}, //$NON-NLS-0$
+					{include: "orion.lib#number_hex"}, //$NON-NLS-0$
+					{
+						match: "\\b(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+						name: "keyword.control.php" //$NON-NLS-0$
 					}
 				]
 			}, {
-				begin: "<<<(\\w+)$",
-				end: "^\\1;$",
-				name: "string.unquoted.heredoc.php"
-			}, {
-				begin: "<<<'(\\w+)'$",
-				end: "^\\1;$",
-				name: "string.unquoted.heredoc.nowdoc.php"
-			}, {
-				match: "\\b0[bB][01]+\\b",
-				name: "constant.numeric.binary.php"
-			}, {
-				match: "\\b(?:" + keywords.join("|") + ")\\b",
-				name: "keyword.control.php"
+				include: "orion.html" //$NON-NLS-0$
 			}
 		]
 	});
 
 	return {
-		id: "orion.php",
+		id: grammars[grammars.length - 1].id,
 		grammars: grammars,
 		keywords: keywords
 	};

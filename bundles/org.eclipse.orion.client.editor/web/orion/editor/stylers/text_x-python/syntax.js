@@ -33,33 +33,43 @@ define("orion/editor/stylers/text_x-python/syntax", ["orion/editor/stylers/lib/s
 
 	var grammars = mLib.grammars;
 	grammars.push({
-		id: "orion.python",
-		contentTypes: ["text/x-python"],
+		id: "orion.python", //$NON-NLS-0$
+		contentTypes: ["text/x-python"], //$NON-NLS-0$
 		patterns: [
 			{
-				include: "orion.lib"
-			}, {
-				match: "#.*",
-				name: "comment.line.number-sign.python",
+				begin: "(['\"])\\1\\1", //$NON-NLS-0$
+				end: "\\1\\1\\1", //$NON-NLS-0$
+				name: "string.quoted.triple.python" //$NON-NLS-0$
+			}, 
+			{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+			{include: "orion.lib#string_singleQuote"}, //$NON-NLS-0$
+			{
+				begin: {match: "#", literal: "#"}, //$NON-NLS-0$
+				end: {match: "$", literal: ""}, //$NON-NLS-0$
+				name: "comment.line.number-sign.python", //$NON-NLS-0$
 				patterns: [
 					{
-						include: "orion.lib#todo_comment_singleLine"
+						include: "orion.lib#todo_comment_singleLine" //$NON-NLS-0$
 					}
 				]
-			}, {
-				begin: "(['\"])\\1\\1",
-				end: "\\1\\1\\1",
-				name: "string.quoted.triple.python"
-			}, {
-				match: "\\b(?:" + keywords.join("|") + ")\\b",
-				name: "keyword.control.python"
+			},
+			{include: "orion.lib#brace_open"}, //$NON-NLS-0$
+			{include: "orion.lib#brace_close"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_open"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_close"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_open"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_close"}, //$NON-NLS-0$
+			{include: "#number_decimal"}, //$NON-NLS-0$
+			{include: "orion.lib#number_hex"}, //$NON-NLS-0$ 
+			{
+				match: "\\b(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				name: "keyword.control.python" //$NON-NLS-0$
 			}
 		],
 		repository: {
-			/* override orion.lib#number_decimal */
 			number_decimal: {
-				match: "\\b-?(?:\\.\\d+|\\d+\\.?\\d*)[lL]?\\b",
-				name: "constant.numeric.number.python"
+				match: "\\b-?(?:\\.\\d+|\\d+\\.?\\d*)[lL]?\\b", //$NON-NLS-0$
+				name: "constant.numeric.number.python" //$NON-NLS-0$
 			}
 		}
 	});

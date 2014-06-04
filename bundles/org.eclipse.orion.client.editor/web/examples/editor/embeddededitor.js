@@ -41,8 +41,9 @@ function(edit, mKeyBinding){
 	
 	var editor = edit({
 		parent: editorDomNode,
-		lang: "js", //$NON-NLS-0$
-		contents: "window.alert('this is some javascript code');", //$NON-NLS-0$  // try pasting in some real code
+		lang: "html", //$NON-NLS-0$
+		contents: "<!DOCTYPE html>\n<html>\n\t<head></head>\n<body>\nThis is an HTML document. Try pressing Ctrl+Space." //$NON-NLS-0$
+				+ "\n</body>\n</html>", //$NON-NLS-0$
 		statusReporter: statusReporter
 	});
 	

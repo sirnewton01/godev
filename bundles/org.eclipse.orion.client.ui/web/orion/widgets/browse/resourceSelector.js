@@ -39,7 +39,6 @@ define([
 		this.dropDownId = params.dropDownId;
 		this.dropDownTooltip = params.dropDownTooltip;
 		this.allItems = params.allItems;
-		this.activeResourceName = params.activeResourceName;
 		this.activeResourceLocation = params.activeResourceLocation;
 		this.labelHeader = params.labelHeader;
 		this.parentNode = params.parentNode;
@@ -96,7 +95,6 @@ define([
 			this.menu = document.createElement("ul"); //$NON-NLS-0$
 			this.menu.classList.add("commandList"); //$NON-NLS-0$
 			this.menu.classList.add("layoutRight"); //$NON-NLS-0$
-			this.menu.classList.add("pageActions"); //$NON-NLS-0$
 			this.parentNode.appendChild(this.resourceName);
 			this.parentNode.appendChild(this.menu);
 
@@ -118,7 +116,7 @@ define([
 		 */
 		_resourceLabel: function() {
 			var fragment = document.createDocumentFragment();
-			fragment.textContent = "${0} " + this.activeResourceName; //$NON-NLS-0$
+			fragment.textContent = "${0} " + this.getActiveResource(this.activeResourceLocation).Name; //$NON-NLS-0$
 			var nameLabel = document.createElement("span"); //$NON-NLS-0$
 			nameLabel.appendChild(document.createTextNode(this.labelHeader + ":")); //$NON-NLS-0$
 			nameLabel.classList.add("browserResourceSelectorNameLabel");
@@ -135,7 +133,6 @@ define([
 		 * @param {Object|String} location The ChildrenLocation, or an object with a ChildrenLocation field.
 		 */
 		setActiveResource: function(params) {
-			this.activeResourceName = params.resource.Name;
 			this.activeResourceLocation = params.resource.Location;
 			if(this.fetchChildren) {//Lazy fetch
 				if(params.resource.selectorAllItems){
@@ -145,7 +142,19 @@ define([
 				} else {
 					this.fileClient.fetchChildren(params.resource.Location).then(function(contents){
 						if(contents && contents.length > 0) {
+							contents.sort(function(a, b) {
+								var	n1 = a.Name && a.Name.toLowerCase();
+								var	n2 = b.Name && b.Name.toLowerCase();
+								if (n1 < n2) { return -1; }
+								if (n1 > n2) { return 1; }
+								return 0;
+							}); 
 							params.resource.selectorAllItems = contents;
+							if(this.resourceChangeDispatcher) {
+								this.resourceChangeDispatcher.dispatchEvent({ type: "resourceChanged", newResource: params.resource, defaultChild: params.defaultChild, changeHash: params.changeHash}); //$NON-NLS-0$
+							}
+						} else {
+							params.resource.selectorAllItems = [{Name: "none", Location: params.resource.Location, Directory: true}];
 							if(this.resourceChangeDispatcher) {
 								this.resourceChangeDispatcher.dispatchEvent({ type: "resourceChanged", newResource: params.resource, defaultChild: params.defaultChild, changeHash: params.changeHash}); //$NON-NLS-0$
 							}
@@ -160,6 +169,9 @@ define([
 			}
 		},
 		getActiveResource: function(location){
+			if(!location) {
+				location = this.activeResourceLocation;
+			}
 			var activeResource = this.allItems[0];
 			this.allItems.some(function(item){
 				if(item.Location === location) {
@@ -169,6 +181,18 @@ define([
 			});
 			return activeResource;
 		},
+		setCommitInfo: function(location, commitInfo) {
+			//if(commitInfo) {
+				this.getActiveResource(location).LastCommit = commitInfo;
+			//}
+		},
+		getCommitInfo: function() {
+			var activeResource = this.getActiveResource();
+			if(activeResource && activeResource.LastCommit) {
+				return activeResource.LastCommit;
+			}
+			return null;
+		}
 	});
 
 	return {ResourceSelector: ResourceSelector};

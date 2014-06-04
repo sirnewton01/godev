@@ -352,12 +352,12 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				this._replacingAll = true;
 				var editor = this._editor;
 				var textView = editor.getTextView();
-				editor.reportStatus(messages.replaceAll);
+				editor.reportStatus(messages.replacingAll);
 				var replaceString = this._processReplaceString(this.getReplaceString());
 				var self = this;
 				window.setTimeout(function() {
 					var startPos = 0;
-					var count = 0, lastResult;
+					var count = 0;
 					while (true) {
 						//For replace all, we need to ignore the wrap search from the user option
 						//Otherwise the loop will be dead, see https://bugs.eclipse.org/bugs/show_bug.cgi?id=411813
@@ -365,7 +365,6 @@ define("orion/editor/find", [ //$NON-NLS-0$
 						if (!result) {
 							break;
 						}
-						lastResult = result;
 						count++;
 						if (count === 1) {
 							textView.setRedraw(false);
@@ -548,9 +547,6 @@ define("orion/editor/find", [ //$NON-NLS-0$
 			var editor = this._editor;
 			if (this._regex) {
 				newStr = editor.getText(start, end).replace(new RegExp(searchStr, this._caseInsensitive ? "i" : ""), newStr); //$NON-NLS-0$
-				if (!newStr) {
-					return;
-				}
 			}
 			editor.setText(newStr, start, end);
 			editor.setSelection(start, start + newStr.length, true);

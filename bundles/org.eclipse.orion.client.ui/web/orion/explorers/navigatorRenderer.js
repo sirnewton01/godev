@@ -19,9 +19,11 @@ define([
 	'orion/extensionCommands',
 	'orion/objects',
 	'orion/URITemplate',
+	'orion/widgets/browse/commitInfoRenderer',
 	'orion/webui/littlelib'
-], function(messages, Deferred, mExplorer, mNavUtils, mExtensionCommands, objects, URITemplate, lib) {
+], function(messages, Deferred, mExplorer, mNavUtils, mExtensionCommands, objects, URITemplate, mCommitInfoRenderer, lib) {
 		
+	var max_more_info_column_length = 60;
 	function isImage(contentType) {
 		switch (contentType && contentType.id) {
 			case "image/jpeg": //$NON-NLS-0$
@@ -56,6 +58,16 @@ define([
 	}
 	
 	var uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
+	
+	var clickedItem;
+	/**
+	 * Returns the last item clicked by links created with #createLink.
+	 * @name orion.explorer.NavigatorRenderer.getClickedItem
+	 * @function
+	 */
+	function getClickedItem() {
+		return clickedItem;
+	}
 		
 	/**
 	 * Exported so that it can be used by other UI that wants to use navigator-style links. commandService and contentTypeService  are necessary to compute 
@@ -83,12 +95,12 @@ define([
 		if (item.Directory) {
 			link = document.createElement("a"); //$NON-NLS-0$
 			link.className = "navlinkonpage"; //$NON-NLS-0$
-			link.href = !folderPageURL ? uriTemplate : new URITemplate(folderPageURL + "#{,resource,params*}").expand({resource: item.ChildrenLocation}); //$NON-NLS-0$
+			var template = !folderPageURL ? uriTemplate : new URITemplate(folderPageURL + "#{,resource,params*}"); //$NON-NLS-0$
+			link.href = template.expand({resource: item.ChildrenLocation});
 			if(item.Name){
 				link.appendChild(document.createTextNode(item.Name));
 			}
 		} else {
-			var i;			
 			if (!openWithCommands) {
 				openWithCommands = mExtensionCommands.getOpenWithCommands(commandService);
 			}
@@ -132,6 +144,9 @@ define([
 				}
 			});
 		}
+		link.addEventListener("click", function() { //$NON-NLS-0$
+			clickedItem = item;
+		}.bind(this), false);
 		return link;
 	}
 		
@@ -191,6 +206,21 @@ define([
 		bodyElement.appendChild(tr);
 	};
 
+	/**
+	 * @param {int|string} the local time stamp
+	 */
+	NavigatorRenderer.prototype.getDisplayTime = function(timeStamp) {
+		return new Date(timeStamp).toLocaleString();
+	};
+	
+	/**
+	 * @param {Element} parent the parent dom where the commit info is rendered
+	 * @param {Object} commitInfo the commit info
+	 */
+	NavigatorRenderer.prototype.getCommitRenderer = function(parent, commitInfo) {
+		return new mCommitInfoRenderer.CommitInfoRenderer({parent: parent, commitInfo: commitInfo});
+	};
+	
 	/**
 	 * Creates the column header element. We are really only using the header for a spacer at this point.
 	 * @name orion.explorer.NavigatorRenderer.prototype.getCellHeaderElement
@@ -302,6 +332,9 @@ define([
 	 * @returns {Element}
 	 */
 	NavigatorRenderer.prototype.getCellElement = function(col_no, item, tableRow){
+		var timeStampCase = item.LastCommit ? 2 : 1;
+		var sizeCase = item.LastCommit ? 3 : 2;
+		var commitCase = item.LastCommit ? 1 : -1;
 		switch(col_no){
 		case 0:
 			var col = document.createElement('td'); //$NON-NLS-0$
@@ -314,7 +347,7 @@ define([
 			var itemNode;
 			if (item.Directory) {
 				// defined in ExplorerRenderer.  Sets up the expand/collapse behavior
-				var image = this.getExpandImage(tableRow, span);
+				this.getExpandImage(tableRow, span);
 				itemNode = this.createFolderNode(item);
 
 				span.appendChild(itemNode);
@@ -341,18 +374,17 @@ define([
 				this.commandService.renderCommands(this.actionScopeId, span, item, this.explorer, "tool", null, true); //$NON-NLS-0$
 			}
 			return col;
-		case 1:
+		case timeStampCase:
 			// TODO see https://bugs.eclipse.org/bugs/show_bug.cgi?id=400121
 			if (this.oneColumn) {
 				return null;
 			}
 			var dateColumn = document.createElement('td'); //$NON-NLS-0$
 			if (item.LocalTimeStamp) {
-				var fileDate = new Date(item.LocalTimeStamp);
-				dateColumn.textContent = fileDate.toLocaleString();
+				dateColumn.textContent = this.getDisplayTime(item.LocalTimeStamp);
 			}
 			return dateColumn;
-		case 2:
+		case sizeCase:
 			// TODO see https://bugs.eclipse.org/bugs/show_bug.cgi?id=400121
 			if (this.oneColumn) {
 				return null;
@@ -365,6 +397,13 @@ define([
 			}
 			sizeColumn.style.textAlign = "right"; //$NON-NLS-0$
 			return sizeColumn;
+		case commitCase:// LastCommit field is optional. For file services that dod not return this properties, we do not have to render this column.
+			if (this.oneColumn || !item.LastCommit) {
+				return null;
+			}
+			var messageColumn = document.createElement('td'); //$NON-NLS-0$
+			this.getCommitRenderer(messageColumn, item.LastCommit).renderSimple(max_more_info_column_length);
+			return messageColumn;
 		}
 	};
 	NavigatorRenderer.prototype.constructor = NavigatorRenderer;
@@ -373,6 +412,7 @@ define([
 	return {
 		NavigatorRenderer: NavigatorRenderer,
 		isImage : isImage,
+		getClickedItem: getClickedItem,
 		createLink: createLink
 	};
 });

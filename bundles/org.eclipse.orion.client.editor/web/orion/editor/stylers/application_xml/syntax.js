@@ -15,85 +15,73 @@ define("orion/editor/stylers/application_xml/syntax", ["orion/editor/stylers/lib
 
 	var grammars = mLib.grammars;
 	grammars.push({
-		id: "orion.xml",
-		contentTypes: ["application/xml", "application/xhtml+xml"],
+		id: "orion.xml", //$NON-NLS-0$
+		contentTypes: ["application/xml", "application/xhtml+xml"], //$NON-NLS-1$ //$NON-NLS-0$
 		patterns: [
-			{
-				include: "#comment"
-			}, {
-				include: "#doctype"
-			}, {
-				include: "#xmlDeclaration"
-			}, {
-				begin: "</?[A-Za-z0-9]+",
-				end: "/?>",
-				captures: {
-					0: {name: "entity.name.tag.xml"},
-				},
-				name: "meta.tag.xml",
-				patterns: [
-					{
-						include: "#comment"
-					}, {
-						include: "orion.lib#string_doubleQuote"
-					}, {
-						include: "orion.lib#string_singleQuote"
-					}
-				]
-			}, {
-				match: "&lt;|&gt;|&amp;",
-				name: "constant.character"
-			}
+			{include: "#comment"}, //$NON-NLS-0$
+			{include: "#doctype"}, //$NON-NLS-0$
+			{include: "#xmlDeclaration"}, //$NON-NLS-0$
+			{include: "#tag"}, //$NON-NLS-0$
+			{include: "#ampersandEscape"} //$NON-NLS-0$
 		],
 		repository: {
+			ampersandEscape: {
+				match: "&lt;|&gt;|&amp;", //$NON-NLS-0$
+				name: "constant.character" //$NON-NLS-0$
+			},
 			comment: {
-				begin: "<!--",
-				end: "-->",
-				name: "comment.block.xml",
+				begin: {match: "<!--", literal: "<!--"}, //$NON-NLS-0$
+				end: {match: "-->", literal: "-->"}, //$NON-NLS-0$
+				name: "comment.block.xml", //$NON-NLS-0$
 				patterns: [
 					{
-						match: "(\\b)(TODO)(\\b)(((?!-->).)*)",
-						name: "meta.annotation.task.todo",
+						match: "(\\b)(TODO)(\\b)(((?!-->).)*)", //$NON-NLS-0$
+						name: "meta.annotation.task.todo", //$NON-NLS-0$
 						captures: {
-							2: {name: "keyword.other.documentation.task"},
-							4: {name: "comment.line"}
+							2: {name: "keyword.other.documentation.task"}, //$NON-NLS-0$
+							4: {name: "comment.line"} //$NON-NLS-0$
 						}
 					}
 				]
 			},
 			doctype: {
-				begin: "<!(?:doctype|DOCTYPE)",
-				end: ">",
-				name: "meta.tag.doctype.xml",
+				begin: "<!(?:doctype|DOCTYPE)", //$NON-NLS-0$
+				end: ">", //$NON-NLS-0$
+				name: "meta.tag.doctype.xml", //$NON-NLS-0$
 				captures: {
-					0: {name: "entity.name.tag.doctype.xml"},
+					0: {name: "entity.name.tag.doctype.xml"}, //$NON-NLS-0$
 				},
 				patterns: [
-					{
-						include: "#comment"
-					}, {
-						include: "orion.lib#string_doubleQuote"
-					}, {
-						include: "orion.lib#string_singleQuote"
-					}
+					{include: "#comment"}, //$NON-NLS-0$
+					{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+					{include: "orion.lib#string_singleQuote"} //$NON-NLS-0$
 				]
 			},
-			xmlDeclaration: {
-				begin: "<\\?xml",
-				end: "\\?>",
+			tag: {
+				begin: "</?[A-Za-z0-9]+", //$NON-NLS-0$
+				end: "/?>", //$NON-NLS-0$
 				captures: {
-					0: {name: "entity.name.tag.declaration.xml"},
+					0: {name: "entity.name.tag.xml"}, //$NON-NLS-0$
+				},
+				name: "meta.tag.xml", //$NON-NLS-0$
+				patterns: [
+					{include: "#comment"}, //$NON-NLS-0$
+					{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+					{include: "orion.lib#string_singleQuote"} //$NON-NLS-0$
+				]	
+			},
+			xmlDeclaration: {
+				begin: "<\\?xml", //$NON-NLS-0$
+				end: "\\?>", //$NON-NLS-0$
+				captures: {
+					0: {name: "entity.name.tag.declaration.xml"}, //$NON-NLS-0$
 				},
 				patterns: [
-					{
-						include: "#comment"
-					}, {
-						include: "orion.lib#string_doubleQuote"
-					}, {
-						include: "orion.lib#string_singleQuote"
-					}
+					{include: "#comment"}, //$NON-NLS-0$
+					{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+					{include: "orion.lib#string_singleQuote"} //$NON-NLS-0$
 				],
-				name: "meta.tag.declaration.xml"
+				name: "meta.tag.declaration.xml" //$NON-NLS-0$
 			}
 		}
 	});

@@ -160,8 +160,8 @@ define(["require", "orion/xhr", "orion/plugin", "orion/Deferred", 'orion/operati
 	}
 
 	var serviceImpl = {
-		doBlame: function(location) {
-			return blame(location);
+		computeBlame: function(editorContext, context) {
+			return blame(context.metadata.Location);
 		}
 	};
 	var properties = {

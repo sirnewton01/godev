@@ -233,7 +233,7 @@ define([
 			} else {
 				//hide
 				rowDiv.classList.add("outlineRowHidden"); //$NON-NLS-0$
-			};
+			}
 			// set visual indicator for matching rows
 			if (nodeMatchesFilter) {
 				rowDiv.classList.add("outlineRowMatchesFilter"); //$NON-NLS-0$

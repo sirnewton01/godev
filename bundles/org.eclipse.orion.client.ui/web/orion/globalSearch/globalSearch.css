@@ -106,14 +106,24 @@
 	border-radius: 3px;
 	font-size: 12px;
 	color: #222;
+	margin-left: 0;
 }
 
 .search-filter-input {
 	min-width:20em;
 }
 
-.search-button {
-	min-width:6em;
+.commandButton.search-button {
+	visibility: visible;
+	display: inline-block;
+	padding: 8px 15px;
+	border: none;
+	vertical-align: middle;
+	border-left: 1px solid lightgray;
+	border-radius: 0 3px 3px 0;
+	font-size:14px;
+	transition: all 0.1s ease;
+	max-width: 150px; /* for transition */
 }
 
 .search-filter-text {
@@ -126,4 +136,5 @@
 	outline: none;
 	font-size: 12px;
 	color: #222;
+	white-space: nowrap;
 }

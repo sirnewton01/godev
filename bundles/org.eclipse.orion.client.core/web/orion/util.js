@@ -26,7 +26,7 @@ define(function() {
 	var isMac = navigator.platform.indexOf("Mac") !== -1; //$NON-NLS-0$
 	var isWindows = navigator.platform.indexOf("Win") !== -1; //$NON-NLS-0$
 	var isLinux = navigator.platform.indexOf("Linux") !== -1; //$NON-NLS-0$
-	var isTouch = "ontouchstart" in document.createElement("input"); //$NON-NLS-1$ //$NON-NLS-0$
+	var isTouch = typeof document !== "undefined" && "ontouchstart" in document.createElement("input"); //$NON-NLS-1$ //$NON-NLS-0$
 	
 	var platformDelimiter = isWindows ? "\r\n" : "\n"; //$NON-NLS-1$ //$NON-NLS-0$
 

@@ -83,6 +83,15 @@ define("orion/widgets/settings/EditorSettings", //$NON-NLS-0$
 					create: createSelectProperty
 				}
 			},
+			splitEditors: {
+				splitOrientation: {
+					values: [
+						{value: "vertical", label: messages.vertical}, //$NON-NLS-0$
+						{value: "horizontal", label: messages.horizontal} //$NON-NLS-0$
+					],
+					create: createSelectProperty
+				}
+			},
 			fileManagement: {
 				autoSave: {
 					create: createBooleanProperty

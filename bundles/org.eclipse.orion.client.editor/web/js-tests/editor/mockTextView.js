@@ -13,13 +13,14 @@
 /*global define*/
 
 define([
-	"orion/assert",
+	"chai/chai",
 	"orion/editor/eventTarget",
 	"orion/editor/keyModes",
 	"orion/editor/textModel",
 	"orion/editor/annotations",
 	"orion/editor/mirror"
-], function(assert, mEventTarget, mKeyModes, mTextModel) {
+], function(chai, mEventTarget, mKeyModes, mTextModel) {
+	var assert = chai.assert;
 
 	function clone(obj) {
 		/*Note that this code only works because of the limited types used in TextViewOptions */
@@ -488,6 +489,61 @@ define([
 		_doContent: function (text) {
 			var selection = this._getSelection();
 			this._modifyContent({text: text, start: selection.start, end: selection.end, _ignoreDOMSelection: true}, true);
+		},
+		/* copied verbatim from textView.js */
+		_getLineHeight: function(lineIndex, calculate) {
+			if (lineIndex !== undefined && this._lineHeight) {
+				var lineHeight = this._lineHeight[lineIndex];
+				if (lineHeight) { return lineHeight; }
+				if (calculate || calculate === undefined) {
+					var height = this._lineHeight[lineIndex] = this._calculateLineHeight(lineIndex);
+					return height;
+				}
+			}
+			return this._metrics.lineHeight;
+		},
+		/* copied verbatim from textView.js */
+		getLineHeight: function(lineIndex) {
+			if (!this._clientDiv) { return 0; }
+			return this._getLineHeight(lineIndex);
+		},
+		/* copied verbatim from textView.js */
+		getLocationAtOffset: function(offset) {
+			if (!this._clientDiv) { return {x: 0, y: 0}; }
+			var model = this._model;
+			offset = Math.min(Math.max(0, offset), model.getCharCount());
+			var lineIndex = model.getLineAtOffset(offset);
+			var line = this._getLine(lineIndex);
+			var rect = line.getBoundingClientRect(offset);
+			line.destroy();
+			var x = rect.left;
+			var y = this._getLinePixel(lineIndex) + rect.top;
+			return {x: x, y: y};
+		},
+		/* copied verbatim from textView.js */
+		convert: function(rect, from, to) {
+			if (!this._clientDiv) { return; }
+			var scroll = this._getScroll();
+			var viewPad = this._getViewPadding();
+			var viewRect = this._viewDiv.getBoundingClientRect();
+			if (from === "document") { //$NON-NLS-0$
+				if (rect.x !== undefined) {
+					rect.x += - scroll.x + viewRect.left + viewPad.left;
+				}
+				if (rect.y !== undefined) {
+					rect.y += - scroll.y + viewRect.top + viewPad.top;
+				}
+			}
+			//At this point rect is in the widget coordinate space
+			if (to === "document") { //$NON-NLS-0$
+				if (rect.x !== undefined) {
+					rect.x += scroll.x - viewRect.left - viewPad.left;
+				}
+				if (rect.y !== undefined) {
+					rect.y += scroll.y - viewRect.top - viewPad.top;
+				}
+			}
+			return rect;
 		}
 	};
 	EventTarget.addMixin(MockTextView.prototype);

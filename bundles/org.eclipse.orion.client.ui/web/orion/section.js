@@ -36,6 +36,7 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 		
 		this._expandImageClass = "core-sprite-openarrow"; //$NON-NLS-0$
 		this._collapseImageClass = "core-sprite-closedarrow"; //$NON-NLS-0$
+		this._progressImageClass = "core-sprite-progress"; //$NON-NLS-0$
 		this._twistieSpriteClass = "modelDecorationSprite"; //$NON-NLS-0$
 		
 		// ...
@@ -68,7 +69,7 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 			this.domNode.appendChild(this.twistie);
 			this.domNode.tabIndex = 0; //$NON-NLS-0$
 			this.domNode.addEventListener("click", function(evt) { //$NON-NLS-0$
-				if (evt.target === that.titleNode || evt.target === that.twistie) {
+				if (evt.target === that.titleNode || evt.target === that.twistie || evt.target === that.domNode) {
 					that._changeExpandedState();
 				}
 			}, false);
@@ -163,14 +164,12 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 			this.setContent(options.content);
 		}
 		
-		this.hidden = options.hidden;
 		if (typeof(options.onExpandCollapse) === "function") { //$NON-NLS-0$
 			this._onExpandCollapse = options.onExpandCollapse;
 		}
 		this._preferenceService = options.preferenceService;
 		// initially style as hidden until we determine what needs to happen
-		this._contentParent.style.display = "none"; //$NON-NLS-0$
-		this.domNode.classList.add("sectionWrapperClosed");
+		this._collapse();
 		// should we consult a preference?
 		if (this._preferenceService) {
 			var self = this;
@@ -178,23 +177,21 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 				var isExpanded = prefs.get(self.id);
 				
 				if (isExpanded === undefined){
-				} else {
-					self.hidden = !isExpanded;
-				}
-
-				if (!self.hidden) {
-					self._contentParent.style.display = "block"; //$NON-NLS-0$
-					self.domNode.classList.remove("sectionWrapperClosed");
+					// pref not found, check options
+					if (!options.hidden) {
+						self._expand();
+					}
+				} else if (isExpanded) {
+					self._expand();
 				}
 				
-				self._updateExpandedState(!self.hidden, false);
+				self._updateExpandedState(false);
 			});
 		} else {
-			if (!this.hidden) {
-				this._contentParent.style.display = "block"; //$NON-NLS-0$
-				this.domNode.classList.remove("sectionWrapperClosed");
+			if (!options.hidden) {
+				this._expand();
 			}
-			this._updateExpandedState(!this.hidden, false);
+			this._updateExpandedState(false);
 		}
 		this._commandService = options.commandService;
 		this._lastMonitor = 0;
@@ -278,9 +275,11 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 				getCommandsVisible: function() {
 					return this.section.actionsNode.style.visibility!=="hidden";
 				},
-				setCommandsVisible: function(visible) {
+				setCommandsVisible: function(visible, selectionPolicy) {
 					this.section.actionsNode.style.visibility = visible ? "" : "hidden";
-					var selectionPolicy = visible ? null : "cursorOnly"; //$NON-NLS-0$
+					if (undefined === selectionPolicy){
+						selectionPolicy = visible ? null : "cursorOnly"; //$NON-NLS-0$	
+					} 
 					this.renderer.selectionPolicy = selectionPolicy;
 					var navHandler = this.getNavHandler();
 					if (navHandler) {
@@ -364,6 +363,7 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 				progressTitle+=this._loading[loadingId];
 			}
 			this._progressNode.title = progressTitle;
+			this._updateExpandedState(false);
 		},
 		
 		_monitorDone: function(monitorId){
@@ -379,29 +379,29 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 			if(progressTitle===""){
 				this._progressNode.style.visibility = "hidden"; //$NON-NLS-0$
 			}
+			this._updateExpandedState(false);
 		},
 		
 		_changeExpandedState: function() {
-			// TODO we could use classes with CSS transitions to animate				
-			if (!this.hidden){
-				this._contentParent.style.display = "none"; //$NON-NLS-0$
-				this.domNode.classList.add("sectionWrapperClosed");
-				this.hidden = true;
+			if (this.hidden){
+				this._expand();
 			} else {
-				this._contentParent.style.display = "block"; //$NON-NLS-0$
-				this.domNode.classList.remove("sectionWrapperClosed");
-				this.hidden = false;
+				this._collapse();
 			}
 			
-			this._updateExpandedState(!this.hidden, true);
+			this._updateExpandedState(true);
 		},
 		
-		_updateExpandedState: function(isExpanded, storeValue) {
+		_updateExpandedState: function(storeValue) {
+			var isExpanded = !this.hidden;
+			var isProgress = this.working;
 			var expandImage = this.twistie;
 			var id = this.id;
 			if (expandImage) {
-				expandImage.classList.add(isExpanded ? this._expandImageClass : this._collapseImageClass);
-				expandImage.classList.remove(isExpanded ? this._collapseImageClass : this._expandImageClass);
+				expandImage.classList.remove(this._expandImageClass);
+				expandImage.classList.remove(this._collapseImageClass);
+				expandImage.classList.remove(this._progressImageClass);
+				expandImage.classList.add(isProgress ? this._progressImageClass : isExpanded ? this._expandImageClass : this._collapseImageClass); //$NON-NLS-0$
 			}
 			// if a preference service was specified, we remember the state.
 			if (this._preferenceService && storeValue) {
@@ -414,6 +414,18 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 			if (this._onExpandCollapse) {
 				this._onExpandCollapse(isExpanded, this);
 			}
+		},
+		
+		_expand: function() {
+			this._contentParent.classList.remove("sectionClosed"); //$NON-NLS-0$
+			this.domNode.classList.remove("sectionClosed"); //$NON-NLS-0$
+			this.hidden = false;
+		},
+		
+		_collapse: function() {
+			this.hidden = true;
+			this._contentParent.classList.add("sectionClosed"); //$NON-NLS-0$
+			this.domNode.classList.add("sectionClosed"); //$NON-NLS-0$
 		}
 	};
 	
@@ -428,6 +440,7 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 	
 	ProgressMonitor.prototype = {
 		begin: function(message){
+			this._section.working = true;
 			this.status = message;
 			this._section._setMonitorMessage(this.id, message);
 		},
@@ -438,6 +451,7 @@ define(['orion/webui/littlelib', 'orion/selection', 'orion/commandRegistry', 'or
 		},
 		
 		done: function(status){
+			this._section.working = false;
 			this.status = status;
 			this._section._monitorDone(this.id);
 		}

@@ -17,17 +17,16 @@ define([
 	'orion/fileClient', 
 	'orion/searchUtils', 
 	'orion/contentTypes', 
-	'orion/i18nUtil', 
 	'orion/webui/littlelib', 
 	'orion/inputCompletion/inputCompletion', 
 	'orion/Deferred', 
 	'orion/commands', 
-	'orion/section', 
 	'orion/objects',
 	'orion/EventTarget',
-	'orion/widgets/filesystem/filesystemSwitcher',
-	'text!orion/globalSearch/searchBuilder.html'], 
-		function(messages, require, mFileClient, mSearchUtils, mContentTypes, i18nUtil, lib, mInputCompletion, Deferred, mCommands, mSection, objects, EventTarget, mFilesystemSwitcher, optionTemplate){
+	'text!orion/globalSearch/searchBuilder.html',
+	'orion/PageUtil',
+	'orion/webui/dialogs/DirectoryPrompterDialog'
+], function(messages, require, mFileClient, mSearchUtils, mContentTypes, lib, mInputCompletion, Deferred, mCommands, objects, EventTarget, optionTemplate, mPageUtil, DirectoryPrompterDialog){
 
 	/**
 	 * @name orion.search.AdvSearchOptRenderer
@@ -43,81 +42,45 @@ define([
 		this._parentDiv = parentDiv;
 		this._searcher = searcher;
 		this._serviceRegistry = serviceRegistry;
+		this._contentTypeService = this._serviceRegistry.getService("orion.core.contentTypeRegistry"); //$NON-NLS-0$
+		if(!this._contentTypeService){
+			this._contentTypeService = new mContentTypes.ContentTypeRegistry(this._serviceRegistry);
+		}
+		this.contentTypesCache = this._contentTypeService.getContentTypes();
 		this._commandService = commandService;
         this.fileClient = new mFileClient.FileClient(this._serviceRegistry);
-        this.fsToolbar = null;
-        this.fileSysChangeListener = function(evt) {
-			var href = mSearchUtils.generateSearchHref({resource : evt.newInput});
-			window.location = href;
-        };
-		this.addEventListener("filesystemChanged", this.fileSysChangeListener);
-		if (!this.fsToolbar) {
-			var fsToolbar = this.fsToolbar = document.createElement("div"); //$NON-NLS-0$
-			fsToolbar.classList.add("fsToolbarLayout"); //$NON-NLS-0$
-			fsToolbar.classList.add("fsToolbar"); //$NON-NLS-0$
-			this._parentDiv.parentNode.insertBefore(fsToolbar, this._parentDiv);
-		}
-		// Create switcher here
-		this.fsSwitcher = new mFilesystemSwitcher.FilesystemSwitcher({
-			commandRegistry: this._commandService,
-			rootChangeListener: this,
-			filesystemChangeDispatcher: this,
-			fileClient: this.fileClient,
-			node: this.fsToolbar,
-			serviceRegistry: this._serviceRegistry
-		});
 	}
 	
 	objects.mixin(AdvSearchOptRenderer.prototype, /** @lends orion.search.AdvSearchOptRenderer */ {
 		destroy: function() {
-			this.removeEventListener("filesystemChanged", this.fileSysChangeListener); //$NON-NLS-0$
-			this.fileSysChangeListener = null;
 		},
 		
-		getOptions: function(includeLocation){
-			var resource;
-			if(includeLocation) {
-				resource = this._searchParams ? this._searchParams.resource : this._searcher.getSearchRootLocation();
-			}
+		getOptions: function(){
+			var resource = ""; //$NON-NLS-0$
+			this._searchLocations.forEach(function(searchLocation){
+				if (resource) {
+					resource = resource.concat(","); //$NON-NLS-0$
+				}
+				resource = resource.concat(searchLocation);
+			}, this);
+			
+			var fileNamePatternsArray = mSearchUtils.getFileNamePatternsArray(this._fileNamePatternsInput.value);
+			
 			return {keyword: this._searchBox.value,
-					sort: this._sortBy.options[this._sortBy.selectedIndex].value,
 					rows: 40,
 					start: 0,
 					replace:this._replaceBox.value ? this._replaceBox.value : undefined,
 					caseSensitive: this._caseSensitiveCB.checked,
 			        regEx: this._regExCB.checked,
-			        fileType: this._fileTypes.options[this._fileTypes.selectedIndex].value,
+					fileNamePatterns: fileNamePatternsArray,
 			        resource: resource
 			};
 		},
-	
+		
 		loadSearchParams: function(searchParams){
 			this._searchParams = searchParams;
-			this._locationName = null;
-			this.dispatchEvent({ type: "rootChanged", root: this.fileClient.fileServiceRootURL(this._searchParams.resource) }); //$NON-NLS-0$
-	        if (this._searchParams.resource.length > 0) {
-	            this._serviceRegistry.getService("orion.page.progress").progress(this.fileClient.read(this._searchParams.resource, true), "Getting file metadata " + this._searchParams.resource).then( //$NON-NLS-1$ //$NON-NLS-0$
-	            function(meta) {
-	                var parentName = meta.Parents ? mSearchUtils.fullPathNameByMeta(meta.Parents) : "";
-	                this._locationName = parentName.length === 0 ? meta.Name : parentName + "/" + meta.Name; //$NON-NLS-0$
-		            if(this._searchNameBox){
-						this._searchNameBox.value = this._getDefaultSaveName();
-					}
-	            }.bind(this),
-	
-	            function(error) {
-	                this._locationName = "root"; //$NON-NLS-0$
-		            if(this._searchNameBox){
-						this._searchNameBox.value = this._getDefaultSaveName();
-					}
-	            }.bind(this));
-	        } else {
-	            this._locationName = "root"; //$NON-NLS-0$
-	            if(this._searchNameBox){
-					this._searchNameBox.value = this._getDefaultSaveName();
-				}
-	        }
-	        //this._searchHelper = mSearchUtils.generateSearchHelper(searchParams);
+			this._rootURL = this.fileClient.fileServiceRootURL(this._searchParams.resource);
+			this.dispatchEvent({type: "rootChanged", root: this._rootURL}); //$NON-NLS-0$
 			this._loadSearchParams();
 		},
 	
@@ -129,33 +92,20 @@ define([
 			this._replaceBox.value = this._searchParams.replace ? this._searchParams.replace : "";
 			this._caseSensitiveCB.checked = this._searchParams.caseSensitive;
 			this._regExCB.checked = this._searchParams.regEx;
-			var x;
-			for (x = 0; x < this._fileTypes.options.length; x++) {
-			    if(this._fileTypes.options[x].value === this._searchParams.fileType){
-					this._fileTypes.selectedIndex = x;
-					break;
-			    }
-			}		
-			for (x = 0; x < this._sortBy.options.length; x++) {
-			    if(this._sortBy.options[x].value === this._searchParams.sort){
-					this._sortBy.selectedIndex = x;
-					break;
-			    }
-			}		
+			this._fileNamePatternsInput.value = this._searchParams.fileNamePatterns ? this._searchParams.fileNamePatterns.join(", ") : "";
+			
+			if (undefined !== this._searchParams.replace) {
+				this._showReplaceField();
+			} else {
+				this._hideReplaceField();
+			}
 		},
 	
 		render: function(){
-			var contentTypeService = this._serviceRegistry.getService("orion.core.contentTypeRegistry"); //$NON-NLS-0$
-			if(!contentTypeService){
-				contentTypeService = new mContentTypes.ContentTypeRegistry(this._serviceRegistry);
-				this.contentTypesCache = contentTypeService.getContentTypes();
+			this._contentTypeService.getContentTypes().then(function(ct) {
+				this.contentTypesCache = ct;
 				this._render();
-			} else {
-				contentTypeService.getContentTypes().then(function(ct) {
-					this.contentTypesCache = ct;
-					this._render();
-				}.bind(this));
-			}
+			}.bind(this));
 		},
 	
 		_render: function(){
@@ -181,49 +131,19 @@ define([
 				mSearchUtils.doSearch(this._searcher, this._serviceRegistry, options.keyword, options);
 			}
 		},
-		
-	    _saveSearch: function() {
-			if(this._searchBox.value && this._searchNameBox.value){
-				var searchParams = this.getOptions(true);
-			    var query = mSearchUtils.generateSearchHref(searchParams).split("#")[1]; //$NON-NLS-0$
-				this._serviceRegistry.getService("orion.core.savedSearches").addSearch(this._searchNameBox.value, query); //$NON-NLS-0$
-			}
-	    },
-	
-	    _getDefaultSaveName: function() {
-	        if (this._searchBox && this._searchBox.value) {
-	            var qName = "\'" + this._searchBox.value + "\' in "; //$NON-NLS-1$ //$NON-NLS-0$
-	            var locName = "root"; //$NON-NLS-0$
-	            if(this._locationName){
-					locName = this._locationName;
-	            }
-	            return qName + locName;
-	        } 
-	        return "";
-	    },
-	
+
 	    _initCompletion: function() {
 			//Required. Reading recent&saved search from user preference. Once done call the uiCallback
 			var defaultProposalProvider = function(uiCallback){
-				mSearchUtils.getMixedSearches(this._serviceRegistry, true, false, function(searches){
-					var i, fullSet = [], hasSavedSearch = false, hasRecentSearch = false;
-					for (i in searches) {
-						if(searches[i].label && searches[i].value){
-							if(!hasSavedSearch){
-								fullSet.push({type: "category", label: messages["Saved searches"]});//$NON-NLS-0$
-								hasSavedSearch = true;
-							}
-							fullSet.push({type: "proposal", value: {name: searches[i].label, value: require.toUrl("search/search.html") + "#" + searches[i].value, type: "link"}});  //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-							//fullSet.push({type: "proposal", label: searches[i].label, value: searches[i].name});//$NON-NLS-0$
-						} else {
-							if(!hasRecentSearch){
-								fullSet.push({type: "category", label: messages["Recent searches"]});//$NON-NLS-0$
-								hasRecentSearch = true;
-							}
-							fullSet.push({type: "proposal", label: searches[i].name, value: searches[i].name});//$NON-NLS-0$
-						}
+				mSearchUtils.getMixedSearches(this._serviceRegistry, false, false, function(searches){
+					var recentSearches = [];
+					if (searches.length > 0) {
+						recentSearches.push({type: "category", label: messages["Recent searches"]});//$NON-NLS-0$
+						searches.forEach(function(search){
+							recentSearches.push({type: "proposal", label: search.name, value: search.name});//$NON-NLS-0$
+						}, this);
 					}
-					uiCallback(fullSet);
+					uiCallback(recentSearches);
 				});
 			}.bind(this);
 			//Optional. Reading extended search proposals by asking plugins, if any.
@@ -268,41 +188,28 @@ define([
 				}.bind(this),
 				deleteToolTips: messages['Click or use delete key to delete the search term']
 			});
+			
+			var previousSearchButton = lib.node("previousSearchButton");
+			previousSearchButton.addEventListener("click", function(event){
+				this._searchBox.focus();
+				this._completion._proposeOn();
+				lib.stop(event);
+			}.bind(this));
 	    },
 	    
 		_initControls: function(){
 			this._searchBox = document.getElementById("advSearchInput"); //$NON-NLS-0$
+			this._searchButtonWrapper = document.getElementById("advSearchCmd"); //$NON-NLS-0$
+			this._searchBoxWrapper = document.getElementById("searchInputFieldWrapper"); //$NON-NLS-0$
 			this._replaceBox = document.getElementById("advReplaceInput"); //$NON-NLS-0$
-			this._searchNameBox = document.getElementById("advSaveSearchInput"); //$NON-NLS-0$
-			this._fileTypes = document.getElementById("advSearchTypes"); //$NON-NLS-0$
-			this._sortBy = document.getElementById("advSortBy"); //$NON-NLS-0$
+			this._replaceBoxWrapper = document.getElementById("replaceInputFieldWrapper"); //$NON-NLS-0$
+			this._replaceWrapper = document.getElementById("replaceWrapper"); //$NON-NLS-0$
+			this._fileNamePatternsInput = document.getElementById("fileNamePatternsInput"); //$NON-NLS-0$
+			this._fileNamePatternsHint = document.getElementById("fileNamePatternsHint"); //$NON-NLS-0$
 			this._caseSensitiveCB = document.getElementById("advSearchCaseSensitive"); //$NON-NLS-0$
 			this._regExCB = document.getElementById("advSearchRegEx"); //$NON-NLS-0$
-			//Load file types content type provider
-			var fTypes = [ {label: messages["All types"], value: mSearchUtils.ALL_FILE_TYPE} ];
-			for(var i = 0; i < this.contentTypesCache.length; i++){
-				if(this.contentTypesCache[i]['extends'] === "text/plain" || this.contentTypesCache[i].id === "text/plain"){ //$NON-NLS-2$  //$NON-NLS-1$ //$NON-NLS-0$
-					for(var j = 0; j < this.contentTypesCache[i].extension.length; j++){
-						fTypes.push({label: this.contentTypesCache[i].extension[j], value: this.contentTypesCache[i].extension[j]});
-					}
-				}
-			}
-			fTypes.forEach(function(fType) {
-			    var option = document.createElement('option'); //$NON-NLS-0$
-			    var text = document.createTextNode(fType.label);
-			    option.appendChild(text);
-			    this._fileTypes.appendChild(option);
-			    option.value = fType.value;
-			}.bind(this));
-			var sortByData = [{label: messages["Path name"], value: "Path asc"}, {label: messages["File name"], value: "NameLower asc"}]; //$NON-NLS-1$ //$NON-NLS-0$
-			sortByData.forEach(function(sortBy) {
-			    var option = document.createElement('option'); //$NON-NLS-0$
-			    var text = document.createTextNode(sortBy.label);
-			    option.appendChild(text);
-			    this._sortBy.appendChild(option);
-			    option.value = sortBy.value;
-			}.bind(this));
-			
+			this._toggleReplaceLink = document.getElementById("toggleReplaceLink"); //$NON-NLS-0$
+
 			this._init = true;
 			this._loadSearchParams();
 			this._initCompletion();
@@ -317,10 +224,13 @@ define([
 				} 
 			}.bind(this));
 			
-			this._searchBox.addEventListener("change", function(e) { //$NON-NLS-0$
-				this._searchNameBox.value = this._getDefaultSaveName();
+			this._searchBox.addEventListener("focus", function(e) { //$NON-NLS-0$
+				this._searchBoxWrapper.classList.add("searchPageWrapperFocussed"); //$NON-NLS-0$ 
 			}.bind(this));
 			
+			this._searchBox.addEventListener("blur", function(e) { //$NON-NLS-0$
+				this._searchBoxWrapper.classList.remove("searchPageWrapperFocussed"); //$NON-NLS-0$ 
+			}.bind(this));
 			
 			this._replaceBox.addEventListener("keydown", function(e) { //$NON-NLS-0$
 				var keyCode= e.charCode || e.keyCode;
@@ -329,15 +239,14 @@ define([
 				} 
 			}.bind(this));
 			
-			this._fileTypes.addEventListener("change", function(e) { //$NON-NLS-0$
-				var type = this._fileTypes.options[this._fileTypes.selectedIndex].value;
-				if(type === mSearchUtils.ALL_FILE_TYPE){
-					this._searchBox.placeholder = messages["Type a search term"];
-				} else {
-					this._searchBox.placeholder =i18nUtil.formatMessage(messages["All ${0} files"], type);
-				}
+			this._replaceBox.addEventListener("focus", function(e) { //$NON-NLS-0$
+				this._replaceBoxWrapper.classList.add("searchPageWrapperFocussed"); //$NON-NLS-0$ 
 			}.bind(this));
 			
+			this._replaceBox.addEventListener("blur", function(e) { //$NON-NLS-0$
+				this._replaceBoxWrapper.classList.remove("searchPageWrapperFocussed"); //$NON-NLS-0$ 
+			}.bind(this));
+
 	        var searchCommand = new mCommands.Command({
 	            name: messages["Search"],
 	            //tooltip: messages["Hide compare view of changes"],
@@ -350,10 +259,9 @@ define([
 	            }
 	        });
 	
-	        var previewCurrentPageCommand = new mCommands.Command({
-	            name: messages['Replace'],
-	            //tooltip: messages["Replace all matches with..."],
-	            id: "orion.globalSearch.previewCurrentPage", //$NON-NLS-0$
+	        var replaceCommand = new mCommands.Command({
+	            name: messages['Replace...'],
+	            id: "orion.globalSearch.replace", //$NON-NLS-0$
 	            callback: function(data) {
 	                this._replacePreview();
 	            }.bind(this),
@@ -362,17 +270,6 @@ define([
 	            }
 	        });
 			
-	        var saveSearchCommand = new mCommands.Command({
-	            name: messages["Save"],
-	            tooltip: messages["Save the current search"],
-	            id: "orion.globalSearch.saveSearch", //$NON-NLS-0$
-	            callback: function(data) {
-	                this._saveSearch();
-	            },
-	            visibleWhen: function(item) {
-	                return true;
-	            }
-	        });
 			/*
 			//Init the "More..." option section
 			var tableNode = lib.node('moreOptions'); //$NON-NLS-0$
@@ -388,31 +285,153 @@ define([
 			});
 			*/
 			this._commandService.addCommand(searchCommand);	
-			this._commandService.addCommand(previewCurrentPageCommand);	
-			this._commandService.addCommand(saveSearchCommand);	
+			this._commandService.addCommand(replaceCommand);	
 	        this._commandService.registerCommandContribution("advSearchCmd", "orion.globalSearch.search", 1);//$NON-NLS-1$ //$NON-NLS-0$
 	        var domWrapperList = [];
 	        this._commandService.renderCommands("advSearchCmd", "advSearchCmd", this, this, "button", null, domWrapperList); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 	        domWrapperList[0].domNode.classList.add("search-button"); //$NON-NLS-0$
-	        this._commandService.registerCommandContribution("advReplacePreviewCmd", "orion.globalSearch.previewCurrentPage", 1);//$NON-NLS-1$ //$NON-NLS-0$
+	        domWrapperList[0].domNode.classList.remove("commandMargins"); //$NON-NLS-0$
+	        this._commandService.registerCommandContribution("advReplacePreviewCmd", "orion.globalSearch.replace", 1);//$NON-NLS-1$ //$NON-NLS-0$
 			domWrapperList = [];
 	        this._commandService.renderCommands("advReplacePreviewCmd", "advReplacePreviewCmd", this, this, "button", null, domWrapperList); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 	        domWrapperList[0].domNode.classList.add("search-button"); //$NON-NLS-0$
-	        this._commandService.registerCommandContribution("advSaveSearchCmd", "orion.globalSearch.saveSearch", 1);//$NON-NLS-1$ //$NON-NLS-0$
-			domWrapperList = [];
-	        this._commandService.renderCommands("advSaveSearchCmd", "advSaveSearchCmd", this, this, "button", null, domWrapperList); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-	        domWrapperList[0].domNode.classList.add("search-button"); //$NON-NLS-0$
+	        domWrapperList[0].domNode.classList.remove("commandMargins"); //$NON-NLS-0$
+	        
+			if (this._replaceBoxIsHidden()) {
+	        	this._toggleReplaceLink.innerHTML = messages["Show Replace"]; //$NON-NLS-0$	
+	        }
+	        this._toggleReplaceLink.addEventListener("click", this._toggleReplaceFieldVisibility.bind(this)); //$NON-NLS-0$
+	        
+	        //the replace button should be rendered by now,
+	        //fix the width of the replaceWrapper div to prevent it from resizing
+			this._replaceWrapper.style.width = this._replaceBoxWrapper.offsetWidth + "px"; //$NON-NLS-0$
+	        
+	        this._fileNamePatternsInput.placeholder = "*.*"; //$NON-NLS-0$
+			lib.empty(this._fileNamePatternsHint);
+			this._fileNamePatternsHint.appendChild(document.createTextNode(messages["(* = any string, ? = any character)"])); //$NON-NLS-0$
+			
+			this._fileNamePatternsInput.addEventListener("focus", function(){
+				this._fileNamePatternsHint.classList.add("fileNamePatternsHintVisible"); //$NON-NLS-0$
+			}.bind(this));
+			
+			this._fileNamePatternsInput.addEventListener("blur", function(){
+				var inputValue = this._fileNamePatternsInput.value;
+				if (inputValue) {
+					var correctedPatternArray = mSearchUtils.getFileNamePatternsArray(inputValue);
+					this._fileNamePatternsInput.value = correctedPatternArray.join(", ");
+				}
+				this._fileNamePatternsHint.classList.remove("fileNamePatternsHintVisible"); //$NON-NLS-0$
+			}.bind(this));
+			
+	        this._initSearchScope();
 		},
 		
 		_initHTMLLabels: function(){
-			//document.getElementById("advSearchLabel").appendChild(document.createTextNode(messages["Files that contain:"])); //$NON-NLS-0$ //$NON-NLS-0$
-			document.getElementById("advSearchInput").placeholder = messages["Type a search term"]; //$NON-NLS-0$ //$NON-NLS-0$
-			document.getElementById("advReplaceInput").placeholder = messages["Type a replace term"]; //$NON-NLS-0$ //$NON-NLS-0$
-			document.getElementById("advSaveSearchInput").placeholder = messages["Type a name for the search"]; //$NON-NLS-0$ //$NON-NLS-0$
-			document.getElementById("advSearchTypeLabel").appendChild(document.createTextNode(messages["File type"])); //$NON-NLS-0$ //$NON-NLS-0$
-			document.getElementById("advSearchCaseSensitiveLabel").appendChild(document.createTextNode(messages["Case sensitive"])); //$NON-NLS-0$ //$NON-NLS-0$
-			document.getElementById("advSearchRegExLabel").appendChild(document.createTextNode(messages["Regular expression"])); //$NON-NLS-0$ //$NON-NLS-0$
-			document.getElementById("advSortByLabel").appendChild(document.createTextNode(messages["Sort by"])); //$NON-NLS-0$ //$NON-NLS-0$
+			document.getElementById("advSearchInput").placeholder = messages["Type a search term"]; //$NON-NLS-1$ //$NON-NLS-0$
+			document.getElementById("advReplaceInput").placeholder = messages["Replace With"]; //$NON-NLS-1$ //$NON-NLS-0$
+			document.getElementById("advSearchCaseSensitiveLabel").appendChild(document.createTextNode(messages["Case sensitive"])); //$NON-NLS-1$ //$NON-NLS-0$
+			document.getElementById("advSearchRegExLabel").appendChild(document.createTextNode(messages["Regular expression"])); //$NON-NLS-1$ //$NON-NLS-0$
+			document.getElementById("previousSearchButton").title = messages["Show previous search terms"]; //$NON-NLS-1$ //$NON-NLS-0$
+			document.getElementById("advReplacePreviewCmd").title = messages["Show replacement preview"]; //$NON-NLS-1$ //$NON-NLS-0$
+			document.getElementById("searchScopeLabel").appendChild(document.createTextNode(messages["Scope"])); //$NON-NLS-1$ //$NON-NLS-0$
+			document.getElementById("fileNamePatternsLabel").appendChild(document.createTextNode(messages["File name patterns (comma-separated)"])); //$NON-NLS-1$ //$NON-NLS-0$
+			document.getElementById("searchScopeSelectButton").title = messages["Choose a Folder"]; //$NON-NLS-1$ //$NON-NLS-0$
+		},
+		
+		_initSearchScope: function() {
+			var resource = mPageUtil.matchResourceParameters().resource;
+			this._rootURL = this.fileClient.fileServiceRootURL(resource);
+			
+			if (resource) {
+				this._searchLocations = [resource];
+			} else {
+				this._searchLocations = [this._rootURL];
+			}
+			
+			this._searchScopeElementWrapper = lib.$("#searchScopeElementWrapper", this._parentDiv); //$NON-NLS-0$
+			this._displaySelectedSearchScope();
+			
+			this._searchScopeSelectButton = lib.$("#searchScopeSelectButton", this._parentDiv); //$NON-NLS-0$
+			
+			var searchScopeDialogCallback = function(targetFolder) { 
+				if (targetFolder && targetFolder.Location) {
+					this._searchLocations = [targetFolder.Location];
+				} else {
+					this._searchLocations = [this._rootURL];
+				}
+				
+				this._displaySelectedSearchScope();
+				this._searcher.setLocationbyURL(this._searchLocations[0]);
+			}.bind(this);
+			
+			this._searchScopeSelectButton.addEventListener("click", function(){ //$NON-NLS-0$
+				var searchScopeDialog = new DirectoryPrompterDialog.DirectoryPrompterDialog({
+					title: messages["Choose a Folder"], //$NON-NLS-0$
+					serviceRegistry: this._serviceRegistry,
+					fileClient: this.fileClient,				
+					func: searchScopeDialogCallback
+				});
+				searchScopeDialog.show();
+			}.bind(this));
+		},
+		
+		_replaceBoxIsHidden: function() {
+			return this._replaceWrapper.classList.contains("replaceWrapperHidden"); //$NON-NLS-0$
+		},
+		
+		_toggleReplaceFieldVisibility: function () {
+			if (this._replaceBoxIsHidden()) {
+				this._showReplaceField();
+			} else {
+				this._hideReplaceField();
+			}
+		},
+		
+		_showReplaceField: function() {
+			this._searchButtonWrapper.classList.add("isHidden"); //$NON-NLS-0$
+			this._replaceWrapper.classList.remove("replaceWrapperHidden"); //$NON-NLS-0$
+			this._toggleReplaceLink.innerHTML = messages["Hide Replace"]; //$NON-NLS-0$
+		},
+		
+		_hideReplaceField: function() {
+			this._searchButtonWrapper.classList.remove("isHidden"); //$NON-NLS-0$
+			this._replaceWrapper.classList.add("replaceWrapperHidden"); //$NON-NLS-0$
+			this._toggleReplaceLink.innerHTML = messages["Show Replace"]; //$NON-NLS-0$
+		},
+		
+		_displaySelectedSearchScope: function() {
+			var scopeElementWrapper = this._searchScopeElementWrapper;
+			lib.empty(scopeElementWrapper);
+			
+			this._searchLocations.forEach(function(searchLocation){
+				var decodedLocation = decodeURI(searchLocation);
+				var scopeString = decodedLocation;
+				var rootName = this.fileClient.fileServiceRootURL(scopeString);
+				if (rootName === searchLocation) {
+					//replace location string with file system name
+					scopeString = this.fileClient.fileServiceName(scopeString);
+				} else {
+					//set scopeString to resource name
+					var segments = scopeString.split("/");
+					if (segments) {
+						scopeString = segments.pop();
+						if (!scopeString) {
+							// scopeString ended with '/', last element in array returned by 
+							// split() was empty, pop again to get the name
+							scopeString = segments.pop();
+						}
+					}
+				}
+												
+				var locationElement = document.createElement("span"); //$NON-NLS-0$
+				locationElement.classList.add("searchScopeElement"); //$NON-NLS-0$
+				
+				locationElement.title = decodedLocation;
+				scopeElementWrapper.title = decodedLocation;
+				
+				locationElement.appendChild(document.createTextNode(scopeString));
+				scopeElementWrapper.appendChild(locationElement);	
+			}, this);
 		}
 	});
 	

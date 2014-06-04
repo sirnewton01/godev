@@ -11,15 +11,22 @@
 
 /*global define window console document Image */
 
-define(
-		[ 'require', 'i18n!git/nls/gitmessages', 'orion/section', 'orion/explorers/explorer', 'orion/URITemplate', 'orion/PageUtil', 'orion/i18nUtil', 'orion/webui/littlelib',
-				'orion/globalCommands', 'orion/git/gitCommands', 'orion/git/uiUtil', 'orion/Deferred', 'orion/webui/tooltip' ],
-		function(require, messages, mSection, mExplorer, URITemplate, PageUtil, i18nUtil, lib, mGlobalCommands, mGitCommands, mGitUIUtil, Deferred, Tooltip) {
+define([
+	'require',
+	'i18n!git/nls/gitmessages',
+	'orion/section',
+	'orion/git/widgets/gitChangeList',
+	'orion/git/widgets/gitTagList',
+	'orion/git/widgets/gitCommitInfo',
+	'orion/explorers/explorer',
+	'orion/URITemplate',
+	'orion/PageUtil',
+	'orion/webui/littlelib',
+	'orion/globalCommands',
+	'orion/git/gitCommands'
+], function(require, messages, mSection, mGitChangeList, mGitTagList, mGitCommitInfo, mExplorer, URITemplate, PageUtil, lib, mGlobalCommands, mGitCommands) {
 			var exports = {};
-			
 			var repoTemplate = new URITemplate("git/git-repository.html#{,resource,params*}"); //$NON-NLS-0$
-			var commitTemplate = new URITemplate("git/git-commit.html#{,resource,params*}?page=1&pageSize=1"); //$NON-NLS-0$
-
 			exports.GitCommitExplorer = (function() {
 
 				/**
@@ -97,8 +104,8 @@ define(
 														var repositories = resp.Children;
 														that.initTitleBar(commits[0], repositories[0]);
 														that.displayCommit(commits[0]);
-														that.displayTags(commits[0]);
-														that.displayDiffs(commits[0]);
+														that.displayTags(commits[0], repositories[0]);
+														that.displayDiffs(commits[0], repositories[0]);
 
 														commits[0].CloneLocation = repositories[0].Location;
 
@@ -163,351 +170,89 @@ define(
 					commitNode.className = "mainPadding";
 					commitNode.id = "commitNode";
 					contentParent.appendChild(commitNode);
-
+					
 					var detailsView = document.createElement("div");
 					detailsView.className = "sectionTableItem";
 					commitNode.appendChild(detailsView);
 
-					var commitMessages = this._splitCommitMessage(commit.Message);
-
-					var mainCommitMessage = document.createElement("div");
-					mainCommitMessage.style.paddingBottom = "15px";
-					this.registry.getService("orion.core.textlink").addLinks(commitMessages[0], mainCommitMessage); //$NON-NLS-0$
-					detailsView.appendChild(mainCommitMessage);
-
-					if (commitMessages[1] !== null) {
-						var secondaryCommitMessage = document.createElement("pre");
-						secondaryCommitMessage.style.paddingBottom = "15px";
-						secondaryCommitMessage.style.marginTop = "0px";
-						this.registry.getService("orion.core.textlink").addLinks(commitMessages[1], secondaryCommitMessage); //$NON-NLS-0$
-						detailsView.appendChild(secondaryCommitMessage);
-					}
-
-					var commitName = document.createElement("div");
-					commitName.appendChild(document.createTextNode(i18nUtil.formatMessage(messages["commit: 0"], commit.Name)));
-					detailsView.appendChild(commitName);
-
-					if (commit.Parents && commit.Parents.length > 0) {
-						var parentCommitName = document.createElement("div");
-						parentCommitName.style.paddingBottom = "15px";
-						var parentCommitLink = document.createElement("a");
-						parentCommitLink.className = "pnavlinkonpage";
-						parentCommitLink.href = require.toUrl(commitTemplate.expand({resource: commit.Parents[0].Location})); //$NON-NLS-1$ //$NON-NLS-0$
-						parentCommitLink.textContent = i18nUtil.formatMessage(messages["parent: 0"], commit.Parents[0].Name);
-						parentCommitName.appendChild(parentCommitLink);
-						detailsView.appendChild(parentCommitName);
-					}
-
-					if (commit.AuthorImage) {
-						var authorImage = document.createElement("div");
-						authorImage.style['float'] = "left";
-						var image = new Image();
-						image.src = commit.AuthorImage;
-						image.name = commit.AuthorName;
-						image.className = "git-author-icon-small";
-						authorImage.appendChild(image);
-						detailsView.appendChild(authorImage);
-					}
-
-					var author = document.createElement("div");
-
-					var authorName = document.createElement("div");
-					authorName.appendChild(document.createTextNode(i18nUtil.formatMessage(messages["authored by 0 (1) on 2"], commit.AuthorName,
-							commit.AuthorEmail, new Date(commit.Time).toLocaleString())));
-					author.appendChild(authorName);
-
-					var committerName = document.createElement("div");
-					committerName.appendChild(document.createTextNode(i18nUtil.formatMessage(messages["committed by 0 (1)"], commit.CommitterName,
-							commit.CommitterEmail)));
-					author.appendChild(committerName);
-
-					detailsView.appendChild(author);
-				};
-
-				GitCommitExplorer.prototype._splitCommitMessage = function(commitMessage) {
-					var cut = false;
-					var mainMessageMaxLength = 100;
-
-					var commitMessage0 = commitMessage.split(/(\r?\n|$)/)[0].trim();
-					if (commitMessage0.length > mainMessageMaxLength) {
-						var cutPoint = commitMessage0.indexOf(" ", mainMessageMaxLength - 10); //$NON-NLS-0$
-						commitMessage0 = commitMessage0.substring(0, (cutPoint !== -1 ? cutPoint : mainMessageMaxLength));
-						cut = true;
-					}
-					;
-
-					var commitMessage1 = commitMessage.substring(commitMessage0.length + 1, commitMessage.length).trim();
-					if (commitMessage1.length > 0) {
-						commitMessage1 = (cut ? "..." + commitMessage1 : commitMessage1); //$NON-NLS-0$
-					} else {
-						commitMessage1 = null;
-					}
-
-					commitMessage0 += (cut ? "..." : ""); //$NON-NLS-0$
-
-					return [ commitMessage0, commitMessage1 ];
+					var info = new mGitCommitInfo.GitCommitInfo({
+						parent: detailsView,
+						commit: commit,
+						showTags: false,
+						commitLink: false
+					});
+					info.display();
+					
 				};
 
 				// Git tags
 
-				GitCommitExplorer.prototype.displayTags = function(commit) {
+				GitCommitExplorer.prototype.displayTags = function(commit, repository) {
 					var tags = commit.Tags;
 
 					var tableNode = lib.node('table'); //$NON-NLS-0$
 
 					var titleWrapper = new mSection.Section(tableNode, { id : "tagSection", //$NON-NLS-0$
-					title : ((tags && tags.length > 0) ? messages["Tags:"] : messages["No Tags"]),
-					iconClass : [ "gitImageSprite", "git-sprite-tag" ], //$NON-NLS-1$ //$NON-NLS-0$
-					slideout : true,
-					content : '<div id="tagNode"></div>', //$NON-NLS-0$
-					canHide : true,
-					preferenceService : this.registry.getService("orion.core.preference") //$NON-NLS-0$
+						title : ((tags && tags.length > 0) ? messages["Tags:"] : messages["No Tags"]),
+						iconClass : [ "gitImageSprite", "git-sprite-tag" ], //$NON-NLS-1$ //$NON-NLS-0$
+						slideout : true,
+						content : '<div id="tagNode"></div>', //$NON-NLS-0$
+						canHide : true,
+						preferenceService : this.registry.getService("orion.core.preference") //$NON-NLS-0$
 					});
 
-					this.commandService.registerCommandContribution(titleWrapper.actionsNode.id, "eclipse.orion.git.addTag", 100); //$NON-NLS-0$
-					this.commandService.renderCommands(titleWrapper.actionsNode.id, titleWrapper.actionsNode, commit, this, "button"); //$NON-NLS-0$
-
-					if (!tags && tags.length > 0)
-						return;
-
-					for ( var i = 0; (i < tags.length && i < 10); i++) {
-						this.renderTag(tags[i]);
-					}
+					var tagsNavigator = new mGitTagList.GitTagListExplorer({
+						serviceRegistry: this.registry,
+						commandRegistry: this.commandService,
+						parentId:"tagNode",
+						actionScopeId: this.actionScopeId,
+						section: titleWrapper,
+						repository: repository,
+						mode: "full",
+						commit: commit
+					});
+					tagsNavigator.display();
 				};
 
-				GitCommitExplorer.prototype.renderTag = function(tag) {
-					var tagNode = lib.node("tagNode"); //$NON-NLS-0$
-
-					var sectionItem = document.createElement("div");
-					sectionItem.className = "sectionTableItem";
-					tagNode.appendChild(sectionItem);
-
-					var horizontalBox = document.createElement("div");
-					horizontalBox.className = "sectionTableItem";
-					sectionItem.appendChild(horizontalBox);
-
-					var detailsView = document.createElement("div");
-					detailsView.className = "stretch";
-					horizontalBox.appendChild(detailsView);
-
-					var title = document.createElement("span");
-					title.textContent = tag.Name;
-					detailsView.appendChild(title);
-
-					var actionsArea = document.createElement("div");
-					actionsArea.className = "sectionTableItemActions";
-					horizontalBox.appendChild(actionsArea);
-
-					this.commandService.renderCommands(this.actionScopeId, actionsArea, tag, this, "tool", false); //$NON-NLS-0$
-				};
 
 				// Git diffs
 
-				GitCommitExplorer.prototype.displayDiffs = function(commit) {
-
-					var that = this;
+				GitCommitExplorer.prototype.displayDiffs = function(commit, repository) {
 
 					var diffs = commit.Diffs;
 
+					diffs.forEach(function(item) {
+						var path = item.OldPath;
+						if (item.ChangeType === "ADD") { //$NON-NLS-0$
+							path = item.NewPath;
+						} 
+						item.name = path;
+						item.type = item.ChangeType;
+					});
 					var tableNode = lib.node('table'); //$NON-NLS-0$
 
 					var section = new mSection.Section(tableNode, { id : "diffSection", //$NON-NLS-0$
-					title : messages["Diffs"],
-					content : '<div id="diffNode"></div>', //$NON-NLS-0$
-					canHide : true,
-					preferenceService : this.registry.getService("orion.core.preference") //$NON-NLS-0$
+						title : messages["Diffs"],
+						content : '<div id="diffNode"></div>', //$NON-NLS-0$
+						canHide : true,
+						preferenceService : this.registry.getService("orion.core.preference") //$NON-NLS-0$
 					});
-
-					this.commandService.registerCommandContribution(section.actionsNode.id, "orion.explorer.expandAll", 100); //$NON-NLS-1$ //$NON-NLS-0$
-					this.commandService.registerCommandContribution(section.actionsNode.id, "orion.explorer.collapseAll", 200); //$NON-NLS-1$ //$NON-NLS-0$
-
-					var sectionItemActionScopeId = "diffSectionItemActionArea"; //$NON-NLS-0$
-
-					var DiffModel = (function() {
-						function DiffModel() {
-						}
-
-						DiffModel.prototype = { destroy : function() {
-						},
-						getRoot : function(onItem) {
-							onItem(diffs);
-						},
-						getChildren : function(parentItem, onComplete) {
-							if (parentItem instanceof Array && parentItem.length > 0) {
-								onComplete(parentItem);
-							} else if (parentItem.Type === "Diff") {
-								if (!parentItem.children) {// lazy creation,
-															// this is required
-															// for selection
-															// model to be able
-															// to trverse into
-															// children
-									parentItem.children = [];
-									parentItem.children.push({ parent : parentItem,
-									DiffLocation : parentItem.DiffLocation
-									}); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-								}
-								onComplete(parentItem.children); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-								// onComplete([{parent: parentItem}]);
-								// //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-							} else {
-								onComplete([]);
-							}
-						},
-						getId : function(/* item */item) {
-							if (item instanceof Array && item.length > 0) {
-								return "diffRoot"; //$NON-NLS-0$
-							} else if (item.Type === "Diff") {
-								return "diff" + item.DiffLocation; //$NON-NLS-0$
-							} else {
-								return "diffWidget" + item.DiffLocation; //$NON-NLS-0$
-							}
-						}
-						};
-
-						return DiffModel;
-					}());
-
-					var DiffRenderer = (function() {
-						function DiffRenderer(options, explorer) {
-							this._init(options);
-							this.options = options;
-							this.explorer = explorer;
-							this.registry = options.registry;
-						}
-
-						DiffRenderer.prototype = new mExplorer.SelectionRenderer();
-
-						DiffRenderer.prototype.getCellElement = function(col_no, item, tableRow) {
-							switch (col_no) {
-							case 0:
-								if (item.Type === "Diff") {
-									var td = document.createElement("td"); //$NON-NLS-0$
-
-									var div = document.createElement("div"); //$NON-NLS-0$
-									div.className = "sectionTableItem"; //$NON-NLS-0$
-									td.appendChild(div);
-
-									var path = item.OldPath;
-									var sprite = "git-sprite-file"; //$NON-NLS-0$
-									var tooltip = messages["Diffs"]; //$NON-NLS-0$
-									if (item.ChangeType === "ADD") { //$NON-NLS-0$
-										path = item.NewPath;
-										sprite = "git-sprite-addition"; //$NON-NLS-0$
-										tooltip = messages["Addition"]; //$NON-NLS-0$
-									} else if (item.ChangeType === "DELETE") { //$NON-NLS-0$
-										sprite = "git-sprite-removal"; //$NON-NLS-0$
-										tooltip = messages["Deletion"]; //$NON-NLS-0$
-									}
-
-									this.getExpandImage(tableRow, div);
-									
-									var icon = document.createElement("span"); //$NON-NLS-0$
-									icon.className = sprite;
-									icon.classList.add("gitImageSprite");
-									icon.commandTooltip = new Tooltip.Tooltip({
-										node: icon,
-										text: tooltip,
-										position: ["above", "below", "right", "left"] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-									});
-									div.appendChild(icon);
-									
-									var itemLabel = document.createElement("span"); //$NON-NLS-0$
-									itemLabel.className = "gitMainDescription"; //$NON-NLS-0$
-									itemLabel.textContent = path;
-									div.appendChild(itemLabel);
-
-									return td;
-								} else {
-									var td = document.createElement("td"); //$NON-NLS-0$
-									td.colSpan = 2;
-
-									var div = document.createElement("div"); //$NON-NLS-0$
-									div.className = "sectionTableItem"; //$NON-NLS-0$
-									td.appendChild(div);
-
-									var actionsWrapper = document.createElement("div"); //$NON-NLS-0$
-									actionsWrapper.className = "sectionExplorerActions"; //$NON-NLS-0$
-									div.appendChild(actionsWrapper);
-
-									var diffActionWrapper = document.createElement("span"); //$NON-NLS-0$
-									diffActionWrapper.id = "diff" + item.parent.DiffLocation + "DiffActionWrapper"; //$NON-NLS-0$
-									actionsWrapper.appendChild(diffActionWrapper);
-
-									var compareWidgetActionWrapper = document.createElement("span"); //$NON-NLS-0$
-									compareWidgetActionWrapper.id = "diff" + item.parent.DiffLocation + "CompareWidgetActionWrapper"; //$NON-NLS-0$
-									actionsWrapper.appendChild(compareWidgetActionWrapper);
-
-									var diffContainer = document.createElement("div"); //$NON-NLS-0$
-									diffContainer.id = "diffArea_" + item.parent.DiffLocation; //$NON-NLS-0$
-									diffContainer.style.height = "420px";
-									diffContainer.style.border = "1px solid lightgray";
-									diffContainer.style.overflow = "hidden";
-									div.appendChild(diffContainer);
-
-									var navGridHolder = this.explorer.getNavDict() ? this.explorer.getNavDict().getGridNavHolder(item, true) : null;
-									
-									mGitUIUtil.createCompareWidget(
-										that.registry,
-										that.commandService, 
-										item.parent.DiffLocation, 
-										false, 
-										diffContainer,
-										compareWidgetActionWrapper.id, 
-										false, //editableInComparePage
-										{
-											navGridHolder : navGridHolder,
-											additionalCmdRender : function(gridHolder) {
-												that.commandService.destroy(diffActionWrapper.id);
-												that.commandService.renderCommands(
-													"itemLevelCommands", diffActionWrapper.id, item.parent, that, "tool", false, gridHolder); //$NON-NLS-0$
-											},
-											before : true
-										}
-									);
-									
-									return td;
-								}
-								break;
-							}
-						};
-
-						return DiffRenderer;
-					}());
-
-					var DiffNavigator = (function() {
-						function DiffNavigator(registry, selection, parentId, actionScopeId) {
-							this.registry = registry;
-							this.checkbox = false;
-							this.parentId = parentId;
-							this.selection = selection;
-							this.actionScopeId = actionScopeId;
-							this.renderer = new DiffRenderer({ registry : this.registry,
-							actionScopeId : sectionItemActionScopeId,
-							cachePrefix : "DiffNavigator", checkbox : false}, this); //$NON-NLS-0$
-							this.createTree(this.parentId, new DiffModel(), {/*
-																				 * selectionPolicy:
-																				 * "cursorOnly"
-																				 */});
-						}
-
-						DiffNavigator.prototype = new mExplorer.Explorer();
-
-						// provide to the selection model that if a row is
-						// selectable
-						DiffNavigator.prototype.isRowSelectable = function(modelItem) {
-							return false;
-						};
-						// provide to the expandAll/collapseAll commands
-						DiffNavigator.prototype.getItemCount = function() {
-							return diffs.length;
-						};
-
-						return DiffNavigator;
-					}());
-
-					var diffnavigator = new DiffNavigator(this.registry, null, "diffNode", sectionItemActionScopeId); //$NON-NLS-0$
-					this.commandService.renderCommands(section.actionsNode.id, section.actionsNode.id, diffnavigator, diffnavigator, "button"); //$NON-NLS-0$
+					
+					if (this.diffNavigator) {
+						this.diffNavigator.destroy(); 
+					}
+					this.diffNavigator = new mGitChangeList.GitChangeListExplorer({
+						serviceRegistry: this.registry,
+						commandRegistry: this.commandService,
+						selection: null,
+						parentId:"diffNode",
+						actionScopeId: "diffSectionItemActionArea",
+						prefix: "diff",
+						changes: diffs,
+						section: section,
+						repository: repository
+					});
+					this.diffNavigator.display();
 				};
 
 				return GitCommitExplorer;

@@ -45,9 +45,76 @@ define("orion/editor/util", [], function() { //$NON-NLS-0$
 		return topNode === node || (topNode.compareDocumentPosition(node) & 16) !== 0;
 	}
 
+	/**
+	 * @class
+	 * @private
+	 * @name orion.editor.Animation
+	 * @description Creates an animation.
+	 * @param {Object} options Options controlling the animation.
+	 * @param {Array} options.curve Array of 2 values giving the start and end points for the animation.
+	 * @param {Number} [options.duration=350] Duration of the animation, in milliseconds.
+	 * @param {Function} [options.easing]
+	 * @param {Function} [options.onAnimate]
+	 * @param {Function} [options.onEnd]
+	 * @param {Number} [options.rate=20] The time between frames, in milliseconds.
+	 */
+	var Animation = /** @ignore */ (function() {
+		function Animation(options) {
+			this.options = options;
+		}
+		/**
+		 * Plays this animation.
+		 * @function
+		 * @memberOf orion.editor.Animation.prototype
+		 * @name play
+		 */
+		Animation.prototype.play = function() {
+			var duration = (typeof this.options.duration === "number") ? this.options.duration : 350, //$NON-NLS-0$
+			    rate = (typeof this.options.rate === "number") ? this.options.rate : 20, //$NON-NLS-0$
+			    easing = this.options.easing || this.defaultEasing,
+			    onAnimate = this.options.onAnimate || function() {},
+			    start = this.options.curve[0],
+			    end = this.options.curve[1],
+			    range = (end - start),
+			    startedAt = -1,
+				propertyValue,
+				self = this;
+
+			function onFrame() {
+				startedAt = (startedAt === -1) ? new Date().getTime() : startedAt;
+				var now = new Date().getTime(),
+				    percentDone = (now - startedAt) / duration;
+				if (percentDone < 1) {
+					var eased = easing(percentDone);
+					propertyValue = start + (eased * range);
+					onAnimate(propertyValue);
+				} else {
+					onAnimate(end);
+					self.stop();
+				}
+			}
+			this.interval = this.options.window.setInterval(onFrame, rate);
+		};
+		/**
+		 * Stops this animation.
+		 * @function
+		 * @memberOf orion.editor.Animation.prototype
+		 */
+		Animation.prototype.stop = function() {
+			this.options.window.clearInterval(this.interval);
+		    var onEnd = this.options.onEnd || function () {};
+			onEnd();
+		};
+		Animation.prototype.defaultEasing = function(x) {
+			return Math.sin(x * (Math.PI / 2));
+		};
+		return Animation;
+	}());
+
 	return {
 		contains: contains,
 		addEventListener: addEventListener,
-		removeEventListener: removeEventListener
+		removeEventListener: removeEventListener,
+		Animation: Animation
 	};
 });

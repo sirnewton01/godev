@@ -2,21 +2,17 @@
 <html>
 <head>
 	<meta charset="UTF-8">
-    <meta name="copyright" content="Copyright (c) IBM Corporation and others 2013.">
-    <title>Orion JavaScript Support</title>
-    <link rel="stylesheet" type="text/css" href="/settings/settings.css"/>
+	<title>Orion JavaScript Support</title>
 	<script src="../../requirejs/require.js"></script>
 	<script type="text/javascript">
-		/*global require*/
+		/*jslint amd:true*/
 		require({
-			baseUrl: '../../',
+			baseUrl: "../../",
 			paths: {
-				text: 'requirejs/text',
-				i18n: 'requirejs/i18n',
-				domReady: 'requirejs/domReady',
-				esprima: 'esprima/esprima',
-				estraverse: 'estraverse/estraverse',
-				escope: 'escope/escope'
+				text: "requirejs/text",
+				esprima: "esprima/esprima",
+				estraverse: "estraverse/estraverse",
+				escope: "escope/escope"
 			},
 			packages: [
 				{
@@ -29,30 +25,44 @@
 					main: "eslint/conf"
 			}]
 		});
-		require(["javascriptPlugin.js"]);
+
+		require(["javascript/plugins/javascriptPluginLoader"]);
+	</script>
+
+	<script>
+		/*jslint browser:true*/
+		document.addEventListener("DOMContentLoaded", function(e) {
+			var checkbox = document.getElementById("useworker");
+			var key = "jstools.worker", value = localStorage.getItem(key), defaultState = false;
+			checkbox.checked = (value === null ? defaultState : JSON.parse(value));
+			checkbox.onchange = function(event) {
+				var newState = !!event.target.checked;
+				if (newState === defaultState) {
+					localStorage.removeItem(key);
+				}
+				else {
+					localStorage.setItem(key, JSON.stringify(newState));
+				}
+			};
+		});
 	</script>
 </head>
-
-<body id="orion-settings" class="orionPage" style="padding: 10px;">
-	<h2>JavaScript Tools Support</h2>
-	<p>
-		This plugin provides a variety of JavaScript tooling, including:
-	</p>
+<body>
+	<h1>JavaScript Tools Support</h1>
+	<p>This plugin provides a variety of JavaScript tooling, including:</p>
 	<ul>
 		<li><em>Editing</em> - an editor with syntax highlighting, navigation, code completion, etc.</li>
 		<li><em>Navigation</em> - source navigation from the editor as well as a variety of outines.</li>
 		<li><em>Content Assist</em> - smart content assist while editing.</li>
 		<li><em>Search</em> - named item searching, editor occurrences, etc.</li>
 	</ul>
-	<p>October 16, 2013</p>	
-	
-	<div class="split-selection-table">
-	<div class="sectionWrapper toolComposite" style="margin: 15px 30px 0px 15px; max-width: 600px;">
-		<div class="sectionAnchor sectionTitle layoutLeft">
-			License
-		</div>
-	</div>
-	<div class="sections sectionTable" style="margin: 0px 30px 0px 15px; padding-left: 6px; padding-right: 6px; max-width: 600px;">
+
+	<h3>Developer Options</h3>
+	<form>
+		<label><input type="checkbox" id="useworker" /> Use a web worker (improves responsiveness when editing large files)</label>
+	</form>
+	<div style="width:50%">
+		<h3>License</h3>
 		<p>
 		The Eclipse Foundation makes available all content in this plug-in (&quot;Content&quot;).  Unless otherwise 
 		indicated below, the Content is provided to you under the terms and conditions of the
@@ -70,7 +80,6 @@
 		indicated below, the terms and conditions of the EPL still apply to any source code in the Content
 		and such source code may be obtained at <a href="http://www.eclipse.org/">http://www.eclipse.org</a>.
 		</p>
-	</div>
 	</div>
 </body>	
 </html>

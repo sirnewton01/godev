@@ -1,0 +1,47 @@
+/*
+ * Provide document level styles. All the Orion specific styles should live in controls.css
+*/
+html {
+  cursor: default;
+  height: 100%;
+}
+
+html, body {
+	margin: 0;
+	padding: 0;
+	font: 9pt Arial,Helvetica,Myriad,Tahoma,clean,sans-serif, Lucida Sans Unicode,Lucida Grande,Verdana; 
+	min-width:700px;
+} 
+
+h2 {
+	font-size: 1.1em;
+	font-weight: bold;
+	color: #6d6d6d;
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+/** remove unwanted borders on img in IE **/
+img {
+	border: 0;
+}
+
+/**
+ * Remove unwanted button padding in Firefox
+ */ 
+button::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+}
+
+input {
+	-moz-user-select: text;
+	text-indent: 0;
+	text-shadow: none;
+	border: solid 1px #bbb;
+	color: #333;
+	font-size: 9pt;
+	padding: 2px;
+	margin-left: 5px;
+}
+

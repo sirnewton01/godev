@@ -9,7 +9,7 @@
 
 /* Styles for the view tooltips */
 .textviewTooltip {
-	font-family: "Consolas", "Monaco", "Vera Mono", "monospace";
+	font-family: "Consolas", "Monaco", "Vera Mono", monospace;
 	font-size: 10pt;
 	background-color: InfoBackground;
 	color: InfoText;

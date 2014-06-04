@@ -1,6 +1,6 @@
 .textview {
 	background-color: white;
-	font-family: "Consolas", "Monaco", "Vera Mono", "monospace";
+	font-family: "Consolas", "Monaco", "Vera Mono", monospace;
 	font-size: 10pt;
 	min-width: 50px;
 	min-height: 50px;

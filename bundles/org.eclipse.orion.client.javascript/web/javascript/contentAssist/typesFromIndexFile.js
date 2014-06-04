@@ -168,7 +168,7 @@ define([
 	};
 	
 	/**
-	 * @descripton Converts the Tern-formatted signature to a Closure-formatted one
+	 * @description Converts the Tern-formatted signature to a Closure-formatted one
 	 * @public
 	 * @param {String} ternSig
 	 * @param {String} returnTypeName

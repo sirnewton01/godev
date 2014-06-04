@@ -72,21 +72,23 @@ define([
 	
 			// not ideal, but for now, sort here so it's done in one place.
 			// this should really be something pluggable that the UI defines
-			parent.children.sort(function(a, b) {
-				var isDir1 = a.Directory;
-				var isDir2 = b.Directory;
-				if (isDir1 !== isDir2) {
-					return isDir1 ? -1 : 1;
-				}
-				var n1 = a.Name && a.Name.toLowerCase();
-				var n2 = b.Name && b.Name.toLowerCase();
-				if (n1 < n2) { return -1; }
-				if (n1 > n2) { return 1; }
-				return 0;
-			}); 
+			parent.children.sort(this.sortChildren); 
 			return children;
 		},
-			
+		
+		sortChildren: function(a, b) {
+			var isDir1 = a.Directory;
+			var isDir2 = b.Directory;
+			if (isDir1 !== isDir2) {
+				return isDir1 ? -1 : 1;
+			}
+			var n1 = a.Name && a.Name.toLowerCase();
+			var n2 = b.Name && b.Name.toLowerCase();
+			if (n1 < n2) { return -1; }
+			if (n1 > n2) { return 1; }
+			return 0;
+		},
+		
 		getChildren: function(parentItem, /* function(items) */ onComplete) {
 			var self = this;
 			// the parent already has the children fetched
@@ -363,6 +365,50 @@ define([
 				return this.onModelMove(modelEvent);
 			}
 		},
+		
+		/**
+		 * @param {Object} parentItem The item in the model which represents the new item's parent
+		 * @param {Object} child An object describing the child that a placeholder needs to be created for.
+		 * 			child.Name {String} The name of the child artifact
+		 * 			child.Directory {Boolean} true if the child is a directory, false otherwise
+		 * @param {String} domId The prefix to use for the Id of the newly created DOM nodes
+		 * @returns A deferred that resolves with the placeholder object (see explorer.js->makeNewItemPlaceholder())
+		 */
+		makeNewChildItemPlaceholder: function(parentItem, child, domId) {
+			var deferred = new Deferred();
+			
+			this.model.getChildren(parentItem, function(children){
+				var item = null;
+				var insertAfter = false;
+				if(children) {
+					children.push(child);
+					children.sort(this.model.sortChildren);
+					var childIndex = children.indexOf(child);
+					var nextIndex = childIndex + 1;
+					if (children.length > nextIndex) {
+						item = children[nextIndex];
+					} else {
+						var previousIndex = childIndex - 1;
+						//should be placed last
+						if (0 <= previousIndex) {
+							item = children[previousIndex];
+						} else {
+							item = parentItem;
+						}
+						
+						insertAfter = true;
+					}
+				} else {
+					//place before parentItem
+					item = parentItem;
+				}
+				
+				var placeholder = this.makeNewItemPlaceholder(item, domId, insertAfter);
+				deferred.resolve(placeholder);
+			}.bind(this));
+			
+			return deferred;
+		},
 
 		_makeDropTarget: function(item, node, persistAndReplace) {
 			if (this.dragAndDrop) {
@@ -453,68 +499,143 @@ define([
 				}
 	
 				var progress = null;
+				var statusService = null;
 				if(explorer.registry) {
 					progress = explorer.registry.getService("orion.page.progress"); //$NON-NLS-0$
+					statusService = explorer.registry.getService("orion.page.message");	 //$NON-NLS-0$
 				}
 				
 				var errorHandler = function(error) {
-					if (progress) {
-						progress.setProgressResult(error);
+					if (statusService) {
+						var errorMessage = null;
+						if ("string" === typeof error) {
+							errorMessage = {Severity: "Error", Message: error};
+						} else if (error && error.error) {
+							errorMessage = {Severity: "Error", Message: error.error};
+						} else {
+							errorMessage = error;	
+						}
+						statusService.setProgressResult(errorMessage);	//$NON-NLS-0$ 
 					} else {
 						window.console.log(error);
 					}
 				};
-				
-				function dropFileEntry(entry, path, target, explorer, performDrop, fileClient) {
+						
+				function dropFileEntry(entry, target, explorer, performDrop, fileClient, deferredWrapper) {
+					var preventNotification = false;
+					var targetIsRoot = mFileUtils.isAtRoot(target.Location);
+					if (deferredWrapper) {
+						//this is a recursive call
+						preventNotification = true;
+						deferredWrapper.entryCount++;
+					} else if (entry.isDirectory) {
+						preventNotification = true; //we don't want to notify for each item that is in the folder
+						deferredWrapper = {entryCount: 1, deferred: new Deferred()};
+						explorer._makeUploadNode(target, entry.name, true).then(function(uploadNodeContainer){
+							var cleanup = function() {
+								uploadNodeContainer.destroyFunction();
+								if (targetIsRoot) {
+									explorer.loadResourceList(explorer.treeRoot.Path, true);	
+								} else {
+									explorer.changedItem(target);	
+								}						
+							};
+							deferredWrapper.deferred.then(cleanup, cleanup);
+						});
+					}
+					
+					var decrementEntryCount = function() {
+						if (deferredWrapper) {
+							deferredWrapper.entryCount--;
+							if (0 === deferredWrapper.entryCount) {
+								deferredWrapper.deferred.resolve();
+							}
+						}
+					};
+					
+					var internalErrorHandler = function(error) {
+						if (statusService) {
+							var errorMessage = null;
+							if ("string" === typeof error) {
+								errorMessage = {Severity: "Error", Message: error};
+							} else if (error && error.error) {
+								errorMessage = {Severity: "Error", Message: error.error};
+							} else {
+								errorMessage = error;	
+							}
+							statusService.setProgressResult(errorMessage);	//$NON-NLS-0$ 
+						} else {
+							window.console.log(error);
+						}
+						decrementEntryCount();
+					};
+					
 					if (!target.Location && target.fileMetadata) {
 						target = target.fileMetadata;
 					}
-					path = path || "";
 					if (entry.isFile) {
 						// can't drop files directly into workspace.
-						if (mFileUtils.isAtRoot(target.Location)){ //$NON-NLS-0$
-							if(explorer.registry) {
-								explorer.registry.getService("orion.page.message").setProgressResult({ //$NON-NLS-0$
-									Severity: "Error", Message: messages["You cannot copy files directly into the workspace.  Create a folder first."]});	 //$NON-NLS-1$ //$NON-NLS-0$ 
-							}
+						if (targetIsRoot){ //$NON-NLS-0$
+							internalErrorHandler(messages["You cannot copy files directly into the workspace.  Create a folder first."]); //$NON-NLS-0$
 						} else {
 							entry.file(function(file) {
-								performDrop(target, file, explorer, file.name.indexOf(".zip") === file.name.length-4 && window.confirm(i18nUtil.formatMessage(messages["Unzip ${0}?"], file.name))); //$NON-NLS-1$ //$NON-NLS-0$ 
-							});
+								if (deferredWrapper) {
+									// this is part of a folder upload, upload the file directly without showing 
+									// progress for it but call decrementEntryCount when the upload finishes
+									var unzip = file.name.indexOf(".zip") === file.name.length-4 && window.confirm(i18nUtil.formatMessage(messages["Unzip ${0}?"], file.name)); //$NON-NLS-1$ //$NON-NLS-0$
+									var handlers = {
+										error: function(event) {
+											var errorMessage = messages["Uploading the following file failed: "] + file.name;
+											if (statusService) {
+												statusService.setProgressResult({Severity: "Error", Message: errorMessage}); //$NON-NLS-0$ 
+											} else {
+												window.console.log(errorMessage);
+											}
+										},
+										loadend: decrementEntryCount
+									};
+									performDrop(target, file, explorer, unzip, false, handlers, true);
+								} else {
+									explorer._uploadFile(item, file, true);
+								}
+							}.bind(this));
 						}
 					} else if (entry.isDirectory) {
 						var dirReader = entry.createReader();
 						var traverseChildren = function(folder) {
 							dirReader.readEntries(function(entries) {
 								for (var i=0; i<entries.length; i++) {
-									dropFileEntry(entries[i], path + entry.name + "/", folder, explorer, performDrop, fileClient); //$NON-NLS-0$
+									dropFileEntry(entries[i], folder, explorer, performDrop, fileClient, deferredWrapper); //$NON-NLS-0$
 								}
+								decrementEntryCount();
 							});
 						};
 						
-						if (mFileUtils.isAtRoot(target.Location)){ //$NON-NLS-0$
+						if (targetIsRoot){ //$NON-NLS-0$
 							(progress ? progress.progress(fileClient.createProject(target.ChildrenLocation, entry.name), i18nUtil.formatMessage(messages["Creating ${0}"], entry.name)) : 
 										fileClient.createProject(target.ChildrenLocation, entry.name)).then(function(project) {
-								explorer.loadResourceList(explorer.treeRoot.Path, true);					
 								(progress ? progress.progress(fileClient.read(project.ContentLocation, true), messages["Loading "] + project.name) :
 											fileClient.read(project.ContentLocation, true)).then(function(folder) {
 										traverseChildren(folder);
-									}, errorHandler);
-							}, errorHandler);
+									}, internalErrorHandler);
+							}, internalErrorHandler);
 						} else {
 							(progress ? progress.progress(fileClient.createFolder(target.Location, entry.name), i18nUtil.formatMessage(messages["Creating ${0}"], entry.name)) :
 										fileClient.createFolder(target.Location, entry.name)).then(function(subFolder) {
 								var dispatcher = explorer.modelEventDispatcher;
-								dispatcher.dispatchEvent({ type: "create", parent: item, newValue: subFolder }); //$NON-NLS-0$
+								if (!preventNotification) {
+									dispatcher.dispatchEvent({ type: "create", parent: item, newValue: subFolder }); //$NON-NLS-0$	
+								}
 								traverseChildren(subFolder);
-							}, errorHandler);
+							}, internalErrorHandler);
 						}
 					}
 				}
 				
 				var drop = function(evt) {
-					var i;
+					var i, deferred;
 					node.classList.remove("dragOver"); //$NON-NLS-0$
+					
 					if (dragStartTarget) {
 						var fileClient = explorer.fileClient;
 						var tmp = dragStartTarget;
@@ -529,10 +650,15 @@ define([
 						if (!source) {
 							return;
 						}
+						
 						var isCopy = dropEffect === "copy"; //$NON-NLS-0$
 						var func = isCopy ? fileClient.copyFile : fileClient.moveFile;
-						(progress ? progress.showWhile(func.apply(fileClient, [source.Location, item.Location]), i18nUtil.formatMessage(messages[isCopy ? "Copying ${0}" : "Moving ${0}"], source.Location)) : 
-									func.apply(fileClient, [source.Location, item.Location])).then(function(result) {
+						deferred = func.apply(fileClient, [source.Location, item.Location, source.Name]);
+						if (progress) {
+							var message = i18nUtil.formatMessage(messages[isCopy ? "Copying ${0}" : "Moving ${0}"], source.Location); //$NON-NLS-1$ //$NON-NLS-0$
+							deferred = progress.showWhile(deferred, message);
+						}
+						deferred.then(function(result) {
 							var dispatcher = explorer.modelEventDispatcher;
 							dispatcher.dispatchEvent({type: isCopy ? "copy" : "move", oldValue: source, newValue: result, parent: item}); //$NON-NLS-1$ //$NON-NLS-0$
 						}, errorHandler);
@@ -548,7 +674,7 @@ define([
 								entry = evt.dataTransfer.items[i].webkitGetAsEntry();
 							}
 							if (entry) {
-								dropFileEntry(entry, null, item, explorer, performDrop, explorer.fileClient);
+								dropFileEntry(entry, item, explorer, performDrop, explorer.fileClient);
 							}
 						}
 					} else if (evt.dataTransfer.files && evt.dataTransfer.files.length > 0) {
@@ -558,22 +684,17 @@ define([
 							// The File API in HTML5 doesn't specify a way to check explicitly (when this code was written).
 							// see http://www.w3.org/TR/FileAPI/#file
 							if (!file.size && !file.type) {
-								if(explorer.registry) {
-									explorer.registry.getService("orion.page.message").setProgressResult( //$NON-NLS-0$
-										{Severity: "Error", Message: i18nUtil.formatMessage(messages["Did not drop ${0}.  Folder drop is not supported in this browser."], file.name)}); //$NON-NLS-1$ //$NON-NLS-0$ 
-								}
+								errorHandler(i18nUtil.formatMessage(messages["Did not drop ${0}.  Folder drop is not supported in this browser."], file.name)); //$NON-NLS-0$
 							} else if (mFileUtils.isAtRoot(item.Location)){ //$NON-NLS-0$
-								if(explorer.registry) {
-									explorer.registry.getService("orion.page.message").setProgressResult({ //$NON-NLS-0$
-										Severity: "Error", Message: messages["You cannot copy files directly into the workspace.  Create a folder first."]});	 //$NON-NLS-1$ //$NON-NLS-0$ 
-								}
+								errorHandler(messages["You cannot copy files directly into the workspace.  Create a folder first."]); //$NON-NLS-0$ 
 							} else {
-								performDrop(item, file, explorer, file.name.indexOf(".zip") === file.name.length-4 && window.confirm(i18nUtil.formatMessage(messages["Unzip ${0}?"], file.name))); //$NON-NLS-1$ //$NON-NLS-0$ 
+								explorer._uploadFile(item, file, true);
 							}
 						}
 					}
 					lib.stop(evt);
 				};
+					
 				if (persistAndReplace) {
 					if (this._oldDrop) {
 						node.removeEventListener("drop", this._oldDrop, false); //$NON-NLS-0$
@@ -582,6 +703,141 @@ define([
 				}
 				node.addEventListener("drop", drop, false); //$NON-NLS-0$
 			}
+		},
+		
+		/**
+		 * Uploads the specified file as a child of the specified parent item.
+		 * 
+		 * @param {Object} parentItem The item in the model representing the folder under which the file should be placed.
+	 	 * @param {File} file The file to upload.
+	 	 * @param {Boolean} expandParent Specifies whether or not the parentItem should be expanded after the upload completes.
+		 */
+		_uploadFile: function(parentItem, file, expandParent) {
+			var targetItem = parentItem;
+			if (!targetItem.Location && targetItem.fileMetadata) {
+				targetItem = targetItem.fileMetadata;
+			}
+			var uploadImpl = function() {
+				this._makeUploadNode(targetItem, file.name, false).then(function(uploadNodeContainer){
+					var refNode = uploadNodeContainer.refNode; //td
+					var progressBar = uploadNodeContainer.progressBar;
+					var cancelButton = uploadNodeContainer.cancelButton;
+					var destroy = uploadNodeContainer.destroyFunction;
+					
+					var statusService = this.registry.getService("orion.page.message");	 //$NON-NLS-0$
+					
+					var handlers = {
+						progress: function(event) {
+							var percentageText = ""; //$NON-NLS-0$
+							if (event.lengthComputable) {
+								percentageText = Math.floor((event.loaded / event.total) * 100) + "%"; //$NON-NLS-0$
+								progressBar.style.width = percentageText;
+								var loadedKB = Math.round(event.loaded / 1024);
+								var totalKB = Math.round(event.total / 1024);
+								progressBar.title = messages["Upload progress: "] + percentageText + ",  " + loadedKB + "/" + totalKB + " KB"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+								refNode.title = progressBar.title;
+							}
+						},
+						loadend: function(event) {
+							destroy();
+							this.changedItem(targetItem);
+						}.bind(this),
+						error: function(event) {
+							var errorMessage = messages["Uploading the following file failed: "] + file.name; //$NON-NLS-0$
+							if (statusService) {
+								statusService.setProgressResult({Severity: "Error", Message: errorMessage});	//$NON-NLS-0$ 
+							} else {
+								window.console.log(errorMessage);
+							}
+						}
+					};
+						
+					var unzip = file.name.indexOf(".zip") === file.name.length-4 && window.confirm(i18nUtil.formatMessage(messages["Unzip ${0}?"], file.name)); //$NON-NLS-1$ //$NON-NLS-0$
+					var req = this.dragAndDrop(targetItem, file, this, unzip, false, handlers, true); 
+					
+					cancelButton.addEventListener("click", function(){ //$NON-NLS-0$
+						req.abort();
+					});
+				}.bind(this));
+			}.bind(this);
+			
+			if (expandParent) {
+				this.expandItem(targetItem, false).then(uploadImpl);
+			} else {
+				uploadImpl();
+			}
+			
+		},
+		
+		/**
+		 * Creates a placeholder node in the navigator which shows the name
+		 * of the artifact being uploaded as well as progress and an option
+		 * to cancel the upload (if possible).
+		 * 
+		 * @param {Object} parentItem The item in the model representing the folder under which the file should be placed. Workspace root is supported.
+	 	 * @param {String} artifactName The name of the file or folder being uploaded.
+	 	 * @param {Boolean} isDirectory true if the artifact is a directory, false otherwise
+	 	 * 
+	 	 * @returns {orion.Deferred.promise} which resolves with the following object:
+	 	 * 		 {Object} nodeContainer An object containing the following:
+	 	 * 			nodeContainer.refNode The td of the newly created DOM node
+	 	 * 			nodeContainer.tempNode The tr of the newly created DOM node (this is the top-level DOM node)
+	 	 * 			nodeContainer.progressBar The DOM node containing the progress bar
+	 	 * 			nodeContainer.cancelButton The DOM node of the upload cancel button (only if isFile === true)
+	 	 * 			nodeContainer.destroyFunction The function that should be called to remove the temporary upload node from the navigator
+		 */
+		_makeUploadNode: function(parentItem, artifactName, isDirectory) {
+			
+			var domId = this.getRow(parentItem).id;
+			var child = {Name: artifactName, Directory: isDirectory};
+			
+			return this.makeNewChildItemPlaceholder(parentItem, child, domId).then(function(placeholder) {
+				var nodeContainer = null;
+				var refNode, wrapperNode;
+				if (placeholder) {
+					nodeContainer = {};
+					refNode = placeholder.refNode;
+					wrapperNode = placeholder.wrapperNode;
+					refNode.classList.add("uploadNode"); //$NON-NLS-0$
+					
+					nodeContainer.refNode = refNode;
+					nodeContainer.wrapperNode = wrapperNode;
+					
+					var textSpan = document.createElement("span");
+					textSpan.classList.add("uploadNodeText");
+					textSpan.appendChild(document.createTextNode(artifactName));
+					refNode.appendChild(textSpan); //$NON-NLS-0$
+					
+					var progressBarWrapper = document.createElement("span"); //$NON-NLS-0$
+					progressBarWrapper.classList.add("progressBarWrapper"); //$NON-NLS-0$
+					
+					var progressBar = document.createElement("span"); //$NON-NLS-0$
+					progressBar.classList.add("progressBar"); //$NON-NLS-0$
+					progressBarWrapper.appendChild(progressBar);
+					refNode.appendChild(progressBarWrapper);
+					
+					nodeContainer.progressBar = progressBar;
+					
+					if (isDirectory) {
+						progressBar.classList.add("continuous"); //$NON-NLS-0$
+						refNode.title = messages["Uploading "] + artifactName; //$NON-NLS-0$
+						progressBar.title = refNode.title; //$NON-NLS-0$
+					} else {
+						var cancelButton = document.createElement("button"); //$NON-NLS-0$
+						cancelButton.classList.add("imageSprite"); //$NON-NLS-0$
+						cancelButton.classList.add("core-sprite-delete"); //$NON-NLS-0$
+						cancelButton.classList.add("uploadCancelButton"); //$NON-NLS-0$
+						cancelButton.title = messages["Cancel upload"]; //$NON-NLS-0$
+						refNode.appendChild(cancelButton);
+						
+						nodeContainer.cancelButton = cancelButton;
+					}
+					
+					nodeContainer.destroyFunction = placeholder.destroyFunction;
+				}
+				
+				return nodeContainer;
+			}.bind(this));
 		},
 
 		/**

@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2011, 2012 IBM Corporation and others.
+ * Copyright (c) 2011, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -68,46 +68,48 @@ exports.Explorer = (function() {
 			}
 		},
 		
-		makeNewItemPlaceHolder: function(item, domId, column_no, insertAfter) {
-			// we want to popup the name prompt underneath the parent item.
-			var refNode = this.getRow(item);
-			var tempNode;
-			if(column_no){
-				refNode = refNode.childNodes[column_no];
-				// make a row and empty column so that the new name appears after checkmarks/expansions
-				refNode.appendChild(document.createElement("br")); //$NON-NLS-0$
-				var span = document.createElement("span"); //$NON-NLS-0$
-				span.id = domId+"placeHolderRow"; //$NON-NLS-0$
-				refNode.appendChild(span);
-				return {tempNode: span, refNode: span};
-			}
-			if (refNode) {
+		makeNewItemPlaceholder: function(item, domId, insertAfter) {
+			var placeholder = null;
+			var itemRow = this.getRow(item);
+			if (itemRow) {
+				var parentNode = itemRow.parentNode;
 				// make a row and empty column so that the new name appears after checkmarks/expansions
 				var tr = document.createElement("tr"); //$NON-NLS-0$
 				tr.id = domId+"placeHolderRow"; //$NON-NLS-0$
+				tr.classList.add("navRow"); //$NON-NLS-0$
 				var td = document.createElement("td"); //$NON-NLS-0$
 				td.id = domId+"placeHolderCol"; //$NON-NLS-0$
+				td.classList.add("navColumn"); //$NON-NLS-0$
 				tr.appendChild(td);
 				if (insertAfter) {
-					// insert tr after refNode, i.e. right before refNode's nextSibling in the parent
-					var parentNode = refNode.parentNode;
-					var nextSibling = refNode.nextSibling;
+					// insert tr after itemRow, i.e. right before itemRow's nextSibling in the parent
+					var nextSibling = itemRow.nextSibling;
 					parentNode.insertBefore(tr, nextSibling);
-					
-					var parentIndentation = parseInt(refNode.firstChild.style.paddingLeft); //refNode is a <tr>, we want the indentation of its <td>
-					td.style.paddingLeft = (this.myTree.getIndent() + parentIndentation) + "px";
 				} else {
-					refNode.appendChild(tr);
+					// insert tr before itemRow
+					parentNode.insertBefore(tr, itemRow);
 				}
-				tempNode = lib.node(domId+"placeHolderRow"); //$NON-NLS-0$
-				refNode = lib.node(domId+"placeHolderCol"); //$NON-NLS-0$
-				if (tempNode && refNode) {
-					return {tempNode: tempNode, refNode: refNode};
-				}
+				
+				td.style.paddingLeft = itemRow.firstChild.style.paddingLeft; //itemRow is a <tr>, we want the indentation of its <td>
+				
+				placeholder = {
+					wrapperNode: tr, 
+					refNode: td,
+					destroyFunction: function() {
+						try {
+							if (tr && tr.parentNode) {
+								tr.parentNode.removeChild(tr);
+							}	
+						} catch (err) {
+							// tr already removed, do nothing
+						}
+					}
+				};
 			}
-			return null;
+			
+			return placeholder;
 		},
-		
+
 		getRow: function(item) {
 			var rowId = this.model.getId(item);
 			if (rowId) {
@@ -446,6 +448,7 @@ exports.ExplorerRenderer = (function() {
 				this._cachePrefix = options.cachePrefix;
 				this.getCheckedFunc = options.getCheckedFunc;
 				this.onCheckedFunc = options.onCheckedFunc;
+				this._noRowHighlighting = options.noRowHighlighting; // Whether to have alternating light/dark rows
 				this._highlightSelection = true;
 				this._treeTableClass = options.treeTableClass || "treetable";  //$NON-NLS-0$
 				if (options.highlightSelection === false){
@@ -655,7 +658,15 @@ exports.ExplorerRenderer = (function() {
 				expandImage.classList.add(isExpanded === "progress" ? this._progressImageClass : isExpanded ? this._expandImageClass : this._collapseImageClass); //$NON-NLS-0$
 			}
 		},
-		
+
+		/**
+		 * Appends the image node with expand/collapse behavior
+		 * @param {Element} tableRow
+		 * @param {Element} placeHolder
+		 * @param {String} decorateImageClass
+		 * @param {String} spriteClass
+		 * @returns {Element} The image node
+		 */
 		getExpandImage: function(tableRow, placeHolder, /* optional extra decoration */ decorateImageClass, /* optional sprite class for extra decoration */ spriteClass){
 			var expandImage = document.createElement("span"); //$NON-NLS-0$
 			expandImage.id = this.expandCollapseImageId(tableRow.id);
@@ -669,6 +680,7 @@ exports.ExplorerRenderer = (function() {
 				decorateImage.classList.add(decorateImageClass);
 			}
 			var self = this;
+			// TODO should really avoid creating 1 listener per expandImage here
 			expandImage.onclick = function(evt) {
 				if (!self.explorer.getNavHandler().isDisabled(tableRow)) {
 					self.tableTree.toggle(tableRow.id);
@@ -706,13 +718,15 @@ exports.ExplorerRenderer = (function() {
 				this.explorer.refreshSelection();
 				this.explorer.initNavHandler();			
 			}
-			if(lib.$(".sectionTreeTable", this.tableNode.parentNode) || lib.$(".treetable", this.tableNode.parentNode)) {
-				lib.$$array(".treeTableRow", this.tableNode).forEach(function(node, i) { //$NON-NLS-0$
-					var on = (!(i % 2)) ? "darkSectionTreeTableRow" : "lightSectionTreeTableRow";
-					var off = (on === "darkSectionTreeTableRow") ? "lightSectionTreeTableRow" : "darkSectionTreeTableRow";
-					node.classList.add(on);
-					node.classList.remove(off);
-				});
+			if (!this._noRowHighlighting){
+				if(lib.$(".sectionTreeTable", this.tableNode.parentNode) || lib.$(".treetable", this.tableNode.parentNode)) {
+					lib.$$array(".treeTableRow", this.tableNode).forEach(function(node, i) { //$NON-NLS-0$
+						var on = (!(i % 2)) ? "darkSectionTreeTableRow" : "lightSectionTreeTableRow";
+						var off = (on === "darkSectionTreeTableRow") ? "lightSectionTreeTableRow" : "darkSectionTreeTableRow";
+						node.classList.add(on);
+						node.classList.remove(off);
+					});
+				}
 			}
 		},
 		updateCommands: function(){
@@ -790,8 +804,13 @@ exports.SelectionRenderer = (function(){
 	SelectionRenderer.prototype.renderRow = function(item, tableRow) {
 		tableRow.verticalAlign = "baseline"; //$NON-NLS-0$
 		tableRow.classList.add("treeTableRow"); //$NON-NLS-0$
+
 		var navDict = this.explorer.getNavDict();
 		if(navDict){
+			if (this.explorer.selectionPolicy !== "cursorOnly") {
+				tableRow.classList.add("selectableNavRow"); //$NON-NLS-0$
+			}
+			
 			navDict.addRow(item, tableRow);
 			var self = this;
 			tableRow.addEventListener("click", function(evt) { //$NON-NLS-0$

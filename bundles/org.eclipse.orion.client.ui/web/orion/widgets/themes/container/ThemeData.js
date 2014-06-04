@@ -11,13 +11,20 @@
 /*global orion window console define localStorage*/
 /*jslint browser:true*/
 
-define(['i18n!orion/settings/nls/messages', 'orion/editor/textTheme', 'orion/widgets/themes/container/ThemeSheetWriter'], 
-	function(messages, mTextTheme, ThemeSheetWriter) {
+define([
+	'i18n!orion/settings/nls/messages',
+	'orion/editor/textTheme',
+	'orion/widgets/themes/container/ThemeSheetWriter',
+	'orion/widgets/themes/ThemeVersion'
+],
+	function(messages, mTextTheme, ThemeSheetWriter, THEMES_VERSION) {
 
-		/**
-		 * Version string for theme data. Please update this string whenever you change the style of a themable element.
-		 */
-		var THEMES_VERSION = "5.0";
+	// *******************************************************************************
+	//
+	// If you change any styles in this file, you must increment the version number
+	// in ThemeVersion.js.
+	//
+	// *******************************************************************************
 
 		function StyleSet(){
 		

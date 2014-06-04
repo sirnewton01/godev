@@ -17,7 +17,7 @@
    vertical-align: middle;
 }
 
-.core-sprite-progress, .progressPane_running {
+.core-sprite-progress {
 	height:14px;
 	width:14px;
 	-webkit-animation: progressAnimation .7s infinite linear;

@@ -405,7 +405,6 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 			var annotationModel = this.editor.getAnnotationModel();
 			if (!annotationModel) { return; }
 			var remove = [], add = [];
-			var textModel = annotationModel.getTextModel();
 			var annotations = annotationModel.getAnnotations(), annotation;
 			while (annotations.hasNext()) {
 				annotation = annotations.next();

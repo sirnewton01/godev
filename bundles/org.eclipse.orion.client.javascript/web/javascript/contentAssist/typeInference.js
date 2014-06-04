@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012, 2013 VMware, Inc. and others.
+ * Copyright (c) 2012, 2014 VMware, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -1076,60 +1076,62 @@ define([
 			break;
 		case 'Identifier':
 			name = node.name;
-			newTypeObj = env.lookupTypeObj(name, node.extras.target);
-			if (newTypeObj && !node.extras.isDecl) {
-				// name already exists but we are redeclaring it and so not being overridden
-				node.extras.inferredTypeObj = newTypeObj;
-				if (proposalUtils.inRange(env.offset, node.range, true)) {
-					// We found it! rmember for later, but continue to the end of file anyway
-					env.storeTarget(env.scope(node.extras.target));
-				}
-
-				// if this identifier refers to a function call, and we know the argument types, then push on to the arg nodes
-				if (node.extras.callArgs) {
-					if (newTypeObj.type === 'FunctionType') {
-						// match param types with args
-						var paramTypes = newTypeObj.params;
-						var args = node.extras.callArgs;
-						var len = Math.min(args.length || 0, paramTypes.length || 0);
-						for (i = 0; i < len; i++) {
-							args[i].extras = args[i].extras || {};
-							args[i].extras.paramTypeObj = paramTypes[i].type === 'ParameterType' ? paramTypes[i].expression : paramTypes[i];
+			if(name) {
+				newTypeObj = env.lookupTypeObj(name, node.extras.target);
+				if (newTypeObj && !node.extras.isDecl) {
+					// name already exists but we are redeclaring it and so not being overridden
+					node.extras.inferredTypeObj = newTypeObj;
+					if (proposalUtils.inRange(env.offset, node.range, true)) {
+						// We found it! rmember for later, but continue to the end of file anyway
+						env.storeTarget(env.scope(node.extras.target));
+					}
+	
+					// if this identifier refers to a function call, and we know the argument types, then push on to the arg nodes
+					if (node.extras.callArgs) {
+						if (newTypeObj.type === 'FunctionType') {
+							// match param types with args
+							var paramTypes = newTypeObj.params;
+							var args = node.extras.callArgs;
+							var len = Math.min(args.length || 0, paramTypes.length || 0);
+							for (i = 0; i < len; i++) {
+								args[i].extras = args[i].extras || {};
+								args[i].extras.paramTypeObj = paramTypes[i].type === 'ParameterType' ? paramTypes[i].expression : paramTypes[i];
+							}
 						}
 					}
-				}
-
-				if (node.extras.paramTypeObj) {
-					// this identifier is an argument of a function call whose type we know
-					if (typeUtils.leftTypeIsMoreGeneral(newTypeObj, node.extras.paramTypeObj, env)) {
-						// the param type is more specific, use that one instead of the otherwise inferred type
-						node.extras.inferredTypeObj = newTypeObj = node.extras.paramTypeObj;
-						env.addOrSetVariable(name, node.extras.target /* should be null */, newTypeObj);
+	
+					if (node.extras.paramTypeObj) {
+						// this identifier is an argument of a function call whose type we know
+						if (typeUtils.leftTypeIsMoreGeneral(newTypeObj, node.extras.paramTypeObj, env)) {
+							// the param type is more specific, use that one instead of the otherwise inferred type
+							node.extras.inferredTypeObj = newTypeObj = node.extras.paramTypeObj;
+							env.addOrSetVariable(name, node.extras.target /* should be null */, newTypeObj);
+						}
 					}
-				}
-
-			} else if (!node.extras.isLHS) {
-				if (!proposalUtils.inRange(env.offset, node.range, true) && RESERVED_WORDS[name] !== true) {
-					// we have encountered a read of a variable/property that we have never seen before
-
-					if (node.extras.target) {
-						// this is a property on an object.  just add to the target
-						var res = env.addVariable(name, node.extras.target, env.newFleetingObject(), node.range);
-						if (res) {
-						    node.extras.inferredTypeObj = res.typeObj;
+	
+				} else if (!node.extras.isLHS) {
+					if (!proposalUtils.inRange(env.offset, node.range, true) && RESERVED_WORDS[name] !== true) {
+						// we have encountered a read of a variable/property that we have never seen before
+	
+						if (node.extras.target) {
+							// this is a property on an object.  just add to the target
+							var res = env.addVariable(name, node.extras.target, env.newFleetingObject(), node.range);
+							if (res) {
+							    node.extras.inferredTypeObj = res.typeObj;
+							}
+						} else {
+							// add as a global variable
+							node.extras.inferredTypeObj = env.addOrSetGlobalVariable(name, null, node.range).typeObj;
 						}
 					} else {
-						// add as a global variable
-						node.extras.inferredTypeObj = env.addOrSetGlobalVariable(name, null, node.range).typeObj;
+						// We found it! rmember for later, but continue to the end of file anyway
+						env.storeTarget(env.scope(node.extras.target));
 					}
 				} else {
-					// We found it! rmember for later, but continue to the end of file anyway
-					env.storeTarget(env.scope(node.extras.target));
+					// if this node is an LHS of an assign, don't store target yet,
+					// we need to first apply the RHS before applying.
+					// This will happen in the enclosing assignment or variable declarator
 				}
-			} else {
-				// if this node is an LHS of an assign, don't store target yet,
-				// we need to first apply the RHS before applying.
-				// This will happen in the enclosing assignment or variable declarator
 			}
 			break;
 		case "ThisExpression":

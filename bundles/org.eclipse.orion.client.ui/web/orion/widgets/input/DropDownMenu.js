@@ -40,7 +40,8 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 		
 		// Create dropdown container and append to parent dom
 		var dropDownContainer = document.createElement("div"); //$NON-NLS-0$
-		dropDownContainer.classList.add("dropDownContainer"); //$NON-NLS-0$
+		dropDownContainer.classList.add("dropdownMenu"); //$NON-NLS-0$
+		dropDownContainer.classList.add("dropdownMenuOpen"); //$NON-NLS-0$
 		dropDownContainer.id = this.navDropDownId; 
 		dropDownContainer.style.display = 'none'; //$NON-NLS-0$
 		this._parent.appendChild(dropDownContainer);

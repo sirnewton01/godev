@@ -1,4 +1,4 @@
-
+/* global module require define exports */
 (function(root, factory) {
     if(typeof exports === 'object') {
         module.exports = factory(require, exports, module);
@@ -17,6 +17,7 @@
  * @fileoverview RuleContext utility for rules
  * @author Nicholas C. Zakas
  */
+"use strict";
 
 //------------------------------------------------------------------------------
 // Constants
@@ -26,9 +27,9 @@ var PASSTHROUGHS = [
         "getSource",
         "getTokens",
         "getComments",
-        "getAllComments",
         "getAncestors",
-        "getScope"
+        "getScope",
+        "getJSDocComment"
     ];
 
 //------------------------------------------------------------------------------
