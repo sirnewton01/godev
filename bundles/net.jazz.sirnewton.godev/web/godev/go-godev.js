@@ -10,19 +10,42 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
     
     var provider = new PluginProvider(headers);
     
-    provider.registerServiceProvider("orion.page.link", {}, {
+    provider.registerService("orion.page.link.category", null, {
+		id: "godoc",
+		nameKey: "Go Doc",
+		nls: "orion/nls/messages",
+		imageClass: "core-sprite-search",
+		order: 50
+	});
+	
+	provider.registerServiceProvider("orion.page.link", {}, {
         name: "Go Doc",
         id: "godev.godoc",
-        category: "search",
+        category: "godoc",
         uriTemplate: "{+OrionHome}/godoc/pkg/"
         });
         
-    provider.registerServiceProvider("orion.page.link", {}, {
+    provider.registerService("orion.page.link.category", null, {
+		id: "debug",
+		nameKey: "Debug",
+		nls: "orion/nls/messages",
+		imageClass: "core-sprite-rightarrow",
+		order: 50
+	});
+	
+	provider.registerServiceProvider("orion.page.link", {}, {
         name: "Debug",
         id: "godev.debug",
-        category: "shell",
+        category: "debug",
         uriTemplate: "{+OrionHome}/godev/debug/debug.html"
         });
+        
+//    provider.registerServiceProvider("orion.page.link", {}, {
+//        name: "Debug",
+//        id: "godev.debug",
+//        category: "terminal",
+//        uriTemplate: "{+OrionHome}/godev/debug/debug.html"
+//        });
 
 	// Run a build to check for compile errors
     provider.registerServiceProvider("orion.edit.validator", {
