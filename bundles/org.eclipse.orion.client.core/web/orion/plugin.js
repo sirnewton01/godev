@@ -9,8 +9,8 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint amd:true*/
-/*global window addEventListener removeEventListener self XMLHttpRequest console module exports*/ (function(root, factory) { // UMD
+/*eslint-env browser, amd, node*/
+(function(root, factory) { // UMD
     if (typeof define === "function" && define.amd) { //$NON-NLS-0$
         define(["orion/Deferred"], factory);
     } else if (typeof exports === "object") { //$NON-NLS-0$

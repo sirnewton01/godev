@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2010-2012 IBM Corporation and others.
+ * Copyright (c) 2010, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -10,9 +10,9 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define setTimeout clearTimeout addEventListener removeEventListener document console localStorage location URL Worker XMLSerializer XMLHttpRequest*/
-
-define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Deferred, EventTarget, _) {
+/*eslint-env browser, amd*/
+/*global URL*/
+define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Deferred, EventTarget) {
 
     function _equal(obj1, obj2) {
         var keys1 = Object.keys(obj1);
@@ -365,6 +365,7 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
                         }
                     } else {
                         if ("plugin" === message.method) { //$NON-NLS-0$
+                        	_channel.connected();
                             var manifest = message.params[0];
                             _update({
                                 headers: manifest.headers,
@@ -476,6 +477,8 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
                 lastModified: _lastModified
             });
         }
+        
+        this._default = false; // used to determine if a plugin is part of the configuration
 
         this._persist = _persist;
 
@@ -584,6 +587,20 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
         this.getState = function() {
             return _state;
         };
+        
+         /**
+         * @name orion.pluginregistry.Plugin#getProblemLoading
+         * @description Returns true if there was a problem loading this plug-in, false otherwise. This function is not API and may change in future releases.
+         * @private
+         * @function
+         * @returns {String} Return an true if there was a problem loading this plug-in.
+         */
+        this.getProblemLoading = function() {
+            if (_this._problemLoading){
+            	return true;
+            }
+            return false;
+        };
 
         this.start = function(optOptions) {
             if (_state === "uninstalled") {
@@ -635,9 +652,11 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
                 }
                 return new Deferred().resolve();
             }
+            
             var deferredStateChange = new Deferred();
             _deferredStateChange = deferredStateChange;
             _state = "starting";
+            _this._problemLoading = null;
             _internalRegistry.dispatchEvent(new PluginEvent("starting", _this));
             _deferredLoad = new Deferred();
             _channel = _internalRegistry.connect(_url, _messageHandler, _parent);
@@ -660,7 +679,12 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
                 _state = "resolved";
                 _deferredStateChange = null;
                 _internalRegistry.dispatchEvent(new PluginEvent("stopped", _this));
-                deferredStateChange.reject(new Error("plugin activation error"));
+                _this._problemLoading = true;
+                deferredStateChange.reject(new Error("Failed to load plugin: " + _url));
+                if (_this._default) {
+                	_lastModified = 0;
+                	_persist();
+                }
             });
             return deferredStateChange.promise;
         };
@@ -707,6 +731,8 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
         };
 
         _update = function(input) {
+        	_this.problemLoading = null;
+        	
             if (_state === "uninstalled") {
                 return new Deferred().reject(new Error("Plugin is uninstalled"));
             }
@@ -716,14 +742,21 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
                     _lastModified = new Date().getTime();
                     _persist();
                 }
-                return _internalRegistry.loadManifest(_url).then(_update);
+                return _internalRegistry.loadManifest(_url).then(_update, function() {
+                	_this._problemLoading = true;
+                	if (_this._default) {
+                		_lastModified = 0;
+                		_persist();
+                	}
+                	console.log("Failed to load plugin: " + _url);
+                });
             }
 
             var oldHeaders = _headers;
             var oldServices = _services;
             var oldAutostart = _autostart;
             _headers = input.headers || {};
-            _services = input.services || {};
+            _services = input.services || [];
             _autostart = input.autostart || _autostart;
 
             if (input.lastModified) {
@@ -926,6 +959,9 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
 	        	iframe.frameBorder = 0;
                 (parent || _parent).appendChild(iframe);
                 channel.target = iframe.contentWindow;
+                channel.connected = function() {
+                	clearTimeout(loadTimeout);
+                };
                 channel.close = function() {
                     clearTimeout(loadTimeout);
                     if (iframe) {
@@ -1129,7 +1165,11 @@ define(["orion/Deferred", "orion/EventTarget", "orion/URL-shim"], function(Defer
                         	manifest = {};
                         }
                         manifest.autostart = manifest.autostart || configuration.defaultAutostart || "lazy";
-                        _plugins.push(new Plugin(url, manifest, internalRegistry));
+                        plugin = new Plugin(url, manifest, internalRegistry);
+                        plugin._default = true;
+                        _plugins.push(plugin);
+                    } else {
+                    	plugin._default = true;
                     }
                 }.bind(this));
             }

@@ -9,11 +9,9 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
-/*global window document define setTimeout */
-/*jslint forin:true*/
-
-define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 'orion/i18nUtil', 'orion/commands', 'orion/commandRegistry', 'orion/keyBinding', 'orion/section', 'orion/selection', 'orion/explorers/explorer', 'orion/explorers/navigatorRenderer', 'orion/explorers/navigationUtils'], 
-function(messages, require, lib, i18nUtil, mCommands, mCommandRegistry, mKeyBinding, mSection, mSelection, mExplorer, mNavRenderer, mNavUtils){
+/*eslint-env browser, amd*/
+define(['i18n!orion/navigate/nls/messages', 'require', 'orion/webui/littlelib', 'orion/section', 'orion/explorers/explorer', 'orion/explorers/navigatorRenderer', 'orion/explorers/navigationUtils'], 
+function(messages, require, lib, mSection, mExplorer, mNavRenderer, mNavUtils){
 
 	function NavOutlineRenderer (options, explorer) {
 		this.explorer = explorer;

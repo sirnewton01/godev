@@ -8,9 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define */
-/*jslint regexp:false browser:true forin:true sub:true*/
-
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/navigate/nls/messages',
 	'orion/Deferred',
@@ -20,23 +18,11 @@ define([
 	'orion/objects',
 	'orion/URITemplate',
 	'orion/widgets/browse/commitInfoRenderer',
+	'orion/contentTypes',
 	'orion/webui/littlelib'
-], function(messages, Deferred, mExplorer, mNavUtils, mExtensionCommands, objects, URITemplate, mCommitInfoRenderer, lib) {
+], function(messages, Deferred, mExplorer, mNavUtils, mExtensionCommands, objects, URITemplate, mCommitInfoRenderer, mContentTypes, lib) {
 		
 	var max_more_info_column_length = 60;
-	function isImage(contentType) {
-		switch (contentType && contentType.id) {
-			case "image/jpeg": //$NON-NLS-0$
-			case "image/png": //$NON-NLS-0$
-			case "image/gif": //$NON-NLS-0$
-			case "image/ico": //$NON-NLS-0$
-			case "image/tiff": //$NON-NLS-0$
-			case "image/svg": //$NON-NLS-0$
-				return true;
-		}
-		return false;
-	}
-	
 	/* Internal */
 	function addImageToLink(contentType, link, location, replace) {
 		if (contentType) {
@@ -140,7 +126,7 @@ define([
 				}
 				link.href = href;
 				if(renderer && typeof renderer.updateFileNode === 'function') { //$NON-NLS-0$
-					renderer.updateFileNode(item, link, isImage(contentType));
+					renderer.updateFileNode(item, link, mContentTypes.isImage(contentType));
 				}
 			});
 		}
@@ -167,7 +153,6 @@ define([
 		this.actionScopeId = options.actionScopeId;
 		
 		this._init(options);
-		this.target = "_self"; //$NON-NLS-0$
 	}
 	NavigatorRenderer.prototype = new mExplorer.SelectionRenderer(); 
 
@@ -240,16 +225,6 @@ define([
 			var th = document.createElement("th"); //$NON-NLS-0$
 			th.style.height = "8px"; //$NON-NLS-0$
 		}
-	};
-
-	/**
-	 * Sets the link target to be used for file links.
-	 * @name orion.explorer.NavigatorRenderer#setTarget
-	 * @function
-	 * @param {String} target The target (eg. "new", "_self").
-	 */
-	NavigatorRenderer.prototype.setTarget = function(target){
-		this.target = target;
 	};
 		
 	/**
@@ -357,7 +332,7 @@ define([
 				if (!this.openWithCommands) {
 					this.openWithCommands = mExtensionCommands.getOpenWithCommands(this.commandService);
 				}
-				itemNode = createLink("", item, this.commandService, this.contentTypeService, this.openWithCommands, { target: this.target }, null, null, this);
+				itemNode = createLink("", item, this.commandService, this.contentTypeService, this.openWithCommands, null, null, null, this);
 				span.appendChild(itemNode); //$NON-NLS-0$
 			}
 			if (itemNode) {
@@ -411,7 +386,6 @@ define([
 	//return module exports
 	return {
 		NavigatorRenderer: NavigatorRenderer,
-		isImage : isImage,
 		getClickedItem: getClickedItem,
 		createLink: createLink
 	};

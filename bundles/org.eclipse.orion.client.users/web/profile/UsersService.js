@@ -8,7 +8,8 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define escape */
+/*eslint-env browser, amd*/
+/*global alert*/
 define(["orion/Deferred", "orion/xhr", 'orion/EventTarget', 'orion/form'], function(Deferred, xhr, EventTarget, form) {
 
 	function getJSON(data) {
@@ -96,8 +97,12 @@ define(["orion/Deferred", "orion/xhr", 'orion/EventTarget', 'orion/form'], funct
 						service.dispatchEvent({type: onLoad, data: jsonData});
 				}
 				ret.resolve(jsonData);
-			}, function(error) {
-				ret.reject(error.response || error);
+			}, function(result) {
+				var error = result;
+				try {
+					error = getJSON(result.response || result.error);
+				} catch (e) {}
+				ret.reject(error);
 			});
 			return ret;
 		},
@@ -106,7 +111,7 @@ define(["orion/Deferred", "orion/xhr", 'orion/EventTarget', 'orion/form'], funct
 			var formData = {
 				login : userInfo.login,
 				password : userInfo.password,
-				email: userInfo.email
+				Email: userInfo.Email
 			};
 			return xhr("POST", "../users", { //$NON-NLS-1$ //$NON-NLS-0$
 				headers : {
@@ -186,9 +191,8 @@ define(["orion/Deferred", "orion/xhr", 'orion/EventTarget', 'orion/form'], funct
 			return ret;
 		},
 		resetUserPassword: function(login, password, onLoad){
-			var ret = new Deferred();
 			var service = this;
-			xhr("POST", "../users", { //$NON-NLS-1$ //$NON-NLS-0$
+			return xhr("POST", "../users", { //$NON-NLS-1$ //$NON-NLS-0$
 				headers : {
 					"Content-Type": "application/x-www-form-urlencoded", //$NON-NLS-1$ //$NON-NLS-0$
 					"Orion-Version" : "1" //$NON-NLS-1$ //$NON-NLS-0$
@@ -207,11 +211,14 @@ define(["orion/Deferred", "orion/xhr", 'orion/EventTarget', 'orion/form'], funct
 					else
 						service.dispatchEvent({type: onLoad, data: jsonData});
 				}
-				ret.resolve(jsonData);
-			}, function(error) {
-				ret.reject(error.response || error);
+				return new Deferred().resolve(jsonData);
+			}, function(result) {
+				var error = result;
+				try {
+					error = getJSON(result.response || result.error);
+				} catch (e) {}
+				return new Deferred().reject(error);
 			});
-			return ret;
 		}
 	};
 	return UsersService;

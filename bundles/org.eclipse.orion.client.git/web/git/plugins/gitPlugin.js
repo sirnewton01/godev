@@ -1,6 +1,6 @@
 /******************************************************************************* 
  * @license
- * Copyright (c) 2013 IBM Corporation and others.
+ * Copyright (c) 2013, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -8,17 +8,24 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define document URL window confirm*/
-
-define(["orion/plugin", "orion/xhr", "orion/serviceregistry", "orion/git/gitClient", "orion/ssh/sshTools",
- "orion/i18nUtil", "orion/Deferred", "orion/git/util", "orion/URL-shim", "domReady!"], 
-function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil, Deferred, mGitUtil) {
-	var temp = document.createElement('a');
-	temp.href = "../mixloginstatic/LoginWindow.html";
+/*eslint-env amd, browser*/
+/*global URL confirm*/
+define([
+	"orion/plugin",
+	"orion/xhr",
+	"orion/serviceregistry",
+	"orion/git/gitClient",
+	"orion/ssh/sshTools",
+	"orion/i18nUtil",
+	"orion/Deferred",
+	"orion/git/GitFileImpl",
+	"orion/git/util",
+	"orion/URL-shim", // no exports
+], function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil, Deferred, GitFileImpl, mGitUtil) {
 	var serviceRegistry = new mServiceregistry.ServiceRegistry();
 	var gitClient = new mGitClient.GitService(serviceRegistry);
 	var sshService = new mSshTools.SshService(serviceRegistry);
-	var login = temp.href;
+	var login = new URL("../../mixloginstatic/LoginWindow.html", window.location.href).href;
 	var headers = {
 		name: "Orion Git Support",
 		version: "1.0",
@@ -33,7 +40,7 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 		id: "git",
 		nameKey: "Git",
 		nls: "git/nls/gitmessages",
-		imageClass: "core-sprite-repository",
+		imageClass: "core-sprite-git-logo",
 		order: 20
 	});
 
@@ -42,23 +49,8 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 		id: "orion.git.repositories",
 		nls: "git/nls/gitmessages",
 		category: "git",
-		order: 110, // Bottom
-		"default": true,
-		force: true,
+		order: 1000, // low priority
 		uriTemplate: "{+OrionHome}/git/git-repository.html#"
-	});
-	
-	provider.registerService("orion.navigate.command", {}, {
-		nameKey: "Git Status",
-		id: "eclipse.git.status",
-		tooltipKey: "Go to Git Status",
-		nls: "git/nls/gitmessages",
-		validationProperties: [
-			{source: "Git:StatusLocation", variableName: "GitStatusLocation"},
-			{source: "Directory", match: true}
-		],
-		uriTemplate: "{+OrionHome}/git/git-status.html#{,GitStatusLocation}",
-		forceSingleItem: true
 	});
 	
 	provider.registerService("orion.navigate.command", {}, {
@@ -69,23 +61,11 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 		validationProperties: [
 			{source: "Git:CommitLocation", variableName: "GitLogLocation"}
 		],
-		uriTemplate: "{+OrionHome}/git/git-log.html#{,GitLogLocation}?page=1",
+		uriTemplate: "{+OrionHome}/git/git-repository.html#{,GitLogLocation}?page=1",
 		forceSingleItem: true
 	});
-
-	provider.registerService("orion.navigate.command", {}, {
-		nameKey: "Git Remote",
-		id: "eclipse.git.remote",
-		tooltipKey: "Go to Git Remote",
-		nls: "git/nls/gitmessages",
-		validationProperties: [{
-			source: "Git:DefaultRemoteBranchLocation", 
-			variableName: "GitRemoteLocation"
-		}],
-		uriTemplate: "{+OrionHome}/git/git-log.html#{,GitRemoteLocation}?page=1",
-		forceSingleItem: true
-	});
-
+	
+	
 	// orion.navigate.command for Git Repository -- applies to File objects
 	provider.registerService("orion.navigate.command", null, {
 		id: "eclipse.git.repository",
@@ -99,7 +79,7 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 		}],
 		uriTemplate: "{+OrionHome}/git/git-repository.html#{,GitRepoLocation}"
 	});
-	
+
 	provider.registerService("orion.core.content", null, {
 		id: "orion.content.gitClone",
 		nls: "git/nls/gitmessages",
@@ -109,23 +89,9 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 	});
 
 	provider.registerService("orion.page.link.related", null, {
-		id: "eclipse.git.status",
+		id: "eclipse.git.repository",
 		category: "git",
-		order: 10 // Git Status should be first in the Git category
-	});
-	
-	provider.registerService("orion.page.link.related", null, {
-		nameKey: "Git Status",
-		id: "eclipse.git.status2",
-		tooltipKey: "Go to Git Status",
-		nls: "git/nls/gitmessages",
-		category: "git",
-		order: 10,
-		validationProperties: [{
-			source: "StatusLocation|Clone:StatusLocation", 
-			variableName: "GitStatusLocation"
-		}],
-		uriTemplate: "{+OrionHome}/git/git-status.html#{,GitStatusLocation}"
+		order: 10, // Git Repository should be first in the Git category
 	});
 	
 	provider.registerService("orion.page.link.related", null, {
@@ -147,7 +113,7 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 			{source: "Clone:ActiveBranch", variableName: "GitBranchLocation"},
 			{source: "toRef:Type", match: "RemoteTrackingBranch"}
 		],
-		uriTemplate: "{+OrionHome}/git/git-log.html#{,GitBranchLocation}?page=1",
+		uriTemplate: "{+OrionHome}/git/git-repository.html#{,GitBranchLocation}?page=1",
 		forceSingleItem: true
 	});
 	
@@ -160,7 +126,7 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 		validationProperties: [
 			{source: "toRef:RemoteLocation:0:Children:0:CommitLocation", variableName: "GitRemoteLocation"}
 		],
-		uriTemplate: "{+OrionHome}/git/git-log.html#{,GitRemoteLocation}?page=1",
+		uriTemplate: "{+OrionHome}/git/git-repository.html#{,GitRemoteLocation}?page=1",
 		forceSingleItem: true
 	});
 
@@ -168,6 +134,7 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 	provider.registerService("orion.page.link.related", null, {
 		id: "eclipse.git.repository2",
 		category: "git",
+		order: 10,
 		nameKey: "Git Repository",
 		tooltipKey: "Go to the git repository",
 		nls: "git/nls/gitmessages",
@@ -177,7 +144,21 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 		],
 		uriTemplate: "{+OrionHome}/git/git-repository.html#{,GitCloneLocation}"
 	});
-
+	
+	provider.registerService("orion.page.link.related", null, {
+		id: "eclipse.git.repository3",
+		category: "git",
+		order: 10,
+		nameKey: "Git Repository",
+		tooltipKey: "Go to the git repository",
+		nls: "git/nls/gitmessages",
+		validationProperties: [
+			{source: "Location", variableName: "GitCloneLocation"},
+			{source: "Type", match: "Clone"}
+		],
+		uriTemplate: "{+OrionHome}/git/git-repository.html#{,GitCloneLocation}"
+	});
+	
 	// Applies to File objects
 	provider.registerService("orion.page.link.related", null, {
 		id: "eclipse.git.repository", // ref existing orion.navigate.command
@@ -251,13 +232,42 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 		],
 		uriTemplate: "http://git.eclipse.org/c{+EclipseGitLocation}/commit/?id={+commitName}"
 	});
+	
+	var tryParentRelative = true;
+	function makeParentRelative(location) {
+		if (tryParentRelative) {
+			try {
+				if (window.location.host === parent.location.host && window.location.protocol === parent.location.protocol) {
+					return location.substring(parent.location.href.indexOf(parent.location.host) + parent.location.host.length);
+				} else {
+					tryParentRelative = false;
+				}
+			} catch (e) {
+				tryParentRelative = false;
+			}
+		}
+		return location;
+	}
+	
+	var gitBase = makeParentRelative(new URL("../../gitapi/", window.location.href).href);
+	var service = new GitFileImpl(gitBase);
 
-	temp.href = "../../gitapi/diff/";
-	var base = temp.href;
+	provider.registerService("orion.core.file", service, {
+		Name: 'Git File System',
+		top: gitBase,
+		pattern: gitBase
+	});
+
+	var base = new URL("../../gitapi/diff/", window.location.href).href;
 	provider.registerService("orion.core.diff", {
-		getDiffContent: function(diffURI){	
+		getDiffContent: function(diffURI, options){	
 			var url = new URL(diffURI, window.location);
 			url.query.set("parts", "diff");
+			if (options && typeof options === "object") {
+				Object.keys(options).forEach(function(param) {
+					url.query.set(param, options[param]);
+				});
+			}
 			return xhr("GET", url.href, {
 				headers: {
 					"Orion-Version": "1"
@@ -370,8 +380,8 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 						} 
 						if(error.JsonData.Host){
 							error.Retry = {
-								addParameters : [{id: "sshuser", type: "text", name: "User Name:"}, {id: "sshpassword", type: "password", name: "Password:"}],
-								optionalParameters: [{id: "sshprivateKey", type: "textarea", name: "Ssh Private Key:"}, {id: "sshpassphrase", type: "password", name: "Ssh Passphrase:"}]
+								addParameters : [{id: "sshuser", type: "text", nameKey: "User Name:"}, {id: "sshpassword", type: "password", nameKey: "Password:"}],
+								optionalParameters: [{id: "sshprivateKey", type: "textarea", nameKey: "Ssh Private Key:"}, {id: "sshpassphrase", type: "password", nameKey: "Ssh Passphrase:"}]
 							};
 							deferred.reject(error);
 							return;
@@ -428,9 +438,9 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 								Value: clone.GitUrl
 							},
 							{
-								Name: "Git Status",
-								Value: "Git Status",
-								Href: "{+OrionHome}/git/git-status.html#" + item.Git.StatusLocation
+								Name: "Git Repository",
+								Value: "Git Repository",
+								Href: "{+OrionHome}/git/git-repository.html#" + item.Git.CloneLocation
 							}
 						]
 					}
@@ -442,12 +452,13 @@ function(PluginProvider, xhr, mServiceregistry, mGitClient, mSshTools, i18nUtil,
 	}, {
 		id: "orion.git.projecthandler",
 		type: "git",
-		addParameters: [{id: "url", type: "url", name: "Url:"}],
-		optionalParameters: [{id: "sshuser", type: "text", name: "User Name:"}, {id: "sshpassword", type: "password", name: "Password:"},{id: "sshprivateKey", type: "textarea", name: "Ssh Private Key:"}, {id: "sshpassphrase", type: "password", name: "Ssh Passphrase:"}],
-		addDependencyName: "Git Repository",
-		addDependencyTooltip: "Associate a git repository with this project.",
-		addProjectName: "Git Repository",
-		addProjectTooltip: "Create a project from a git repository.",
+		addParameters: [{id: "url", type: "url", nameKey: "Url:"}],
+		optionalParameters: [{id: "sshuser", type: "text", nameKey: "User Name:"}, {id: "sshpassword", type: "password", nameKey: "Password:"},{id: "sshprivateKey", type: "textarea", nameKey: "Ssh Private Key:"}, {id: "sshpassphrase", type: "password", nameKey: "Ssh Passphrase:"}],
+		nls: "git/nls/gitmessages",
+		addDependencyNameKey: "addDependencyName",
+		addDependencyTooltipKey: "addDependencyTooltip",
+		addProjectNameKey: "addProjectName",
+		addProjectTooltipKey: "addProjectTooltip",
 		actionComment: "Cloning ${url}",
 		validationProperties: [
 			{source: "Git"} // alternate {soruce: "Children:[Name]", match: ".git"}

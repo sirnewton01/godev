@@ -9,16 +9,11 @@
  * Contributors:
  *     IBM Corporation - Initial API and implementation
  ******************************************************************************/
- /*global define */
+ /*eslint-env amd*/
 define('javascript/contentAssist/indexFiles/mongodbIndex', [], 
 function () {
 	return {
 		"!name": "mongodb",
-		"this": "<top>",
-		"global": "<top>",
-		"mongodb" : "mongodb",
-		"MongoClient" : "mongodb.MongoClient",
-		"Db" : "mongodb.Db",
   		"!define": {
   			"mongodb": {
 	  			"MongoClient" : {

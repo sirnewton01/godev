@@ -8,8 +8,7 @@
  *
  * Contributors: IBM Corporation - _initial API and implementation
  *******************************************************************************/
-/*global define window document Image */
- 
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/nls/messages',
 	'orion/webui/littlelib',
@@ -281,8 +280,14 @@ define([
 				node.appendChild(span);
 			} else {
 				// msg is text. parse Markdown-style links
-				var chunks = URLUtil.detectValidURL(msg), msgNode;
-				if (chunks) {
+				var chunks, msgNode;
+				try {
+					chunks = URLUtil.detectValidURL(msg);
+				} catch (e) {
+					// Contained a corrupt URL
+					chunks = [];
+				}
+				if (chunks.length) {
 					msgNode = document.createDocumentFragment();
 					URLUtil.processURLSegments(msgNode, chunks);
 					// All status links open in new window

@@ -9,8 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define*/
-
+/*eslint-env browser, amd*/
 define("orion/editor/stylers/text_x-ruby/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-1$ //$NON-NLS-0$
 	var keywords = [
 		"alias", "alias_method", "and", "attr_reader", "attr_writer", "attr_accessor", "attr", //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
@@ -18,9 +17,9 @@ define("orion/editor/stylers/text_x-ruby/syntax", ["orion/editor/stylers/lib/syn
 		"case", "class", "catch", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		"def", "defined?", "do", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		"else", "elsif", "END", "end", "ensure", "extend", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"false", "for", "if", "fail", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"false", "for", "fail", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		"gem", //$NON-NLS-0$
-		"in", "include", "initialize", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"if", "in", "include", "initialize", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		"load",  "loop", "lambda", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		"module", "module_function", //$NON-NLS-1$ //$NON-NLS-0$
 		"new", "next", "nil", "not", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
@@ -74,6 +73,8 @@ define("orion/editor/stylers/text_x-ruby/syntax", ["orion/editor/stylers/lib/syn
 			{include: "orion.lib#parenthesis_close"}, //$NON-NLS-0$
 			{include: "orion.lib#number_decimal"}, //$NON-NLS-0$
 			{include: "orion.lib#number_hex"}, //$NON-NLS-0$
+			{include: "#symbol"}, //$NON-NLS-0$
+			{include: "#variable"}, //$NON-NLS-0$
 			{
 				match: "\\b0[bB][01]+\\b", //$NON-NLS-0$
 				name: "constant.numeric.binary.ruby" //$NON-NLS-0$
@@ -81,7 +82,17 @@ define("orion/editor/stylers/text_x-ruby/syntax", ["orion/editor/stylers/lib/syn
 				match: "\\b(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				name: "keyword.control.ruby" //$NON-NLS-0$
 			}
-		]
+		],
+		repository: {
+			symbol: {
+				match: ":\\w+", //$NON-NLS-0$
+				name: "entity.name.symbol.ruby" //$NON-NLS-0$
+			},
+			variable: {
+				match: "@\\w+", //$NON-NLS-0$
+				name: "entity.name.variable.ruby" //$NON-NLS-0$
+			}
+		}
 	});
 	return {
 		id: grammars[grammars.length - 1].id,

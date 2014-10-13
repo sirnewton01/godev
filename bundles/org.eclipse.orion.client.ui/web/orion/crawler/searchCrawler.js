@@ -9,12 +9,11 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define console window*/
-/*jslint regexp:false browser:true forin:true*/
-
-define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/searchUtils', 'orion/contentTypes', 'orion/Deferred'], 
-		function(messages, require, i18nUtil, mSearchUtils, mContentTypes, Deferred) {
+/*eslint-env browser, amd*/
+define(['i18n!orion/crawler/nls/messages', 'orion/i18nUtil', 'orion/searchUtils', 'orion/contentTypes', 'orion/Deferred'], 
+		function(messages, i18nUtil, mSearchUtils, mContentTypes, Deferred) {
 	
+	var _folderFilter = [".git"];
 	/**
 	 * SearchCrawler is an alternative when a file service does not provide the search API.
 	 * It assumes that the file client at least provides the fetchChildren and read APIs.
@@ -53,11 +52,11 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 	 * @param {Function} onComplete The callback function on search complete. The array of hit file locations are passed to the callback.
 	 */
 	SearchCrawler.prototype.search = function(onComplete){
-		var contentTypeService = this.registry.getService("orion.core.contentTypeRegistry"); //$NON-NLS-0$
+		this.contentTypeService = this.registry.getService("orion.core.contentTypeRegistry"); //$NON-NLS-0$
 		this._onSearchComplete = onComplete;
 		this._cancelled = false;
 		this._deferredArray = [];
-		contentTypeService.getContentTypes().then(function(ct) {
+		this.contentTypeService.getContentTypes().then(function(ct) {
 			this.contentTypesCache = ct;
 			var crawler = this;
 			this._visitRecursively(this._childrenLocation).then(function(){
@@ -123,12 +122,12 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 	 */
 	SearchCrawler.prototype.buildSkeleton = function(onBegin, onComplete){
 		this._buildingSkeleton = true;
-		var contentTypeService = this.registry.getService("orion.core.contentTypeRegistry"); //$NON-NLS-0$
+		this.contentTypeService = this.registry.getService("orion.core.contentTypeRegistry"); //$NON-NLS-0$
 		this._cancelled = false;
 		this._deferredArray = [];
 		var that = this;
 		onBegin();
-		contentTypeService.getContentTypes().then(function(ct) {
+		this.contentTypeService.getContentTypes().then(function(ct) {
 			that.contentTypesCache = ct;
 			that._visitRecursively(that._childrenLocation).then(function(){ //$NON-NLS-0$
 					that._buildingSkeleton = false;
@@ -138,6 +137,10 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 					}
 			});
 		});
+	};
+	
+	SearchCrawler.prototype._contains = function(array, item){
+		return (array || []).indexOf(item) !== -1;
 	};
 	
 	SearchCrawler.prototype._sort = function(fileArray){
@@ -163,7 +166,7 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 	SearchCrawler.prototype._HandleStatus = function(error){
 		if(this._statusService && error.name === "Cancel") { //$NON-NLS-0$
 			console.log("Crawling search cancelled. Deferred array length : " + this._deferredArray.length); //$NON-NLS-0$
-			this._statusService.setProgressResult({Message: messages["Search cancelled by user"], Severity: "Warning"}); //$NON-NLS-0$
+			this._statusService.setProgressResult({Message: messages["searchCancelled"], Severity: "Warning"}); //$NON-NLS-0$
 		}
 	};
 		
@@ -200,14 +203,15 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 		}
 		return (_this._progressService ? this._progressService.progress(_this.fileClient.fetchChildren(directoryLocation), "Crawling search for children of " + directoryLocation) : _this.fileClient.fetchChildren(directoryLocation)).then(function(children) { //$NON-NLS-0$
 			for (var i = 0; i < children.length ; i++){
-				if(children[i].Directory!==undefined && children[i].Directory===false){
+				if(children[i].Directory !== undefined && children[i].Directory === false){
 					if(_this._searchOnName){
 						results.push(_this._buildSingleSkeleton(children[i]));
 					} else if(_this._buildSkeletonOnly){
 						results.push(_this._buildSingleSkeleton(children[i]));
 					}else if(!_this._cancelled) {
 						var contentType = mContentTypes.getFilenameContentType(children[i].Name, _this.contentTypesCache);
-						if(contentType && (contentType['extends'] === "text/plain" || contentType.id === "text/plain") && _this._fileNameMatches(children[i].Name)){ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+						var isBinary = (mContentTypes.isImage(contentType) || mContentTypes.isBinary(contentType));
+						if(!isBinary && _this._fileNameMatches(children[i].Name)){
 							var fileDeferred = _this._sniffSearch(children[i]);
 							results.push(fileDeferred);
 							_this._deferredArray.push(fileDeferred);
@@ -216,6 +220,8 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 				} else if (children[i].Location) {
 					if(_this._cancelled) {
 						break;
+					} else if(_this._contains(_folderFilter, children[i].Name)) {
+						continue;
 					} else {
 						var folderDeferred = _this._visitRecursively(children[i].ChildrenLocation);
 						results.push(folderDeferred);
@@ -268,7 +274,7 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 		if(this.searchHelper.params.keyword === ""){
 			this._reportSingleHit(fileObj);
 			if(this._statusService) {
-				this._statusService.setProgressResult({Message: i18nUtil.formatMessage(messages["${0} files found out of ${1}"], this._hitCounter, this._totalCounter)});
+				this._statusService.setProgressResult({Message: i18nUtil.formatMessage(messages["filesFound"], this._hitCounter, this._totalCounter)});
 			}
 		} else {
 			return (self._progressService ? self._progressService.progress(self.fileClient.read(fileObj.Location), "Reading file " + fileObj.Location) : self.fileClient.read(fileObj.Location)).then(function(jsonData) { //$NON-NLS-0$
@@ -276,7 +282,7 @@ define(['i18n!orion/crawler/nls/messages', 'require', 'orion/i18nUtil', 'orion/s
 						self._reportSingleHit(fileObj);
 					}
 					if(self._statusService) {
-						self._statusService.setProgressResult({Message: i18nUtil.formatMessage(messages["${0} files found out of ${1}"], self._hitCounter, self._totalCounter)}, messages["Cancel"]);
+						self._statusService.setProgressResult({Message: i18nUtil.formatMessage(messages["filesFound"], self._hitCounter, self._totalCounter)}, messages["Cancel"]);
 					}
 				},
 				function(error) {

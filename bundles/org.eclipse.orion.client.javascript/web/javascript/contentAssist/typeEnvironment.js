@@ -12,7 +12,7 @@
  *   IBM Corporation - Various improvements
  ******************************************************************************/
 
-/*global define*/
+/*eslint-env amd*/
 define([
 'javascript/contentAssist/typeUtils',
 'javascript/contentAssist/typesFromIndexFile',
@@ -136,6 +136,9 @@ define([
 		// routine to lookup a member name of a type that follows the prototype chain
 		// to search for the member
 		function innerLookup(env, name, type, includeDefinition, visited) {
+		    if(!type) {
+		        return null;
+		    }
 			var res = type[name];
 
 			var proto = type.$$proto;
@@ -320,6 +323,9 @@ define([
 						return target;
 					} else if (target && target.extras.inferredTypeObj) {
 						var inferredTypeObj = target.extras.inferredTypeObj;
+						if(typeof inferredTypeObj.type === 'undefined' && inferredTypeObj.typeObj) {
+						    inferredTypeObj = inferredTypeObj.typeObj;
+						}
 						// TODO what happens if not a NameExpression or FunctionType???
 						if (inferredTypeObj.type === 'NameExpression') {
 							return inferredTypeObj.name;
@@ -384,7 +390,7 @@ define([
 					}
 					var type = this.lookupQualifiedType(this.scope(target), true);
 					// do not allow augmenting built in types
-					if (!type.$$isBuiltin) {
+					if (type && !type.$$isBuiltin) {
 						// if new type name is not more general than old type, do not replace
 						if (typeContainsProperty(type, name) && typeUtils.leftTypeIsMoreGeneral(typeObj, type[name].typeObj, this)) {
 							// do nuthin
@@ -611,7 +617,9 @@ define([
         			var mergedType = {};
         			var self = this;
         			function mergeInType(target, newType) {
-                                    if (target === newType) return;
+                        if (target === newType) {
+                            return;
+                        }
         			    for (var p in newType) {
         			        if (newType.hasOwnProperty(p) && p.indexOf("$$") !== 0) {
         			            if (!target.hasOwnProperty(p)) {

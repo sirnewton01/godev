@@ -9,16 +9,16 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define document console window*/
-/*jslint forin:true regexp:false sub:true*/
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/search/nls/messages', 'require', 'orion/Deferred', 'orion/webui/littlelib', 'orion/contentTypes', 'orion/i18nUtil', 'orion/explorers/explorer', 
-	'orion/explorers/explorerNavHandler', 'orion/fileClient', 'orion/commands', 'orion/searchUtils', 'orion/globalSearch/search-features', 
-	'orion/compare/compareUIFactory', 'orion/compare/compareView', 'orion/highlight', 'orion/explorers/navigationUtils', 'orion/webui/tooltip',
-	'orion/explorers/navigatorRenderer', 'orion/extensionCommands'],
-
-function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, mNavHandler, mFileClient, mCommands, 
-	mSearchUtils, mSearchFeatures, mCompareUIFactory, mCompareView, mHighlight, mNavUtils, mTooltip, navigatorRenderer, extensionCommands) {
+	'orion/fileClient', 'orion/commands', 'orion/searchUtils', 'orion/globalSearch/search-features', 'orion/compare/compareUIFactory', 'orion/compare/compareView', 
+	'orion/highlight', 'orion/explorers/navigationUtils', 'orion/webui/tooltip', 'orion/explorers/navigatorRenderer', 'orion/extensionCommands',
+	'orion/searchModel', 'orion/crawler/searchCrawler'
+],
+function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, mFileClient, mCommands, 
+	mSearchUtils, mSearchFeatures, mCompareUIFactory, mCompareView, mHighlight, mNavUtils, mTooltip, 
+	navigatorRenderer, extensionCommands, mSearchModel, mSearchCrawler
+) {
     /* Internal wrapper functions*/
     function _empty(nodeToEmpty) {
         var node = lib.node(nodeToEmpty);
@@ -587,7 +587,7 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
                             statusMessage = item.message;
                             break;
                         case "pass": //$NON-NLS-0$
-                            statusMessage = item.model.totalMatches ? i18nUtil.formatMessage(messages["${0} out of ${1}  matches replaced."], item.matchesReplaced, item.model.totalMatches) : item.message;
+                            statusMessage = item.model.totalMatches ? i18nUtil.formatMessage(messages["matchesReplacedMsg"], item.matchesReplaced, item.model.totalMatches) : item.message;
                             break;
                     }
                     var td = _createElement('td', "search_report", null, null); //$NON-NLS-1$ //$NON-NLS-0$
@@ -885,58 +885,6 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
         this._crawling = crawling;
     };
 
-    SearchResultExplorer.prototype.preview = function() {
-        var that = this;
-        this._commandService.openParameterCollector("pageActions", function(parentDiv) { //$NON-NLS-0$
-            // create replace text
-            var replaceStringDiv = _createElement('input', null, "globalSearchReplaceWith", parentDiv); //$NON-NLS-1$  //$NON-NLS-0$
-            replaceStringDiv.type = "text"; //$NON-NLS-0$
-            replaceStringDiv.name = "ReplaceWith:"; //$NON-NLS-0$
-            replaceStringDiv.placeholder = "Replace With"; //$NON-NLS-0$
-            replaceStringDiv.onkeydown = function(e) {
-                if (e.keyCode === 13 /*Enter*/ ) {
-                    var replaceInputDiv = lib.node("globalSearchReplaceWith"); //$NON-NLS-0$
-                    that._commandService.closeParameterCollector();
-                    return that._doPreview(replaceInputDiv.value);
-                }
-                if (e.keyCode === 27 /*ESC*/ ) {
-                    that._commandService.closeParameterCollector();
-                    return false;
-                }
-            };
-
-            // create the command span for Replace
-            _createElement('span', 'parameters', "globalSearchReplaceCommands", parentDiv); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-            return replaceStringDiv;
-        });
-
-        var replaceDiv = document.getElementById("globalSearchReplaceWith"); //$NON-NLS-0$
-        replaceDiv.value = this.model.defaultReplaceStr;
-        window.setTimeout(function() {
-            replaceDiv.select();
-            replaceDiv.focus();
-        }, 10);
-
-
-        var innerReplaceAllCommand = new mCommands.Command({
-            name: "Preview Changes", //$NON-NLS-0$
-            image: require.toUrl("images/replaceAll.gif"), //$NON-NLS-0$
-            id: "orion.globalSearch.innerReplaceAll", //$NON-NLS-0$
-            groupId: "orion.searchGroup", //$NON-NLS-0$
-            callback: function() {
-                var replaceInputDiv = lib.node("globalSearchReplaceWith"); //$NON-NLS-0$
-                that._commandService.closeParameterCollector();
-                return that._doPreview(replaceInputDiv.value);
-            }
-        });
-
-        this._commandService.addCommand(innerReplaceAllCommand);
-
-        // Register command contributions
-        this._commandService.registerCommandContribution("globalSearchReplaceCommands", "orion.globalSearch.innerReplaceAll", 1); //$NON-NLS-1$ //$NON-NLS-0$
-        this._commandService.renderCommands("globalSearchReplaceCommands", "globalSearchReplaceCommands", this, this, "button"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-    };
-
     SearchResultExplorer.prototype._fileExpanded = function(fileIndex, detailIndex) {
         var filItem = _validFiles(this.model)[fileIndex];
         if (detailIndex === null || detailIndex === undefined) {
@@ -960,40 +908,6 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
             childrenNumber: 0,
             childDiv: null
         };
-    };
-
-    SearchResultExplorer.prototype._doPreview = function(replacingStr, all) {
-        if (!this.model._provideSearchHelper) {
-            return;
-        }
-        if (this.model._storeGlobalStatus) {
-            this.model._storeGlobalStatus(replacingStr);
-        }
-        var qParams = mSearchUtils.copySearchParams(this.model._provideSearchHelper().params, true);
-        qParams.replace = replacingStr;
-        if (all) {
-            qParams.start = 0;
-            qParams.rows = this.model.getPagingParams().totalNumber;
-        }
-        var href = mSearchUtils.generateSearchHref(qParams);
-        window.location.href = href;
-    };
-
-    SearchResultExplorer.prototype.searchAgain = function() {
-        if (!this.model._provideSearchHelper) {
-            return;
-        }
-        var qParams = mSearchUtils.copySearchParams(this.model._provideSearchHelper().params, true);
-        qParams.replace = null;
-        if (qParams.rows > this.defaulRows) {
-            qParams.rows = this.defaulRows;
-        }
-        var href = mSearchUtils.generateSearchHref(qParams);
-        if (href === window.location.href) {
-            window.location.reload();
-        } else {
-            window.location.href = href;
-        }
     };
 
     SearchResultExplorer.prototype.replaceAll = function() {
@@ -1433,7 +1347,7 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
 	        }
 			var message = messages["No matches"];
 			if(this.model._provideSearchHelper){
-				message = i18nUtil.formatMessage(messages["No matches found for ${0}"], this.model._provideSearchHelper().displayedSearchTerm);
+				message = i18nUtil.formatMessage(messages["NoMatchFound"], this.model._provideSearchHelper().displayedSearchTerm);
 			}
 		    this.parentNode.textContent = "";
 		    var textBold = _createElement('b', null, null, this.parentNode); //$NON-NLS-1$ //$NON-NLS-0$
@@ -1602,8 +1516,108 @@ function(messages, require, Deferred, lib, mContentTypes, i18nUtil, mExplorer, m
         this.getNavHandler().iterate(next, forceExpand);
     };
 
-    SearchResultExplorer.prototype.constructor = SearchResultExplorer;
+	SearchResultExplorer.prototype._renderSearchResult = function(crawling, resultsNode, searchParams, jsonData, incremental) {
+		var foundValidHit = false;
+		var resultLocation = [];
+		lib.empty(lib.node(resultsNode));
+		if (jsonData.response.numFound > 0) {
+			for (var i=0; i < jsonData.response.docs.length; i++) {
+				var hit = jsonData.response.docs[i];
+				if (!hit.Directory) {
+					if (!foundValidHit) {
+						foundValidHit = true;
+					}
+					var loc = hit.Location;
+					resultLocation.push({linkLocation: require.toUrl("edit/edit.html") +"#" + loc, location: loc, path: hit.Path ? hit.Path : loc, name: hit.Name, lastModified: hit.LastModified}); //$NON-NLS-1$ //$NON-NLS-0$
+					
+				}
+			}
+		}
+		this.setCrawling(crawling);
+		var that = this;
+        var searchModel = new mSearchModel.SearchResultModel(this.registry, this.fileClient, resultLocation, jsonData.response.numFound, searchParams, {
+            onMatchNumberChanged: function(fileItem) {
+                that.renderer.replaceFileElement(fileItem);
+            }
+        });
+		this.setResult(resultsNode, searchModel);
+		if(incremental){
+			this.incrementalRender();
+		} else {
+			this.startUp();
+		}
+	};
 
+	/**
+	 * Runs a search and displays the results under the given DOM node.
+	 *
+	 * @param {DOMNode} resultsNode Node under which results will be added.
+	 * @param {Object} searchParams The search parameters to use for the search
+	 * @param {Searcher} searcher
+	 */
+	SearchResultExplorer.prototype._search = function(resultsNode, searchParams, searcher) {
+		//For crawling search, temporary
+		//TODO: we need a better way to render the progress and allow user to be able to cancel hte crawling search
+		var crawling = searchParams.regEx || searchParams.caseSensitive;
+		var crawler;
+		lib.empty(lib.node("pageNavigationActions")); //$NON-NLS-0$
+		lib.empty(lib.node("pageActions")); //$NON-NLS-0$
+		
+		lib.empty(resultsNode);
+		
+		//If there is no search keyword defined, then we treat the search just as the scope change.
+		if(typeof searchParams.keyword === "undefined"){ //$NON-NLS-0$
+			return;
+		}
+		
+		if (crawling) {
+			resultsNode.appendChild(document.createTextNode(""));
+			crawler = new mSearchCrawler.SearchCrawler(this.registry, this.fileClient, searchParams, {childrenLocation: searcher.getChildrenLocation()});
+			crawler.search( function(jsonData, incremental) {
+				this._renderSearchResult(crawling, resultsNode, searchParams, jsonData, incremental);
+			}.bind(this));
+		} else {
+			this.registry.getService("orion.page.message").setProgressMessage(messages["Searching..."]); //$NON-NLS-0$
+			try{
+				this.registry.getService("orion.page.progress").progress(this.fileClient.search(searchParams), "Searching " + searchParams.keyword).then( //$NON-NLS-1$ //$NON-NLS-0$
+					function(jsonData) {
+						this.registry.getService("orion.page.message").setProgressMessage(""); //$NON-NLS-0$
+						this._renderSearchResult(false, resultsNode, searchParams, jsonData);
+					}.bind(this),
+					function(error) {
+						var message = i18nUtil.formatMessage(messages["${0}. Try your search again."], error && error.error ? error.error : "Error"); //$NON-NLS-0$
+						this.registry.getService("orion.page.message").setProgressResult({Message: message, Severity: "Error"}); //$NON-NLS-0$
+					}.bind(this)
+				);
+			} catch(error) {
+				lib.empty(resultsNode);
+				resultsNode.appendChild(document.createTextNode(""));
+				if(typeof(error) === "string" && error.indexOf("search") > -1){ //$NON-NLS-1$ //$NON-NLS-0$
+					crawler = new mSearchCrawler.SearchCrawler(this.registry, this.fileClient, searchParams, {childrenLocation: searcher.getChildrenLocation()});
+					crawler.search( function(jsonData, incremental) {
+						this._renderSearchResult(true, resultsNode, searchParams, jsonData, incremental);
+					}.bind(this));
+				} else {
+					this.registry.getService("orion.page.message").setErrorMessage(error);	 //$NON-NLS-0$
+				}
+			}
+		}
+	};
+
+	/**
+	 * Performs the given query and generates the user interface 
+	 * representation of the search results.
+	 * @param {String} query The search query
+	 * @param {String | DomNode} parentNode The parent node to display the results in
+	 * @param {Searcher} searcher
+	 */
+	SearchResultExplorer.prototype.runSearch = function(searchParams, parentNode, searcher) {
+		var parent = lib.node(parentNode);
+		this._search(parent, searchParams, searcher);
+	};
+
+    SearchResultExplorer.prototype.constructor = SearchResultExplorer;
+    
     //return module exports
     return {
         SearchResultExplorer: SearchResultExplorer

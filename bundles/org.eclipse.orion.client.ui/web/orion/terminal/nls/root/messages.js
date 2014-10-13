@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 //NLS_CHARSET=UTF-8
-
+/*eslint-env browser, amd*/
 define({
 	"Terminal": "Terminal",
 	"Open Terminal page": "Open the Terminal page.",

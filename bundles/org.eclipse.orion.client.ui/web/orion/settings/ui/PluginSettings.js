@@ -8,10 +8,11 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define document orion*/
-define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/section', 'orion/i18nUtil', 'orion/Deferred', 'orion/objects',
-		'orion/widgets/input/LabeledCheckbox', 'orion/widgets/input/LabeledTextfield', 'orion/widgets/input/LabeledSelect'],
-		function(messages, mExplorer, mSection, i18nUtil, Deferred, objects, LabeledCheckbox, LabeledTextfield, LabeledSelect) {
+/*eslint-env browser, amd*/
+define(['orion/explorers/explorer', 'orion/section', 'orion/Deferred', 'orion/objects',
+		'orion/widgets/input/LabeledCheckbox', 'orion/widgets/input/LabeledTextfield', 
+		'orion/widgets/input/LabeledSelect', 'i18n!orion/settings/nls/messages', 'orion/i18nUtil'],
+		function(mExplorer, mSection, Deferred, objects, LabeledCheckbox, LabeledTextfield, LabeledSelect, messages, i18nUtil) {
 	var Explorer = mExplorer.Explorer, SelectionRenderer = mExplorer.SelectionRenderer, Section = mSection.Section;
 
 	/**
@@ -30,8 +31,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 	};
 	objects.mixin(PropertyWidget.prototype, /** @lends orion.settings.ui.PropertyWidget.prototype */ {
 		postCreate: function() {
-			var property = this.property, config = this.configuration;
-			var properties = config.getProperties();
+			var property = this.property, config = this.config, properties = config.getProperties();
 			var value;
 			if (properties && typeof properties[property.getId()] !== 'undefined') { //$NON-NLS-0$
 				value = properties[property.getId()];
@@ -141,6 +141,9 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 		objects.mixin(this, options);
 		if (!parentNode) { throw "parentNode is required"; }
 		this.node = parentNode;
+		this.config = this.defaultConfig = null;
+		this.messageService = this.serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
+		this.updateMessage = i18nUtil.formatMessage(messages["SettingUpdateSuccess"], this.categoryTitle);
 	};
 	objects.mixin(PropertiesWidget.prototype, { //$NON-NLS-0$
 		createElements: function() {
@@ -169,13 +172,17 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 		},
 		/** Creates a new configuration if necessary */
 		initConfiguration: function() {
-			var configuration = this.configuration;
+			var configuration = this.config;
 			if (!configuration) {
-				var self = this;
-				this.configPromise = this.configPromise || this.configAdmin.getConfiguration(this.setting.getPid())
-					.then(function(resolvedConfiguration) {
-						self.configuration = resolvedConfiguration;
-						return resolvedConfiguration;
+				var pid = this.setting.getPid(), self = this;
+				this.configPromise = this.configPromise ||
+					Deferred.all([
+						this.configAdmin.getDefaultConfiguration(pid),
+						this.configAdmin.getConfiguration(pid)
+					]).then(function(result) {
+						self.defaultConfig = result[0];
+						self.config = result[1];
+						return self.config;
 					});
 				return this.configPromise;
 			} else {
@@ -186,8 +193,10 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 			var self = this;
 			this.setting.getAttributeDefinitions().forEach(function(property) {
 				var options = {
-					property: property, configuration: configuration, serviceRegistry: self.serviceRegistry,
-					changeProperty: self.changeProperty.bind(self, property)
+					config: configuration,
+					property: property,
+					changeProperty: self.changeProperty.bind(self, property) ,
+					serviceRegistry: self.serviceRegistry
 				};
 				var widget;
 				if (property.getOptionValues()) {
@@ -212,13 +221,18 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 				var setting = this.setting;
 				var props = configuration.getProperties() || {};
 				props[attributeDefinition.getId()] = value;
-				if (setting.isDefaults(props)) {
+				// Decide if this configuration equals the setting's default values.
+				var defaultProps = this.defaultConfig ? this.defaultConfig.getProperties() : null;
+				var isNoop = setting.isDefaults(props, defaultProps);
+				if (isNoop) {
+					// Entire configuration is a no-op (i.e. it equals its default values) so remove it entirely
 					configuration.remove();
-					this.configuration = null;
+					this.config = null;
 					this.configPromise = null;
 				} else {
 					configuration.update(props);
 				}
+				this.messageService.setProgressResult(this.updateMessage);
 			}.bind(this));
 		}
 	});
@@ -226,10 +240,10 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 	/**
 	 * Renderer for SettingsList.
 	 */
-	function SettingsRenderer(settingsList, serviceRegistry) {
+	function SettingsRenderer(settingsListExplorer, serviceRegistry) {
 		this.serviceRegistry = serviceRegistry;
 		this.childWidgets = [];
-		SelectionRenderer.call(this, {/*registry: that.registry, actionScopeId: "sdsd",*/ cachePrefix: 'pluginSettings', noRowHighlighting: true}, settingsList); //$NON-NLS-0$
+		SelectionRenderer.call(this, {cachePrefix: 'pluginSettings', noRowHighlighting: true}, settingsListExplorer); //$NON-NLS-0$
 	}
 	SettingsRenderer.prototype = new SelectionRenderer();
 	SettingsRenderer.prototype.getCellElement = function(col_no, /*Setting*/ setting, rowElement) {
@@ -243,7 +257,8 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 
 		var sectionHeader = document.createElement('h3'); //$NON-NLS-0$
 		sectionHeader.id = headerId;
-		sectionHeader.className = 'setting-header'; //$NON-NLS-0$
+		// setting-header-generated sets the heading to be 0 width as there are no categories on generated settings pages
+		sectionHeader.className = 'setting-header setting-header-generated'; //$NON-NLS-0$
 //		sectionHeader.textContent = setting.getName(); // TODO nls
 
 		var propertiesElement = document.createElement('div'); //$NON-NLS-0$
@@ -258,7 +273,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 //		mNavUtils.addNavGrid(this.explorer.getNavDict(), setting, link);
 	};
 	SettingsRenderer.prototype.createPropertiesWidget = function(parent, setting, serviceRegistry) {
-		return new PropertiesWidget({serviceRegistry: this.serviceRegistry, setting: setting}, parent);
+		return new PropertiesWidget({serviceRegistry: this.serviceRegistry, setting: setting, categoryTitle: this.explorer.categoryTitle}, parent);
 	};
 	SettingsRenderer.prototype.renderTableHeader = function(tableNode) {
 		return document.createElement('div'); //$NON-NLS-0$
@@ -274,8 +289,9 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 	/**
 	 * Explorer for SettingsList.
 	 */
-	function SettingsListExplorer(serviceRegistry, selection) {
-		Explorer.call(this, serviceRegistry, selection, new SettingsRenderer(this, serviceRegistry));
+	function SettingsListExplorer(serviceRegistry, categoryTitle) {
+		Explorer.call(this, serviceRegistry, undefined, new SettingsRenderer(this, serviceRegistry));
+		this.categoryTitle = categoryTitle;
 	}
 	SettingsListExplorer.prototype = new Explorer();
 	SettingsListExplorer.prototype.destroy = function() {
@@ -305,26 +321,29 @@ define(['i18n!orion/settings/nls/messages', 'orion/explorers/explorer', 'orion/s
 	SettingsList.prototype = {
 		_makeSection: function(parent, sectionId, setting, title) {
 			var section = new Section(parent, { id: sectionId, title: title, useAuxStyle: true,
-				canHide: true});
+				canHide: false});
 			return section;
 		},
 		destroy: function() {
 			this.explorer.destroy();
 		},
-		render: function(parent, serviceRegistry, settings, title) {
+		render: function(parent, serviceRegistry, settings, categoryTitle) {
 			// FIXME Section forces a singleton id, bad
 			var idPrefix = 'pluginsettings-'; //$NON-NLS-0$
 			
 			for (var i=0; i<settings.length; i++) {
 				var sectionId = idPrefix + 'section' + i; //$NON-NLS-0$
-				var section = this._makeSection(parent, sectionId, settings[i], settings[i].getName());
+				var setting = settings[i];
+				var section = this._makeSection(parent, sectionId, setting, setting.getName() || "Unnamed"); //$NON-NLS-0$
 				// Add a class name based on the category (all settings on the page have the same category currently)
-				if(settings[i].category){
-					section.getContentElement().classList.add(settings[i].category + "SettingsTable"); //$NON-NLS-0$
+				if(setting.category){
+					// This does not match the full spec of legal class names, but we avoid categories breaking the UI, Bug 444194
+					var className = setting.category.replace(/[^_0-9a-zA-Z-]/gi, '-') + "SettingsTable"; //$NON-NLS-0$ //$NON-NLS-1$
+					section.getContentElement().classList.add(className);
 				}
 				
-				this.explorer = new SettingsListExplorer(serviceRegistry);
-				this.explorer.createTree(section.getContentElement().id, new mExplorer.SimpleFlatModel([settings[i]], 'setting-', //$NON-NLS-0$
+				this.explorer = new SettingsListExplorer(serviceRegistry, categoryTitle);
+				this.explorer.createTree(section.getContentElement().id, new mExplorer.SimpleFlatModel([setting], 'setting-', //$NON-NLS-0$
 					function(item) {
 						return item.getPid();
 					}),

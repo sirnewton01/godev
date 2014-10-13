@@ -8,9 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define document*/
-/*jslint browser:true */
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/widgets/nls/messages', 'orion/webui/dialog', 'text!orion/webui/dialogs/confirmdialog.html', 'orion/EventTarget'], 
 function(messages, dialog, ConfirmDialogFragment, EventTarget) {
 

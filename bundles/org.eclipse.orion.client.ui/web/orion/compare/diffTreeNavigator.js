@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define console window*/
-
+/*eslint-env browser, amd*/
 define(['orion/treeModelIterator', 'orion/compare/compareUtils', 'orion/editor/annotations', 'orion/compare/jsdiffAdapter'], function(mTreeModelIterator, mCompareUtils, mAnnotations, mJSDiffAdapter){
 
 var exports = {};
@@ -240,7 +239,7 @@ exports.DiffTreeNavigator = (function() {
 			this.initAll(this._charOrWordDiff);
 		},
 		
-		renderAnnotations: function(){
+		renderAnnotations: function(ignoreWhitespace){
 			var i;
 			for(i = 0; i < this.editorWrapper.length; i++){
 				this.editorWrapper[i].annoTypes = [];
@@ -269,7 +268,7 @@ exports.DiffTreeNavigator = (function() {
 				this.replaceAllAnnotations(true, 1, "word", true, []); //$NON-NLS-0$
 				return;
 			}
-			var adapter = new mJSDiffAdapter.JSDiffAdapter();
+			var adapter = new mJSDiffAdapter.JSDiffAdapter(ignoreWhitespace);
 			for(i = 0; i < oldDiffBlocks.length; i++){
 				var diffBlockModel = this.generatePairBlockAnnotations(this._root, i);
 				this._root.children.push(diffBlockModel);
@@ -326,6 +325,32 @@ exports.DiffTreeNavigator = (function() {
 				this.updateCurrentAnnotation(true);
 			}
 			return retVal;
+		},
+		
+		/**
+		 * Goes to the change at the specified changeIndex in the current file.
+		 * 
+		 * @param[in] changeIndex The index of the desired change in the current file.
+		 */
+		gotoChangeUsingIndex: function(changeIndex) {
+			var count = 0;
+			var blockIndex = 0;
+			
+			if (0 <= changeIndex) {
+				// iterate through blocks looking for the one that contains 
+				// the change with the specified changeIndex
+				while (blockIndex < this._root.children.length) {
+					var numChangesInCurrentBlock = this._root.children[blockIndex].children.length;
+					if (((count + numChangesInCurrentBlock) - 1) < changeIndex) {
+						count += numChangesInCurrentBlock; //keep going
+					} else {
+						// found block, go to change in block
+						var changeIndexInBlock = changeIndex - count;
+						return this.gotoBlock(blockIndex, changeIndexInBlock);
+					}
+					blockIndex++;
+				}
+			}
 		},
 		
 		gotoBlock: function(blockIndex, changeIndex){
@@ -401,6 +426,9 @@ exports.DiffTreeNavigator = (function() {
 				return {};
 			}
 			var cursor = this.iterator.cursor();
+			if(!cursor){
+				return {};
+			}
 			if(cursor.type === "block"){ //$NON-NLS-0$
 				return {block: cursor.index+1};
 			} else {

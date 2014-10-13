@@ -9,9 +9,81 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define*/
+/*eslint-env browser, amd*/
+define("orion/editor/rulers", [
+	'i18n!orion/editor/nls/messages',
+	'orion/editor/textView',
+	'orion/editor/annotations',
+	'orion/editor/tooltip', 
+	'orion/objects',
+	'orion/editor/util',
+	'orion/util'
+], function(messages, mTextView, mAnnotations, mTooltip, objects, textUtil, util) {
 
-define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/annotations', 'orion/editor/tooltip', 'orion/util'], function(messages, mAnnotations, mTooltip, util) { //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+	function BaseRuler (rulerLocation, rulerOverview, rulerStyle) {
+		this._location = rulerLocation || "left"; //$NON-NLS-0$
+		this._overview = rulerOverview || "page"; //$NON-NLS-0$
+		this._rulerStyle = rulerStyle;
+		this._view = null;
+	}
+	BaseRuler.prototype = /** @lends orion.editor.BaseRuler.prototype */ {
+		/**
+		 * Returns the ruler location.
+		 *
+		 * @returns {String} the ruler location, which is either "left" or "right" or "margin".
+		 *
+		 * @see orion.editor.Ruler#getOverview
+		 */
+		getLocation: function() {
+			return this._location;
+		},
+		/**
+		 * Returns the ruler overview type.
+		 *
+		 * @returns {String} the overview type, which is either "page" or "document" or "fixed".
+		 *
+		 * @see orion.editor.Ruler#getLocation
+		 */
+		getOverview: function() {
+			return this._overview;
+		},
+		/**
+		 * Returns the style information for the ruler.
+		 *
+		 * @returns {orion.editor.Style} the style information.
+		 */
+		getRulerStyle: function() {
+			return this._rulerStyle;
+		},
+		/**
+		 * Returns the text view.
+		 *
+		 * @returns {orion.editor.TextView} the text view.
+		 *
+		 * @see orion.editor.Ruler#setView
+		 */
+		getView: function() {
+			return this._view;
+		},
+		/**
+		 * Sets the view for the ruler.
+		 * <p>
+		 * This method is called by the text view when the ruler
+		 * is added to the view.
+		 * </p>
+		 *
+		 * @param {orion.editor.TextView} view the text view.
+		 */
+		setView: function (view) {
+			if (this._onTextModelChanged && this._view) {
+				this._view.removeEventListener("ModelChanged", this._listener.onTextModelChanged); //$NON-NLS-0$
+			}
+			this._view = view;
+			if (this._onTextModelChanged && this._view) {
+				this._view.addEventListener("ModelChanged", this._listener.onTextModelChanged); //$NON-NLS-0$
+			}
+		},
+	};
 
 	/**
 	 * Constructs a new ruler. 
@@ -49,10 +121,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 	 * @borrows orion.editor.AnnotationTypeList#removeAnnotationType as #removeAnnotationType
 	 */
 	function Ruler (annotationModel, rulerLocation, rulerOverview, rulerStyle) {
-		this._location = rulerLocation || "left"; //$NON-NLS-0$
-		this._overview = rulerOverview || "page"; //$NON-NLS-0$
-		this._rulerStyle = rulerStyle;
-		this._view = null;
+		BaseRuler.call(this, rulerLocation, rulerOverview, rulerStyle);
 		var self = this;
 		this._listener = {
 			onTextModelChanged: function(e) {
@@ -64,7 +133,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		};
 		this.setAnnotationModel(annotationModel);
 	}
-	Ruler.prototype = /** @lends orion.editor.Ruler.prototype */ {
+	Ruler.prototype = objects.mixin(new BaseRuler(), /** @lends orion.editor.Ruler.prototype */ {
 		/**
 		 * Returns the annotations for a given line range merging multiple
 		 * annotations when necessary.
@@ -129,44 +198,6 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 			return this._annotationModel;
 		},
 		/**
-		 * Returns the ruler location.
-		 *
-		 * @returns {String} the ruler location, which is either "left" or "right".
-		 *
-		 * @see orion.editor.Ruler#getOverview
-		 */
-		getLocation: function() {
-			return this._location;
-		},
-		/**
-		 * Returns the ruler overview type.
-		 *
-		 * @returns {String} the overview type, which is either "page" or "document".
-		 *
-		 * @see orion.editor.Ruler#getLocation
-		 */
-		getOverview: function() {
-			return this._overview;
-		},
-		/**
-		 * Returns the style information for the ruler.
-		 *
-		 * @returns {orion.editor.Style} the style information.
-		 */
-		getRulerStyle: function() {
-			return this._rulerStyle;
-		},
-		/**
-		 * Returns the text view.
-		 *
-		 * @returns {orion.editor.TextView} the text view.
-		 *
-		 * @see orion.editor.Ruler#setView
-		 */
-		getView: function() {
-			return this._view;
-		},
-		/**
 		 * Returns the widest annotation which determines the width of the ruler.
 		 * <p>
 		 * If the ruler does not have a fixed width it should provide the widest
@@ -222,24 +253,6 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 */
 		setMultiAnnotationOverlay: function(annotation) {
 			this._multiAnnotationOverlay = annotation;
-		},
-		/**
-		 * Sets the view for the ruler.
-		 * <p>
-		 * This method is called by the text view when the ruler
-		 * is added to the view.
-		 * </p>
-		 *
-		 * @param {orion.editor.TextView} view the text view.
-		 */
-		setView: function (view) {
-			if (this._onTextModelChanged && this._view) {
-				this._view.removeEventListener("ModelChanged", this._listener.onTextModelChanged); //$NON-NLS-0$
-			}
-			this._view = view;
-			if (this._onTextModelChanged && this._view) {
-				this._view.addEventListener("ModelChanged", this._listener.onTextModelChanged); //$NON-NLS-0$
-			}
 		},
 		/**
 		 * This event is sent when the user clicks a line annotation.
@@ -528,7 +541,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 			}
 			annotationModel.replaceAnnotations(null, add);
 		}
-	};
+	});
 	mAnnotations.AnnotationTypeList.addMixin(Ruler.prototype);
 
 	/**
@@ -561,7 +574,7 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		var result = Ruler.prototype.getAnnotations.call(this, startLine, endLine);
 		var model = this._view.getModel();
 		for (var lineIndex = startLine; lineIndex < endLine; lineIndex++) {
-			var style = lineIndex & 1 ? this._oddStyle : this._evenStyle;
+			var style = (lineIndex - this._firstLine) & 1 ? this._oddStyle : this._evenStyle;
 			var mapLine = lineIndex;
 			if (model.getBaseModel) {
 				var lineStart = model.getLineStart(mapLine);
@@ -801,11 +814,256 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		}
 	};
 	
+
+	/**
+	 * Constructs a new zoom ruler. 
+	 *
+	 * @param {String} [rulerLocation="left"] the location for the ruler.
+	 * @param {orion.editor.Style} [rulerStyle=undefined] the style for the ruler.
+	 *
+	 * @augments orion.editor.Ruler
+	 * @class This objects implements an overview ruler.
+	 *
+	 * <p><b>See:</b><br/>
+	 * {@link orion.editor.AnnotationRuler} <br/>
+	 * {@link orion.editor.Ruler} 
+	 * </p>
+	 * @name orion.editor.OverviewRuler
+	 */
+	var ZoomRuler = function(rulerLocation, rulerStyle) {
+		BaseRuler.call(this, rulerLocation, "fixed", rulerStyle); //$NON-NLS-0$
+	};
+	
+	ZoomRuler.prototype = objects.mixin(new BaseRuler(), {
+		setView: function (view) {
+			this._destroy();
+			BaseRuler.prototype.setView.call(this, view);
+			this._create();
+		},
+		_create: function() {
+			var textView = this.getView();
+			if (!textView) return;
+			function getOptions(options) {
+				var rulerTheme = "textviewZoom"; //$NON-NLS-0$
+				var theme = options.themeClass;
+				if (theme) {
+					theme = theme.replace(rulerTheme, "");
+					if (theme) { theme = " " + theme; } //$NON-NLS-0$
+					theme = rulerTheme + theme;
+				} else {
+					theme = rulerTheme;
+				}
+				options.themeClass = theme;
+				options.noScroll = true;
+				options.readonly = true;
+				return options;
+			}
+			var options = getOptions(textView.getOptions());
+			options.parent = this.node;
+			var zoomView = this._zoomView = new mTextView.TextView(options);
+			zoomView._clientDiv.contentEditable = false;
+			zoomView.setModel(textView.getModel());
+			var document = textView.getOptions("parent").ownerDocument; //$NON-NLS-0$
+			var windowDiv = this._windowDiv = util.createElement(document, "div"); //$NON-NLS-0$
+			windowDiv.className ="rulerZoomWindow"; //$NON-NLS-0$
+			this.node.appendChild(windowDiv);
+			var border = parseInt(textUtil.getNodeStyle(windowDiv, "border-top-width", 0)) + //$NON-NLS-0$
+					parseInt(textUtil.getNodeStyle(windowDiv, "border-bottom-width", 0)); //$NON-NLS-0$
+			var that = this;
+			function updateWindow(scroll, p) {
+				var top = scroll.y * p.zoomFactor;
+				var height = p.clientHeight * p.zoomFactor;
+				that.top = top;
+				that.bottom = top + height;
+				top = zoomView.convert({y: top}, "document", "page").y; //$NON-NLS-1$ //$NON-NLS-0$
+				top = top - that.node.getBoundingClientRect().top;
+				windowDiv.style.top = top + "px"; //$NON-NLS-0$
+				windowDiv.style.height = (height - border) + "px"; //$NON-NLS-0$
+			}
+			function getProps() {
+				var padding = textView._metrics.viewPadding;
+				var zoomPadding = textView._metrics.viewPadding;
+				var lineHeight = textView.getLineHeight();
+				var zoomLineHeight = zoomView.getLineHeight();
+				var lineCount = textView.getModel().getLineCount();
+				var documentHeight = textView._lineHeight ? textView._scrollHeight : lineCount * lineHeight;
+				var zoomDocumentHeight = zoomView._lineHeight ? zoomView._scrollHeight : lineCount * zoomLineHeight;
+				var zoomFactor = zoomDocumentHeight / documentHeight;
+				var clientHeight = textView.getClientArea().height + padding.top + padding.bottom;
+				var zoomClientHeight = zoomView.getClientArea().height + zoomPadding.top + zoomPadding.bottom;
+				var windowHeight = clientHeight * zoomFactor;
+				var scrollWidth = textView._metrics.scrollWidth;
+				return {
+					zoomFactor: zoomFactor,
+					documentHeight: documentHeight,
+					zoomDocumentHeight: zoomDocumentHeight,
+					clientHeight: clientHeight,
+					zoomClientHeight: zoomClientHeight,
+					scrollWidth: scrollWidth,
+					windowHeight: windowHeight,
+					padding: padding
+				};
+			}
+			function toZoom(scroll, p) {
+				return scroll.y * (p.zoomFactor + (p.windowHeight - p.clientHeight - p.scrollWidth) / p.documentHeight);
+			}
+			function updateScroll(scroll) {
+				scroll = scroll || {y: textView.getTopPixel()};
+				var p = getProps();
+				var y = toZoom(scroll, p);
+				zoomView.setTopPixel(y);
+				updateWindow(scroll, p);
+			}
+			function updateWidth(options) {
+				var width;
+				if (options.wrapMode && !options.wrapOffset && textView._metrics.charWidth) {
+					var div1 = util.createElement(document, "div"); //$NON-NLS-0$
+					div1.style.position = "fixed"; //$NON-NLS-0$
+					div1.style.left = "-1000px"; //$NON-NLS-0$
+					zoomView._clientDiv.appendChild(div1);
+					div1.innerHTML = new Array(Math.ceil(textView.getClientArea().width / textView._metrics.charWidth) + 1).join("a"); //$NON-NLS-0$
+					var rect1 = div1.getBoundingClientRect();
+					width = Math.min(150, Math.ceil(rect1.right - rect1.left)) + "px"; //$NON-NLS-0$
+				} else {
+					width = "";
+				}
+				var oldWidth = that.node.style.width;
+				that.node.style.width = width;
+				return oldWidth !== width;
+			}
+			textView.addEventListener("Scroll", this._scrollListener = function(event) { //$NON-NLS-0$
+				updateScroll(event.newValue);
+			});
+			textView.addEventListener("Resize", this._resizeListener = function() { //$NON-NLS-0$
+				updateWidth(zoomView.getOptions());
+				updateScroll();
+			});
+			textView.addEventListener("Redraw", this._redrawListener = function(event) { //$NON-NLS-0$
+				if (!event.ruler) {
+					zoomView.redrawLines(event.startLine, event.endLine);
+				}
+			});
+			textView.addEventListener("Options", this._optionsListener = function(event) { //$NON-NLS-0$
+				var options = getOptions(event.options);
+				zoomView.setOptions(options);
+				updateWidth(zoomView.getOptions());
+			});
+			zoomView.addEventListener("LineStyle", this._lineListener = function(e) { //$NON-NLS-0$
+				textView.onLineStyle(e);
+			});
+			zoomView.addEventListener("Selection", function(event) { //$NON-NLS-0$
+				textView.setSelection(event.newValue.start, event.newValue.end, 0.5);
+			});
+			function down(event, clientY, touch) {
+				if (touch || (that.top <= event.y && event.y <= that.bottom)) {
+					that.mouseDown = true;
+					that.delta = clientY - windowDiv.getBoundingClientRect().top + that.node.getBoundingClientRect().top;
+				} else {
+					var offset = zoomView.getOffsetAtLocation(event.x, event.y);
+					textView.setSelection(offset, offset, 0.5, function() {});
+				}
+			}
+			function up() {
+				that.mouseDown = false;
+			}
+			function move(clientY) {
+				if (that.mouseDown) {
+					var p = getProps();
+					var thumbPos = Math.min(p.zoomClientHeight - p.windowHeight, Math.max(0, clientY - that.delta));
+					textView.setTopPixel(thumbPos * (p.documentHeight - p.clientHeight) / Math.min(p.zoomDocumentHeight, p.zoomClientHeight - p.windowHeight));
+				}
+			}
+			function stop(event) {
+				event.preventDefault();
+			}
+			if (util.isIOS || util.isAndroid) {
+				windowDiv.addEventListener("touchstart", function(event) { //$NON-NLS-0$
+					var touches = event.touches;
+					if (touches.length === 1) {
+						down(event, event.touches[0].clientY, true);
+						event.preventDefault();
+					}
+				});
+				windowDiv.addEventListener("touchend", function(event) { //$NON-NLS-0$
+					var touches = event.touches;
+					if (touches.length === 0) {
+						up(event);
+					}
+				});
+				windowDiv.addEventListener("touchmove", function(event) { //$NON-NLS-0$
+					var touches = event.touches;
+					if (touches.length === 1) {
+						move(event.touches[0].clientY);
+					}
+				});
+				zoomView.addEventListener("TouchStart", function(event) { //$NON-NLS-0$
+					if (event.touchCount === 1) {
+						down(event, event.event.touches[0].clientY);
+						stop(event);
+					}
+				});
+//				windowDiv.style.pointerEvents = "none"; //$NON-NLS-0$
+//				zoomView.addEventListener("TouchEnd", function(event) { //$NON-NLS-0$
+//					if (event.touchCount === 0) {
+//						up(event);
+//					}
+//				});
+//				zoomView.addEventListener("TouchMove", function(event) { //$NON-NLS-0$
+//					if (event.touchCount === 1) {
+//						move(event.event.touches[0].clientY);
+//					}
+//				});
+			} else {
+				windowDiv.style.pointerEvents = "none"; //$NON-NLS-0$
+				zoomView.addEventListener("MouseDown", function(event) { //$NON-NLS-0$
+					var e = event.event;
+					if (e.which ? e.button === 0 : e.button === 1) {
+						down(event, e.clientY);
+					}
+					stop(event);
+				});
+				zoomView.addEventListener("MouseUp", function(event) { //$NON-NLS-0$
+					up(event);
+					stop(event);
+				});
+				zoomView.addEventListener("MouseMove", function(event) { //$NON-NLS-0$
+					move(event.event.clientY);
+					stop(event);
+				});
+			}
+			(document.defaultView || document.parentWindow).setTimeout(function() {
+				updateScroll();
+			}, 0);
+		},
+		_destroy: function() {
+			var textView = this.getView();
+			if (textView) {
+				textView.removeEventListener("Scroll", this._scrollListener); //$NON-NLS-0$
+				this._scrollListener = null;
+				textView.removeEventListener("Resize", this._resizeListener); //$NON-NLS-0$
+				this._resizeListener = null;
+				textView.removeEventListener("Redraw", this._redrawListener); //$NON-NLS-0$
+				this._redrawListener = null;
+				textView.removeEventListener("Options", this._optionsListener); //$NON-NLS-0$
+				this._optionsListener = null;
+			}
+			var zoomView = this._zoomView;
+			if (zoomView) {
+				zoomView.removeEventListener("LineStyle", this._lineListener); //$NON-NLS-0$
+				zoomView.setModel(null);
+				zoomView.destroy();
+				this._zoomView = null;
+			}
+		}
+	});
+	
 	return {
+		BaseRuler: BaseRuler,
 		Ruler: Ruler,
 		AnnotationRuler: AnnotationRuler,
 		LineNumberRuler: LineNumberRuler,
 		OverviewRuler: OverviewRuler,
-		FoldingRuler: FoldingRuler
+		FoldingRuler: FoldingRuler,
+		ZoomRuler: ZoomRuler,
 	};
 });

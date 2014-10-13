@@ -9,19 +9,11 @@
  * Contributors:
  *     IBM Corporation - Initial API and implementation
  ******************************************************************************/
- /*global define */
+ /*eslint-env amd*/
 define('javascript/contentAssist/indexFiles/mysqlIndex', [], 
 function () {
 	return {
 		"!name": "mysql",
-		"this": "<top>",
-		"global": "<top>",
-		"mysql" : "mysql",
-		"Types" : "mysql.Types",
-		"Connection" : "Connection",
-		"Pool" : "Pool",
-		"PoolCluster" : "PoolCluster",
-		"Query" : "Query",
   		"!define": {
   			"mysql": {
     			"createConnection": {
@@ -167,9 +159,9 @@ function () {
 	        	},
 	      	},
 		    "Query": {
-		    	"!proto": "Sequence",
-		    	"!type": "fn(options: Object, callback: fn())",
-    			"prototype": {
+    		    	"!proto": "Sequence",
+    		    	"!type": "fn(options: Object, callback: fn())",
+        		"prototype": {
       				"start": {
 	  					"!type": "fn()"
 	  				},
@@ -200,11 +192,11 @@ function () {
     			}
     		},
 		    "Sequence": {
-		    	"!proto" : "Object",
-		    	"!type": "fn(callback: fn())",
-        		"determinePacket": {
-	  				"!type": "fn(byte: Number)"
-	  			},
+    		    	"!proto" : "Object",
+    		    	"!type": "fn(callback: fn())",
+            		"determinePacket": {
+    	  				"!type": "fn(byte: Number)"
+    	  			},
 		        "prototype": {
 		          	"hasErrorHandler": {
 	  					"!type": "fn() -> Boolean"
@@ -224,4 +216,5 @@ function () {
         		}
       		}
 		}
-}});
+    };
+});

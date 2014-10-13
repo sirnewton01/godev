@@ -9,8 +9,8 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*jslint browser:true devel:true sub:true*/
-/*global define window document URL*/
+/*eslint-env browser, amd*/
+/*global URL*/
 define([
 	'i18n!orion/navigate/nls/messages',
 	'orion/i18nUtil',

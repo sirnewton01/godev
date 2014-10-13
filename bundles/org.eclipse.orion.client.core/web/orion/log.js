@@ -9,8 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define window */
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/nls/messages'], function(messages){
 
 var exports = {};

@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint browser:true devel:true sub:true*/
-/*global define eclipse:true orion:true window*/
+/*eslint-env browser, amd*/
 
 define([
 	'i18n!orion/edit/nls/messages',
@@ -39,7 +38,6 @@ define([
 	'orion/searchClient',
 	'orion/problems',
 	'orion/blameAnnotations',
-	'orion/Deferred',
 	'orion/EventTarget',
 	'orion/URITemplate',
 	'orion/i18nUtil',
@@ -53,7 +51,7 @@ define([
 	mFolderView, mEditorView, mPluginEditorView , mMarkdownView, mMarkdownEditor,
 	mCommandRegistry, mContentTypes, mFileClient, mFileCommands, mSelection, mStatus, mProgress, mOperationsClient, mOutliner, mDialogs, mExtensionCommands, ProjectCommands, mSearchClient,
 	mProblems, mBlameAnnotation,
-	Deferred, EventTarget, URITemplate, i18nUtil, PageUtil, objects, lib, mProjectClient
+	EventTarget, URITemplate, i18nUtil, PageUtil, objects, lib, mProjectClient
 ) {
 
 var exports = {};
@@ -132,7 +130,7 @@ var exports = {};
 			if (explorer) {
 				visible = explorer.isCommandsVisible();
 				selection = explorer.selection;
-				treeRoot = explorer.treeRoot;
+				treeRoot = explorer.getTreeRoot();
 			}
 			var metadata = this.inputManager.getFileMetadata();
 			var commandRegistry = this.commandRegistry, serviceRegistry = this.serviceRegistry;
@@ -344,12 +342,14 @@ exports.setUpEditor = function(serviceRegistry, pluginRegistry, preferences, isR
 		if (evt.input === null || evt.input === undefined) {
 			name = lastRoot ? lastRoot.Name : "";
 			target = lastRoot;
+		} else if (target && !target.Parents) {//If the target is file system root then we use the file service name
+			name = fileClient.fileServiceName(target.Location);
 		}
 		// Exclude the "Show current folder" command: it's useless on editor page with built-in nav.
 		// TODO the command exclusions should be an API and specified by individual pages (page links)?
 		mGlobalCommands.setPageCommandExclusions(["orion.editFromMetadata"]); //$NON-NLS-0$
 		mGlobalCommands.setPageTarget({
-			task: "Editor", //$NON-NLS-0$
+			task: messages["Editor"],
 			name: name,
 			target: target,
 			makeAlternate: function() {
@@ -443,8 +443,15 @@ exports.setUpEditor = function(serviceRegistry, pluginRegistry, preferences, isR
 		sidebarNavInputManager.addEventListener("filesystemChanged", gotoInput); //$NON-NLS-0$
 		sidebarNavInputManager.addEventListener("editorInputMoved", gotoInput); //$NON-NLS-0$
 		sidebarNavInputManager.addEventListener("create", function(evt) { //$NON-NLS-0$
-			if (evt.newValue) {
-				window.location = uriTemplate.expand({resource: evt.newValue.Location});
+			if (evt.newValue && !evt.ignoreRedirect) {
+				var item = evt.newValue;
+				var openWithCommand = mExtensionCommands.getOpenWithCommand(commandRegistry, evt.newValue);
+				if (openWithCommand) {
+					var href = openWithCommand.hrefCallback({items: item});
+				} else {
+					href = uriTemplate.expand({resource: evt.newValue.Location});
+				}
+				window.location = href;
 			}
 		});
 	

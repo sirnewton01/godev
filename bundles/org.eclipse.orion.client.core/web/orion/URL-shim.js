@@ -9,8 +9,8 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global document window StopIteration*/
-/*jslint regexp:false*/
+/*eslint-env browser, amd*/
+/*global StopIteration*/
 // URL Shim -- see http://url.spec.whatwg.org/ and http://dvcs.w3.org/hg/url/raw-file/tip/Overview.html
 
 (function() {

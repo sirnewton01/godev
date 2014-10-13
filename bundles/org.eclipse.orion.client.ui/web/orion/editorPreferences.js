@@ -8,7 +8,7 @@
  *
  * Contributors:  IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define*/
+/*eslint-env browser, amd*/
 
 define([], function() {
 
@@ -65,10 +65,11 @@ define([], function() {
 		foldingRulerVisible: true,
 		overviewRuler: true,
 		overviewRulerVisible: true,
-		showTabs: false,
-		showTabsVisible: true,
-		showSpaces: false,
-		showSpacesVisible: true,
+		zoomRuler: true,
+		zoomRulerVisible: true,
+		zoomRulerLocalVisible: true,
+		showWhitespaces: false,
+		showWhitespacesVisible: true,
 		wordWrap: false,
 		wordWrapVisible: true,
 		showMargin: false,
@@ -77,10 +78,7 @@ define([], function() {
 		marginOffsetVisible: true,
 		keyBindings: "Default",
 		keyBindingsVisible: true,
-		keyBindingsLocalVisible: true,
-		splitOrientation: "horizontal",
-		splitOrientationVisible: true,
-		splitOrientationLocalVisible: true
+		keyBindingsLocalVisible: true
 	};
 
 	function EditorPreferences(preferences, callback) {

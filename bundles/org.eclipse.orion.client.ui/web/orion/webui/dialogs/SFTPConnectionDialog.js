@@ -8,9 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define localStorage window */
-/*jslint browser:true*/
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui/popupdialog', 'orion/webui/dialog'], function(messages, lib, popupdialog, dialog) {
 
 	if (!localStorage.getItem("orion.sftpConnections")) { //$NON-NLS-0$

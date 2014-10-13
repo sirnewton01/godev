@@ -8,7 +8,7 @@
  * 
  ******************************************************************************/
  
- /*global define*/
+/*eslint-env browser, amd*/
  
 define(['orion/i18n!git/nls/gitmessages', 'git/nls/root/gitmessages'], function(bundle, root) {
 	var result = {

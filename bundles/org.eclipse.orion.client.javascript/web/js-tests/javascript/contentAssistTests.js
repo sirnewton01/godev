@@ -10,8 +10,8 @@
  *     Andrew Eisenberg (VMware) - initial API and implementation
  *     IBM Corporation - Various improvements
  ******************************************************************************/
-
-/*global define describe:true it:true console setTimeout doctrine*/
+/*eslint-env amd, mocha, node*/
+/*global doctrine*/
 define([
 	'javascript/contentAssist/contentAssist',
 	'chai/chai',
@@ -19,7 +19,7 @@ define([
 	'orion/Deferred',
 	'esprima',
 	'mocha/mocha', //mjust stay at the end, not a module
-	'doctrine/doctrine' //must stay at the end, does not export a module 
+	'doctrine' //must stay at the end, does not export a module 
 ], function(ContentAssist, chai, objects, Deferred, Esprima) {
 	var assert = chai.assert;
 
@@ -499,7 +499,7 @@ define([
 	
 		it("test no dupe 1", function() {
 			var results = computeContentAssist(
-					"var coo = 9; var other = function(coo) { c/**/ }", "c");
+					"var coo = 9; var other = function(coo) { c }", "c", 42);
 			return testProposals(results, [
 				["coo", "coo : {}"]
 			]);
@@ -507,7 +507,7 @@ define([
 	
 		it("test no dupe 2", function() {
 			var results = computeContentAssist(
-					"var coo = { }; var other = function(coo) { coo = 9;\nc/**/ }", "c");
+					"var coo = { }; var other = function(coo) { coo = 9;\nc }", "c", 53);
 			return testProposals(results, [
 				["coo", "coo : Number"]
 			]);
@@ -515,7 +515,7 @@ define([
 	
 		it("test no dupe 3", function() {
 			var results = computeContentAssist(
-					"var coo = function () { var coo = 9; \n c/**/};", "c");
+					"var coo = function () { var coo = 9; \n c};", "c", 40);
 			return testProposals(results, [
 				["coo", "coo : Number"]
 			]);
@@ -523,7 +523,7 @@ define([
 	
 		it("test no dupe 4", function() {
 			var results = computeContentAssist(
-					"var coo = 9; var other = function () { var coo = function() { return 9; }; \n c/**/};", "c");
+					"var coo = 9; var other = function () { var coo = function() { return 9; }; \n c};", "c", 78);
 			return testProposals(results, [
 				["coo()", "coo() : Number"]
 			]);
@@ -532,15 +532,15 @@ define([
 		it("test scopes 1", function() {
 			// only the outer foo is available
 			var results = computeContentAssist(
-					"var coo;\nfunction other(a, b, c) {\nfunction inner() { var coo2; }\nco/**/}", "co");
+					"var coo;\nfunction other(a, b, c) {\nfunction inner() { var coo2; }\nco}", "co", 68);
 			return testProposals(results, [
 				["coo", "coo : {}"]
 			]);
 		});
 		it("test scopes 2", function() {
 			// the inner assignment should not affect the value of foo
-			var results = computeContentAssist("var foo;\n" +
-					"var foo = 1;\nfunction other(a, b, c) {\nfunction inner() { foo2 = \"\"; }\nfoo.toF/**/}", "toF");
+			var results = computeContentAssist(
+			         "var foo;\n var foo = 1;\nfunction other(a, b, c) {\nfunction inner() { foo2 = \"\"; }\nfoo.toF}", "toF", 88);
 			return testProposals(results, [
 				["toFixed(digits)", "toFixed(digits) : String"]
 			]);
@@ -552,7 +552,7 @@ define([
 			]);
 		});
 		it("test in function 1", function() {
-			var results = computeContentAssist("function fun(a, b, c) {}\nfunction other(a, b, c) {/**/}", "");
+			var results = computeContentAssist("function fun(a, b, c) {}\nfunction other(a, b, c) {}", "", 49);
 			return testProposals(results, [
 				["a", "a : {}"],
 				["arguments", "arguments : Arguments"],
@@ -595,7 +595,7 @@ define([
 			]);
 		});
 		it("test in function 2", function() {
-			var results = computeContentAssist("function fun(a, b, c) {}\nfunction other(a, b, c) {\n/**/nuthin}", "");
+			var results = computeContentAssist("function fun(a, b, c) {}\nfunction other(a, b, c) {\nnuthin}", "", 50);
 			return testProposals(results, [
 				["a", "a : {}"],
 				["arguments", "arguments : Arguments"],
@@ -639,14 +639,14 @@ define([
 			]);
 		});
 		it("test in function 3", function() {
-			var results = computeContentAssist("function fun(a, b, c) {}\nfunction other(a, b, c) {f/**/}", "f");
+			var results = computeContentAssist("function fun(a, b, c) {}\nfunction other(a, b, c) {f}", "f", 51);
 			return testProposals(results, [
 				["fun(a, b, c)", "fun(a, b, c) : undefined"],
 				["Function()", "Function() : Function"]
 			]);
 		});
 		it("test in function 4", function() {
-			var results = computeContentAssist("function fun(a, b, c) {}\nfunction other(aa, ab, c) {a/**/}", "a");
+			var results = computeContentAssist("function fun(a, b, c) {}\nfunction other(aa, ab, c) {a}", "a", 53);
 			return testProposals(results, [
 				["aa", "aa : {}"],
 				["ab", "ab : {}"],
@@ -656,7 +656,7 @@ define([
 			]);
 		});
 		it("test in function 5", function() {
-			var results = computeContentAssist("function fun(a, b, c) {}\nfunction other(aa, ab, c) {var abb;\na/**/\nvar aaa}", "a");
+			var results = computeContentAssist("function fun(a, b, c) {}\nfunction other(aa, ab, c) {var abb;\na\nvar aaa}", "a", 62);
 			return testProposals(results, [
 				["aaa", "aaa : {}"],
 				["abb", "abb : {}"],
@@ -669,10 +669,7 @@ define([
 			]);
 		});
 		it("test in function 6", function() {
-			var results = computeContentAssist(
-			"function fun(a, b, c) {\n" +
-			"function other(aa, ab, c) {\n"+
-			"var abb;\na/**/\nvar aaa\n}\n}", "a");
+			var results = computeContentAssist("function fun(a, b, c) {\n function other(aa, ab, c) {\n var abb;\na\nvar aaa\n}\n}", "a", 65);
 			return testProposals(results, [
 				["aaa", "aaa : {}"],
 				["abb", "abb : {}"],
@@ -689,9 +686,9 @@ define([
 		it("test in function 7", function() {
 			// should not see 'aaa' or 'abb' since declared in another function
 			var results = computeContentAssist(
-			"function fun(a, b, c) {/**/\n" +
+			"function fun(a, b, c) {\n" +
 			"function other(aa, ab, ac) {\n"+
-			"var abb;\na\nvar aaa\n}\n}");
+			"var abb;\na\nvar aaa\n}\n}", "", 23);
 			return testProposals(results, [
 				["a", "a : {}"],
 				["arguments", "arguments : Arguments"],
@@ -735,10 +732,7 @@ define([
 		});
 		it("test in function 8", function() {
 			// should not see 'aaa' since that is declared later
-			var results = computeContentAssist(
-			"function fun(a, b, c) {\n" +
-			"function other(aa, ab, ac) {\n"+
-			"var abb;\na\nvar aaa\n} /**/\n}");
+			var results = computeContentAssist("function fun(a, b, c) {\nfunction other(aa, ab, ac) {\n var abb;\na\nvar aaa\n} \n}", "", 75);
 			return testProposals(results, [
 				["other(aa, ab, ac)", "other(aa, ab, ac) : undefined"],
 				["", "---------------------------------"],
@@ -781,8 +775,19 @@ define([
 				["valueOf()", "valueOf() : Object"]
 			]);
 		});
-	
-	
+	    
+	    /**
+	    * Tests inferencing with $$-qualified members
+	    * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439628
+	    * @since 7.0
+	    */
+	    it("test inferencing $$-qualified member types", function() {
+			var results = computeContentAssist("var baz = foo.$$fntype && foo.$$fntype.foo;A", "A", 44);
+			return testProposals(results, [
+			     ["Array([val])", "Array([val]) : Array"]
+			]);
+		});
+	    
 		// all inferencing based content assist tests here
 		it("test Object inferencing with Variable", function() {
 			var results = computeContentAssist("var t = {}\nt.h", "h");
@@ -867,7 +872,7 @@ define([
 		});
 	
 		it("test Object Literal inside", function() {
-			var results = computeContentAssist("var x = { the : 1, far : this.th/**/ };", "th");
+			var results = computeContentAssist("var x = { the : 1, far : this.th };", "th", 32);
 			return testProposals(results, [
 				["the", "the : Number"]
 			]);
@@ -890,13 +895,13 @@ define([
 			]);
 		});
 		it("test Object Literal outside 3", function() {
-			var results = computeContentAssist("var x = { the : 1, far : 2 };\nwho(x.th/**/)", "th");
+			var results = computeContentAssist("var x = { the : 1, far : 2 };\nwho(x.th)", "th", 38);
 			return testProposals(results, [
 				["the", "the : Number"]
 			]);
 		});
 		it("test Object Literal outside 4", function() {
-			var results = computeContentAssist("var x = { the : 1, far : 2 };\nwho(yyy, x.th/**/)", "th");
+			var results = computeContentAssist("var x = { the : 1, far : 2 };\nwho(yyy, x.th)", "th", 43);
 			return testProposals(results, [
 				["the", "the : Number"]
 			]);
@@ -916,7 +921,7 @@ define([
 	
 		// not working since for loop is not storing slocs of var ii
 		it("test for loop 1", function() {
-			var results = computeContentAssist("for (var ii=0;i/**/<8;ii++) { ii }", "i");
+			var results = computeContentAssist("for (var ii=0;i<8;ii++) { ii }", "i", 15);
 			return testProposals(results, [
 				["isFinite(num)", "isFinite(num) : Boolean"],
 				["isNaN(num)", "isNaN(num) : Boolean"],
@@ -927,7 +932,7 @@ define([
 			]);
 		});
 		it("test for loop 2", function() {
-			var results = computeContentAssist("for (var ii=0;ii<8;i/**/++) { ii }", "i");
+			var results = computeContentAssist("for (var ii=0;ii<8;i++) { ii }", "i", 20);
 			return testProposals(results, [
 				["isFinite(num)", "isFinite(num) : Boolean"],
 				["isNaN(num)", "isNaN(num) : Boolean"],
@@ -938,7 +943,7 @@ define([
 			]);
 		});
 		it("test for loop 3", function() {
-			var results = computeContentAssist("for (var ii=0;ii<8;ii++) { i/**/ }", "i");
+			var results = computeContentAssist("for (var ii=0;ii<8;ii++) { i }", "i", 28);
 			return testProposals(results, [
 				["isFinite(num)", "isFinite(num) : Boolean"],
 				["isNaN(num)", "isNaN(num) : Boolean"],
@@ -949,25 +954,25 @@ define([
 			]);
 		});
 		it("test while loop 1", function() {
-			var results = computeContentAssist("var iii;\nwhile(ii/**/ === null) {\n}", "ii");
+			var results = computeContentAssist("var iii;\nwhile(ii === null) {\n}", "ii", 17);
 			return testProposals(results, [
 				["iii", "iii : {}"]
 			]);
 		});
 		it("test while loop 2", function() {
-			var results = computeContentAssist("var iii;\nwhile(this.ii/**/ === null) {\n}", "ii");
+			var results = computeContentAssist("var iii;\nwhile(this.ii === null) {\n}", "ii", 22);
 			return testProposals(results, [
 				["iii", "iii : {}"]
 			]);
 		});
 		it("test while loop 3", function() {
-			var results = computeContentAssist("var iii;\nwhile(iii === null) {this.ii/**/\n}", "ii");
+			var results = computeContentAssist("var iii;\nwhile(iii === null) {this.ii\n}", "ii", 37);
 			return testProposals(results, [
 				["iii", "iii : {}"]
 			]);
 		});
 		it("test catch clause 1", function() {
-			var results = computeContentAssist("try { } catch (eee) {e/**/  }", "e");
+			var results = computeContentAssist("try { } catch (eee) {e  }", "e", 22);
 			return testProposals(results, [
 				["eee", "eee : Error"],
 				["", "---------------------------------"],
@@ -979,7 +984,7 @@ define([
 		});
 		it("test catch clause 2", function() {
 			// the type of the catch variable is Error
-			var results = computeContentAssist("try { } catch (eee) {\neee.me/**/  }", "me");
+			var results = computeContentAssist("try { } catch (eee) {\neee.me  }", "me", 28);
 			return testProposals(results, [
 				["message", "message : String"]
 			]);
@@ -990,7 +995,7 @@ define([
 		// since we don't really have any idea if the global object will be passed as 'this'
 		// it("test get global var"] = function() {
 		// 	// should infer that we are referring to the globally defined xxx, not the param
-		// 	var results = computeContentAssist("var xxx = 9;\nfunction fff(xxx) { this.xxx.toF/**/}", "toF");
+		// 	var results = computeContentAssist("var xxx = 9;\nfunction fff(xxx) { this.xxx.toF}", "toF", 45);
 		// 	return testProposals(results, [
 		// 		["toFixed(digits)", "toFixed(digits) : Number"]
 		// 	]);
@@ -998,7 +1003,7 @@ define([
 	
 		it("test get local var", function() {
 			// should infer that we are referring to the locally defined xxx, not the global
-			var results = computeContentAssist("var xxx = 9;\nfunction fff(xxx) { xxx.toF/**/}", "toF");
+			var results = computeContentAssist("var xxx = 9;\nfunction fff(xxx) { xxx.toF}", "toF", 40);
 			return testProposals(results, [
 			]);
 		});
@@ -1017,7 +1022,7 @@ define([
 		});
 		it("test Math 3", function() {
 			// Math not available when this isn't the global this
-			var results = computeContentAssist("var ff = { f: this.Mat/**/ }", "Mat");
+			var results = computeContentAssist("var ff = { f: this.Mat }", "Mat", 22);
 			return testProposals(results, [
 			]);
 		});
@@ -1063,7 +1068,7 @@ define([
 		});
 		it("test constructor 1", function() {
 			var results = computeContentAssist(
-			"function Fun() {\n	this.xxx = 9;\n	this.uuu = this.x/**/;}", "x");
+			"function Fun() {\n	this.xxx = 9;\n	this.uuu = this.x;}", "x", 50);
 			return testProposals(results, [
 				["xxx", "xxx : Number"]
 			]);
@@ -1170,7 +1175,7 @@ define([
 	
 		it("test Function args 1", function() {
 			var results = computeContentAssist(
-			"var ttt, uuu;\nttt(/**/)");
+			"var ttt, uuu;\nttt()", "", 18);
 			return testProposals(results, [
 				["Array([val])", "Array([val]) : Array"],
 				["Boolean([val])", "Boolean([val]) : Boolean"],
@@ -1209,7 +1214,7 @@ define([
 		});
 		it("test Function args 2", function() {
 			var results = computeContentAssist(
-			"var ttt, uuu;\nttt(ttt, /**/)");
+			"var ttt, uuu;\nttt(ttt, )", "", 23);
 			return testProposals(results, [
 				["Array([val])", "Array([val]) : Array"],
 				["Boolean([val])", "Boolean([val]) : Boolean"],
@@ -1248,7 +1253,7 @@ define([
 		});
 		it("test Function args 3", function() {
 			var results = computeContentAssist(
-			"var ttt, uuu;\nttt(ttt, /**/, uuu)");
+			"var ttt, uuu;\nttt(ttt, , uuu)", "", 23);
 			return testProposals(results, [
 				["Array([val])", "Array([val]) : Array"],
 				["Boolean([val])", "Boolean([val]) : Boolean"],
@@ -1289,7 +1294,7 @@ define([
 		// check that function args don't get assigned the same type
 		it("test function args 4", function() {
 			var results = computeContentAssist(
-				"function tt(aaa, bbb) { aaa.foo = 9;bbb.foo = ''\naaa.f/**/}", "f");
+				"function tt(aaa, bbb) { aaa.foo = 9;bbb.foo = ''\naaa.f}", "f", 54);
 			return testProposals(results, [
 				["foo", "foo : Number"]
 			]);
@@ -1298,7 +1303,7 @@ define([
 		// check that function args don't get assigned the same type
 		it("test function args 5", function() {
 			var results = computeContentAssist(
-				"function tt(aaa, bbb) { aaa.foo = 9;bbb.foo = ''\nbbb.f/**/}", "f");
+				"function tt(aaa, bbb) { aaa.foo = 9;bbb.foo = ''\nbbb.f}", "f", 54);
 			return testProposals(results, [
 				["foo", "foo : String"]
 			]);
@@ -1316,10 +1321,7 @@ define([
 	//	});
 		it("test constructor 6", function() {
 			var results = computeContentAssist(
-			"function Fun2() {\n" +
-			"function Fun() {	this.xxx = 9;	this.uuu = this.xxx; }\n" +
-			"var y = new Fun();\n" +
-			"y.uuu.toF/**/}", "toF");
+			"function Fun2() {\n function Fun() {	this.xxx = 9;	this.uuu = this.xxx; }\n var y = new Fun();\n y.uuu.toF}", "toF", 103);
 			return testProposals(results, [
 				["toFixed(digits)", "toFixed(digits) : String"]
 			]);
@@ -1518,9 +1520,9 @@ define([
 				["valueOf()", "valueOf() : Object"]
 			]);
 		});
-		// same as above, except use /**/
+		// same as above, except use 
 		it("test broken after dot 3a", function() {
-			var results = computeContentAssist("var ttt = { ooo:this./**/};", "");
+			var results = computeContentAssist("var ttt = { ooo:this.};", "", 21);
 			return testProposals(results, [
 				["ooo", "ooo : {ooo:{ooo:{...}}}"],
 				["", "---------------------------------"],
@@ -1546,9 +1548,9 @@ define([
 				["valueOf()", "valueOf() : Object"]
 			]);
 		});
-		// same as above, except use /**/
+		// same as above, except use 
 		it("test broken after dot 4a", function() {
-			var results = computeContentAssist("var ttt = { ooo:8};\nfunction ff() { \nttt./**/}", "");
+			var results = computeContentAssist("var ttt = { ooo:8};\nfunction ff() { \nttt.}", "", 41);
 			return testProposals(results, [
 				["ooo", "ooo : Number"],
 				["", "---------------------------------"],
@@ -1899,7 +1901,7 @@ define([
 		// should see an implicit even if it comes after the invocation location
 		it("test implicit7", function() {
 			var results = computeContentAssist(
-				"xx/**/\nxxx", "xx");
+				"xx \nxxx", "xx", 2);
 			return testProposals(results, [
 				["xxx", "xxx : {}"]
 			]);
@@ -2253,9 +2255,6 @@ define([
 			]);
 		});
 	
-	
-	
-	
 		// should not be able to redefine or add to global types
 		it("test global redefine1", function() {
 			var results = computeContentAssist(
@@ -2286,6 +2285,77 @@ define([
 			]);
 		});
 		
+		/**
+		 * Tests support for the eslint-env directive to find global objects
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439056
+		 * @since 7.0
+		 */
+		it("test browser eslint-env 1", function() {
+			var results = computeContentAssist(
+				"/*eslint-env browser*/\n" +
+				"win", "win"
+			);
+			return testProposals(results, [
+				["window", "window : Global"]
+			]);
+		});
+		
+		/**
+		 * Tests support for the eslint-env directive to find global objects
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439056
+		 * @since 7.0
+		 */
+		it("test browser eslint-env 2", function() {
+			var results = computeContentAssist(
+				"/*eslint-env browser*/\n" +
+				"JSON.st", "st");
+			return testProposals(results, [
+				["stringify(json)", "stringify(json) : String"]
+			]);
+		});
+		
+		/**
+		 * Tests support for the eslint-env directive to find global objects
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439056
+		 * @since 7.0
+		 */
+		it("test browser eslint-env 3", function() {
+			var results = computeContentAssist(
+				"/*eslint-env browser node*/\n" +
+				"win", "win"
+			);
+			return testProposals(results, [
+				["window", "window : Global"]
+			]);
+		});
+		/**
+		 * Tests support for the eslint-env directive to find global objects
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439056
+		 * @since 7.0
+		 */
+		it("test browser eslint-env 4", function() {
+			var results = computeContentAssist(
+				"/*eslint-env node browser*/\n" +
+				"win", "win"
+			);
+			return testProposals(results, [
+				["window", "window : Global"]
+			]);
+		});
+		
+		/**
+		 * Tests support for the eslint-env directive to find global objects
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439056
+		 * @since 7.0
+		 */
+		it("test browser eslint-env 5", function() {
+			var results = computeContentAssist(
+				"/*eslint-env */\n" +
+				"win", "win", null, {options:{browser:true}}
+			);
+			return testProposals(results, []);
+		});
+		
 		// browser awareness
 		it("test browser2", function() {
 			var results = computeContentAssist(
@@ -2297,7 +2367,7 @@ define([
 				
 			]);
 		});
-	
+	       
 		// regular stuff should still work in the browser
 		it("test browser3", function() {
 			var results = computeContentAssist(
@@ -2383,17 +2453,6 @@ define([
 			]);
 		});
 	
-		// redundant with "test browser1"
-	//	it("test browser10", function() {
-	//		var results = computeContentAssist(
-	//			"/*jslint browser:true*/\n" +
-	//			"thi", "thi"
-	//		);
-	//		return testProposals(results, [
-	//			["this", "this : Window"]
-	//		]);
-	//	});
-	
 		// browser takes higher precedence than node
 		it("test browser11", function() {
 			var results = computeContentAssist(
@@ -2456,6 +2515,57 @@ define([
 			]);
 		});
 	
+	    /**
+		 * Tests support for the eslint-env directive to find global objects
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439056
+		 * @since 7.0
+		 */
+		it("test node eslint-env 1", function() {
+			var results = computeContentAssist(
+				"/*eslint-env node*/\n" +
+				"glo", "glo"
+			);
+			return testProposals(results, [
+				["global", "global : Global"]
+			]);
+		});
+		/**
+		 * Tests support for the eslint-env directive to find global objects
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439056
+		 * @since 7.0
+		 */
+		it("test node eslint-env 2", function() {
+			var results = computeContentAssist(
+				"/*eslint-env */\n" +
+				"glo", "glo", null, {options:{node:true}}
+			);
+			return testProposals(results, []);
+		});
+		/**
+		 * Tests support for the eslint-env directive to find global objects
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439056
+		 * @since 7.0
+		 */
+		it("test node eslint-env 3", function() {
+			var results = computeContentAssist(
+				"/*eslint-env amd*/\n" +
+				"require(\"fs\").mk", "mk"
+			);
+			return testProposals(results, []);
+		});
+		/**
+		 * Tests support for the eslint-env directive to find global objects
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439056
+		 * @since 7.0
+		 */
+		it("test node eslint-env 4", function() {
+			var results = computeContentAssist(
+				"/*eslint-env browser*/\n" +
+				"require(\"fs\").mk", "mk"
+			);
+			return testProposals(results, []);
+		});
+		
 		// node awareness
 		it("test node2", function() {
 			var results = computeContentAssist(
@@ -2566,7 +2676,9 @@ define([
 				"process.", ""
 			);
 			// just testing that we don't crash
-			return results.then(function () {});
+			return results.then(function () {
+			    //empty
+			});
 		});
 	
 		// node awareness
@@ -2677,7 +2789,7 @@ define([
 			// the basics
 			it("test simple jsdoc1", function() {
 				var results = computeContentAssist(
-					"/** @type Number*/\n" +
+					"/** @type {Number}*/\n" +
 					"var xx;\nx", "x"
 				);
 				return testProposals(results, [
@@ -2688,8 +2800,8 @@ define([
 			//jsdoc test
 			it("test simple jsdoc2", function() {
 				var results = computeContentAssist(
-					"/** @type String*/\n" +
-					"/** @type Number*/\n" +
+					"/** @type {String}*/\n" +
+					"/** @type {Number}*/\n" +
 					"var xx;\nx", "x"
 				);
 				return testProposals(results, [
@@ -2700,8 +2812,8 @@ define([
 			//jsdoc test
 			it("test simple jsdoc3", function() {
 				var results = computeContentAssist(
-					"/** @type Number*/\n" +
-					"/* @type String*/\n" +
+					"/** @type {Number}*/\n" +
+					"/* @type {String}*/\n" +
 					"var xx;\nx", "x"
 				);
 				return testProposals(results, [
@@ -2712,8 +2824,8 @@ define([
 			//jsdoc test
 			it("test simple jsdoc4", function() {
 				var results = computeContentAssist(
-					"/** @type Number*/\n" +
-					"// @type String\n" +
+					"/** @type {Number}*/\n" +
+					"// @type {String}\n" +
 					"var xx;\nx", "x"
 				);
 				return testProposals(results, [
@@ -2724,8 +2836,8 @@ define([
 			// This is actually a bug.  We incorrectly recognize //* comments as jsdoc coments
 			it("test simple jsdoc5", function() {
 				var results = computeContentAssist(
-					"/** @type Number*/\n" +
-					"//* @type String\n" +
+					"/** @type {Number}*/\n" +
+					"//* @type {String}\n" +
 					"var xx;\nx", "x"
 				);
 				return testProposals(results, [
@@ -2736,9 +2848,9 @@ define([
 			//jsdoc test
 			it("test simple jsdoc6", function() {
 				var results = computeContentAssist(
-					"/** @type String*/\n" +
+					"/** @type {String}*/\n" +
 					"var yy;\n" +
-					"/** @type Number*/\n" +
+					"/** @type {Number}*/\n" +
 					"var xx;\nx", "x"
 				);
 				return testProposals(results, [
@@ -2749,9 +2861,9 @@ define([
 			//jsdoc test
 			it("test simple jsdoc7", function() {
 				var results = computeContentAssist(
-					"/** @type String*/" +
+					"/** @type {String}*/" +
 					"var yy;" +
-					"/** @type Number*/" +
+					"/** @type {Number}*/" +
 					"var xx;x", "x"
 				);
 				return testProposals(results, [
@@ -2762,7 +2874,7 @@ define([
 			//jsdoc test
 			it("test simple jsdoc8", function() {
 				var results = computeContentAssist(
-					"/** @returns String\n@type Number*/\n" +
+					"/** @returns {String}\n@type {Number}*/\n" +
 					"var xx;\nx", "x"
 				);
 				return testProposals(results, [
@@ -2773,7 +2885,7 @@ define([
 			//jsdoc test
 			it("test simple jsdoc9", function() {
 				var results = computeContentAssist(
-					"/** @param String f\n@type Number*/\n" +
+					"/** @param {String} f\n@type {Number}*/\n" +
 					"var xx;\nx", "x"
 				);
 				return testProposals(results, [
@@ -2784,7 +2896,7 @@ define([
 			//jsdoc test
 			it("test simple jsdoc10", function() {
 				var results = computeContentAssist(
-					"/** @return Number*/\n" +
+					"/** @return {Number}*/\n" +
 					"var xx = function() { };\nx", "x"
 				);
 				return testProposals(results, [
@@ -2795,7 +2907,7 @@ define([
 			//jsdoc test
 			it("test simple jsdoc11", function() {
 				var results = computeContentAssist(
-					"/** @type String\n@return Number*/\n" +
+					"/** @type {String}\n@return {Number}*/\n" +
 					"var xx = function() { };\nx", "x"
 				);
 				return testProposals(results, [
@@ -2807,7 +2919,7 @@ define([
 			it("test simple jsdoc12", function() {
 				var results = computeContentAssist(
 					"var xx;\n" +
-					"/** @type String\n@return Number*/\n" +
+					"/** @type {String}\n@return {Number}*/\n" +
 					"xx = function() { };\nx", "x"
 				);
 				return testProposals(results, [
@@ -2818,10 +2930,7 @@ define([
 			// @type overrides @return
 			it("test simple jsdoc13", function() {
 				var results = computeContentAssist(
-					"var xx;\n" +
-					"/** @type String\n@param Number ss*/\n" +
-					"xx = function(yy) { y/**/ };", "y"
-				);
+					"var xx;\n /** @type String\n@param Number ss*/\n xx = function(yy) { y };", "y", 67);
 				return testProposals(results, [
 					["yy", "yy : {}"]
 				]);
@@ -2830,10 +2939,7 @@ define([
 			//jsdoc test
 			it("test simple jsdoc15", function() {
 				var results = computeContentAssist(
-					"var xx;\n" +
-					"/** @param Number ss\n@return String*/\n" +
-					"xx = function(yy) { y/**/ };", "y"
-				);
+					"var xx;\n /** @param {Number} ss\n@return {String}*/\n xx = function(yy) { y };", "y", 73);
 				return testProposals(results, [
 					["yy", "yy : {}"]
 				]);
@@ -2842,9 +2948,9 @@ define([
 			//jsdoc test
 			it("test simple jsdoc14", function() {
 				var results = computeContentAssist(
-					"/** @type Number*/\n" +
+					"/** @type {Number}*/\n" +
 					"var xx;\n" +
-					"/** @type String*/\n" +
+					"/** @type {String}*/\n" +
 					"xx;\nx", "x"
 				);
 				return testProposals(results, [
@@ -3061,9 +3167,7 @@ define([
 			// the param tag
 			it("test param jsdoc1", function() {
 				var results = computeContentAssist(
-					"/** @param {String} xx1\n@param {Number} xx2 */" +
-					"var flart = function(xx1,xx2) { xx/**/ }",
-					"xx");
+					"/** @param {String} xx1\n@param {Number} xx2 */ var flart = function(xx1,xx2) { xx }", "xx", 81);
 				return testProposals(results, [
 					["xx1", "xx1 : String"],
 					["xx2", "xx2 : Number"]
@@ -3073,9 +3177,8 @@ define([
 			//jsdoc test
 			it("test param jsdoc2", function() {
 				var results = computeContentAssist(
-					"/** @param {Number} xx2\n@param {String} xx1\n */" +
-					"var flart = function(xx1,xx2) { xx/**/ }",
-					"xx");
+					"/** @param {Number} xx2\n@param {String} xx1\n */ var flart = function(xx1,xx2) { xx }",
+					"xx", 82);
 				return testProposals(results, [
 					["xx1", "xx1 : String"],
 					["xx2", "xx2 : Number"]
@@ -3085,9 +3188,8 @@ define([
 			//jsdoc test
 			it("test param jsdoc3", function() {
 				var results = computeContentAssist(
-					"/** @param {function(String,Number):Number} xx2\n */" +
-					"var flart = function(xx1,xx2) { xx/**/ }",
-					"xx");
+					"/** @param {function(String,Number):Number} xx2\n */ var flart = function(xx1,xx2) { xx }",
+					"xx", 86);
 				return testProposals(results, [
 					["xx2(String, Number)", "xx2(String, Number) : Number"],
 					["xx1", "xx1 : {}"]
@@ -3097,9 +3199,8 @@ define([
 			//jsdoc test
 			it("test param jsdoc4", function() {
 				var results = computeContentAssist(
-					"/** @param {function(a:String,Number):Number} xx2\n */" +
-					"var flart = function(xx1,xx2) { xx/**/ }",
-					"xx");
+					"/** @param {function(a:String,Number):Number} xx2\n */ var flart = function(xx1,xx2) { xx }",
+					"xx", 88);
 				return testProposals(results, [
 					["xx2(a, Number)", "xx2(a, Number) : Number"],
 					["xx1", "xx1 : {}"]
@@ -3109,9 +3210,8 @@ define([
 			//jsdoc test
 			it("test param jsdoc5", function() {
 				var results = computeContentAssist(
-					"/** @param {function(a:String,?Number):Number} xx2\n */" +
-					"var flart = function(xx1,xx2) { xx/**/ }",
-					"xx");
+					"/** @param {function(a:String,?Number):Number} xx2\n */ var flart = function(xx1,xx2) { xx }",
+					"xx", 89);
 				return testProposals(results, [
 					["xx2(a, arg1)", "xx2(a, arg1) : Number"],
 					["xx1", "xx1 : {}"]
@@ -3180,10 +3280,7 @@ define([
 			// SCRIPTED-138 jsdoc support for functions parameters that are in object literals
 			it("test object literal fn param jsdoc1", function() {
 				var results = computeContentAssist(
-					"var obj = {\n" +
-					"  /** @param {String} foo */\n" +
-					"  fun : function(foo) { foo/**/ }\n" +
-					"}", "foo");
+					"var obj = {\n  /** @param {String} foo */\n fun : function(foo) { foo }\n}", "foo", 67);
 				return testProposals(results, [
 					["foo", "foo : String"]
 				]);
@@ -3220,7 +3317,7 @@ define([
 			it("test dotted constructor jsdoc type 1", function() {
 				var results = computeContentAssist(
 					"var obj = { Fun : function() {} };\n" +
-					"/** @type obj.Fun */ var xxx;\nxx", "xx");
+					"/** @type {obj.Fun} */ var xxx;\nxx", "xx");
 				return testProposals(results, [
 					["xxx", "xxx : obj.Fun"]
 				]);
@@ -3230,7 +3327,7 @@ define([
 			it("test dotted constructor jsdoc type 2", function() {
 				var results = computeContentAssist(
 					"var obj = { Fun : function() { this.yyy = 9; } };\n" +
-					"/** @type obj.Fun */ var xxx;\nxxx.yy", "yy");
+					"/** @type {obj.Fun} */ var xxx;\nxxx.yy", "yy");
 				return testProposals(results, [
 					["yyy", "yyy : Number"]
 				]);
@@ -3239,7 +3336,7 @@ define([
 			// arrays and array types
 			it("test array type1", function() {
 				var results = computeContentAssist(
-					"/** @type [Number] */ var xxx;\nxxx[0].toF", "toF");
+					"/** @type {[Number]} */ var xxx;\nxxx[0].toF", "toF");
 				return testProposals(results, [
 					["toFixed(digits)", "toFixed(digits) : String"]
 				]);
@@ -3247,7 +3344,7 @@ define([
 			it("test array type2", function() {
 				var results = computeContentAssist(
 					// ignoring the second type
-					"/** @type [Number,String] */ var xxx;\nxxx[0].toF", "toF");
+					"/** @type {[Number,String]} */ var xxx;\nxxx[0].toF", "toF");
 				return testProposals(results, [
 					["toFixed(digits)", "toFixed(digits) : String"]
 				]);
@@ -3255,7 +3352,7 @@ define([
 			it("test array type3", function() {
 				var results = computeContentAssist(
 					// ignoring the second type
-					"/** @type Array.<Number> */ var xxx;\nxxx[0].toF", "toF");
+					"/** @type {Array.<Number>} */ var xxx;\nxxx[0].toF", "toF");
 				return testProposals(results, [
 					["toFixed(digits)", "toFixed(digits) : String"]
 				]);
@@ -3263,7 +3360,7 @@ define([
 			it("test array type3a", function() {
 				var results = computeContentAssist(
 					// ignoring the second type
-					"/** @type [Number] */ var xxx;\nxxx[0].toF", "toF");
+					"/** @type {[Number]} */ var xxx;\nxxx[0].toF", "toF");
 				return testProposals(results, [
 					["toFixed(digits)", "toFixed(digits) : String"]
 				]);
@@ -3271,7 +3368,7 @@ define([
 			it("test array type4", function() {
 				var results = computeContentAssist(
 					// ignoring the second type
-					"/** @type Array.<{foo:Number}> */ var xxx;\nxxx[0].foo.toF", "toF");
+					"/** @type {Array.<{foo:Number}>} */ var xxx;\nxxx[0].foo.toF", "toF");
 				return testProposals(results, [
 					["toFixed(digits)", "toFixed(digits) : String"]
 				]);
@@ -3279,7 +3376,7 @@ define([
 			it("test array type5", function() {
 				var results = computeContentAssist(
 					// ignoring the second type
-					"/** @type Array.<Array.<Number>> */ var xxx;\nxxx[0][0].toF", "toF");
+					"/** @type {Array.<Array.<Number>>} */ var xxx;\nxxx[0][0].toF", "toF");
 				return testProposals(results, [
 					["toFixed(digits)", "toFixed(digits) : String"]
 				]);
@@ -3287,7 +3384,7 @@ define([
 			it("test array type6", function() {
 				var results = computeContentAssist(
 					// ignoring the second type
-					"/** @type Array.<Array.<Array.<Number>>> */ var xxx;\nxxx[0][0][bar].toF", "toF");
+					"/** @type {Array.<Array.<Array.<Number>>>} */ var xxx;\nxxx[0][0][bar].toF", "toF");
 				return testProposals(results, [
 					["toFixed(digits)", "toFixed(digits) : String"]
 				]);
@@ -3742,9 +3839,7 @@ define([
 	
 		it("test computed member expressions6", function() {
 			var results = computeContentAssist(
-				"var x = 0;\n" +
-				"var foo = [];\n" +
-				"foo[x./**/]");
+				"var x = 0;\n var foo = [];\n foo[x.]", "", 33);
 			return testProposals(results, [
 				["toExponential(digits)", "toExponential(digits) : String"],
 				["toFixed(digits)", "toFixed(digits) : String"],
@@ -3765,66 +3860,60 @@ define([
 		/////////////////////////////////////
 		it("test full file inferecing 1", function() {
 			var results = computeContentAssist(
-				"x/**/;\n" +
-				"var x = 0;", "x");
+				"x;\n var x = 0;", "x", 1);
 			return testProposals(results, [
 				["x", "x : Number"]
 			]);
 		});
 		it("test full file inferecing 2", function() {
 			var results = computeContentAssist(
-				"function a() { x/**/; }\n" +
-				"var x = 0;", "x");
+				"function a() { x; }\n var x = 0;", "x", 16);
 			return testProposals(results, [
 				["x", "x : Number"]
 			]);
 		});
 		it("test full file inferecing 3", function() {
 			var results = computeContentAssist(
-				"function a() { var y = x; y/**/}\n" +
-				"var x = 0;", "y");
+				"function a() { var y = x; y}\n var x = 0;", "y", 27);
 			return testProposals(results, [
 				["y", "y : Number"]
 			]);
 		});
 		it("test full file inferecing 4", function() {
 			var results = computeContentAssist(
-				"function a() { var y = x.fff; y/**/}\n" +
-				"var x = { fff : 0 };", "y");
+				"function a() { var y = x.fff; y}\n var x = { fff : 0 };", "y", 31);
 			return testProposals(results, [
 				["y", "y : Number"]
 			]);
 		});
 		it("test full file inferecing 5", function() {
 			var results = computeContentAssist(
-				"function a() { var y = x.fff; y/**/}\n" +
-				"var x = {};\n" +
-				"x.fff = 8;", "y");
+				"function a() { var y = x.fff; y}\n var x = {};\n x.fff = 8;", "y", 31);
 			return testProposals(results, [
 				["y", "y : Number"]
 			]);
 		});
 		it("test full file inferecing 6", function() {
 			var results = computeContentAssist(
-				"function a() { x.fff = ''; var y = x.fff; y/**/}\n" +
+				"function a() { x.fff = ''; var y = x.fff; y}\n" +
 				"var x = {};\n" +
-				"x.fff = 8;", "y");
+				"x.fff = 8;", "y", 43);
 			return testProposals(results, [
 				["y", "y : String"]
 			]);
 		});
 		it("test full file inferecing 7", function() {
 			var results = computeContentAssist(
-				"function a() { x.fff = ''; var y = x(); y/**/}\n" +
-				"var x = function() { return 8; }", "y");
+				"function a() { x.fff = ''; var y = x(); y}\n" +
+				"var x = function() { return 8; }", "y", 41);
 			return testProposals(results, [
 				["y", "y : Number"]
 			]);
 		});
 		it("test full file inferecing 8", function() {
 			var results = computeContentAssist(
-				"function a() { x.fff = ''; var y = z(); y/**/}\n" +
-				"var x = function() { return 8; }, z = x", "y");
+				"function a() { x.fff = ''; var y = z(); y}\n" +
+				"var x = function() { return 8; }, z = x", "y", 41);
 			return testProposals(results, [
 				["y", "y : Number"]
 			]);
@@ -3832,27 +3921,14 @@ define([
 	
 		it("test full file inferecing 9", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"  function b() {\n" +
-				"    x.fff = '';\n" +
-				"  }\n" +
-				"  x.f/**/\n" +
-				"}\n" +
-				"var x = {};", "f");
+				"function a() {\n function b() {\n x.fff = '';\n }\n x.f\n}\n var x = {};", "f", 51);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
 		});
 		it("test full file inferecing 10", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"  function b() {\n" +
-				"    x.fff = '';\n" +
-				"  }\n" +
-				"  var y = x;\n" +
-				"  y.f/**/\n" +
-				"}\n" +
-				"var x = {};", "f");
+				"function a() {\n function b() {\n x.fff = '';\n }\n var y = x;\n y.f\n }\n var x = {};", "f", 63);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
@@ -3860,14 +3936,7 @@ define([
 	
 		it("test full file inferecing 11a", function() {
 			var results = computeContentAssist(
-				"var x = {};\n" +
-				"function a() {\n" +
-				"  var y = x;\n" +
-				"  y.f/**/\n" +
-				"  function b() {\n" +
-				"    x.fff = '';\n" +
-				"  }\n" +
-				"}", "f");
+				"var x = {};\n function a() {\n var y = x;\n y.f\n function b() {\n x.fff = '';\n}\n}", "f", 44);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
@@ -3875,14 +3944,7 @@ define([
 	
 		it("test full file inferecing 11", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"  var y = x;\n" +
-				"  y.f/**/\n" +
-				"  function b() {\n" +
-				"    x.fff = '';\n" +
-				"  }\n" +
-				"}\n" +
-				"var x = {};", "f");
+				"function a() {\n var y = x;\n y.f\n function b() {\n x.fff = '';\n }\n }\n var x = {};", "f", 31);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
@@ -3890,12 +3952,7 @@ define([
 	
 		it("test full file inferecing 12", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"  var y = x;\n" +
-				"  y.f/**/\n" +
-				"  x.fff = '';\n" +
-				"}\n" +
-				"var x = {};", "f");
+				"function a() {\n var y = x;\n y.f\n x.fff = '';\n }\n var x = {};", "f", 31);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
@@ -3903,14 +3960,7 @@ define([
 	
 		it("test full file inferecing 13", function() {
 			var results = computeContentAssist(
-				"function b() {\n" +
-				"  x.fff = '';\n" +
-				"}\n" +
-				"function a() {\n" +
-				"  var y = x;\n" +
-				"  y.f/**/\n" +
-				"}\n" +
-				"var x = {};", "f");
+				"function b() {\n x.fff = '';\n }\n function a() {\n var y = x;\n y.f\n }\n var x = {};", "f", 63);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
@@ -3918,14 +3968,7 @@ define([
 	
 		it("test full file inferecing 14", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"  var y = x;\n" +
-				"  y.f/**/\n" +
-				"}\n" +
-				"function b() {\n" +
-				"  x.fff = '';\n" +
-				"}\n" +
-				"var x = {};", "f");
+				"function a() {\n  var y = x;\n y.f\n }\n function b() {\n x.fff = '';\n }\n var x = {};", "f", 32);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
@@ -3933,13 +3976,7 @@ define([
 	
 		it("test full file inferecing 15", function() {
 			var results = computeContentAssist(
-				"function b() {\n" +
-				"  x.fff = '';\n" +
-				"}\n" +
-				"function a() {\n" +
-				"  x.f/**/\n" +
-				"}\n" +
-				"var x = {};", "f");
+				"function b() {\n x.fff = '';\n }\n function a() {\n x.f\n }\n var x = {};", "f", 51);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
@@ -3949,26 +3986,14 @@ define([
 		// is defined after and in another funxtion
 		it("test full file inferecing 16", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"  x.f/**/\n" +
-				"}\n" +
-				"function b() {\n" +
-				"  x.fff = '';\n" +
-				"}\n" +
-				"var x = {};", "f");
+				"function a() {\n x.f\n }\n function b() {\n x.fff = '';\n }\n var x = {};", "f", 19);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
 		});
 		it("test full file inferecing 17", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"  x.f/**/\n" +
-				"  function b() {\n" +
-				"    x.fff = '';\n" +
-				"  }\n" +
-				"}\n" +
-				"var x = {};", "f");
+				"function a() {\n x.f\n function b() {\n x.fff = '';\n }\n }\n var x = {};", "f", 19);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
@@ -3976,13 +4001,7 @@ define([
 	
 		it("test full file inferecing 18", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"  x.fff = '';\n" +
-				"  function b() {\n" +
-				"    x.f/**/\n" +
-				"  }\n" +
-				"}\n" +
-				"var x = {};", "f");
+				"function a() {\n x.fff = '';\n function b() {\n x.f\n }\n }\n var x = {};", "f", 48);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
@@ -3990,13 +4009,7 @@ define([
 	
 		it("test full file inferecing 19", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"  function b() {\n" +
-				"    x.f/**/\n" +
-				"  }\n" +
-				"  x.fff = '';\n" +
-				"}\n" +
-				"var x = {};", "f");
+				"function a() {\n function b() {\n x.f\n }\n x.fff = '';\n }\n var x = {};", "f", 35);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
@@ -4005,20 +4018,16 @@ define([
 		// don't find anything because assignment is in same scope, but after
 		it("test full file inferecing 20", function() {
 			var results = computeContentAssist(
-				"x./**/\n" +
+				"x.\n" +
 				"var x = {};\n" +
-				"x.fff = '';", "f");
+				"x.fff = '';", "f", 2);
 			return testProposals(results, [
 			]);
 		});
 	
 		it("test full file inferecing 21", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"x.fff = '';\n" +
-				"}\n" +
-				"x./**/\n" +
-				"var x = {}; ", "f");
+				"function a() {\n x.fff = '';\n }\n x.\n var x = {}; ", "f", 34);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
@@ -4026,77 +4035,19 @@ define([
 	
 		it("test full file inferecing 22", function() {
 			var results = computeContentAssist(
-				"x./**/\n" +
+				"x.\n" +
 				"function a() {\n" +
 				"x.fff = '';\n" +
 				"}\n" +
-				"var x = {}; ", "f");
+				"var x = {}; ", "f", 2);
 			return testProposals(results, [
 				["fff", "fff : String"]
 			]);
 		});
 	
-		// disabling next three tests since, empirically, we do
-		// better by only deferring type inference for the closest
-		// enclosing function of the completion.  --MS
-		
-	//	it("test full file inferecing 23", function() {
-	//		var results = computeContentAssist(
-	//			"function a() {\n" +
-	//			"  function b() {\n" +
-	//			"    x.f/**/\n" +
-	//			"  }\n" +
-	//			"  x.fff = '';\n" +
-	//			"}\n" +
-	//			"var x = {ff2 : ''};", "f");
-	//		return testProposals(results, [
-	//			["ff2", "ff2 : String"],
-	//			["fff", "fff : String"]
-	//		]);
-	//	});
-	//
-	//	it("test full file inferecing 24", function() {
-	//		var results = computeContentAssist(
-	//			"function a() {\n" +
-	//			"  function b() {\n" +
-	//			"    var y = x;\n" +
-	//			"    y.f/**/\n" +
-	//			"  }\n" +
-	//			"  x.fff = '';\n" +
-	//			"}\n" +
-	//			"var x = {ff2 : ''};", "f");
-	//		return testProposals(results, [
-	//			["ff2", "ff2 : String"],
-	//			["fff", "fff : String"]
-	//		]);
-	//	});
-	//
-	//	it("test full file inferecing 25", function() {
-	//		var results = computeContentAssist(
-	//			"function a() {\n" +
-	//			"  function b() {\n" +
-	//			"    x.f/**/\n" +
-	//			"  }\n" +
-	//			"  var y = x;\n" +
-	//			"  y.fff = '';\n" +
-	//			"}\n" +
-	//			"var x = {ff2 : ''};", "f");
-	//		return testProposals(results, [
-	//			["ff2", "ff2 : String"],
-	//			["fff", "fff : String"]
-	//		]);
-	//	});
-	
-	
 		it("test full file inferecing 26", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"  function b() {\n" +
-				"    var fff = x();\n" +
-				"    f/**/;\n" +
-				"  }\n" +
-				"}\n" +
-				"function x() { return ''; }", "f");
+				"function a() {\n function b() {\n var fff = x();\n f;\n }\n }\n function x() { return ''; }", "f", 49);
 			return testProposals(results, [
 				["fff", "fff : String"],
 				["", "---------------------------------"],
@@ -4107,9 +4058,7 @@ define([
 		// Not inferencing String because function decl comes after reference in same scope
 		it("test full file inferecing 27", function() {
 			var results = computeContentAssist(
-				"var fff = x();\n" +
-				"f/**/;\n" +
-				"function x() { return ''; }", "f");
+				"var fff = x();\n f;\n function x() { return ''; }", "f", 17);
 			return testProposals(results, [
 				["Function()", "Function() : Function"],
 				["fff", "fff : {}"]
@@ -4119,10 +4068,7 @@ define([
 		// Not gonna work because of recursive
 		it("test full file inferecing 28", function() {
 			var results = computeContentAssist(
-				"function x() {\n" +
-				"  var fff = x();\n" +
-				"  f/**/;\n" +
-				"  return ''; }", "f");
+				"function x() {\n var fff = x();\n f;\n return ''; }", "f", 33);
 			return testProposals(results, [
 				["fff", "fff : undefined"],
 				["", "---------------------------------"],
@@ -4132,13 +4078,7 @@ define([
 	
 		it("test full file inferecing 29", function() {
 			var results = computeContentAssist(
-				"function a() {\n" +
-				"  function b() {\n" +
-				"    var fff = x();\n" +
-				"    f/**/;\n" +
-				"  }\n" +
-				"}\n" +
-				"var x = function() { return ''; }", "f");
+				"function a() {\n function b() {\n var fff = x();\n f;\n }\n }\n var x = function() { return ''; }", "f", 49);
 			return testProposals(results, [
 				["fff", "fff : String"],
 				["", "---------------------------------"],
@@ -4149,9 +4089,7 @@ define([
 		// Not working because function decl comes after reference in same scope
 		it("test full file inferecing 30", function() {
 			var results = computeContentAssist(
-				"var fff = x();\n" +
-				"f/**/;\n" +
-				"var x = function() { return ''; }", "f");
+				"var fff = x();\n f;\n var x = function() { return ''; }", "f", 17);
 			return testProposals(results, [
 				["Function()", "Function() : Function"],
 				["fff", "fff : {}"]
@@ -4161,7 +4099,7 @@ define([
 		// Not gonna work because of recursive
 		it("test full file inferecing 31", function() {
 			var results = computeContentAssist(
-				"var x = function() { var fff = x();\nf/**/;return ''; }", "f");
+				"var x = function() { var fff = x();\nf;return ''; }", "f", 37);
 			return testProposals(results, [
 				["fff", "fff : undefined"],
 				["", "---------------------------------"],
@@ -4171,8 +4109,7 @@ define([
 	
 		it("test full file inferecing 32", function() {
 			var results = computeContentAssist(
-				"x/**/\n" +
-				"function x() { return ''; }", "x");
+				"x\n function x() { return ''; }", "x", 1);
 			return testProposals(results, [
 				["x()", "x() : String"]
 			]);
@@ -4180,10 +4117,7 @@ define([
 	
 		it("test full file inferecing 33", function() {
 			var results = computeContentAssist(
-				"var xxx = {\n" +
-				"	aaa: '',\n" +
-				"	bbb: this.a/**/\n" +
-				"};", "a");
+				"var xxx = {\n aaa: '',\n bbb: this.a\n};", "a", 34);
 			return testProposals(results, [
 				["aaa", "aaa : String"]
 			]);
@@ -4192,9 +4126,9 @@ define([
 		it("test full file inferecing 34", function() {
 			var results = computeContentAssist(
 				"var xxx = {\n" +
-				"	bbb: this.a/**/,\n" +
+				"	bbb: this.a,\n" +
 				"	aaa: ''\n" +
-				"};", "a");
+				"};", "a", 24);
 			return testProposals(results, [
 				["aaa", "aaa : String"]
 			]);
@@ -4218,8 +4152,8 @@ define([
 		it("test property read after", function() {
 			var results = computeContentAssist(
 				"var xxx;\n" +
-				"xxx.ll/**/;\n" +
-				"xxx.lll++;", "ll");
+				"xxx.ll;\n" +
+				"xxx.lll++;", "ll", 15);
 			return testProposals(results, [
 				["lll", "lll : {}"]
 			]);
@@ -4236,8 +4170,7 @@ define([
 	
 		it("test property read global after", function() {
 			var results = computeContentAssist(
-				"ll/**/;\n" +
-				"lll++;", "ll");
+				"ll;\n lll++;", "ll", 2);
 			return testProposals(results, [
 				["lll", "lll : {}"]
 			]);
@@ -4409,22 +4342,14 @@ define([
 		// Issue 221 problems with navigating to proto definitions inside of constructors
 		it('test proto ref in this1', function() {
 			var results = computeContentAssist(
-				"function TextView () {\n" +
-				"	this._init/**/;\n" +
-				"}\n" +
-				"TextView.prototype = {\n" +
-				"	_init: function() { }\n" +
-				"};", "_init");
+				"function TextView () {\n this._init;\n }\n TextView.prototype = {\n _init: function() { }\n };", "_init", 34);
 			return testProposals(results, [
 				["_init()", "_init() : TextView.prototype._init"]
 			]);
 		});
 		it('test proto ref in this2 - ', function() {
 			var results = computeContentAssist(
-				"function TextView () {\n" +
-				"	this._init/**/;\n" +
-				"}\n" +
-				"TextView.prototype._init = function() { };", "_init");
+				"function TextView () {\n this._init;\n }\n TextView.prototype._init = function() { };", "_init", 34);
 			return testProposals(results, [
 				["_init()", "_init() : TextView.prototype._init"]
 			]);
@@ -4433,7 +4358,7 @@ define([
 			var results = computeContentAssist(
 				"function TextView () { }\n" +
 				"TextView.prototype._init = function() { };\n" +
-				"new TextView()._init/**/", "_init");
+				"new TextView()._init", "_init");
 			return testProposals(results, [
 				["_init()", "_init() : TextView.prototype._init"]
 			]);
@@ -4541,7 +4466,7 @@ define([
 		});
 		it("test lowercase constructor 1", function() {
 			var results = computeContentAssist(
-			"function fun() {\n	this.xxx = 9;\n	this.uuu = this.x/**/;}", "x");
+			"function fun() {\n	this.xxx = 9;\n	this.uuu = this.x;}", "x", 50);
 			return testProposals(results, [
 				["xxx", "xxx : Number"]
 			]);
@@ -4564,7 +4489,7 @@ define([
 		});
 		it("test object literal usage-based inference", function() {
 			var results = computeContentAssist(
-				"var p = { xxxx: function() { }, yyyy: function() { this.x/**/; } };", "x");
+				"var p = { xxxx: function() { }, yyyy: function() { this.x; } };", "x", 57);
 			return testProposals(results, [
 				["xxxx()", "xxxx() : undefined"]
 			]);
@@ -4581,7 +4506,7 @@ define([
 	
 		it("test object literal usage-based inference 3", function() {
 			var results = computeContentAssist(
-				"var p = { f1: function(a) { this.cccc = a; }, f2: function(b) { this.dddd = b; }, f3: function() { var y = this.ccc/**/ } };", "ccc");
+				"var p = { f1: function(a) { this.cccc = a; }, f2: function(b) { this.dddd = b; }, f3: function() { var y = this.ccc } };", "ccc", 115);
 			return testProposals(results, [
 				["cccc", "cccc : {}"]
 			]);
@@ -4589,7 +4514,7 @@ define([
 	
 		it("test object literal usage-based inference 4", function() {
 			var results = computeContentAssist(
-				"var p = { o1: { cccc: 3 }, f1: function() { this.o1.ffff = 4; }, f2: function() { var y = this.o1.ccc/**/ } };", "ccc");
+				"var p = { o1: { cccc: 3 }, f1: function() { this.o1.ffff = 4; }, f2: function() { var y = this.o1.ccc } };", "ccc", 101);
 			return testProposals(results, [
 				["cccc", "cccc : Number"]
 			]);
@@ -4597,7 +4522,7 @@ define([
 	
 		it("test object literal usage-based inference 5", function() {
 			var results = computeContentAssist(
-				"var p = { o1: { cccc: 3 }, f1: function() { this.o1.ffff = 4; }, f2: function() { var y = this.o1.fff/**/ } };", "fff");
+				"var p = { o1: { cccc: 3 }, f1: function() { this.o1.ffff = 4; }, f2: function() { var y = this.o1.fff } };", "fff", 101);
 			return testProposals(results, [
 				["ffff", "ffff : Number"]
 			]);
@@ -4992,14 +4917,14 @@ define([
 		});
 	
 		it("test one-shot closure 1", function() {
-		    var results = computeContentAssist("var x = {ffff : 3 }; (function (p) { p.fff/**/ })(x);", "fff");
+		    var results = computeContentAssist("var x = {ffff : 3 }; (function (p) { p.fff })(x);", "fff", 42);
 		    return testProposals(results, [
 		       ["ffff", "ffff : Number"]
 		    ]);
 	     });
 	
 		it("test one-shot closure 2", function() {
-		    var results = computeContentAssist("(function() { var x = { y: { zzz: 3 }, f: function() { var s = this.y.zz/**/ } };}());", "zz");
+		    var results = computeContentAssist("(function() { var x = { y: { zzz: 3 }, f: function() { var s = this.y.zz } };}());", "zz", 72);
 		    return testProposals(results, [
 		       ["zzz", "zzz : Number"]
 		    ]);
@@ -5067,6 +4992,722 @@ define([
 				["whatever", "whatever : Number"]
 			]);
 	
+		});
+		
+		/**
+		 * Tests mysql index
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426486
+		 * @since 7.0
+		 */
+		it("test mysql index 1", function() {
+			var results = computeContentAssist("require('mysql').createP", "createP", 24);
+			testProposals(results, [
+			     ['ool', 'createPool(config) : Pool'],
+			     ['oolCluster', 'createPoolCluster(config) : PoolCluster']
+			]);
+		});
+		
+		/**
+		 * Tests mysql index
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426486
+		 * @since 7.0
+		 */
+		it("test mysql index 2", function() {
+			var results = computeContentAssist("require('mysql').createC", "createC", 25);
+			testProposals(results, [
+			     ['onnection', 'createConnection(config) : Connection']
+			]);
+		});
+		
+		/**
+		 * Tests mysql index
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426486
+		 * @since 7.0
+		 */
+		it("test mysql index 3", function() {
+			var results = computeContentAssist("require('mysql').createQ", "createQ", 25);
+			testProposals(results, [
+			     ['uery', 'createQuery(sql, values, cb) : Query']
+			]);
+		});
+		
+		/**
+		 * Tests mysql index for indirect proposals
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426486
+		 * @since 7.0
+		 */
+		it("test mysql index 4", function() {
+			var results = computeContentAssist("require('mysql').createQuery(null,null,null).sta", "sta", 47);
+			testProposals(results, [
+			     ['rt', 'start()']
+			]);
+		});
+		
+		/**
+		 * Tests redis index indirect proposals
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426486
+		 * @since 7.0
+		 */
+		it("test redis index 1", function() {
+			var results = computeContentAssist("require('redis').createClient(null, null, null).a", "a", 49);
+			testProposals(results, [
+			     ['uth', 'auth()'],
+			     ['UTH', 'AUTH()']
+			]);
+		});
+		
+		/**
+		 * Tests redis index 
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426486
+		 * @since 7.0
+		 */
+		it("test redis index 2", function() {
+			var results = computeContentAssist("require('redis').c", "c", 18);
+			testProposals(results, [
+			     ['reateClient', 'createClient(port_arg, host_arg, options)']
+			]);
+		});
+		
+		/**
+		 * Tests pg index indirect proposals
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426486
+		 * @since 7.0
+		 */
+		it("test pg index 1", function() {
+			var results = computeContentAssist("require('redis').createClient(null, null, null).a", "a", 18);
+			testProposals(results, [
+			     ['uth', 'auth()'],
+			     ['UTH', 'AUTH()']
+			]);
+		});
+		
+		/**
+		 * Tests redis index 
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426486
+		 * @since 7.0
+		 */
+		it("test pg index 2", function() {
+			var results = computeContentAssist("require('require('pg').Cl", "Cl", 16);
+			testProposals(results, [
+			     ['ient', 'Client(config)']
+			]);
+		});
+		
+		//TESTS FOR JSDOC CONTENT ASSIST
+		
+		/**
+		 * Tests the author tag insertion
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test author tag", function() {
+			var results = computeContentAssist("/**\n* @a \n*/", "@a", 8);
+			testProposals(results, [
+			     ['uthor', '@author', 'Author JSDoc tag']
+			]);
+		});
+		/**
+		 * Tests the lends tag insertion
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test lends tag", function() {
+			var results = computeContentAssist("/**\n* @name foo\n* @l \n*/", "@l", 20);
+			testProposals(results, [
+			     ['ends', '@lends', 'Lends JSDoc tag']
+			]);
+		});
+		/**
+		 * Tests the function name insertion for a function decl with no prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test name tag completion 1", function() {
+			var results = computeContentAssist("/**\n* @name  \n*/function a(){}", "", 12);
+			testProposals(results, [
+			     ['a', 'a', 'The name of the function']
+			]);
+		});
+		/**
+		 * Tests the function name insertion for a function decl with a prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test name tag completion 2", function() {
+			var results = computeContentAssist("/**\n* @name  \n*/function bar(){}", "b", 12);
+			testProposals(results, [
+			     ['ar', 'bar', 'The name of the function']
+			]);
+		});
+		/**
+		 * Tests the function name insertion for a object property with function expr with no prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test name tag completion 3", function() {
+			var results = computeContentAssist("var o = {/**\n* @name  \n*/f: function bar(){}}", "", 21);
+			testProposals(results, [
+			     ['bar', 'bar', 'The name of the function']
+			]);
+		});
+		/**
+		 * Tests the function name insertion for a object property with function expr with a prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test name tag completion 4", function() {
+			var results = computeContentAssist("var o = {/**\n* @name  \n*/f: function bar(){}}", "b", 21);
+			testProposals(results, [
+			     ['ar', 'bar', 'The name of the function']
+			]);
+		});
+		/**
+		 * Tests the function name insertion for a object property with function expr with no prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test name tag completion 5", function() {
+			var results = computeContentAssist("/**\n* @name  \n*/Foo.bar.baz = function(){}", "", 12);
+			testProposals(results, [
+			     ['Foo.bar.baz', 'Foo.bar.baz', 'The name of the function']
+			]);
+		});
+		/**
+		 * Tests the function name insertion for a object property with function expr with a prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test name tag completion 6", function() {
+			var results = computeContentAssist("/**\n* @name  \n*/Foo.bar.baz = function(){}", "Foo", 12);
+			testProposals(results, [
+			     ['.bar.baz', 'Foo.bar.baz', 'The name of the function']
+			]);
+		});
+		/**
+		 * Tests no proposals for assingment expression
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test name tag completion 6", function() {
+			var results = computeContentAssist("/**\n* @name f \n*/Foo.bar.baz = function(){}", "", 14);
+			testProposals(results, []);
+		});
+		/**
+		 * Tests func decl param name proposals no prefix, no type
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 1", function() {
+			var results = computeContentAssist("/**\n* @param  \n*/function a(a, b, c){}", "", 13);
+			testProposals(results, [
+			     ['a', 'a', 'Function parameter'],
+			     ['b', 'b', 'Function parameter'],
+			     ['c', 'c', 'Function parameter']
+			]);
+		});
+		
+		/**
+		 * Tests func decl param name proposals no prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 2", function() {
+			var results = computeContentAssist("/**\n* @param {type} \n*/function a(a, b, c){}", "", 20);
+			testProposals(results, [
+			     ['a', 'a', 'Function parameter'],
+			     ['b', 'b', 'Function parameter'],
+			     ['c', 'c', 'Function parameter']
+			]);
+		});
+		/**
+		 * Tests func decl param name proposals a prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 3", function() {
+			var results = computeContentAssist("/**\n* @param a \n*/function a(aa, bb, cc){}", "a", 14);
+			testProposals(results, [
+			     ['a', 'aa', 'Function parameter']
+			]);
+		});
+		/**
+		 * Tests no proposals for after name
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 4", function() {
+			var results = computeContentAssist("/**\n* @param f  \n*/function a(aa, bb, cc){}", "", 15);
+			testProposals(results, []);
+		});
+		/**
+		 * Tests object property func expr param name proposals no prefix, no type
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 5", function() {
+			var results = computeContentAssist("var o = {/**\n* @param  \n*/f: function a(a, b, c){}}", "", 22);
+			testProposals(results, [
+			     ['a', 'a', 'Function parameter'],
+			     ['b', 'b', 'Function parameter'],
+			     ['c', 'c', 'Function parameter']
+			]);
+		});
+		/**
+		 * Tests object property func expr param name proposals no prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 6", function() {
+			var results = computeContentAssist("var o = {/**\n* @param {type} \n*/f: function a(a, b, c){}}", "", 28);
+			testProposals(results, [
+			     ['a', 'a', 'Function parameter'],
+			     ['b', 'b', 'Function parameter'],
+			     ['c', 'c', 'Function parameter']
+			]);
+		});
+		/**
+		 * Tests object property func expr param name proposals a prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 7", function() {
+			var results = computeContentAssist("var o = {/**\n* @param {type} a\n*/f: function a(aa, bb, cc){}}", "a", 30);
+			testProposals(results, [
+			     ['a', 'aa', 'Function parameter']
+			]);
+		});
+		/**
+		 * Tests object property func expr param name proposals a prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 8", function() {
+			var results = computeContentAssist("var o = {/**\n* @param {type} a \n*/f: function a(aa, bb, cc){}}", "a", 31);
+			testProposals(results, []);
+		});
+		/**
+		 * Tests assingment func expr param name proposals no prefix, no type
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 9", function() {
+			var results = computeContentAssist("/**\n* @param  \n*/Foo.bar.baz = function a(a, b, c){}", "", 13);
+			testProposals(results, [
+			     ['a', 'a', 'Function parameter'],
+			     ['b', 'b', 'Function parameter'],
+			     ['c', 'c', 'Function parameter']
+			]);
+		});
+		/**
+		 * Tests assingment func expr param name proposals no prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 10", function() {
+			var results = computeContentAssist("/**\n* @param {type} \n*/Foo.bar.baz = function a(a, b, c){}", "", 19);
+			testProposals(results, [
+			     ['a', 'a', 'Function parameter'],
+			     ['b', 'b', 'Function parameter'],
+			     ['c', 'c', 'Function parameter']
+			]);
+		});
+		/**
+		 * Tests assingment func expr param name proposals no prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 10", function() {
+			var results = computeContentAssist("/**\n* @param {type} a\n*/Foo.bar.baz = function a(aa, bb, cc){}", "a", 20);
+			testProposals(results, [
+			     ['a', 'aa', 'Function parameter']
+			]);
+		});
+		/**
+		 * Tests assingment func expr param name proposals no prefix
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test param name completion 11", function() {
+			var results = computeContentAssist("/**\n* @param {type} d\n*/Foo.bar.baz = function a(aa, bb, cc){}", "d", 20);
+			testProposals(results, []);
+		});
+		
+		/**
+		 * Tests one-line JSDoc completions
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439574
+		 * @since 7.0
+		 */
+		it("test one-line doc completion", function() {
+			var results = computeContentAssist("Objects.mixin(Foo.prototype, /** @l  */{});", "@l", 35);
+			testProposals(results, [
+			     ['ends', '@lends', 'Lends JSDoc tag'],
+			     ['icense', '@license', 'License JSDoc tag']
+			]);
+		});
+		
+		/**
+		 * Tests object JSDoc completions
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test object doc completion 1", function() {
+			var results = computeContentAssist("/**\n* @param {O \n*/", "O", 15);
+			testProposals(results, [
+			     ['bject', 'Object', 'Object'],
+			]);
+		});
+		
+		/**
+		 * Tests object JSDoc completions
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test object doc completion 2", function() {
+			var results = computeContentAssist("/**\n* @returns {I} \n*/", "I", 17);
+			testProposals(results, [
+			     ['nfinity', 'Infinity', 'Infinity'],
+			]);
+		});
+		
+		/**
+		 * Tests object JSDoc completions
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426185
+		 * @since 7.0
+		 */
+		it("test object doc completion 2", function() {
+			var results = computeContentAssist("/*eslint-env amd*//**\n* @returns {I} \n*/", "I", 35);
+			testProposals(results, [
+			     ['mage', 'Image', 'Image']
+			     ['nfinity', 'Infinity', 'Infinity'],
+			]);
+		});
+		
+		/**
+		 * Tests that an empty snippet with no prefix returns templates
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439741
+		 */
+		it("test empty template prefix 1", function() {
+			var results = computeContentAssist("", "", 0);
+			assertProposal('amqp', results);
+			assertProposal('with', results);
+		});
+		/**
+		 * Tests that a snippet with no prefix returns templates
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=439741
+		 */
+		it("test empty template prefix 2", function() {
+			var results = computeContentAssist("var foo = 10;\n ", "", 15);
+			assertProposal('amqp', results);
+			assertProposal('with', results);
+		});
+		
+		/**
+		 * Tests the eslint* templates in source
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 */
+		it("test eslint* template 1", function() {
+			var results = computeContentAssist("es", "es", 2);
+			testProposals(results, [
+			     ['lint', 'eslint', 'ESLint rule enable / disable directive'],
+			     ['lint-disable', 'eslint-disable', 'ESLint rule disablement directive'],
+			     ['lint-enable', 'eslint-enable', 'ESLint rule enablement directive'],
+			     ['lint-env', 'eslint-env', 'ESLint environment directive']
+			     ]
+			);
+		});
+		
+		/**
+		 * Tests the eslint* templates in comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 */
+		it("test eslint* template 2", function() {
+			var results = computeContentAssist("/* es", "es", 5);
+			testProposals(results, [
+			     ['lint', 'eslint', 'ESLint rule enable / disable directive'],
+			     ['lint-disable', 'eslint-disable', 'ESLint rule disablement directive'],
+			     ['lint-enable', 'eslint-enable', 'ESLint rule enablement directive'],
+			     ['lint-env', 'eslint-env', 'ESLint environment directive']
+			     ]
+			);
+		});
+		
+		/**
+		 * Tests the eslint* templates in comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 */
+		it("test eslint* template 3", function() {
+			var results = computeContentAssist("/* es */", "es", 5);
+			testProposals(results, [
+			     ['lint', 'eslint', 'ESLint rule enable / disable directive'],
+			     ['lint-disable', 'eslint-disable', 'ESLint rule disablement directive'],
+			     ['lint-enable', 'eslint-enable', 'ESLint rule enablement directive'],
+			     ['lint-env', 'eslint-env', 'ESLint environment directive']
+			     ]
+			);
+		});
+		
+		/**
+		 * Tests the eslint* templates in comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 */
+		it("test eslint* template 4", function() {
+			var results = computeContentAssist("var f; /* es", "es", 12);
+			testProposals(results, [
+			     ['lint', 'eslint', 'ESLint rule enable / disable directive'],
+			     ['lint-disable', 'eslint-disable', 'ESLint rule disablement directive'],
+			     ['lint-enable', 'eslint-enable', 'ESLint rule enablement directive'],
+			     ['lint-env', 'eslint-env', 'ESLint environment directive']
+			     ]
+			);
+		});
+		
+		/**
+		 * Tests that no eslint* templates are in jsdoc comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 */
+		it("test eslint* template 5", function() {
+			var results = computeContentAssist("/** es", "es", 6);
+			testProposals(results, []);
+		});
+		
+		/**
+		 * Tests that eslint* templates will be proposed further in comment with no content beforehand
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 * @since 7.0
+		 */
+		it("test eslint* template 6", function() {
+			var results = computeContentAssist("/* \n\n es", "es", 10);
+			testProposals(results, [
+			     ['lint', 'eslint', 'ESLint rule enable / disable directive'],
+			     ['lint-disable', 'eslint-disable', 'ESLint rule disablement directive'],
+			     ['lint-enable', 'eslint-enable', 'ESLint rule enablement directive'],
+			     ['lint-env', 'eslint-env', 'ESLint environment directive']
+			     ]);
+		});
+		
+		/**
+		 * Tests that no eslint* templates are in comments after other content
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 * @since 7.0
+		 */
+		it("test eslint* template 7", function() {
+			var results = computeContentAssist("/* foo \n\n es", "es", 10);
+			testProposals(results, []);
+		});
+		
+		/**
+		 * Tests that no eslint* templates are proposed when there is already one
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 * @since 7.0
+		 */
+		it("test eslint* template 8", function() {
+			var results = computeContentAssist("/* eslint ", "es", 10);
+			assertNoProposal('eslint', results);
+			assertNoProposal('eslint-env', results);
+		});
+		
+		/**
+		 * Tests that no eslint* templates are proposed when there is already one
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 * @since 7.0
+		 */
+		it("test eslint* template 9", function() {
+			var results = computeContentAssist("/* eslint ", "eslint", 9);
+            testProposals(results, [
+			     ['lint', 'eslint', 'ESLint rule enable / disable directive'],
+			     ['lint-disable', 'eslint-disable', 'ESLint rule disablement directive'],
+			     ['lint-enable', 'eslint-enable', 'ESLint rule enablement directive'],
+			     ['lint-env', 'eslint-env', 'ESLint environment directive']
+			     ]);
+		});
+		
+		/**
+		 * Tests that eslint-env environs are proposed
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 * @since 7.0
+		 */
+		it("test eslint-env proposals 1", function() {
+			var results = computeContentAssist("/* eslint-env ", "", 14);
+			testProposals(results, [
+			     ['amd', 'amd', 'ESLint environment name'],
+			     ['browser', 'browser', 'ESLint environment name'],
+			     ['mocha', 'mocha', 'ESLint environment name'],
+			     ['node', 'node', 'ESLint environment name']
+			     ]);
+		});
+		
+		/**
+		 * Tests that eslint-env environs are proposed
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 * @since 7.0
+		 */
+		it("test eslint-env proposals 2", function() {
+			var results = computeContentAssist("/* eslint-env a", "a", 15);
+			testProposals(results, [
+			     ['md', 'amd', 'ESLint environment name'],
+			     ]);
+		});
+		
+		/**
+		 * Tests that eslint rules are proposed
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 * @since 7.0
+		 */
+		it("test eslint rule proposals 1", function() {
+			var results = computeContentAssist("/* eslint c", "c", 11);
+			testProposals(results, [
+			     ['urly', 'curly', 'ESLint rule name']
+			     ]);
+		});
+		
+		/**
+		 * Tests that eslint rules are proposed
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 * @since 7.0
+		 */
+		it("test eslint rule proposals 2", function() {
+			var results = computeContentAssist("/* eslint no-js", "no-js", 15);
+			testProposals(results, [
+			     ['lint', 'no-jslint', 'ESLint rule name'],
+			     ]);
+		});
+		
+		/**
+		 * Tests that eslint rules are proposed
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 * @since 7.0
+		 */
+		it("test eslint rule proposals 3", function() {
+			var results = computeContentAssist("/* eslint-enable no-js", "no-js", 22);
+			testProposals(results, [
+			     ['lint', 'no-jslint', 'ESLint rule name'],
+			     ]);
+		});
+		
+		/**
+		 * Tests that eslint rules are proposed
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 * @since 7.0
+		 */
+		it("test eslint rule proposals 4", function() {
+			var results = computeContentAssist("/* eslint-disable no-js", "no-js", 23);
+			testProposals(results, [
+			     ['lint', 'no-jslint', 'ESLint rule name'],
+			     ]);
+		});
+		
+		/**
+		 * Tests that eslint rules are proposed
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440569
+		 * @since 7.0
+		 */
+		it("test eslint rule proposals 5", function() {
+			var results = computeContentAssist("/* eslint-enable no-jslint, c", "c", 29);
+			testProposals(results, [
+			     ['urly', 'curly', 'ESLint rule name']
+			     ]);
+		});
+		
+		/**
+		 * Tests line comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=443521
+		 * @since 7.0
+		 */
+		it("test line comment 1", function() {
+			var results = computeContentAssist("//  ", "", 4);
+			testProposals(results, []);
+		});
+		
+		/**
+		 * Tests line comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=443521
+		 * @since 7.0
+		 */
+		it("test line comment 2", function() {
+			var results = computeContentAssist("// foo ", "", 3);
+			testProposals(results, []);
+		});
+		
+		/**
+		 * Tests line comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=443521
+		 * @since 7.0
+		 */
+		it("test line comment 3", function() {
+			var results = computeContentAssist("// foo ", "", 7);
+			testProposals(results, []);
+		});
+		
+		/**
+		 * Tests line comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=443521
+		 * @since 7.0
+		 */
+		it("test line comment 4", function() {
+			var results = computeContentAssist("// cur ", "c", 4);
+			testProposals(results, []);
+		});
+		
+		/**
+		 * Tests line comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=443521
+		 * @since 7.0
+		 */
+		it("test line comment 5", function() {
+			var results = computeContentAssist("// es ", "es", 5);
+			testProposals(results, []);
+		});
+		
+		/**
+		 * Tests line comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=444001
+		 * @since 7.0
+		 */
+		it("test line comment 6", function() {
+			var results = computeContentAssist("// .", "", 4);
+			testProposals(results, []);
+		});
+		
+		/**
+		 * Tests line comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=444001
+		 * @since 7.0
+		 */
+		it("test line comment 7", function() {
+			var results = computeContentAssist("// . es", "", 4);
+			testProposals(results, []);
+		});
+		
+		/**
+		 * Tests line comments
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=444001
+		 * @since 7.0
+		 */
+		it("test line comment 8", function() {
+			var results = computeContentAssist("// es .", "", 7);
+			testProposals(results, []);
+		});
+		
+		/**
+		 * Tests RegExp proposals
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426733
+		 * @since 7.0
+		 */
+		it("test RegExp literal 1", function() {
+			var results = computeContentAssist("/^.*/.t", "t", 6);
+			testProposals(results, [
+			['est', 'test : Boolean']]);
+		});
+		
+		/**
+		 * Tests RegExp proposals
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=426733
+		 * @since 7.0
+		 */
+		it("test RegExp literal 2", function() {
+			var results = computeContentAssist("/^.*/.e", "e", 7);
+			testProposals(results, [
+			['xec', 'exec : Array.<String>']]);
 		});
 	});
 });

@@ -9,9 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define */
-/*jslint forin:true regexp:false sub:true*/
-
+/*eslint-env browser, amd*/
 define(['orion/Deferred',
 		"orion/editor/textMateStyler",
 		"orion/editor/htmlGrammar",

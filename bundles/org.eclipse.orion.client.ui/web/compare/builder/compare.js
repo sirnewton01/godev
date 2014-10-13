@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define require document console prompt XMLHttpRequest window*/
-
+/*eslint-env browser, amd*/
 define(['orion/commandRegistry',
 		'orion/Deferred',
 		'orion/compare/compareView',
@@ -88,8 +87,9 @@ function(mCommandRegistry, Deferred, mCompareView, mCompareCommands, mCompareHig
 	 * @param {String} [viewType="twoWay"] optional. The type of the compare view. Can be either "twoWay" or "inline". Id not defined default is "twoWay".
 	 * "twoWay" represents a side by side comapre editor while "inline" represents a unified comapre view.
 	 * @param {Boolean} [toggleable=false] optional. Weather or not the compare view is toggleable. A toggleable comapre view provides a toggle button which toggles between the "twoWay" and "inline" view.
+	 * @param {String} toggleCommandSpanId Optional. The dom element id to render the toggle command. If this is defined the toggle command will be rendered in this DIV rather than the commandSpanId.
 	 */
-    function compare(viewOptions, commandSpanId, viewType, toggleable){
+    function compare(viewOptions, commandSpanId, viewType, toggleable, toggleCommandSpanId){
 		var vOptions = viewOptions;
 		if(!vOptions.highlighters && vOptions.oldFile && vOptions.oldFile.Name && vOptions.newFile && vOptions.newFile.Name){
 			vOptions.highlighters = [new mCompareHighlighter.DefaultHighlighter(), new mCompareHighlighter.DefaultHighlighter()];
@@ -100,8 +100,8 @@ function(mCommandRegistry, Deferred, mCompareView, mCompareCommands, mCompareHig
 		if(vOptions.newFile && vOptions.newFile.Name){
 			vOptions.newFile.Type = _contentType(vOptions.newFile.Name);
 		}
-		if(commandSpanId) {
-			var cmdProvider = new mCompareCommands.CompareCommandFactory({commandService: commandService, commandSpanId: commandSpanId});
+		if(commandSpanId || toggleCommandSpanId) {
+			var cmdProvider = new mCompareCommands.CompareCommandFactory({commandService: commandService, commandSpanId: commandSpanId, toggleCommandSpanId: toggleCommandSpanId});
 			vOptions.commandProvider = cmdProvider;
 		}
 		var vType = (viewType === "inline") ? "inline" : "twoWay"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$

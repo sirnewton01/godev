@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * Copyright (c) 2010, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -9,16 +9,14 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define Node */
-
+/*eslint-env browser, amd, node*/
 define("orion/editor/tooltip", [ //$NON-NLS-0$
 	'i18n!orion/editor/nls/messages', //$NON-NLS-0$
 	'orion/editor/textView', //$NON-NLS-0$
-	'orion/editor/textModel', //$NON-NLS-0$
 	'orion/editor/projectionTextModel', //$NON-NLS-0$
 	'orion/editor/util', //$NON-NLS-0$
 	'orion/util' //$NON-NLS-0$
-], function(messages, mTextView, mTextModel, mProjectionTextModel, textUtil, util) {
+], function(messages, mTextView, mProjectionTextModel, textUtil, util) {
 
 	/** @private */
 	function Tooltip (view) {
@@ -188,14 +186,19 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 		show: function(autoHide) {
 			if (!this._target) { return; }
 			var info = this._target.getTooltipInfo();
+
 			if (!info) { return; }
 			var tooltipDiv = this._tooltipDiv, tooltipContents = this._tooltipContents;
 			tooltipDiv.style.left = tooltipDiv.style.right = tooltipDiv.style.width = tooltipDiv.style.height = 
 				tooltipContents.style.width = tooltipContents.style.height = "auto"; //$NON-NLS-0$
+			var tooltipDoc = tooltipDiv.ownerDocument;
+			var documentElement = tooltipDoc.documentElement;
+			
 			var contents = info.contents;
 			if (contents instanceof Array) {
-				contents = this._getAnnotationContents(contents);
+				contents = this._getAnnotationContents(contents);			
 			}
+			
 			if (typeof contents === "string") { //$NON-NLS-0$
 				tooltipContents.innerHTML = contents;
 			} else if (this._isNode(contents)) {
@@ -228,10 +231,57 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 				tooltipContents.style.width = size.width + "px"; //$NON-NLS-0$
 				tooltipContents.style.height = size.height + "px"; //$NON-NLS-0$
 				contentsView.resize();
-			} else {
+			} else if (!info.deferredInfo) {
 				return;
 			}
-			var documentElement = tooltipDiv.ownerDocument.documentElement;
+			
+			var deferredInfo = info.deferredInfo;
+			if (deferredInfo) {
+				var self = this;
+				deferredInfo.forEach(function(tipSection) {
+					tipSection.promise.then(function (data) {
+						if (data) {
+						    var sectionDiv = null;
+						    var divResult = null;
+							switch(data.type) {
+								case 'markdown': {
+									sectionDiv = util.createElement(tooltipDoc, "div"); //$NON-NLS-0$
+									sectionDiv.innerHTML = (data.title ? tipSection.renderMarkDown(data.title) : tipSection.title);
+									tooltipContents.appendChild(sectionDiv);
+									divResult = util.createElement(tooltipDoc, "div"); //$NON-NLS-0$
+									divResult.innerHTML = tipSection.renderMarkDown(data.hover);
+									sectionDiv.appendChild(divResult);
+									break;
+								}
+								case 'proposal': {
+									sectionDiv = util.createElement(tooltipDoc, "button"); //$NON-NLS-0$
+									sectionDiv.textContent = (data.title ? data.title : tipSection.title);
+									tooltipContents.appendChild(sectionDiv);
+									
+									sectionDiv.addEventListener("click", function(e) {
+										self._view.setText(data.text, data.start, data.end);
+									});
+									break;
+								}
+								default: {
+									sectionDiv = util.createElement(tooltipDoc, "div"); //$NON-NLS-0$
+									var title = data.title ? data.title : tipSection.title;
+									sectionDiv.innerHTML = title;
+									tooltipContents.appendChild(sectionDiv);
+									divResult = util.createElement(tooltipDoc, "div"); //$NON-NLS-0$
+									divResult.appendChild(tooltipDoc.createTextNode(data.hover));
+									sectionDiv.appendChild(divResult);
+								}
+							}
+							// Ensure that the tooltip is visible
+							tooltipDiv.style.visibility = "visible"; //$NON-NLS-0$
+						}
+					}, function(err) {
+						console.error("Problem computing hover tooltip", err);
+					});
+				});
+			}
+			
 			if (info.anchor === "right") { //$NON-NLS-0$
 				var right = documentElement.clientWidth - info.x;
 				tooltipDiv.style.right = right + "px"; //$NON-NLS-0$
@@ -249,7 +299,12 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 			tooltipDiv.style.top = top + "px"; //$NON-NLS-0$
 			tooltipDiv.style.maxHeight = (documentElement.clientHeight - top - 10) + "px"; //$NON-NLS-0$
 			tooltipDiv.style.opacity = "1"; //$NON-NLS-0$
-			tooltipDiv.style.visibility = "visible"; //$NON-NLS-0$
+			
+			// Delay the showing of a tootip with no 'static' contents
+			if (contents) {
+				tooltipDiv.style.visibility = "visible"; //$NON-NLS-0$
+			}
+			
 			if (autoHide) {
 				var self = this;
 				var window = this._getWindow();
@@ -363,23 +418,7 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 			}
 		},
 		_getNodeStyle: function(node, prop, defaultValue) {
-			var value;
-			if (node) {
-				value = node.style[prop];
-				if (!value) {
-					if (node.currentStyle) {
-						var index = 0, p = prop;
-						while ((index = p.indexOf("-", index)) !== -1) { //$NON-NLS-0$
-							p = p.substring(0, index) + p.substring(index + 1, index + 2).toUpperCase() + p.substring(index + 2);
-						}
-						value = node.currentStyle[p];
-					} else {
-						var css = node.ownerDocument.defaultView.getComputedStyle(node, null);
-						value = css ? css.getPropertyValue(prop) : null;
-					}
-				}
-			}
-			return value || defaultValue;
+			return textUtil.getNodeStyle(node, prop, defaultValue);
 		},
 		_isNode: function (obj) {
 			return typeof Node === "object" ? obj instanceof Node : //$NON-NLS-0$

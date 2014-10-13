@@ -8,9 +8,8 @@
  *
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
- /*global define */
- 
-define(["orion/EventTarget", "orion/Deferred"], function(EventTarget, Deferred){
+/*eslint-env browser, amd*/
+define(["orion/EventTarget"], function(EventTarget){
 
 	/**
 	 * Constructs a new selection service. Clients should obtain a selection service

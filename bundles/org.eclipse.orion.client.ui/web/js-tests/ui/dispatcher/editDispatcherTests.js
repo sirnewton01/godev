@@ -8,7 +8,7 @@
  *
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define esprima:true*/
+/*eslint-env browser, amd, mocha*/
 define([
 	'js-tests/editor/mockEditor',
 	'chai/chai',
@@ -46,30 +46,30 @@ define([
 		};
 	}
 
-	var tests = {};
-	/**
-	 * Tests that the initial text of the editor is supplied to the orion.edit.model service
-	 * via an onModelChanging event.
-	 */
-	tests.test_onModelChanging_method_called = function() {
-		var result = setup(),
-		    contentTypeRegistry = result.contentTypeRegistry,
-		    editor = result.editor,
-		    inputManager = result.inputManager,
-		    serviceRegistry = result.serviceRegistry;
-		var d = new Deferred();
-		inputManager.setContentType(contentTypeRegistry.getContentType("text/foo"));
-		serviceRegistry.registerService("orion.edit.model", {
-				onModelChanging: function(event) {
-					assert.equal(event.text, "hi");
-					d.resolve();
-				}
-			}, {
-				contentType: ["text/foo"],
-			});
-		editor.setText("hi");
-		return d;
-	};
+	describe("EditDispatcher Test", function() {
+		/**
+		 * Tests that the initial text of the editor is supplied to the orion.edit.model service
+		 * via an onModelChanging event.
+		 */
+		it("onModelChanging_method_called", function() {
+			var result = setup(),
+			    contentTypeRegistry = result.contentTypeRegistry,
+			    editor = result.editor,
+			    inputManager = result.inputManager,
+			    serviceRegistry = result.serviceRegistry;
+			var d = new Deferred();
+			inputManager.setContentType(contentTypeRegistry.getContentType("text/foo"));
+			serviceRegistry.registerService("orion.edit.model", {
+					onModelChanging: function(event) {
+						assert.equal(event.text, "hi");
+						d.resolve();
+					}
+				}, {
+					contentType: ["text/foo"],
+				});
+			editor.setText("hi");
+			return d;
+		});
+	});
 	// TODO test: listeners should be refreshed after input manager's content type changes
-	return tests;
 });

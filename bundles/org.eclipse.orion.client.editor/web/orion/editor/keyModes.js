@@ -10,8 +10,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
  
-/*global define window */
-
+/*eslint-env browser, amd*/
 define("orion/editor/keyModes", [ //$NON-NLS-0$
 		"orion/keyBinding", //$NON-NLS-0$
 		"orion/util" //$NON-NLS-0$

@@ -9,9 +9,8 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global window eclipse:true orion FileReader Blob*/
-/*jslint forin:true devel:true*/
-
+/*eslint-env browser, amd*/
+/*global orion*/
 window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
 window.resolveLocalFileSystemURL = window.resolveLocalFileSystemURL || window.webkitResolveLocalFileSystemURL;
 window.BlobBuilder = window.MozBlobBuilder || window.WebKitBlobBuilder || window.BlobBuilder;

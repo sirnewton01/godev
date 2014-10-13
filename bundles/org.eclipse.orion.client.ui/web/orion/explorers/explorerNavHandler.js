@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define window */
-/*jslint regexp:false browser:true forin:true*/
-
+/*eslint-env browser, amd*/
 define([
 	'orion/webui/littlelib',
 	'orion/treeModelIterator',
@@ -102,6 +100,17 @@ exports.ExplorerNavHandler = (function() {
 		};
 		parentDiv.addEventListener("keydown", keyListener, false); //$NON-NLS-0$
 		this._listeners.push({type: "keydown", listener: keyListener}); //$NON-NLS-0$
+		var mouseListener = function (e) {
+			if(UiUtils.isFormElement(e.target)) {
+				// Not for us
+				return true;
+			}
+			if (e.shiftKey && self._shiftSelectionAnchor) {
+				lib.stop(e);
+			}
+		};
+		parentDiv.addEventListener("mousedown", mouseListener, false); //$NON-NLS-0$
+		this._listeners.push({type: "mousedown", listener: mouseListener}); //$NON-NLS-0$
 		var l1 = function (e) { 
 			if(self.explorer.onFocus){
 				self.explorer.onFocus(false);
@@ -594,7 +603,11 @@ exports.ExplorerNavHandler = (function() {
 		},
 		
 		onClick: function(model, mouseEvt)	{
-			if (this._selectionPolicy === "readonlySelection" || this.isDisabled(this.getRowDiv(model))) {
+			if(mouseEvt && UiUtils.isFormElement(mouseEvt.target)) {
+				// Not for us
+				return true;
+			}
+			if (this._selectionPolicy === "readonlySelection" || this.isDisabled(this.getRowDiv(model))) { //$NON-NLS-0$
 				lib.stop(mouseEvt);
 			} else {
 				var twistieSpan = lib.node(this.explorer.renderer.expandCollapseImageId(this.model.getId(model)));

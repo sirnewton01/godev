@@ -8,9 +8,8 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
-/*global define document window*/
+/*eslint-env browser, amd*/
 define([
-	'i18n!orion/edit/nls/messages',
 	'orion/explorers/explorer-table',
 	'orion/explorers/navigatorRenderer',
 	'orion/markdownView', 
@@ -21,8 +20,9 @@ define([
 	'orion/Deferred',
 	'orion/webui/dropdown',
 	'orion/widgets/browse/commitInfoRenderer',
+	'orion/urlUtils',
 	'orion/section'
-], function(messages, mExplorerTable, mNavigatorRenderer, mMarkdownView, PageUtil, URITemplate, lib, objects, Deferred, mDropdown, mCommitInfoRenderer, mSection) {
+], function(mExplorerTable, mNavigatorRenderer, mMarkdownView, PageUtil, URITemplate, lib, objects, Deferred, mDropdown, mCommitInfoRenderer, mUrlUtils, mSection) {
 	
 	var FileExplorer = mExplorerTable.FileExplorer;
 	var NavigatorRenderer = mNavigatorRenderer.NavigatorRenderer;
@@ -266,20 +266,24 @@ define([
 								this.actionNode = rightNode;
 								
 								this.infoDropDownHandlers.forEach(function(handler) {
-									var dropdownHolder = document.createElement("div")
+									var dropdownHolder = document.createElement("div");
 									dropdownHolder.classList.add("infoDropDownHolder");
 									letfNode.appendChild(dropdownHolder);
 									var range = document.createRange();
 									range.selectNode(dropdownHolder);
 									var infoFragment = range.createContextualFragment(handler.popupTemplate);
 									dropdownHolder.appendChild(infoFragment);
+									handler.init();
 									var infoDropDown = new mDropdown.Dropdown({
 										triggerNode: lib.node(handler.triggerNodeId), 
 										dropdown: lib.node(handler.dropdownNodeId)
 									});
 									infoDropDown.getItems = function() {
 										var inputNode = lib.node(handler.popupTextAreaId);
-										inputNode.value = handler.getTextAreaValue();
+										handler.getTextAreaValue().then(function(result){
+											inputNode.value = result;
+											inputNode.select();
+										});
 										return [inputNode];
 									};
 									infoDropDown._focusDropdownNode = function() {
@@ -326,11 +330,11 @@ define([
 							if(this.breadCrumbInHeader) {
 								bcNodeContainer.classList.add("breadCrumbContainerInHeader"); 
 								titleNode.appendChild(bcNodeContainer);
-								this.breadCrumbMaker(bcNode, this._foldersSection.getHeaderElement().offsetWidth - 150/*branch selector width*/ - 50);
+								this.breadCrumbMaker(bcNode);
 							} else {
 								bcNodeContainer.classList.add("breadCrumbContainer"); 
 								this.sectionContents.appendChild(bcNodeContainer);
-								this.breadCrumbMaker(bcNode, this._foldersSection.getHeaderElement().offsetWidth - 5);
+								this.breadCrumbMaker(bcNode);
 							}
 						}
 						//Render the branch level commit information 
@@ -352,6 +356,18 @@ define([
 							this.editorView.create();
 							this.resetTextModel = this.snippetShareOptions && this.snippetShareOptions.e ? true : false;
 							var textView = this.editorView.editor.getTextView();
+							var shareCodeTrigger = lib.node("orion.browse.shareCodeTrigger");
+							if(shareCodeTrigger) {
+								textView.addEventListener("Selection", this._editorViewSelectionChangedListener = function(evt){ //$NON-NLS-0$
+									if(evt.newValue){
+										if(evt.newValue.start !== evt.newValue.end){
+											shareCodeTrigger.style.display = "";
+										} else {
+											shareCodeTrigger.style.display = "none";
+										}
+									}
+								}.bind(this)); 
+							}
 							textView.getModel().addEventListener("Changed", this._editorViewModelChangedListener = function(e){ //$NON-NLS-0$
 								var textModel = textView.getModel();
 								if(this.resetTextModel) {
@@ -440,7 +456,13 @@ define([
 				td.classList.add(tdClass);
 			}
 			var messageContent = document.createElement("div");
-			messageContent.appendChild(document.createTextNode(message));
+			var segments = mUrlUtils.detectValidURL(message);
+			if (segments) {
+				mUrlUtils.processURLSegments(messageContent, segments);				
+			} else {
+				messageContent.appendChild(document.createTextNode(message));
+			}
+			//messageContent.appendChild(document.createTextNode(message));
 			td.appendChild(messageContent);
 			tr.appendChild(td);
 			messageTable.appendChild(tr);
@@ -474,7 +496,11 @@ define([
 		},
 		destroy: function() {
 			if(this.editorView) {
-				this.editorView. editor.getTextView().getModel().removeEventListener("Changed", this._editorViewModelChangedListener); //$NON-NLS-0$
+				this.editorView.editor.getTextView().getModel().removeEventListener("Changed", this._editorViewModelChangedListener); //$NON-NLS-0$
+				if(this._editorViewSelectionChangedListener) {
+					this.editorView.editor.getTextView().removeEventListener("Selection", this._editorViewSelectionChangedListener); //$NON-NLS-0$
+					this._editorViewSelectionChangedListener = null;
+				}
 				this.editorView.destroy();
 				this.editor = null;
 			}

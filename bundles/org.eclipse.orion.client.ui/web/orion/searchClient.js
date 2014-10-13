@@ -10,9 +10,7 @@
  * IBM Corporation - initial API and implementation
  *******************************************************************************/
  
-/*global define window document console*/
-/*jslint forin:true regexp:false sub:true*/
-
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/search/nls/messages', 'require', 'orion/webui/littlelib', 'orion/i18nUtil', 'orion/searchUtils', 'orion/crawler/searchCrawler',
 	'orion/explorers/navigatorRenderer', 'orion/extensionCommands', 'orion/Deferred'
@@ -160,7 +158,7 @@ function(messages, require, lib, i18nUtil, mSearchUtils, mSearchCrawler, navigat
 				if (!foundValidHit) {
 					// only display no matches found if we have a proper name
 					if (queryName) {
-						var errorStr = i18nUtil.formatMessage(messages["No matches found for ${0}"], queryName); 
+						var errorStr = i18nUtil.formatMessage(messages["NoMatchFound"], queryName); 
 						lib.empty(resultsNode);
 						resultsNode.appendChild(document.createTextNode(errorStr)); 
 						if (typeof(onResultReady) === "function") { //$NON-NLS-0$
@@ -297,7 +295,7 @@ function(messages, require, lib, i18nUtil, mSearchUtils, mSearchCrawler, navigat
 				}
 			}
 			if(searchInputDom && searchInputDom.title){
-				searchInputDom.title = messages["Type a keyword or wild card to search in "] + locationName;
+				searchInputDom.title = messages["TypeKeyOrWildCard"] + locationName;
 			}
 		},
 		setLocationbyURL: function(locationURL){

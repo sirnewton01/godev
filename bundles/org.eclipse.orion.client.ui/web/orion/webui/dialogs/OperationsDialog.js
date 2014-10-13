@@ -8,9 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define*/
-/*jslint browser:true*/
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/operations/nls/messages', 'require', 'orion/webui/littlelib', 'orion/webui/popupdialog', 'orion/operationsCommands'],
 function(messages, require, lib, popupdialog, mOperationsCommands) {
 	
@@ -26,19 +24,19 @@ function(messages, require, lib, popupdialog, mOperationsCommands) {
 	}
 	
 	OperationsDialog.prototype = new popupdialog.PopupDialog();
-
+	OperationsDialog.prototype.messages = messages;
+	
 	OperationsDialog.prototype.TEMPLATE = 
 		'<table style="width: 360px;"><tr>' + //$NON-NLS-0$
-			'<td><h2>Recent operations</h2></td>' + //$NON-NLS-0$
-			'<td style="text-align: right;"><a id="allOperationsLink" class="navlinkonpage">All Operations</a></td>' + //$NON-NLS-0$
+			'<td><h2>${Recent operations}</h2></td>' + //$NON-NLS-0$
+			'<td style="text-align: right;"><a id="allOperationsLink" class="navlinkonpage">${All Operations}</a></td>' + //$NON-NLS-0$
 		'</tr></table>' + //$NON-NLS-0$
 		'<div id="operationsExist">' + //$NON-NLS-0$
-			'<div style="padding-left: 7px" id="myOperationsListEmpty">No operations running on this page.</div>' + //$NON-NLS-0$
+			'<div style="padding-left: 7px" id="myOperationsListEmpty">${NoPageOps}</div>' + //$NON-NLS-0$
 			'<table id="myOperationsList" style="display: none;"></table>' + //$NON-NLS-0$
 		'</div>' + //$NON-NLS-0$
-		'<div style="padding-left: 7px" id="operationsDontExist">No operations running.</div>'; //$NON-NLS-0$
-
-
+		'<div style="padding-left: 7px" id="operationsDontExist">${NoOperations}</div>'; //$NON-NLS-0$
+	
 	OperationsDialog.prototype._init = function(options) {
 		this._myOperations = [];
 		this._operationsDeferreds = [];
@@ -112,20 +110,20 @@ function(messages, require, lib, popupdialog, mOperationsCommands) {
 			switch (operation.type) {
 				case "Warning": //$NON-NLS-0$
 					operationIcon.classList.add("core-sprite-warning"); //$NON-NLS-0$
-					operationIcon.setAttribute("aria-label", messages["Operation resulted in a warning."]); //$NON-NLS-0$
+					operationIcon.setAttribute("aria-label", messages["OpWarning"]); //$NON-NLS-0$
 					break;
 				case "error": //$NON-NLS-0$
 					operationIcon.classList.add("core-sprite-error"); //$NON-NLS-0$
-					operationIcon.setAttribute("aria-label", messages["Operation resulted in an error."]); //$NON-NLS-0$
+					operationIcon.setAttribute("aria-label", messages["OpErr"]); //$NON-NLS-0$
 					break;
 				case "loadstart":
 				case "progress":
 					operationIcon.classList.add("core-sprite-start"); //$NON-NLS-0$
-					operationIcon.setAttribute("aria-label", messages["Operation is running."]); //$NON-NLS-0$
+					operationIcon.setAttribute("aria-label", messages["OpRunning"]); //$NON-NLS-0$
 					break;
 				case "abort":
 					operationIcon.classList.add("core-sprite-stop"); //$NON-NLS-0$
-					operationIcon.setAttribute("aria-label", messages["Operation is canceled."]); //$NON-NLS-0$
+					operationIcon.setAttribute("aria-label", messages["OpCancelled"]); //$NON-NLS-0$
 					break;
 				case "load":
 				case "loadend":

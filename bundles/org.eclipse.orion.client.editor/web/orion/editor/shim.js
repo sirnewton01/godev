@@ -9,8 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
-/*global define*/
-
+/*eslint-env browser, amd*/
 define("orion/editor/shim", [], function() { //$NON-NLS-0$
 
 	/**
@@ -45,9 +44,9 @@ define("orion/editor/shim", [], function() { //$NON-NLS-0$
 	}
 	if (!Object.keys) {
 		Object.keys = function(o) {
-			var result = [];
+			var hop = Object.prototype.hasOwnProperty, result = [];
 			for (var p in o) {
-				if (o.hasOwnProperty(p)) {
+				if (hop.call(o, p)) {
 					result.push(p);
 				}
 			}

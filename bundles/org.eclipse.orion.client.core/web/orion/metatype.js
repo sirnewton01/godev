@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define*/
+/*eslint-env browser, amd*/
 define([
 	'orion/serviceTracker'
 ], function(ServiceTracker) {
@@ -25,9 +25,8 @@ define([
 	function MetaTypeRegistry(serviceRegistry) {
 		function forEach(serviceRef, propertyName, func) {
 			var array = serviceRef.getProperty(propertyName);
-			if (array instanceof Array) {
+			if (Array.isArray(array))
 				array.forEach(func);
-			}
 		}
 		var tracker = new ServiceTracker(serviceRegistry, METATYPE_SERVICE); //$NON-NLS-0$
 		var ocdsMap = this.ocdsMap = {}; // OCD Id {String} -> {ObjectClassDefinition}

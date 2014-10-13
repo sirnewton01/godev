@@ -8,17 +8,21 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global console define setTimeout*/
+/*eslint-env browser, amd*/
 define([
 	'orion/Deferred',
+	'orion/objects',
+	'orion/preferences',
 	'orion/serviceTracker',
-	'orion/objects'
-], function(Deferred, ServiceTracker, objects) {
+], function(Deferred, objects, Preferences, ServiceTracker) {
 
+var PreferencesService = Preferences.PreferencesService;
 var ManagedServiceTracker, ConfigAdminFactory, ConfigStore, ConfigAdminImpl, ConfigImpl;
 
+var DEFAULT_SCOPE = PreferencesService.DEFAULT_SCOPE;
 var PROPERTY_PID = 'pid'; //$NON-NLS-0$
 var MANAGED_SERVICE = 'orion.cm.managedservice'; //$NON-NLS-0$
+var PREF_NAME = '/cm/configurations'; //$NON-NLS-0$
 
 /**
  * @name orion.cm.impl.ManagedServiceTracker
@@ -171,6 +175,7 @@ ConfigAdminImpl = /** @ignore */ (function() {
 		this.store = store;
 	}
 	ConfigAdminImpl.prototype = {
+		_prefName: PREF_NAME,
 		_init: function() {
 			var self = this;
 			return this.store._init().then(function() {
@@ -179,6 +184,9 @@ ConfigAdminImpl = /** @ignore */ (function() {
 		},
 		getConfiguration: function(pid) {
 			return this.store.get(pid);
+		},
+		getDefaultConfiguration: function(pid) {
+			return this.store._find(pid, DEFAULT_SCOPE);
 		},
 		listConfigurations: function() {
 			return this.store.list();
@@ -192,42 +200,54 @@ ConfigAdminImpl = /** @ignore */ (function() {
  * @class Manages Configurations and handles persisting them to preferences.
  * @private
  */
-var CONFIG_PREF_NODE = '/cm/configurations'; //$NON-NLS-0$
 ConfigStore = /** @ignore */ (function() {
 	function ConfigStore(factory, prefsService) {
 		this.factory = factory;
 		this.prefsService = prefsService;
-		this.configs = Object.create(null); // PID -> Configuration
-		this.pref = null; // Preferences node. Pref keys are PIDs, pref values are properties objects.
-		var self = this;
-		this.initPromise = this.prefsService.getPreferences(CONFIG_PREF_NODE).then(function(pref) {	
-			self.pref = pref;
-			pref.keys().forEach(function(pid) {
-				if (!self.configs[pid]) {
-					var properties = pref.get(pid);
-					if (typeof properties === 'object' && properties !== null && Object.keys(properties).length > 0) { //$NON-NLS-0$
-						properties[PROPERTY_PID] = pid;
-						self.configs[pid] = new ConfigImpl(self.factory, self, properties);
-					}
-				}
-			});
+		this.configs = this.defaultConfigs = null; // PID -> Configuration
+		this.pref = null; // Preferences node. Maps String PID -> Object properties
+		var _self = this;
+		this.initPromise = Deferred.all([
+			this.prefsService.getPreferences(PREF_NAME, DEFAULT_SCOPE), // default scope only
+			this.prefsService.getPreferences(PREF_NAME)
+		]).then(function(result) {
+			var defaultPref = result[0];
+			_self.pref = result[1];
+			_self.defaultConfigs = _self._toConfigs(defaultPref, true /* read only */);
+			_self.configs = _self._toConfigs(_self.pref, false, defaultPref);
 		});
 	}
 	ConfigStore.prototype = {
+		_toConfigs: function(pref, isReadOnly, inheritPref) {
+			var configs = Object.create(null), _self = this;
+			pref.keys().forEach(function(pid) {
+				if (!configs[pid]) {
+					var properties = pref.get(pid), inheritProps = inheritPref && inheritPref.get(pid);
+					if (typeof properties === 'object' && properties !== null && Object.keys(properties).length > 0) { //$NON-NLS-0$
+						properties[PROPERTY_PID] = pid;
+						configs[pid] = new ConfigImpl(_self.factory, _self, properties, isReadOnly, inheritProps);
+					}
+				}
+			});
+			return configs;
+		},
 		_init: function() {
 			return this.initPromise;
 		},
-		_find: function(pid) {
+		_find: function(pid, scope) {
+			if(scope === PreferencesService.DEFAULT_SCOPE)
+				return this.defaultConfigs[pid] || null;
 			return this.configs[pid] || null;
 		},
 		get: function(pid) {
-			var configuration = this._find(pid);
-			if (!configuration) {
-				// only pid is in the properties here
-				configuration = new ConfigImpl(this.factory, this, pid);
-				this.configs[pid] = configuration;
+			var config = this._find(pid), defaultConfig = this._find(pid, DEFAULT_SCOPE);
+			if (!config) {
+				// Create a new Configuration with only pid in its (non-inherited) properties
+				var inheritProps = defaultConfig && defaultConfig.getProperties(true);
+				config = new ConfigImpl(this.factory, this, pid, false, inheritProps);
+				this.configs[pid] = config;
 			}
-			return configuration;
+			return config;
 		},
 		list: function() {
 			var self = this;
@@ -245,7 +265,17 @@ ConfigStore = /** @ignore */ (function() {
 			delete this.configs[pid];
 		},
 		save: function(pid, configuration) {
-			this.pref.put(pid, configuration.getProperties(true) || {});
+			var props = configuration.getProperties(true) || {};
+			var defaultConfig = this._find(pid, DEFAULT_SCOPE);
+			if (defaultConfig) {
+				// Filter out any properties that are inherited and unchanged from their default values
+				var defaultProps = defaultConfig.getProperties(true);
+				Object.keys(defaultProps).forEach(function(key) {
+					if (Object.prototype.hasOwnProperty.call(props, key) && props[key] === defaultProps[key])
+						delete props[key];
+				});
+			}
+			this.pref.put(pid, props);
 		}
 	};
 	return ConfigStore;
@@ -263,9 +293,10 @@ ConfigImpl = /** @ignore */ (function() {
 		delete newProps[PROPERTY_PID];
 		configuration.properties = newProps;
 	}
-	function ConfigImpl(factory, store, pidOrProps) {
+	function ConfigImpl(factory, store, pidOrProps, isReadOnly, inheritProperties) {
 		this.factory = factory;
 		this.store = store;
+		this.readOnly = isReadOnly;
 		if (pidOrProps !== null && typeof pidOrProps === 'object') { //$NON-NLS-0$
 			this.pid = pidOrProps[PROPERTY_PID];
 			setProperties(this, pidOrProps);
@@ -275,12 +306,24 @@ ConfigImpl = /** @ignore */ (function() {
 		} else {
 			throw new Error('Invalid pid/properties ' + pidOrProps); //$NON-NLS-0$
 		}
+		// Inherit any property values missing from this configuration
+		if (inheritProperties) {
+			var _self = this;
+			Object.keys(inheritProperties).forEach(function(key) {
+				if (key === PROPERTY_PID || Object.prototype.hasOwnProperty.call(_self.properties, key))
+					return;
+				_self.properties[key] = inheritProperties[key];
+			});
+		}
 	}
 	ConfigImpl.prototype = {
+		_checkReadOnly: function() {
+			if (this.readOnly)
+				throw new Error('Configuration is read only'); //$NON-NLS-0$
+		},
 		_checkRemoved: function() {
-			if (this._removed) {
+			if (this.removed)
 				throw new Error('Configuration was removed'); //$NON-NLS-0$
-			}
 		},
 		getPid: function() {
 			this._checkRemoved();
@@ -298,12 +341,14 @@ ConfigImpl = /** @ignore */ (function() {
 			return props;
 		},
 		remove: function() {
+			this._checkReadOnly();
 			this._checkRemoved();
 			this.factory.notifyDeleted(this);
 			this.store.remove(this.pid);
-			this._removed = true;
+			this.removed = true;
 		},
 		update: function(props) {
+			this._checkReadOnly();
 			this._checkRemoved();
 			setProperties(this, props);
 			this.store.save(this.pid, this);
@@ -364,6 +409,13 @@ ConfigImpl = /** @ignore */ (function() {
 	 * have <code>null</code> properties.
 	 * @param {String} pid
 	 * @returns {orion.cm.Configuration} The configuration.
+	 */
+	/**
+	 * @name getDefaultConfiguration
+	 * @memberOf orion.cm.ConfigurationAdmin.prototype
+	 * @description Gets the configuration having the given PID if it is defined in the default preference scope.
+	 * @param {String} pid
+	 * @returns {orion.cm.Configuration} The configuration, or <tt>null</tt>.
 	 */
 	/**
 	 * @name listConfigurations

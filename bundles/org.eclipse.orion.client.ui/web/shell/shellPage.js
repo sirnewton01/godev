@@ -10,20 +10,19 @@
  *     Kris De Volder (VMWare) - initial API and implementation
  *******************************************************************************/
 
-/*global define window URL*/
-/*jslint browser:true sub:true*/
-
-define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility", "orion/bootstrap", "orion/commandRegistry", "orion/fileClient", "orion/searchClient", "orion/globalCommands",
+/*eslint-env browser, amd*/
+/*global URL*/
+define(["require", "i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/commandRegistry", "orion/fileClient", "orion/searchClient", "orion/globalCommands",
 		"orion/shell/Shell", "orion/webui/treetable", "shell/shellPageFileService", "shell/paramType-file", "shell/paramType-plugin", "shell/paramType-service",
-		"orion/i18nUtil", "orion/extensionCommands", "orion/contentTypes", "orion/pluginregistry", "orion/PageUtil", "orion/URITemplate", "orion/Deferred",
+		"orion/i18nUtil", "orion/extensionCommands", "orion/contentTypes", "orion/PageUtil", "orion/URITemplate", "orion/Deferred",
 		"orion/status", "orion/progress", "orion/operationsClient", "shell/resultWriters", "orion/URL-shim"],
-	function(require, messages, mBrowserCompatibility, mBootstrap, mCommandRegistry, mFileClient, mSearchClient, mGlobalCommands, mShell, mTreeTable, mShellPageFileService, mFileParamType,
-		mPluginParamType, mServiceParamType, i18nUtil, mExtensionCommands, mContentTypes, mPluginRegistry, PageUtil, URITemplate, Deferred, mStatus, mProgress,
+	function(require, messages, mBootstrap, mCommandRegistry, mFileClient, mSearchClient, mGlobalCommands, mShell, mTreeTable, mShellPageFileService, mFileParamType,
+		mPluginParamType, mServiceParamType, i18nUtil, mExtensionCommands, mContentTypes, PageUtil, URITemplate, Deferred, mStatus, mProgress,
 		mOperationsClient, mResultWriters, _) {
 
 	var shellPageFileService, fileClient, commandRegistry, output, fileType;
 	var hashUpdated = false;
-	var contentTypeService, serviceRegistry;
+	var serviceRegistry;
 	var pluginRegistry, pluginType, preferences, serviceElementCounter = 0;
 
 	var ROOT_ORIONCONTENT = new URL(require.toUrl("file"), window.location.href).pathname; //$NON-NLS-0$
@@ -229,9 +228,9 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 			error = JSON.parse(xhrResult.responseText);
 		} catch (e) {}
 		if (error && error.DetailedMessage) {
-			error = i18nUtil.formatMessage(messages["Error: ${0}"], error.DetailedMessage);
+			error = i18nUtil.formatMessage(messages["Err"], error.DetailedMessage);
 		} else if (error && error.Message) {
-			error = i18nUtil.formatMessage(messages["Error: ${0}"], error.Message);
+			error = i18nUtil.formatMessage(messages["Err"], error.Message);
 		} else if (typeof xhrResult.url === "string") {
 			if (xhrResult.status === 0) {
 				error = i18nUtil.formatMessage(messages["NoResponseFromServer"], xhrResult.url);
@@ -443,7 +442,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		var url = args.url.trim();
 		if (/^\S+$/.test(url)) {
 			if (pluginRegistry.getPlugin(url)){
-				return messages["Plug-in is already installed"];
+				return messages["PlugAlreadyInstalled"];
 			}
 			var result = context.createPromise();
 			pluginRegistry.installPlugin(url).then(
@@ -485,7 +484,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 	function pluginsUninstallExec(args, context) {
 		var result = context.createPromise();
 		if (args.plugin.isAllPlugin) {
-			var msg = messages["Are you sure you want to uninstall all contributed plug-ins?"];
+			var msg = messages["UninstallAllPlugsMsg"];
 			if (!window.confirm(msg)) {
 				return messages.Aborted;
 			}
@@ -918,40 +917,40 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		/* add the locally-defined commands */
 		shell.registerCommand({
 			name: "cd", //$NON-NLS-0$
-			description: messages["Changes the current directory"],
+			description: messages["ChangeCurrDir"],
 			callback: cdExec,
 			parameters: [{
 				name: "directory", //$NON-NLS-0$
 				type: {name: "file", directory: true, exist: true}, //$NON-NLS-0$
-				description: messages["The name of the directory"]
+				description: messages["DirName"]
 			}],
 			returnType: "html" //$NON-NLS-0$
 		});
 		shell.registerCommand({
 			name: "edit", //$NON-NLS-0$
-			description: messages["Edits a file"],
+			description: messages["EditFile"],
 			callback: editExec,
 			parameters: [{
 				name: "file", //$NON-NLS-0$
 				type: {name: "file", file: true, exist: true}, //$NON-NLS-0$
-				description: messages["The name of the file"]
+				description: messages["FileName"]
 			}]
 		});
 		shell.registerCommand({
 			name: "ls", //$NON-NLS-0$
-			description: messages["Lists the files in the current directory"],
+			description: messages["CurDirFileList"],
 			callback: lsExec,
 			returnType: "html" //$NON-NLS-0$
 		});
 		shell.registerCommand({
 			name: "pwd", //$NON-NLS-0$
-			description: messages["Prints the current directory location"],
+			description: messages["CurDirLocation"],
 			callback: pwdExec,
 			returnType: "html" //$NON-NLS-0$
 		});
 		shell.registerCommand({
 			name: "clear", //$NON-NLS-0$
-			description: messages["Clears the shell screen"],
+			description: messages["ClearShellScreen"],
 			callback: function(args, context) {
 				shell.clear();
 			}
@@ -960,17 +959,17 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		/* plug-in management commands */
 		shell.registerCommand({
 			name: "plugins", //$NON-NLS-0$
-			description: messages["Commands for working with plug-ins"]
+			description: messages["CmdForPlugs"]
 		});
 		shell.registerCommand({
 			name: "plugins list", //$NON-NLS-0$
-			description: messages["Lists all registered plug-ins"],
+			description: messages["RegisteredPlugsList"],
 			callback: pluginsListExec,
 			returnType: "html" //$NON-NLS-0$
 		});
 		shell.registerCommand({
 			name: "plugins install", //$NON-NLS-0$
-			description: messages["Installs a plug-in from a URL"],
+			description: messages["InstallPlugFrmURL"],
 			callback: pluginsInstallExec,
 			parameters: [{
 				name: "url", //$NON-NLS-0$
@@ -981,12 +980,12 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		});
 		shell.registerCommand({
 			name: "plugins uninstall", //$NON-NLS-0$
-			description: messages["Uninstalls a contributed plug-in from the configuration"],
+			description: messages["UninstallContributedPlugFrmConfig"],
 			callback: pluginsUninstallExec,
 			parameters: [{
 				name: "plugin", //$NON-NLS-0$
 				type: {name: "plugin", multiple: true, excludeDefaultPlugins: true}, //$NON-NLS-0$
-				description: messages["The name of the contributed plug-in"]
+				description: messages["ContributedPlugName"]
 			}],
 			returnType: "string" //$NON-NLS-0$
 		});
@@ -997,40 +996,40 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 			parameters: [{
 				name: "plugin", //$NON-NLS-0$
 				type: {name: "plugin", multiple: true, excludeDefaultPlugins: false}, //$NON-NLS-0$
-				description: messages["The name of the plug-in"]
+				description: messages["PlugName"]
 			}],
 			returnType: "string" //$NON-NLS-0$
 		});
 		shell.registerCommand({
 			name: "plugins enable", //$NON-NLS-0$
-			description: messages["Enables a contributed plug-in"],
+			description: messages["EnableContributedPlug"],
 			callback: pluginsEnableExec,
 			parameters: [{
 				name: "plugin", //$NON-NLS-0$
 				type: {name: "plugin", multiple: true, excludeDefaultPlugins: true}, //$NON-NLS-0$
-				description: messages["The name of the contributed plug-in"]
+				description: messages["ContributedPlugName"]
 			}],
 			returnType: "string" //$NON-NLS-0$
 		});
 		shell.registerCommand({
 			name: "plugins disable", //$NON-NLS-0$
-			description: messages["Disables a contributed plug-in"],
+			description: messages["DisableContributedPlug"],
 			callback: pluginsDisableExec,
 			parameters: [{
 				name: "plugin", //$NON-NLS-0$
 				type: {name: "plugin", multiple: true, excludeDefaultPlugins: true}, //$NON-NLS-0$
-				description: messages["The name of the contributed plug-in"]
+				description: messages["ContributedPlugName"]
 			}],
 			returnType: "string" //$NON-NLS-0$
 		});
 		shell.registerCommand({
 			name: "plugins services", //$NON-NLS-0$
-			description: messages["Displays a plug-in's services"],
+			description: messages["DisplayPlugServices"],
 			callback: pluginServicesExec,
 			parameters: [{
 				name: "plugin", //$NON-NLS-0$
 				type: {name: "plugin", multiple: false, excludeDefaultPlugins: false}, //$NON-NLS-0$
-				description: messages["The name of the plug-in"]
+				description: messages["PlugName"]
 			}],
 			returnType: "html" //$NON-NLS-0$
 		});
@@ -1038,12 +1037,12 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		/* service management commands */
 		shell.registerCommand({
 			name: "service", //$NON-NLS-0$
-			description: messages["Commands for working with a service"]
+			description: messages["CmdsForService"]
 		});
 
 		shell.registerCommand({
 			name: "service contributors", //$NON-NLS-0$
-			description: messages["Displays all plug-in contributions for a service"],
+			description: messages["DisplayPlugsForService"],
 			callback: serviceContributorsExec,
 			parameters: [{
 				name: "id", //$NON-NLS-0$
@@ -1054,7 +1053,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		});
 
 		/* initialize the editors cache (used by some of the built-in commands */
-		contentTypeService = new mContentTypes.ContentTypeRegistry(serviceRegistry);
+		var contentTypeService = new mContentTypes.ContentTypeRegistry(serviceRegistry);
 		mExtensionCommands.createOpenWithCommands(serviceRegistry, contentTypeService, commandRegistry);
 
 		/* add types contributed through the plug-in API */
@@ -1069,11 +1068,11 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 		}
 
 		/* add commands contributed through the plug-in API */
-		var allReferences = serviceRegistry.getServiceReferences("orion.shell.command"); //$NON-NLS-0$
+		allReferences = serviceRegistry.getServiceReferences("orion.shell.command"); //$NON-NLS-0$
 		var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
-		for (var i = 0; i < allReferences.length; ++i) {
-			var ref = allReferences[i];
-			var service = serviceRegistry.getService(ref);
+		for (i = 0; i < allReferences.length; ++i) {
+			ref = allReferences[i];
+			service = serviceRegistry.getService(ref);
 			if (service) {
 				var OUTPUT_STRING = "output"; //$NON-NLS-0$
 				parameters = ref.getProperty("parameters") || []; //$NON-NLS-0$
@@ -1088,7 +1087,7 @@ define(["require", "i18n!orion/shell/nls/messages", "orion/browserCompatibility"
 					parameters.push({
 						name: "output", //$NON-NLS-0$
 	                    type: {name: "file", file: true, directory: true}, //$NON-NLS-0$
-	                    description: messages["The file or directory to re-direct output to"], //$NON-NLS-0$
+	                    description: messages["FileOrDirRedirectOutput"], //$NON-NLS-0$
 	                    defaultValue: null
 					});
 				}

@@ -7,8 +7,7 @@
  * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
  *******************************************************************************/
 
-/*global define document window localStorage*/
-
+/*eslint-env browser, amd*/
 define(["i18n!orion/shell/nls/messages", "require", "orion/shell/Shell", "orion/i18nUtil", "orion/Deferred"],
 	function(messages, require, mShell, i18nUtil, Deferred) {
 
@@ -173,7 +172,7 @@ define(["i18n!orion/shell/nls/messages", "require", "orion/shell/Shell", "orion/
 					status = mShell.CompletionStatus.PARTIAL;
 				} else {
 					status = mShell.CompletionStatus.ERROR;
-					message = i18nUtil.formatMessage(messages["'${0}' is not valid"], string);
+					message = i18nUtil.formatMessage(messages["notValid"], string);
 				}
 				return {
 					value: exactMatch ? exactMatch.value : undefined,

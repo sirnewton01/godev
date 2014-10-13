@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012, 2013 VMware, Inc. and others.
+ * Copyright (c) 2012, 2014 VMware, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -15,12 +15,13 @@
 This module contains functions for manipulating internal type signatures and
 other utility functions related to types.
 */
-/*jslint es5:true browser:true*/
-/*global define doctrine console */
+/*eslint-env es5, browser, amd*/
+/*global doctrine*/
 define([
 'javascript/contentAssist/proposalUtils',
-'doctrine/doctrine'
-], function(proposalUtils, _doctrine) {
+'logger',
+'doctrine' //stays last, exports into global scope
+], function(proposalUtils, Logger) {
 	/**
 	 * @description Doctrine closure compiler style type objects
 	 * @param {String} signature The Doctrine-style signature to parse
@@ -36,7 +37,7 @@ define([
 		try {
 			return doctrine.parseParamType(signature);
 		} catch(e) {
-			console.error("doctrine failure to parse: " + signature);
+			Logger.error("doctrine failure to parse: " + signature);
 			return {};
 		}
 	}
@@ -341,7 +342,7 @@ define([
 					return result;
 				}
 				try {
-					var rawresult = doctrine.parse("/*" + commentText + "*/", {unwrap : true, tags : ['param', 'type', 'return']});
+					var rawresult = doctrine.parse(commentText, {recoverable:true, unwrap : true, tags : ['param', 'type', 'return']});
 					// transform result into something more manageable
 					var rawtags = rawresult.tags;
 					if (rawtags) {
@@ -499,10 +500,15 @@ define([
 						if (allTypes[name]) {
 							return { type: 'NameExpression', name: name };
 						} else {
-							var capType = name[0].toUpperCase() + name.substring(1);
-							if (allTypes[capType]) {
-								return { type: 'NameExpression', name: capType };
-							}
+						    //may have been a proto lookup i.e. Connection..prototype
+						    var names = name.split('..');
+						    if(names.length === 2 && names[1] === 'prototype') {
+						        return {type: 'NameExpression', name: names[0]};
+						    }
+						}
+						var capType = name[0].toUpperCase() + name.substring(1);
+						if (allTypes[capType]) {
+							return { type: 'NameExpression', name: capType };
 						}
 					}
 					return THE_UNKNOWN_TYPE;
@@ -748,7 +754,7 @@ define([
 		BOOLEAN_TYPE: createNameType("Boolean"),
 		STRING_TYPE: createNameType("String"),
 		ARRAY_TYPE: createNameType("Array"),
-		FUNCTION_TYPE: createNameType("Function")	
+		FUNCTION_TYPE: createNameType("Function")
 	};
 	
 });

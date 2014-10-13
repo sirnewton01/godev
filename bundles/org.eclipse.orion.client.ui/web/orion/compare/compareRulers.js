@@ -9,8 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define */
-
+/*eslint-env browser, amd*/
 define(['orion/compare/compareUtils'], function(mCompareUtils) {
 var orion = orion || {};
 

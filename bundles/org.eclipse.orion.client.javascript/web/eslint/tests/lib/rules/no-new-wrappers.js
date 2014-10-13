@@ -9,12 +9,13 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint mocha:true node:true amd:true*/
+/*eslint-env amd, node, mocha*/
 (function(root, factory) {
-	if (typeof exports === "object") //$NON-NLS-0$
+	if (typeof exports === "object") {//$NON-NLS-0$
 		module.exports = factory(require, exports, module, require("assert"), require("../../../lib/eslint"));
-	else if(typeof define === "function" && define.amd) //$NON-NLS-0$
+	} else if(typeof define === "function" && define.amd) { //$NON-NLS-0$
 		define(["require", "exports", "module", "chai/chai", "eslint"], factory);
+	}
 }(this, function(require, exports, module, assert, eslint) {
 	assert = assert.assert /*chai*/ || assert;
 
@@ -23,7 +24,7 @@
 	function assertMessages(messages) {
 		messages.forEach(function(message) {
 			assert.equal(message.ruleId, RULE_ID);
-			assert.ok(/Do not use \w+ as a constructor\./.test(message.message), "Has expected message");
+			assert.ok(/Do not use \'\w+\' as a constructor\./.test(message.message), "Has expected message");
 			assert.equal(message.node.type, "Identifier");
 		});
 	}

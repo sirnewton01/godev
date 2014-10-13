@@ -9,8 +9,8 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint forin:true regexp:false*/
-/*global console define JSLINT window*/
+/*eslint-env browser, amd*/
+/*global JSLINT*/
 define([
 	"orion/plugin",
 	"orion/jslintworker",
@@ -28,34 +28,8 @@ define([
 	}
 
 	function cleanup(error) {
-		function fixWith(fixes, severity, force) {
-			var description = error.description;
-			for (var i=0; i < fixes.length; i++) {
-				var fix = fixes[i],
-				    find = (typeof fix === "string" ? fix : fix[0]),
-				    replace = (typeof fix === "string" ? null : fix[1]),
-				    found = description.indexOf(find) !== -1;
-				if (force || found) {
-					error.severity = severity;
-				}
-				if (found && replace) {
-					error.description = replace;
-				}
-			}
-		}
-		function isBogus() {
-			var bogus = ["Dangerous comment"], description = error.description;
-			for (var i=0; i < bogus.length; i++) {
-				if (description.indexOf(bogus[i]) !== -1) {
-					return true;
-				}
-			}
-			return false;
-		}
-		var warnings = [
-			["Expected '{'", "Statement body should be inside '{ }' braces."]
-		];
-		var errors = [
+	    var fixes = [
+		  ["Expected '{'", "Statement body should be inside '{ }' braces."],
 			"Missing semicolon",
 			"Extra comma",
 			"Missing property name",
@@ -65,10 +39,19 @@ define([
 			"Unclosed string",
 			"Stopping, unable to continue"
 		];
-		// All problems are warnings by default
-		fixWith(warnings, "warning", true);
-		fixWith(errors, "error");
-		return isBogus(error) ? null : error;
+		var description = error.description;
+		if(description.indexOf("Dangerous comment") === -1) {
+    		for (var i=0; i < fixes.length; i++) {
+    			var fix = fixes[i],
+    			    find = (typeof fix === "string" ? fix : fix[0]),
+    			    replace = (typeof fix === "string" ? null : fix[1]);
+    			if((description.indexOf(find) !== -1) && replace) {
+    				error.description = replace;
+    			}
+    		}
+    		return error;
+		}
+		return null;
 	}
 
 	/**
@@ -178,26 +161,10 @@ define([
 	};
 
 	var provider = new PluginProvider(headers);
-	provider.registerService(["orion.edit.validator", "orion.cm.managedservice"], validationService, {
+	provider.registerService(["orion.edit.validator"], validationService, {
 		contentType: ["application/json"],
-		pid: "jslint.config"
 	});
-	provider.registerService("orion.core.setting",
-		{},
-		{	settings: [
-				{	pid: 'jslint.config',
-					name: 'JSLint Validator',
-					tags: 'validation HTML JSON jslint'.split(' '),
-					category: 'validation',
-					properties: [
-						{	id: 'options',
-							name: 'Options to pass to JSLint (/*jslint ..*/)',
-							type: 'string'
-						}
-					]
-				}
-			]
-		});
+	
 	provider.connect();
 
 });

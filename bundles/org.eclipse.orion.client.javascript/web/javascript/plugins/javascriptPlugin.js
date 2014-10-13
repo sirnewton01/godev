@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global URL */
-/*jslint amd:true */
+/*eslint-env amd */
 /*
  * This module may be loaded in a web worker or a regular Window. Therefore it must NOT use the DOM or other
  * APIs not available in workers.
@@ -27,6 +26,7 @@ define([
 	'javascript/contentAssist/contentAssist',
 	'javascript/validator',
 	'javascript/occurrences',
+	'javascript/hover',
 	'javascript/outliner',
 	'orion/plugin',
 	'orion/util',
@@ -36,7 +36,7 @@ define([
 	'orion/editor/stylers/application_schema_json/syntax',
 	'orion/editor/stylers/application_x-ejs/syntax'
 ], function(Esprima, ASTManager, MongodbIndex, MysqlIndex, PostgresIndex, RedisIndex, ExpressIndex, AMQPIndex, ContentAssist, 
-			EslintValidator, Occurrences, Outliner,	PluginProvider, Util, GenerateDocCommand, mJS, mJSON, mJSONSchema, mEJS) {
+			EslintValidator, Occurrences, Hover, Outliner,	PluginProvider, Util, GenerateDocCommand, mJS, mJSON, mJSONSchema, mEJS) {
 
 	/**
 	 * Plug-in headers
@@ -54,17 +54,17 @@ define([
 	provider.registerService("orion.core.contenttype", {}, { //$NON-NLS-0$
 		contentTypes: [
 			{	id: "application/javascript", //$NON-NLS-0$
-				"extends": "text/plain", //$NON-NLS-0$
+				"extends": "text/plain", //$NON-NLS-0$ //$NON-NLS-1$
 				name: "JavaScript", //$NON-NLS-0$
 				extension: ["js"], //$NON-NLS-0$
 				imageClass: "file-sprite-javascript modelDecorationSprite" //$NON-NLS-0$
 			}, {id: "application/json", //$NON-NLS-0$
-				"extends": "text/plain", //$NON-NLS-0$
+				"extends": "text/plain", //$NON-NLS-0$ //$NON-NLS-1$
 				name: "JSON", //$NON-NLS-0$
 				extension: ["json", "pref"], //$NON-NLS-0$ //$NON-NLS-1$
 				imageClass: "file-sprite-javascript modelDecorationSprite" //$NON-NLS-0$
 			}, {id: "application/x-ejs", //$NON-NLS-0$
-				"extends": "text/plain", //$NON-NLS-0$
+				"extends": "text/plain", //$NON-NLS-0$ //$NON-NLS-1$
 				name: "Embedded Javascript", //$NON-NLS-0$
 				extension: ["ejs"], //$NON-NLS-0$
 				imageClass: "file-sprite-javascript modelDecorationSprite" //$NON-NLS-0$
@@ -120,6 +120,16 @@ define([
 			contentType: ["application/javascript", "text/html"]	//$NON-NLS-0$ //$NON-NLS-1$
 	});
 	
+	/**
+	 * Register the hover support
+	 */
+	provider.registerService("orion.edit.hover", new Hover.JavaScriptHover(astManager),  //$NON-NLS-0$
+		{
+		    tipTitle: 'JavaScript',
+		    name: 'JavaScript Hover Provider',
+			contentType: ["application/javascript", "text/html"]	//$NON-NLS-0$ //$NON-NLS-1$
+	});
+	
 	provider.registerService("orion.edit.contentassist", new ContentAssist.JSContentAssist(astManager),  //$NON-NLS-0$
 		{
 			contentType: ["application/javascript"],  //$NON-NLS-0$
@@ -127,15 +137,16 @@ define([
 			name: 'contentAssist',  //$NON-NLS-0$
 			id: "orion.edit.contentassist.javascript",  //$NON-NLS-0$
 			charTriggers: "[.]",  //$NON-NLS-0$
-			excludedStyles: "(comment.*|string.*)"  //$NON-NLS-0$
-	});	
+			excludedStyles: "(string.*)"  //$NON-NLS-0$
+	});
 
 	/**
 	 * Register the ESLint validator
 	 */
 	provider.registerService(["orion.edit.validator", "orion.cm.managedservice"], new EslintValidator(astManager),  //$NON-NLS-0$  //$NON-NLS-1$
 		{
-			contentType: ["application/javascript", "text/html"],  //$NON-NLS-0$
+			contentType: ["application/javascript", "text/html"],  //$NON-NLS-0$ //$NON-NLS-1$
+			nls: 'javascript/nls/problems',  //$NON-NLS-0$
 			pid: 'eslint.config'  //$NON-NLS-0$
 		});
 
@@ -158,36 +169,36 @@ define([
 					properties: [
 						{
 							id: "no-new-array", //$NON-NLS-0$
-							nameKey: "no-new-array", //$NON-NLS-0$
+							nameKey: "noNewArray", //$NON-NLS-0$
 							type: "number", //$NON-NLS-0$
 							defaultValue: warning, //$NON-NLS-0$
 							options: severities //$NON-NLS-0$
 						},
 						{
 							id: "no-new-func", //$NON-NLS-0$
-							nameKey: "no-new-func", //$NON-NLS-0$
+							nameKey: "noNewFunc", //$NON-NLS-0$
 							type: "number", //$NON-NLS-0$
 							defaultValue: warning, //$NON-NLS-0$
 							options: severities //$NON-NLS-0$
 						},
 						{
 							id: "no-new-object", //$NON-NLS-0$
-							nameKey: "no-new-object", //$NON-NLS-0$
+							nameKey: "noNewObject", //$NON-NLS-0$
 							type: "number", //$NON-NLS-0$
 							defaultValue: warning, //$NON-NLS-0$
 							options: severities //$NON-NLS-0$
 						},
 						{
 							id: "no-new-wrappers", //$NON-NLS-0$
-							nameKey: "no-new-wrappers", //$NON-NLS-0$
+							nameKey: "noNewWrappers", //$NON-NLS-0$
 							type: "number", //$NON-NLS-0$
 							defaultValue: warning, //$NON-NLS-0$
 							options: severities //$NON-NLS-0$
 						},
-						{	id: "validate_curly",  //$NON-NLS-0$
-							nameKey: 'curly',  //$NON-NLS-0$
+						{	id: "validate_eqeqeq",  //$NON-NLS-0$
+							nameKey: 'noEqeqeq',  //$NON-NLS-0$
 							type: "number",  //$NON-NLS-0$
-							defaultValue: ignore,
+							defaultValue: warning,
 							options: severities
 						},
 						{	id: "validate_debugger",  //$NON-NLS-0$
@@ -196,22 +207,46 @@ define([
 							defaultValue: warning,
 							options: severities
 						},
+						{	id: "validate_eval",  //$NON-NLS-0$
+							nameKey: 'noEval',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: ignore,
+							options: severities
+						},
 						{	id: "validate_dupe_obj_keys",  //$NON-NLS-0$
 							nameKey: 'noDupeKeys',  //$NON-NLS-0$
 							type: "number",  //$NON-NLS-0$
 							defaultValue: error,
 							options: severities
 						},
-						{	id: "validate_eqeqeq",  //$NON-NLS-0$
-							nameKey: 'eqeqeq',  //$NON-NLS-0$
+						{	id: "validate_use_before_define",  //$NON-NLS-0$
+							nameKey: 'useBeforeDefine',  //$NON-NLS-0$
 							type: "number",  //$NON-NLS-0$
 							defaultValue: warning,
 							options: severities
 						},
-						{	id: "validate_eval",  //$NON-NLS-0$
-							nameKey: 'noEval',  //$NON-NLS-0$
+						{	id: "validate_new_parens",  //$NON-NLS-0$
+							nameKey: 'newParens',  //$NON-NLS-0$
 							type: "number",  //$NON-NLS-0$
-							defaultValue: ignore,
+							defaultValue: error,
+							options: severities
+						},
+						{	id: "validate_use_isnan",  //$NON-NLS-0$
+							nameKey: 'useIsNaN',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: error,
+							options: severities
+						},
+						{	id: "validate_missing_semi",  //$NON-NLS-0$
+							nameKey: 'missingSemi',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
+							options: severities
+						},
+						{	id: "validate_throw_error",  //$NON-NLS-0$
+							nameKey: 'throwError',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
 							options: severities
 						},
 						{	id: "validate_func_decl",  //$NON-NLS-0$
@@ -226,22 +261,16 @@ define([
 							defaultValue: ignore,
 							options: severities
 						},
-						{	id: "validate_missing_semi",  //$NON-NLS-0$
-							nameKey: 'missingSemi',  //$NON-NLS-0$
+						{	id: "validate_curly",  //$NON-NLS-0$
+							nameKey: 'missingCurly',  //$NON-NLS-0$
 							type: "number",  //$NON-NLS-0$
-							defaultValue: warning,
+							defaultValue: ignore,
 							options: severities
 						},
-						{	id: "validate_new_parens",  //$NON-NLS-0$
-							nameKey: 'newParens',  //$NON-NLS-0$
+						{	id: "validate_no_fallthrough",  //$NON-NLS-0$
+							nameKey: 'noFallthrough',  //$NON-NLS-0$
 							type: "number",  //$NON-NLS-0$
 							defaultValue: error,
-							options: severities
-						},
-						{	id: "validate_no_redeclare",  //$NON-NLS-0$
-							nameKey: 'varRedecl',  //$NON-NLS-0$
-							type: "number",  //$NON-NLS-0$
-							defaultValue: warning,
 							options: severities
 						},
 						{	id: "validate_no_undef",  //$NON-NLS-0$
@@ -250,14 +279,20 @@ define([
 							defaultValue: error,
 							options: severities
 						},
-						{	id: "validate_no_unused_vars",  //$NON-NLS-0$
-							nameKey: 'unusedVars',  //$NON-NLS-0$
+						{	id: "validate_no_empty_block",  //$NON-NLS-0$
+							nameKey: 'noEmptyBlock',  //$NON-NLS-0$
 							type: "number",  //$NON-NLS-0$
-							defaultValue: warning,
+							defaultValue: ignore,
 							options: severities
 						},
 						{	id: "validate_unnecessary_semi",  //$NON-NLS-0$
 							nameKey: 'unnecessarySemis',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
+							options: severities
+						},
+						{	id: "validate_no_jslint",  //$NON-NLS-0$
+							nameKey: 'unsupportedJSLint',  //$NON-NLS-0$
 							type: "number",  //$NON-NLS-0$
 							defaultValue: warning,
 							options: severities
@@ -268,18 +303,24 @@ define([
 							defaultValue: warning,
 							options: severities
 						},
-						{	id: "validate_use_before_define",  //$NON-NLS-0$
-							nameKey: 'useBeforeDefine',  //$NON-NLS-0$
+						{	id: "validate_no_unused_vars",  //$NON-NLS-0$
+							nameKey: 'unusedVars',  //$NON-NLS-0$
 							type: "number",  //$NON-NLS-0$
 							defaultValue: warning,
 							options: severities
 						},
-						{	id: "validate_use_isnan",  //$NON-NLS-0$
-							nameKey: 'useIsNaN',  //$NON-NLS-0$
+						{	id: "validate_no_unreachable",  //$NON-NLS-0$
+							nameKey: 'noUnreachable',  //$NON-NLS-0$
 							type: "number",  //$NON-NLS-0$
 							defaultValue: error,
 							options: severities
 						},
+						{	id: "validate_no_redeclare",  //$NON-NLS-0$
+							nameKey: 'varRedecl',  //$NON-NLS-0$
+							type: "number",  //$NON-NLS-0$
+							defaultValue: warning,
+							options: severities
+						}
 					]
 				}
 			]
@@ -288,10 +329,24 @@ define([
 	/**
 	 * Register syntax styling for js, json and json schema content
 	 */
-	var grammars = mJS.grammars.concat(mJSON.grammars).concat(mJSONSchema.grammars).concat(mEJS.grammars);
-	grammars.forEach(function(current) {
-		provider.registerService("orion.edit.highlighter", {}, current);
-	}.bind(this));
+	var newGrammars = {};
+	mJS.grammars.forEach(function(current){
+		newGrammars[current.id] = current;
+	});
+	mJSON.grammars.forEach(function(current){
+		newGrammars[current.id] = current;
+	});
+	mJSONSchema.grammars.forEach(function(current){
+		newGrammars[current.id] = current;
+	});
+	mEJS.grammars.forEach(function(current){
+		newGrammars[current.id] = current;
+	});
+	for (var current in newGrammars) {
+	    if (newGrammars.hasOwnProperty(current)) {
+   			provider.registerService("orion.edit.highlighter", {}, newGrammars[current]);
+  		}
+    }
 
 	/**
 	 * Register type definitions for known JS libraries

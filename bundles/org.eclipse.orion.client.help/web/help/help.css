@@ -1,0 +1,26 @@
+@import "../css/layout.css";
+@import "../css/ide.css";
+@import "../css/images.css";
+@import "../css/theme.css";
+@import "../settings/settings.css"; /* temporary */
+
+html,body {
+	height: 100%;
+}
+
+.sidebarWrapper > .sidebar {
+	height: calc(100% - 10px);
+	width: calc(100% - 10px);
+	left: 10px;
+}
+
+.workingTarget {
+	overflow: hidden;
+	padding: 0;
+	margin: 0;
+	top: 0;
+}
+
+.targetSelector {
+	padding-left: 16px;
+}

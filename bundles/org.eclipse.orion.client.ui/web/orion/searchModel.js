@@ -9,12 +9,10 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define console window*/
-/*jslint forin:true regexp:false sub:true*/
+/*eslint-env browser, amd*/
+define(['i18n!orion/search/nls/messages', 'orion/Deferred', 'orion/i18nUtil', 'orion/explorers/explorer', 'orion/searchUtils'],
 
-define(['i18n!orion/search/nls/messages', 'require', 'orion/Deferred', 'orion/i18nUtil', 'orion/explorers/explorer', 'orion/searchUtils'],
-
-function(messages, require, Deferred, i18nUtil, mExplorer, mSearchUtils) {
+function(messages, Deferred, i18nUtil, mExplorer, mSearchUtils) {
 
     /*** Internal model wrapper functions ***/
 
@@ -188,11 +186,9 @@ function(messages, require, Deferred, i18nUtil, mExplorer, mSearchUtils) {
         var qParams = mSearchUtils.copySearchParams(this._searchHelper.params, true);
         qParams.resource = modelItem.parentLocation;
         qParams.start = 0;
-        var href = mSearchUtils.generateSearchHref(qParams);
         var tooltip = i18nUtil.formatMessage(messages["Search again in this folder with \"${0}\""], this._searchHelper.displayedSearchTerm);
         return {
             name: modelItem.fullPathName,
-            href: href,
             tooltip: tooltip
         };
     };
@@ -301,10 +297,10 @@ function(messages, require, Deferred, i18nUtil, mExplorer, mSearchUtils) {
                 var endNumber = startNumber + pagingParams.numberOnPage - 1;
                 headerStr = "";
                 if (!this.replaceMode()) {
-                    headerStr = i18nUtil.formatMessage(messages["Files ${0} of ${1} matching ${2}"],
+                    headerStr = i18nUtil.formatMessage(messages["FilesAofBmatchingC"],
                     startNumber + "-" + endNumber, pagingParams.totalNumber, this._searchHelper.displayedSearchTerm); //$NON-NLS-0$
                 } else {
-                    headerStr = i18nUtil.formatMessage(messages["Replace ${0} with ${1} for files ${2} of ${3}"],
+                    headerStr = i18nUtil.formatMessage(messages["ReplaceAwithBforCofD"],
                     this._searchHelper.displayedSearchTerm,
                     this._searchHelper.params.replace,
                     startNumber + "-" + endNumber, //$NON-NLS-0$
@@ -507,7 +503,7 @@ function(messages, require, Deferred, i18nUtil, mExplorer, mSearchUtils) {
                    if (error.status === 412) {
                        reportList.push({
                            model: fileItem,
-                           message: messages["Resource has been changed by others."],
+                           message: messages["ResourceChanged."],
                            matchesReplaced: matchesReplaced,
                            status: "failed" //$NON-NLS-0$
                        });
@@ -542,6 +538,14 @@ function(messages, require, Deferred, i18nUtil, mExplorer, mSearchUtils) {
             }
         }
         return matchesReplaced;
+    };
+    
+    SearchResultModel.prototype.removeChild = function(model, item) {
+        var index = model.children.indexOf(item);
+        if (-1 < index) {
+        	model.children.splice(index, 1);
+        	item.stale = true;
+        }
     };
 
     SearchResultModel.prototype.constructor = SearchResultModel;

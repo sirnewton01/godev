@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define require orion window document console */
-
+/*eslint-env browser, amd*/
 define(['orion/URITemplate'], function(URITemplate) {
 
 var orion = orion || {};
@@ -198,7 +197,11 @@ orion.compareUtils.mergeDiffBlocks = function(oldTextModel, newDiffBlocks, mappe
 			var text = "";
 			for(var j = 0; j < mapperItem[0]; j++){
 				var lineText = diffArray[mapperItem[2]-1+j];
-				text = text + lineText.substring(diffArraySubstrIndex) + lineDelim;
+				if(lineText) {
+					text = text + lineText.substring(diffArraySubstrIndex) + lineDelim;
+				} else {
+					text = text + lineDelim;
+				}
 			}
 			var lineCount = oldTextModel.getLineCount();
 			if(startLineIndex >= lineCount){
@@ -216,6 +219,20 @@ orion.compareUtils.mergeDiffBlocks = function(oldTextModel, newDiffBlocks, mappe
 			oldTextModel.setText(text, startOffset, startOffset);
 		}
 	}
+};
+
+orion.compareUtils.convertMergedLineNumber = function(mapper, lineindex/*zero based*/){
+	var mapperItem = orion.compareUtils.lookUpMapper(mapper, 0, lineindex);
+	var returnValue = lineindex;
+	if(mapperItem.mapperIndex < 0){
+		return returnValue;
+	}
+	for(var i = 0; i < mapperItem.mapperIndex; i++){
+		if(mapper[i][2] !== 0) {
+			returnValue = returnValue + mapper[i][0];
+		}
+	}
+	return returnValue;
 };
 
 orion.compareUtils.generateCompareHref = function(diffLocation, options) {

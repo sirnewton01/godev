@@ -8,13 +8,11 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
-/*global define document window*/
+/*eslint-env browser, amd*/
 define([
-	'i18n!orion/edit/nls/messages',
 	'orion/globalCommands',
 	'orion/explorers/explorer-table',
 	'orion/explorers/navigatorRenderer',
-	'orion/selection',
 	'orion/fileCommands',
 	'orion/markdownView', 
 	'orion/projects/projectEditor',
@@ -25,7 +23,7 @@ define([
 	'orion/Deferred',
 	'orion/projects/projectView',
 	'orion/section'
-], function(messages, mGlobalCommands, mExplorerTable, mNavigatorRenderer, Selection, FileCommands, mMarkdownView, mProjectEditor, PageUtil, URITemplate, lib, objects, Deferred, mProjectView, mSection) {
+], function(mGlobalCommands, mExplorerTable, mNavigatorRenderer, FileCommands, mMarkdownView, mProjectEditor, PageUtil, URITemplate, lib, objects, Deferred, mProjectView, mSection) {
 	
 	var FileExplorer = mExplorerTable.FileExplorer;
 	var NavigatorRenderer = mNavigatorRenderer.NavigatorRenderer;
@@ -73,9 +71,6 @@ define([
 		 * override NavigatorRenderer's prototype
 		 */
 		getCellHeaderElement: function(col_no) {
-			if(this.explorer.breadCrumbMaker) {
-				return null;
-			}
 			var td;
 			if (col_no === 0) {
 				td = document.createElement("th"); //$NON-NLS-0$
@@ -123,7 +118,6 @@ define([
 		this.contentTypeRegistry = options.contentTypeRegistry;
 		this.editorInputManager = options.editorInputManager;
 		this.readonly = options.readonly;
-		this.breadCrumbMaker = options.breadCrumbMaker;
 		this.clickHandler = options.clickHandler;
 		this.treeRoot = {};
 		this.parent = lib.node(options.parentId);	
@@ -199,7 +193,6 @@ define([
 		this.editorView = options.editorView;
 		this._maxEditorHeight = options.maxEditorHeight;
 		this.imageView = options.imageView;
-		this.breadCrumbMaker = options.breadCrumbMaker;
 		this.clickHandler = options.clickHandler;
 		this._init();
 	}
@@ -313,7 +306,6 @@ define([
 									view: this,
 									readonly: this.readonly,
 									menuBar: this.menuBar,
-									breadCrumbMaker: this.breadCrumbMaker,
 									clickHandler: this.clickHandler,
 									serviceRegistry: this.serviceRegistry,
 									fileClient: this.fileClient,
@@ -324,15 +316,6 @@ define([
 								foldersSection.embedExplorer(this.folderNavExplorer);
 								this.folderNavExplorer.setCommandsVisible(this._isCommandsVisible());
 								this.folderNavExplorer.loadRoot(this._metadata);
-							}
-							if(this.breadCrumbMaker) {
-								var tileNode = foldersSection.getTitleElement();
-								if(tileNode) {
-									lib.empty(tileNode);
-									var bcNode = document.createElement("div"); //$NON-NLS-0$
-									tileNode.appendChild(bcNode);
-									this.breadCrumbMaker(bcNode, foldersSection.getHeaderElement().offsetWidth - 24);
-								}
 							}
 						}
 					} else if(sectionName === "readme"){ //$NON-NLS-0$

@@ -9,11 +9,11 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define CSSLint*/
-
+/*global CSSLint*/
+/*eslint-env amd*/
 define("webtools/cssValidator", [ //$NON-NLS-0$
 	'orion/objects', //$NON-NLS-0$
-	'webtools/lib/csslint' //must go at the end, provides global object not amd module //$NON-NLS-0$
+	'csslint' //must go at the end, provides global object not amd module //$NON-NLS-0$
 ], function(Objects) {
 
 	/**

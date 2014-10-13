@@ -8,19 +8,19 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
+/*eslint-env browser, amd*/
 define({
 	"Change Directory": "Change Directory",
-	"Change messages directory": "Change messages directory",
-	"Externalize Strings Configuration": "Externalize Strings Configuration",
+	"ChgMessageDir": "Change messages directory",
+	"ExternalizeStrConfig": "Externalize Strings Configuration",
 	"Messages directory:": "Messages directory:",
 	"Messages file name:": "Messages file name:",
 	"Messages module:": "Messages module:",
-	"Mark not exported as NON-NLS:": "Mark not exported as NON-NLS:",
-	"Writing files ${0} of ${1}": "Writing files ${0} of ${1}",
+	"MarkNotNON-NLS": "Mark not exported as NON-NLS:",
 	"Files to externalize": "Files to externalize",
-	"Externalize string from ${0} only": "Externalize string from ${0} only",
+	"ExternalizeStrMsg": "Externalize string from ${0} only",
 	"Writing files...": "Writing files...",
 	"Passed": "Passed",
 	"Failed": "Failed",
-	"Resource has been changed by others": "Resource has been changed by others"
+	"ResourceChanged": "Resource has been changed by others"
 });

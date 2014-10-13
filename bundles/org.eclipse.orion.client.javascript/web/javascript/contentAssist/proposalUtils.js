@@ -11,11 +11,56 @@
  *     Andrew Eisenberg (VMware) - implemented visitor pattern
  * 	   IBM Corporation - bug fixes / improvements
  ******************************************************************************/
-
-/*global define */
+/*eslint-env amd */
 define(function() {
 
 	return {
+	    
+	    /**
+    	 * @name getPrefix
+    	 * @description computes the pprefix to use during content assist, performs special computation for jsdoc and
+    	 * block comments that allow chars normal JS does not
+    	 * @function
+    	 * @param {String} buffer
+    	 * @param {Object} context
+    	 * @param {String} kind
+    	 * @returns {String} The prefix to use
+    	 */
+    	getPrefix: function getPrefix(buffer, context, kind) {
+		    var prefix = context.prefix;
+		    if(typeof prefix === 'string' && typeof context.line === 'string') {
+		        switch(kind) {
+		            case 'doc':
+		            case 'jsdoc': {
+		                var index = context.offset-1;
+		                var word = '', char = buffer.charAt(index);
+		                //do an initial check before looping + regex'ing
+		                if('{*,'.indexOf(char) > -1) {
+        		            return word;
+        		        }
+    		            if(char === '@') {
+        		            return '@';
+        		        }
+		                while(index >= 0 && /\S/.test(char)) {
+		                    word = char+word;
+		                    if(char === '@') {
+		                        //we want the prefix to include the '@'
+            		            return word;
+            		        }
+		                    index--;
+		                    char = buffer.charAt(index);
+		                    if('{*,'.indexOf(char) > -1) {
+		                        // we don't want the prefix to include the '*'
+        		                return word;
+        		            }
+		                }
+                        return word;        		        
+		            }
+		        }
+		    }
+		    return prefix;
+		},
+	    
 		/**
 		 * @description Match ignoring case and checking camel case.
 		 * @function

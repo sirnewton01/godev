@@ -8,14 +8,13 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define document window*/
-/*jslint sub:true*/
+/*eslint-env browser, amd*/
 define([
+	'orion/objects',
 	'i18n!orion/nls/messages',
 	'orion/Deferred',
 	'orion/webui/littlelib',
 	'orion/uiUtils',
-	'orion/section',
 	'orion/explorers/explorer',
 	'orion/commands',
 	'orion/URITemplate',
@@ -23,8 +22,9 @@ define([
 	'orion/i18nUtil',
 	'orion/edit/editorContext',
 	'orion/keyBinding',
-	'orion/globalCommands'
-], function(messages, Deferred, lib, mUIUtils, mSection, mExplorer, mCommands, URITemplate, EventTarget, i18nUtil, EditorContext, KeyBinding, mGlobalCommands) {
+	'orion/globalCommands',
+	'orion/webui/Slideout'
+], function(objects, messages, Deferred, lib, mUIUtils, mExplorer, mCommands, URITemplate, EventTarget, i18nUtil, EditorContext, KeyBinding, mGlobalCommands, mSlideout) {
 
 	function OutlineRenderer (options, explorer, title, selectionService) {
 		this.explorer = explorer;
@@ -337,7 +337,6 @@ define([
 	 * @class An Outliner is a visual component that renders an itemized overview of a resource and acts as 
 	 * a selection provider on that resource. The itemized overview is obtained from the {@link orion.outliner.OutlineService}.
 	 * @param {Object} options The options object
-	 * @param {Element} options.parent The parent DOM element to put this outliner inside.
 	 * @param {Element} options.toolbar The DOM element to render toolbar commands in.
 	 * @param {orion.serviceRegistry.ServiceRegistry} options.serviceRegistry The service registry.
 	 * @param {orion.commands.CommandService} options.commandService
@@ -346,16 +345,30 @@ define([
 	 * selection service will be notified on outline selection rather than using anchor tag hrefs.
 	 * @param {orion.sidebar.Sidebar} Parent sidebar
 	 */
-	function Outliner(options) {
+	function Outliner(slideout, options) {
+		mSlideout.SlideoutViewMode.call(this, slideout);
 		this._init(options);
 	}
-	Outliner.prototype = /** @lends orion.outliner.Outliner.prototype */ {
+	Outliner.prototype = Object.create(mSlideout.SlideoutViewMode.prototype);
+	Outliner.prototype.constructor = Outliner;
+	
+	objects.mixin(Outliner.prototype, /** @lends orion.outliner.Outliner.prototype */ {
 		_init: function(options) {
-			var parent = lib.node(options.parent), toolbar = lib.node(options.toolbar);
-			if (!parent) { throw new Error("no parent"); } //$NON-NLS-0$
+			this._commandIds = {};
+			var toolbar = lib.node(options.toolbar);
 			if (!options.outlineService) {throw new Error("no outline service"); } //$NON-NLS-0$
-			this._parent = parent;
+			
+			this._wrapperNode = document.createElement("div"); //$NON-NLS-0$
+			this._wrapperNode.classList.add("outlinerWrapper"); //$NON-NLS-0$
+			
+			this._createFilterInput();
+			
+			this._outlineNode = document.createElement("div"); //$NON-NLS-0$
+			this._outlineNode.classList.add("outlineNodeWrapper"); //$NON-NLS-0$
+			this._wrapperNode.appendChild(this._outlineNode);
+			
 			this._toolbar = toolbar;
+			
 			this._serviceRegistry = options.serviceRegistry;
 			this._contentTypeRegistry = options.contentTypeRegistry;
 			this._outlineService = options.outlineService;
@@ -363,6 +376,8 @@ define([
 			this._selectionService = options.selectionService;
 			this._inputManager = options.inputManager;
 			this._sidebar = options.sidebar;
+			this._switcherNode = options.switcherNode;
+			
 			var _self = this;
 
 			this._inputManager.addEventListener("InputChanged", function(event) { //$NON-NLS-0$
@@ -381,16 +396,28 @@ define([
 			Deferred.when(_self._outlineService, function(service) {
 				service.addEventListener("outline", function(event) { //$NON-NLS-0$
 					_self.providerId = event.providerId;
-//					_self._updateViewModes(self.outlineProviders);
 					_self._renderOutline(event.outline, event.title);
 				});
 			});
 		},
+		getWrapperNode: function() {
+			return this._wrapperNode;
+		},	
 		/** Invokes the outline service to produce an outline */
 		generateOutline: function() {
 			if (!this._isActive()) {
 				return;
 			}
+			
+			this._filterInput.value = ""; //$NON-NLS-0$
+			lib.empty(this._outlineNode);
+			
+			// display spinner while outline is being calculated
+			var spinner = document.createElement("span"); //$NON-NLS-0$
+			spinner.classList.add("modelDecorationSprite"); //$NON-NLS-0$
+			spinner.classList.add("core-sprite-progress"); //$NON-NLS-0$
+			this._outlineNode.appendChild(spinner);
+			
 			// Bail we're in the process of looking up capable providers
 			if (this._providerLookup) {
 				return;
@@ -412,29 +439,28 @@ define([
 			}
 		},
 		_renderOutline: function(outlineModel, title) {
-			var contentNode = this._parent;
-			lib.empty(contentNode);
+			lib.empty(this._outlineNode);
 			outlineModel = outlineModel instanceof Array ? outlineModel : [outlineModel];
 			if (outlineModel) {
 				var treeModel = new OutlineModel(outlineModel);
+				if (this.explorer) {
+					this.explorer.destroy();
+				}
 				this.explorer = new OutlineExplorer(this._serviceRegistry, this._selectionService, title);
-				this.explorer.createTree(contentNode, treeModel, {selectionPolicy: "cursorOnly", setFocus: false}); //$NON-NLS-1$ //$NON-NLS-0$
+				this.explorer.createTree(this._outlineNode, treeModel, {selectionPolicy: "cursorOnly", setFocus: false}); //$NON-NLS-1$ //$NON-NLS-0$
 				treeModel.doExpansions(this.explorer.myTree);
 			}
 		},
 		_selectNewProvider: function() {
 			var newProviders = this.outlineProviders;
 			// If the currently selected provider is not among the new set of providers, pick another one
-			var _self = this, sidebar = _self._sidebar;
 			var isStaleProvider = newProviders.every(function(provider) {
-				return _self.providerId !== provider.getProperty("id"); //$NON-NLS-0$
-			});
+				return this.providerId !== provider.getProperty("id"); //$NON-NLS-0$
+			}.bind(this));
 			if (isStaleProvider) {
 				var next = newProviders[0];
 				if (next) {
-					sidebar.setViewMode(this._viewModeId(next));
-				} else {
-					sidebar.setViewMode(sidebar.defaultViewMode);
+					this.createViewMode(next);
 				}
 			}
 		},
@@ -447,71 +473,74 @@ define([
 		 * @param {orion.serviceregistry.ServiceReference[]} newProviders
 		 */
 		_updateViewModes: function(oldProviders, newProviders) {
-			var _self = this;
 			if (oldProviders) {
 				oldProviders.forEach(function(provider) {
-					_self._sidebar.removeViewMode(_self._viewModeId(provider));
-				});
-			}
-			newProviders.forEach(function(provider) {
-				_self._sidebar.addViewMode(_self._viewModeId(provider), { //$NON-NLS-0$
-					label: provider.displayName || provider.getProperty("name") || (provider.name + provider.serviceId) || "undefined", //$NON-NLS-1$ //$NON-NLS-0$
-					create: _self.createViewMode.bind(_self, provider),
-					destroy: _self.destroyViewMode.bind(_self, provider)
-				});
-			});
-			
-			var sidebar = _self._sidebar;
-			this._commandService.unregisterCommandContribution(this._toolbar.id, "orion.openOutline", null); //$NON-NLS-0$
-			
-			if (newProviders && newProviders[0]) {
-				var defaultOutlinerId = _self._viewModeId(newProviders[0]);
-				var openOutlineCommand = new mCommands.Command({
-					name: "Open Outliner", //$NON-NLS-0$
-					id: "orion.openOutline", //$NON-NLS-0$
-					callback: function () {
-						var mainSplitter = mGlobalCommands.getMainSplitter();
-						if (mainSplitter.splitter.isClosed()) {
-							mainSplitter.splitter.toggleSidePanel();
-						}
-						if (sidebar.getActiveViewModeId() !== defaultOutlinerId) {
-							sidebar.setViewMode(defaultOutlinerId);
-						}
-						if (_self._filterInput) {
-							_self._previousActiveElement = document.activeElement;
-							_self._filterInput.select();
-						}
-					}
-				});
-				this._commandService.addCommand(openOutlineCommand);
-				this._commandService.registerCommandContribution(this._toolbar.id, "orion.openOutline", 1, null, true, new KeyBinding.KeyBinding("o", true)); //$NON-NLS-1$ //$NON-NLS-0$
-				this._commandService.renderCommands(this._toolbar.id, this._toolbar, {}, {}, "tool"); //$NON-NLS-0$
+					var commandId = this._viewModeId(provider);
+					this._commandService.unregisterCommandContribution(this._switcherNode.id, commandId, "orion.menuBarViewGroup/orion.slideoutMenuGroup"); //$NON-NLS-0$
+				}, this);
 			}
 
-			sidebar.renderViewModeMenu();
-		},
-		_isActive: function() {
-			var viewModeId = this._sidebar.getActiveViewModeId();
-			if (!viewModeId) {
-				return false;
+			if (newProviders) {
+				var keyBindingSet = false;
+				newProviders.forEach(function(provider) {
+					if (provider) {
+						var commandId = this._viewModeId(provider);
+						var openOutlineCommand = new mCommands.Command({
+							name: provider.displayName || provider.getProperty("name"), //$NON-NLS-0$
+							id: commandId, //$NON-NLS-0$
+							callback: this._openOutlineCallback.bind(this, provider)
+						});
+						this._commandService.addCommand(openOutlineCommand);
+						var keyBinding = null;
+						if (!keyBindingSet) {
+							keyBinding = new KeyBinding.KeyBinding("o", true); //$NON-NLS-0$
+							keyBindingSet = true;
+						}
+						this._commandService.registerCommandContribution(this._switcherNode.id, commandId, 1, "orion.menuBarViewGroup/orion.slideoutMenuGroup", false, keyBinding); //$NON-NLS-0$
+					}
+				}, this);
 			}
-			var _self = this;
-			return this.outlineProviders && this.outlineProviders.some(function(provider) {
-				return viewModeId === _self._viewModeId(provider);
-			});
+			
+			this._sidebar.renderViewModeMenu();
+		},
+		_openOutlineCallback: function(provider) {
+			if (this._isActive(provider)) {
+				if (document.activeElement === this._filterInput) {
+					this._slideout.hide(); // hide the slideout if the user triggers the command again while in the filter
+				} else {
+					this._filterInput.select(); // select the filter if the user triggers the command while another element has focus
+				}
+			} else {
+				// open the outliner with the specified provider
+				var mainSplitter = mGlobalCommands.getMainSplitter();
+				if (mainSplitter.splitter.isClosed()) {
+					mainSplitter.splitter.toggleSidePanel();
+				}
+				this.createViewMode(provider);
+				this._filterInput.select();
+			}
+		},
+		/**
+		 * Returns a boolean indicating whether the outliner is visible.
+		 * @param {orion.serviceregistry.ServiceReference} provider Optional. If specified this function will only return true
+		 * 															if the currently selected provider matches the one passed in.
+		 * @return true if the outliner is visible, false otherwise 
+		 */
+		_isActive: function(provider) {
+			var isActive = this._slideout.isVisible() && (this === this._slideout.getCurrentViewMode());
+			if (isActive && provider) {
+				isActive = (provider.getProperty("id") === this.providerId); //$NON-NLS-0$
+				if (isActive) {
+					isActive = (provider.getProperty("name") === this.providerName); //$NON-NLS-0$
+				}
+			}
+			return isActive;
 		},
 		createViewMode: function(provider) {
 			this.setSelectedProvider(provider);
-			this._createFilterInput();
+			this.show();
 			this.generateOutline();
 		},
-		destroyViewMode: function(provider) {
-			if (this.explorer) {
-				this.explorer.destroy();
-				this.explorer = null;
-			}
-		},
-		
 		_createFilterInput: function() {
 			var input = document.createElement("input"); //$NON-NLS-0$
 		
@@ -524,7 +553,9 @@ define([
 				}
 				var that = this;
 				this._filterInputTimeout = window.setTimeout(function(){
-					that.explorer.filterChanged(input.value);
+					if (that.explorer) {
+						that.explorer.filterChanged(input.value);
+					}
 					that._filterInputTimeout = null;
 				}, 200);
 			}.bind(this));
@@ -550,13 +581,18 @@ define([
 						e.preventDefault();	
 					}
 				} else if (e.keyCode === lib.KEY.ESCAPE) {
-					if (this._previousActiveElement) {
-						this._previousActiveElement.focus();
+					if (this._slideout.getPreviousActiveElement()) {
+						if (this._slideout.getPreviousActiveElement() === input) {
+							input.blur();
+						} else {
+							this._slideout.getPreviousActiveElement().focus();
+						}
+						this.hide();
 					}
 				}
 			}.bind(this), false);
 			
-			this._toolbar.appendChild(input);
+			this._wrapperNode.appendChild(input);
 			this._filterInput = input;
 		},
 		
@@ -604,8 +640,7 @@ define([
 				_self.generateOutline();
 			});
 		}
-	};
-	Outliner.prototype.constructor = Outliner;
+	});
 	
 	/**
 	 * Constructs a new outline service. Clients should obtain an outline service by requesting

@@ -22,7 +22,7 @@ textarea {
 <script src="http://eclipse.org/orion/editor/releases/latest/stylers/text_x-yaml/syntax.js"></script>
 
 <script>
-	/*globals require*/
+	/*eslint-env browser, amd*/
 	require(["orion/editor/edit"], function(edit) {
 		var editor = edit({contentType: "text/x-yaml", parent: "myEditor"});
 		editor.setSelection(33, 43);

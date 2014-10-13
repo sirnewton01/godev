@@ -9,9 +9,9 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define URL TextDecoder*/
-
-define(["orion/Deferred", "orion/xhr", "orion/URITemplate", "orion/URL-shim"], function(Deferred, xhr, URITemplate) {
+/*eslint-env browser, amd*/
+/*global URL*/
+define(["orion/xhr", "orion/URITemplate", "orion/Deferred", "orion/URL-shim"], function(xhr, URITemplate, Deferred) {
 
 	var pathRegex = /.*\/(?:contents|list)\/([^\/]*)(?:\/([^\/]*)(?:\/(.*))?)?/;
 
@@ -22,6 +22,13 @@ define(["orion/Deferred", "orion/xhr", "orion/URITemplate", "orion/URL-shim"], f
 	}
 
 	GerritFileImpl.prototype = {
+		_handleError: function(error) {
+			var errorMessage = "Unable to display repository contents at this time. Please try again later.";
+			var severity = "Warning";
+			var errorObj = {Severity: severity, Message: errorMessage};
+			error.responseText = JSON.stringify(errorObj);
+			return new Deferred().reject(error);
+		},
 		_getParents: function(location) {
 			var url = new URL(location);
 			var pathmatch = url.pathname.match(pathRegex);
@@ -93,7 +100,7 @@ define(["orion/Deferred", "orion/xhr", "orion/URITemplate", "orion/URL-shim"], f
 					}
 					return result;
 				});
-			});
+			}, function(error) { return _this._handleError(error);});
 		},
 		loadWorkspaces: function() {
 			return this.loadWorkspace(this._repoURL);
@@ -198,11 +205,12 @@ define(["orion/Deferred", "orion/xhr", "orion/URITemplate", "orion/URL-shim"], f
 					return result;
 				});
 			}
+			var _this = this;
 			return xhr("GET", location, {
 				timeout: 15000
 			}).then(function(result) {
 				return result.responseText;
-			});
+			}, function(error) { return _this._handleError(error);});
 		},
 		write: function(location, contents, args) {
 			throw "Not supported";
@@ -214,12 +222,13 @@ define(["orion/Deferred", "orion/xhr", "orion/URITemplate", "orion/URL-shim"], f
 			throw "Not supported";
 		},
 		readBlob: function(location) {
+			var _this = this;
 			return xhr("GET", location, {
 				responseType: "arraybuffer",
 				timeout: 15000
 			}).then(function(result) {
 				return result.response;
-			});
+			}, function(error) { return _this._handleError(error);});
 		},
 		writeBlob: function(location, contents, args) {
 			throw "Not supported";

@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define */
+/*eslint-env browser, amd*/
 define(['orion/browserCompatibility', 'orion/bootstrap', 'edit/setup'], function(mBrowserCompatibility, mBootstrap, mSetup) {
 	mBootstrap.startup().then(function(core) {
 		var serviceRegistry = core.serviceRegistry;

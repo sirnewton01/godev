@@ -8,10 +8,29 @@
  *
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define window document navigator URL*/
+/*eslint-env browser, amd*/
+/*global URL*/
+define(['require', 'orion/URL-shim'], function(require) {
 
-define(['require', 'i18n!orion/nls/messages', 'orion/URL-shim'], function(require, messages) {
-                
+	var tryParentRelative = true;
+	function makeParentRelative(location) {
+		var link = document.createElement('a'); //$NON-NLS-0$
+		link.href = location;
+		location = link.href;
+		if (tryParentRelative) {
+			try {
+				if (window.location.host === parent.location.host && window.location.protocol === parent.location.protocol) {
+					return location.substring(parent.location.href.indexOf(parent.location.host) + parent.location.host.length);
+				} else {
+					tryParentRelative = false;
+				}
+			} catch (e) {
+				tryParentRelative = false;
+			}
+		}
+		return location;
+	}
+
 	/**
 	 * This class contains static utility methods. It is not intended to be instantiated.
 	 * @class This class contains static utility methods.
@@ -54,6 +73,7 @@ define(['require', 'i18n!orion/nls/messages', 'orion/URL-shim'], function(requir
 	
 	//return module exports
 	return {
+		makeParentRelative: makeParentRelative,
 		makeRelative: makeRelative,
 		isAtRoot: isAtRoot
 	};

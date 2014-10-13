@@ -9,8 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define*/
-
+/*eslint-env browser, amd*/
 define("orion/editor/stylers/lib/syntax", [], function() { //$NON-NLS-0$
 	return {
 		id: "orion.lib", //$NON-NLS-0$
@@ -42,16 +41,16 @@ define("orion/editor/stylers/lib/syntax", [], function() { //$NON-NLS-0$
 					name: "punctuation.section.parens.end" //$NON-NLS-0$
 				},
 				doc_block: {
-					begin: {match: "/\\*\\*", literal: "/**"}, //$NON-NLS-0$
-					end: {match: "\\*/", literal: "*/"}, //$NON-NLS-0$
+					begin: {match: "/\\*\\*", literal: "/**"}, //$NON-NLS-1$ //$NON-NLS-0$
+					end: {match: "\\*/", literal: "*/"}, //$NON-NLS-1$ //$NON-NLS-0$
 					name: "comment.block.documentation", //$NON-NLS-0$
 					patterns: [
 						{
 							match: "@(?:(?!\\*/)\\S)*", //$NON-NLS-0$
-							name: "keyword.other.documentation.tag" //$NON-NLS-0$
+							name: "meta.documentation.annotation" //$NON-NLS-0$
 						}, {
 							match: "\\<\\S*\\>", //$NON-NLS-0$
-							name: "keyword.other.documentation.markup" //$NON-NLS-0$
+							name: "meta.documentation.tag" //$NON-NLS-0$
 						}, {
 							match: "(\\b)(TODO)(\\b)(((?!\\*/).)*)", //$NON-NLS-0$
 							name: "meta.annotation.task.todo", //$NON-NLS-0$
@@ -91,7 +90,7 @@ define("orion/editor/stylers/lib/syntax", [], function() { //$NON-NLS-0$
 			id: "orion.c-like", //$NON-NLS-0$
 			repository: {
 				comment_singleLine: {
-					match: {match: "//.*", literal: "//"}, //$NON-NLS-0$
+					match: {match: "//.*", literal: "//"}, //$NON-NLS-1$ //$NON-NLS-0$
 					name: "comment.line.double-slash", //$NON-NLS-0$
 					patterns: [
 						{
@@ -100,8 +99,8 @@ define("orion/editor/stylers/lib/syntax", [], function() { //$NON-NLS-0$
 					]
 				},
 				comment_block: {
-					begin: {match: "/\\*", literal: "/*"}, //$NON-NLS-0$
-					end: {match: "\\*/", literal: "*/"}, //$NON-NLS-0$ 
+					begin: {match: "/\\*", literal: "/*"}, //$NON-NLS-1$ //$NON-NLS-0$
+					end: {match: "\\*/", literal: "*/"}, //$NON-NLS-1$ //$NON-NLS-0$ 
 					name: "comment.block", //$NON-NLS-0$
 					patterns: [
 						{

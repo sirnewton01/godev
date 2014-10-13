@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -8,8 +8,7 @@
  * 
  * Contributors: Anton McConville - IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global orion window console define localStorage*/
-/*jslint browser:true*/
+/*eslint-env browser, amd*/
 
 define([
 	'i18n!orion/settings/nls/messages',
@@ -27,7 +26,7 @@ define([
 	// *******************************************************************************
 
 		function StyleSet(){
-		
+		    //
 		}
 		
 		function multiply(a,b){
@@ -37,7 +36,7 @@ define([
 		}
 		
 		// TODO: what are these for? They just get overridden by ThemeData constructor
-		StyleSet.prototype.name = 'Orion';
+		StyleSet.prototype.name = messages['orionThemeName'];
 		StyleSet.prototype.navbar = '#404648';
 		StyleSet.prototype.button = '#EFEFEF';
 		StyleSet.prototype.location = '#333';
@@ -57,7 +56,7 @@ define([
 			this.styles = [];
 			
 			var orion = new StyleSet();
-			orion.name = 'Orion';
+			orion.name = messages['orionThemeName'];
 			orion.navbar = 'white'; // #404648 for dark banner
 			orion.button = '#EFEFEF';
 			orion.location = '#efefef';
@@ -75,7 +74,7 @@ define([
 			this.styles.push( orion );		
 			
 			var orion2014 = new StyleSet();
-			orion2014.name = 'Orion2014';
+			orion2014.name = messages['orion2014ThemeName'];
 			orion2014.navbar = 'white';
 			orion2014.button = '#EFEFEF';
 			orion2014.location = '#EFEFEF';
@@ -94,7 +93,7 @@ define([
 
 			var eire = new StyleSet();
 			
-			eire.name = 'Green Zone';
+			eire.name = messages['greenZoneThemeName'];
 			eire.navbar = 'seagreen';
 			eire.button = 'lavender';
 			eire.location = 'darkseagreen';
@@ -113,7 +112,7 @@ define([
 			
 			var avril = new StyleSet();
 			
-			avril.name = 'Pretty In Pink';
+			avril.name = messages['prettyInPinkThemeName'];
 			avril.navbar = 'plum';
 			avril.button = 'lavender';
 			avril.location = 'pink';
@@ -132,7 +131,7 @@ define([
 			
 			var blue = new StyleSet();
 			
-			blue.name = 'Blue Monday';
+			blue.name = messages['blueMondayThemeName'];
 			blue.navbar = 'cornflowerblue';
 			blue.button = 'lavender';
 			blue.location = 'skyblue';
@@ -151,7 +150,7 @@ define([
 			
 			var vanilla = new StyleSet();
 			
-			vanilla.name = 'Vanilla Skies';
+			vanilla.name = messages['vanillaSkiesThemeName'];
 			vanilla.navbar = 'sandybrown';
 			vanilla.button = 'lemmonchiffon';
 			vanilla.location = 'cornsilk';
@@ -170,7 +169,7 @@ define([
 			
 			var beetlejuice = new StyleSet();
 			
-			beetlejuice.name = 'Beetlejuice';
+			beetlejuice.name = messages['beetlejuiceThemeName'];
 			beetlejuice.navbar = 'indigo';
 			beetlejuice.button = 'slateblue';
 			beetlejuice.location = 'darkslateblue';
@@ -189,7 +188,7 @@ define([
 			
 			var red = new StyleSet();
 			
-			red.name = 'Red';
+			red.name = messages['redThemeName'];
 			red.navbar = '#CD2127';
 			red.button = '#777777';
 			red.location = '#D85F56';
@@ -219,7 +218,7 @@ define([
 			return {
 				storage:'/themes',
 				styleset:'styles',
-				defaultTheme:'Orion2014',
+				defaultTheme:messages['orion2014ThemeName'],
 				selectedKey: 'selected',
 				version: THEMES_VERSION
 			};

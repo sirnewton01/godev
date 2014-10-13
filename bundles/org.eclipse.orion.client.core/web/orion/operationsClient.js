@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*globals define console setTimeout*/
+/*eslint-env browser, amd*/
 define(['i18n!orion/operations/nls/messages', "orion/Deferred"], function(messages, Deferred) {
 
     function _doServiceCall(operationsService, funcName, funcArgs) {
@@ -26,7 +26,7 @@ define(['i18n!orion/operations/nls/messages', "orion/Deferred"], function(messag
 
     function returnNoMatchingError() {
         var result = new Deferred();
-        result.reject(messages["No Matching OperationService for location:"] + this._location);
+        result.reject(messages["NoMatchingOpSrvLocation"] + this._location);
         return result;
     }
 

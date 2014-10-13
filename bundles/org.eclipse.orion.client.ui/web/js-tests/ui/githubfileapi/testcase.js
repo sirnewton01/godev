@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define console Uint8Array*/
-
+/*eslint-env browser, amd*/
 define(["chai/chai", "plugins/filePlugin/GitHubFileImpl", "domReady!"], function(chai, GitHubFileImpl) {
 	var assert = chai.assert;
 	var tests = {};

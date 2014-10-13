@@ -9,11 +9,11 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define CSSLint*/
-
+/*eslint-env browser, amd*/
+/*global CSSLint*/
 define("webtools/cssOutliner", [ //$NON-NLS-0$
 	'orion/objects', //$NON-NLS-0$
-	'webtools/lib/csslint' //must go at the end, provides global object not amd module //$NON-NLS-0$
+	'csslint' //must go at the end, provides global object not amd module //$NON-NLS-0$
 ], function(Objects) {
 
 	/**
@@ -41,10 +41,10 @@ define("webtools/cssOutliner", [ //$NON-NLS-0$
 		 * @private
 		 */
 		_outlineRule: {
-			id: "css-outline",
-			name: "CSS outline",
-			desc: "CSS outline helper rule",
-			browsers: "All",
+			id: "css-outline", //$NON-NLS-0$
+			name: "CSS outline", //$NON-NLS-0$
+			desc: "CSS outline helper rule", //$NON-NLS-0$
+			browsers: "All", //$NON-NLS-0$
 			outline: [],
 			/**
 			 * @description API callback to start verifying
@@ -53,12 +53,22 @@ define("webtools/cssOutliner", [ //$NON-NLS-0$
 				this.outline = [];
 				// Pushes selector info into the outline
 				var that = this;
-				parser.addListener("startrule", function(event) {
+				parser.addListener("startrule", function(event) { //$NON-NLS-0$
 					var selectors = event.selectors;
 					if (selectors && selectors.length) {
 						var selectorText = [], line = null, col = null, length = null;
 						for (var i=0; i < selectors.length; i++) {
 							var sel = selectors[i];
+							if (sel.parts && sel.parts.length > 0){
+								var part = sel.parts[0]; // We want to check instanceof SelectorPart, but it is not API
+								if (line === null) { line = part.line; }
+								if (col === null) { col = part.col; }
+								if (length === null){
+									length = part.text.length;
+									if (length > 0){ length--; /*length range is inclusive*/}
+								}
+							}
+							// If no valid parts found, just use the entire selector text
 							if (line === null) { line = sel.line; }
 							if (col === null) { col = sel.col; }
 							if (length === null) {
@@ -68,7 +78,7 @@ define("webtools/cssOutliner", [ //$NON-NLS-0$
 							selectorText.push(sel.text);
 						}
 						that.outline.push({
-							label: selectorText.join(", "),
+							label: selectorText.join(", "), //$NON-NLS-0$
 							line: line,
 							offset: col,
 							length: length

@@ -9,13 +9,11 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint mocha:true node:true amd:true*/
-(function(root, factory) {
-	if (typeof exports === "object") //$NON-NLS-0$
-		module.exports = factory(require, exports, module, require("assert"), require("../../lib/eslint"));
-	else if(typeof define === "function" && define.amd) //$NON-NLS-0$
-		define(["require", "exports", "module", "chai/chai", "eslint"], factory);
-}(this, function(require, exports, module, assert, eslint) {
+/*eslint-env mocha, node, amd*/
+define([
+"chai/chai", 
+"eslint"
+], function(assert, eslint) {
 	assert = assert.assert /*chai*/ || assert;
 
 	describe("ESLint Scope Tests", function() {
@@ -58,4 +56,4 @@
 			eslint.verify(topic, config, true);
 		});
 	});
-}));
+});

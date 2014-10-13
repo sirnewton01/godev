@@ -1,12 +1,20 @@
 html, body {
-	margin: 0;
 	width: 100%;
 	height: 100%;
+	margin: 0;
+	overflow: hidden;
 }
 
-table {
-    width:100%;
-    height:100%;
-    text-align:center; 
-    vertical-align:middle;
+.imageContainer {
+	position: relative;
+}
+
+.imageContent {
+  height: 100%;
+  width: 100%;
+}
+
+.imageTitle {
+	font: 9pt Arial,Helvetica,Myriad,Tahoma,clean,sans-serif, Lucida Sans Unicode,Lucida Grande,Verdana;	
+	height: 25px;
 }

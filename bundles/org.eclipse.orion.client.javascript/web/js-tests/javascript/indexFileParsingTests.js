@@ -10,8 +10,7 @@
  *     Andrew Eisenberg (VMware) - initial API and implementation
  *     IBM Corporation - Various improvements
  ******************************************************************************/
-
-/*global describe:true it:true define console setTimeout doctrine*/
+/*eslint-env amd, node, mocha*/
 define([
 	'javascript/contentAssist/typesFromIndexFile',
 	'javascript/contentAssist/typeEnvironment',

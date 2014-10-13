@@ -2,7 +2,7 @@
 
 .compareContainer {
 	position: absolute;
-	top: 80px;  /* $ToolbarHeight + 1 */
+	top: 130px;  /* $ToolbarHeight + 1 */
  	bottom: 0;
  	width: 99%;
  	overflow-y: auto;

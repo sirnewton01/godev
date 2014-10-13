@@ -5,7 +5,8 @@
 	<script src="../orion/Deferred.js"></script>
 	<script src="../orion/plugin.js"></script>
 	<script>
-	/*globals window orion*/
+	/*eslint-env browser*/
+	/*global orion*/
 		window.onload = function() {
 			var provider = new orion.PluginProvider();
 			provider.registerService("xhr", {

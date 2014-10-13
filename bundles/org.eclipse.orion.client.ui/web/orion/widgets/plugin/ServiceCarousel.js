@@ -8,9 +8,7 @@
  * 
  * Contributors: Anton McConville - IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global console define*/
-/*jslint browser:true sub:true*/
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/settings/nls/messages', 'orion/objects', 'orion/webui/littlelib'], function(messages, objects, lib) {
 
 	function setBounds(node, bounds) {
@@ -245,7 +243,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/objects', 'orion/webui/little
 
 					var span = document.createElement("span"); //$NON-NLS-0$
 					span.classList.add("objectLink");  //$NON-NLS-0$
-					span.title = messages['click here, then check javascript console to drill down'];
+					span.title = messages['CheckJsConsoleDrillDown'];
 					span.addEventListener("click", this.consoleOutput.bind(this, debugData)); //$NON-NLS-0$
 					span.textContent = messages['JavaScript Object'];
 					cell.appendChild(span);

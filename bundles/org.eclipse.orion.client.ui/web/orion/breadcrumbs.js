@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global window define document */
+/*eslint-env browser, amd*/
 define(['require', 'orion/webui/littlelib'], function (require, lib) {
 
     /**
@@ -47,8 +47,10 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
             this._makeFinalHref = options.makeFinalHref;
             this._maxLength = options.maxLength;
             this.path = "";
-            this.measure();
             this.render();
+            
+            this._resizeListener = this.fitSegments.bind(this);
+            window.addEventListener("resize", this._resizeListener); //$NON-NLS-0$
         },
 
         getNavigatorWorkspaceRootSegment: function () {
@@ -72,9 +74,6 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
             return null;
         },
 
-        MAX_LENGTH: 500,
-        INCLUDE_FIRST_SECTION: true,
-
         segments: [],
 
         buildSegment: function (name) {
@@ -93,7 +92,8 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
         },
 
         buildSegments: function (firstSegmentName, direction) {
-	
+        	this.segments = [];
+        	
 			if( this._resource.Parents ){      
 	            var parents = this._resource.Parents.slice(0); // create a copy
 	            var seg;
@@ -120,11 +120,9 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
 		
 		                seg = this.buildSegment(segmentName);
 		                
-		
-			                this.path += parent.Name;
-			                this.addSegmentHref(seg, parent);
+		                this.path += parent.Name;
+			            this.addSegmentHref(seg, parent);
 		                
-		                seg.include = false;
 		                this.segments.push(seg);
 		
 		            }.bind(this));         
@@ -146,20 +144,19 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
             if (this.crumbs) {
                 lib.empty(this.crumbs);
             } else {
-                this.crumbs = document.createElement('span'); //$NON-NLS-0$
+                this.crumbs = document.createElement("span"); //$NON-NLS-0$
                 this.crumbs.id = this._id;
                 this._container.appendChild(this.crumbs);
 
-                this.dirty = document.createElement('span'); //$NON-NLS-0$
+                this.dirty = document.createElement("span"); //$NON-NLS-0$
                 this.dirty.id = "dirty"; //$NON-NLS-0$
                 this.dirty.className = "modifiedFileMarker"; //$NON-NLS-0$
-                this._container.appendChild(this.dirty);
             }
             
-            this.crumbs.style.width = 'auto'; //$NON-NLS-0$
-            this.crumbs.style.visibility = 'visible'; //$NON-NLS-0$
+            this.crumbs.classList.add("breadcrumbContainer"); //$NON-NLS-0$
+            this.crumbs.style.visibility = "visible"; //$NON-NLS-0$
             this.crumbs.parentNode.className = "currentLocation"; //$NON-NLS-0$
-            this.crumbs.parentNode.style.width = 'auto'; //$NON-NLS-0$
+            this.crumbs.parentNode.style.width = "100%"; //$NON-NLS-0$
         },
 
         append: function (section) {
@@ -176,6 +173,7 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
                 seg.appendChild(document.createTextNode( text ));
                 seg.classList.add("breadcrumb"); //$NON-NLS-0$
                 seg.classList.add("currentLocation"); //$NON-NLS-0$
+                this._finalSegment = seg;
                 this.append(seg);
             }
         },
@@ -194,26 +192,49 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
                seg = this.buildSegment(name); //$NON-NLS-0$
                this.addSegmentHref(seg, this._resource);
             } else {
-                seg = document.createElement('span'); //$NON-NLS-0$
+                seg = document.createElement("span"); //$NON-NLS-0$
                 seg.appendChild(document.createTextNode( name ));
             }
             seg.classList.add("currentLocation"); //$NON-NLS-0$
             this.path += this._resource.Name;
             this.append(seg);
+            
+            this._finalSegment = seg;
+            
+    		this._finalSegment.style.flexShrink = "0"; //$NON-NLS-0$
+    		if (undefined !== this._finalSegment.style.webkitFlexShrink) {
+    			this._finalSegment.style.webkitFlexShrink = "0"; //$NON-NLS-0$
+    		}
+    		
+            // iterate through breadcrumb nodes and add flexShrink to them
+            var children = this.crumbs.childNodes;
+            for (var i = 0 ; i < (children.length - 1) ; i++) {
+            	if (children[i].classList.contains("breadcrumb")) { //$NON-NLS-0$
+            		var flexShrink = ((children.length - 1 - i) * 100);
+            		// segments closer to root should shrink more than ones closer to current location
+            		children[i].style.flexShrink = "" + flexShrink; //$NON-NLS-0$
+            		if (undefined !== children[i].style.webkitFlexShrink) {
+		    			children[i].style.webkitFlexShrink = "" + flexShrink; //$NON-NLS-0$
+		    		}
+            	}
+            }
+            
+            this.crumbs.appendChild(this.dirty);
         },
 
         firstSegment: function (segment) {
             if (segment) {
                 this.append(segment);
-
+                
                 if (this._resource && this._resource.Parents && !this._resource.skip) {
                     segment.classList.add("breadcrumb"); //$NON-NLS-0$
                     this.addDivider();
                 } else { // we are at the root.  Get rid of any href since we are already here
                     if(!this._resource.skip) {
-                    	segment.href = "";
+                    	segment.href = ""; //$NON-NLS-0$
                     }
                     segment.classList.add("currentLocation"); //$NON-NLS-0$
+                    this._finalSegment = segment;
                     return;
                 }
             }
@@ -224,72 +245,32 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
             if (this._resource.Parents) {
                 var reverseParents = this.segments.slice(0);
                 reverseParents.forEach(function (parent) {
-                    if (parent.include === true) {
-                        this.append(parent);
-                        this.addDivider();
-                    }
+                	this.append(parent);
+                	this.addDivider();
                 }.bind(this));
             }
         },
-
-        measureSegments: function () {
-
-            this.INCLUDE_FIRST_SECTION = true;
-
-            if (this._resource.Parents) {
-                var reverseParents = this.segments.slice(0).reverse();
-                reverseParents.forEach(function (parent) {
-                    this.append(parent);
-                    this.addDivider();
-                    if (this.crumbs.offsetWidth < this.MAX_LENGTH) {
-                        parent.include = true;
-                    } else {
-                        this.INCLUDE_FIRST_SECTION = false;
-                    }
-
-                }.bind(this));
-
-                this.segments = reverseParents.reverse();
-            }
-        },
-
-        measure: function () {
         
-        	var middleWidth = this._container;
-
-			middleWidth.style.width = 'auto';
-			
-			if(this._maxLength) {
-        		this.MAX_LENGTH = this._maxLength;
-			} else {
-        		this.MAX_LENGTH = middleWidth.offsetWidth;
+        fitSegments: function () {
+        	if (this.crumbs.parentNode) {
+        		if (this._finalSegment) {
+            		this._finalSegment.style.flexShrink = "0"; //$NON-NLS-0$
+            		if (undefined !== this._finalSegment.style.webkitFlexShrink) {
+		    			this._finalSegment.style.webkitFlexShrink = "0"; //$NON-NLS-0$
+		    		}
+            		
+            		if (this.crumbs.offsetWidth < this.crumbs.scrollWidth) {
+            			this._finalSegment.style.flexShrink = "1"; //$NON-NLS-0$
+            			if (undefined !== this._finalSegment.style.webkitFlexShrink) {
+            				this._finalSegment.style.webkitFlexShrink = "1"; //$NON-NLS-0$
+            			}
+            		}
+            	}
+        	} else {
+        		// breadcrumb has been removed without destroy() being called, remove listener
+        		window.removeEventListener("resize", this._resizeListener); //$NON-NLS-0$
+        		this._resizeListener = null;
         	}
-
-            this.refresh();
-            
-            this.segments = [];
-
-            this.crumbs.style.visibility = 'hidden'; //$NON-NLS-0$
-
-            var segment = this.getNavigatorWorkspaceRootSegment();
-
-            var firstSegmentName = this._rootSegmentName;
-
-            if (firstSegmentName) {
-                this.addTitle(segment, firstSegmentName);
-            } else {
-                this.finalSegment(segment, firstSegmentName);
-
-                if (this._resource && this._resource.Parents) {
-                    this.buildSegments(firstSegmentName, 'reverse'); //$NON-NLS-0$
-                    this.measureSegments();
-                    this.firstSegment(segment);   
-                }
-	
-				if (this.crumbs.offsetWidth >= this.MAX_LENGTH) {
-                        this.INCLUDE_FIRST_SECTION = false;
-				}
-            }
         },
 
         render: function () {
@@ -303,18 +284,22 @@ define(['require', 'orion/webui/littlelib'], function (require, lib) {
             if (firstSegmentName) {
                 this.addTitle(segment, firstSegmentName);
             } else {
-            
-				if (this.INCLUDE_FIRST_SECTION === true) {
-                    this.firstSegment(segment);
-                }
-
+            	this.firstSegment(segment);
                 if (this._resource && this._resource.Parents) {
+                	this.buildSegments(firstSegmentName, 'reverse'); //$NON-NLS-0$
                     this.drawSegments();
                     this.finalSegment(segment, firstSegmentName);
+                    this.fitSegments();
                 }
             }
-
-            this.crumbs.parentNode.style.width = this.crumbs.offsetWidth + 20 + 'px';    //$NON-NLS-0$
+        },
+        
+        destroy: function() {
+        	if (this._resizeListener) {
+        		window.removeEventListener("resize", this._resizeListener); //$NON-NLS-0$
+        		this._resizeListener = null;
+        	}
+        	
         }
     };
 

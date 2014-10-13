@@ -8,8 +8,7 @@
  * 
  * Contributors: Anton McConville - IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global orion window console define localStorage*/
-/*jslint browser:true forin:true*/
+/*eslint-env browser, amd*/
 
 define(['orion/widgets/themes/ThemeClass'], 
 	function(ThemeClass) {
@@ -57,10 +56,6 @@ define(['orion/widgets/themes/ThemeClass'],
 			topRowBanner.style.border = '0';
 			topRowBanner.style.backgroundColor = this.navbar;
 //			topRowBanner.style.background = 'linear-gradient(to bottom, #959595 0%,#0d0d0d 46%,#010101 50%,#0a0a0a 53%,#1b1b1b 100%)';
-			topRowBanner.style.height = '16px';
-			topRowBanner.style.padding = '10px';
-			topRowBanner.style.paddingLeft = '6px';
-			topRowBanner.style.paddingRight = '2px';
 			/* topRowBanner.style.borderBottom = '1px solid #dddddd'; */
 			topRowBanner.style.borderBottom = "none";
 			topRowBanner.style.boxShadow = "0 2px 2px 0 rgba(0, 0, 0, 0.1),0 1px 0 0 rgba(0, 0, 0, 0.1)";
@@ -356,36 +351,37 @@ define(['orion/widgets/themes/ThemeClass'],
 		ThemeSheetWriter.prototype.render = render;
 		
 		function getSheet( settings ){
-		
-			if( settings.navbar.value ){	
-				this.navbar = settings.navbar.value;
-				this.button = settings.button.value;
-				this.location = settings.location.value;
-				this.selection = settings.selection.value;
-				this.sidepanel = settings.sidepanel.value;
-				this.mainpanel = settings.mainpanel.value;
-				this.navtext = settings.navtext.value;
-				this.search = settings.search.value;
-				this.content = settings.content.value;
-				this.toolpanel = settings.toolpanel.value;
-				this.bannerProgress = settings.bannerProgress.value;
-			}else{
-				this.navbar = settings.navbar;
-				this.button = settings.button;
-				this.location = settings.location;
-				this.selection = settings.selection;
-				this.sidepanel = settings.sidepanel;
-				this.mainpanel = settings.mainpanel;
-				this.navtext = settings.navtext;
-				this.search = settings.search;
-				this.content = settings.content;
-				this.toolpanel = settings.toolpanel;
-				this.bannerProgress = settings.bannerProgress;
-			}
-			
-			var sheet = this.writeNavigationStyle() + this.writeLocationStyle() + this.writeMainStyle() + this.writeButtonStyle();
-			
-			return sheet;
+			//TODO - temporarily disabled
+			return "";
+//			if( settings.navbar.value ){	
+//				this.navbar = settings.navbar.value;
+//				this.button = settings.button.value;
+//				this.location = settings.location.value;
+//				this.selection = settings.selection.value;
+//				this.sidepanel = settings.sidepanel.value;
+//				this.mainpanel = settings.mainpanel.value;
+//				this.navtext = settings.navtext.value;
+//				this.search = settings.search.value;
+//				this.content = settings.content.value;
+//				this.toolpanel = settings.toolpanel.value;
+//				this.bannerProgress = settings.bannerProgress.value;
+//			}else{
+//				this.navbar = settings.navbar;
+//				this.button = settings.button;
+//				this.location = settings.location;
+//				this.selection = settings.selection;
+//				this.sidepanel = settings.sidepanel;
+//				this.mainpanel = settings.mainpanel;
+//				this.navtext = settings.navtext;
+//				this.search = settings.search;
+//				this.content = settings.content;
+//				this.toolpanel = settings.toolpanel;
+//				this.bannerProgress = settings.bannerProgress;
+//			}
+//			
+//			var sheet = this.writeNavigationStyle() + this.writeLocationStyle() + this.writeMainStyle() + this.writeButtonStyle();
+//			
+//			return sheet;
 		}
 		
 		ThemeSheetWriter.prototype.getSheet = getSheet;

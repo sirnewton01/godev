@@ -48,8 +48,14 @@ hard-coded numbers elsewhere.
 /* Banner Layout Classes */
 
 .bannerLeftArea{
-
-	-ms-flex: 1 6 20%;
+	align-items: center;
+	display: flex;
+	justify-content: center;
+	
+	-webkit-align-items: center;		/* Safari */
+	display: -webkit-flex; 				/* Safari */
+	-webkit-justify-content: center;	/* Safari */
+	
 	-moz-box-ordinal-group: 1;	
 	-webkit-order: 1;
 	-ms-flex-order: 1;              /* TWEENER - IE 10 */
@@ -60,13 +66,18 @@ hard-coded numbers elsewhere.
 	-webkit-box-flex:1;
 	-webkit-box-ordinal-group: 1;
     
-    width: 20%;
-    
-    padding-left:5px;
+    border-right:1px solid #ddd;
+    width: 39px;
 }
 
 .bannerMiddleArea{
-	-ms-flex: 3 1 60%;
+	align-items: center;
+	display: flex;
+	justify-content: center;
+	
+	-webkit-align-items: center;		/* Safari */
+	display: -webkit-flex; 				/* Safari */
+	-webkit-justify-content: center;	/* Safari */
 
 	-webkit-order: 2;
 	-ms-flex-order: 2;              /* TWEENER - IE 10 */
@@ -77,14 +88,20 @@ hard-coded numbers elsewhere.
     
     -webkit-box-flex:1;
 	-webkit-box-ordinal-group: 2;
-    width: 60%; 
+    width: calc(100% - 115px); 
 }
 
 @media only screen and (device-width: 768px) {
   /* For general iPad layouts */
   
   .bannerMiddleArea{
-	-ms-flex: 3 1 60%;
+  	align-items: center;
+	display: flex;
+	justify-content: center;
+	
+	-webkit-align-items: center;		/* Safari */
+	display: -webkit-flex; 				/* Safari */
+	-webkit-justify-content: center;	/* Safari */
 
 	-webkit-order: 2;
 	-ms-flex-order: 2;              /* TWEENER - IE 10 */
@@ -95,14 +112,21 @@ hard-coded numbers elsewhere.
     
     -webkit-box-flex:1;
 	-webkit-box-ordinal-group: 2;
-    width: 59%; 
+    width: calc(100% - 115px); 
 }
   
 }
 
 
 .bannerRightArea{
-	-ms-flex: 1 6 20%;
+	align-items: center;
+	display: flex;
+	justify-content: flex-end;
+	
+	-webkit-align-items: center;		/* Safari */
+	display: -webkit-flex; 				/* Safari */
+	-webkit-justify-content: flex-end;	/* Safari */
+	
 	-moz-box-ordinal-group: 3;
 	-webkit-order: 3;
 	-ms-flex-order: 3;              /* TWEENER - IE 10 */
@@ -113,8 +137,8 @@ hard-coded numbers elsewhere.
 	-webkit-box-flex:1;
 	-webkit-box-ordinal-group: 3;
 
-    width: 20%; 
-    padding-right:5px;
+    width: 75px; 
+    z-index: 2;
 }
 
 .content-fixedHeight {
@@ -157,7 +181,6 @@ hard-coded numbers elsewhere.
 	margin: 8px;
 	color: #7F7F7F;
 	font-weight: bold;
-	float: left;
 }
 
 .footerRightBlock {
@@ -225,6 +248,15 @@ hard-coded numbers elsewhere.
 	left: 0;
 	width: 33%;
 	height: 100%;
+}
+
+.generalAnimation {
+	-webkit-transition: all 0.5s ease;
+	-moz-transition: all 0.5s ease;
+	-o-transition: all 0.5s ease;
+	transition: all 0.5s ease;
+	z-index: 50;
+    overflow: auto;
 }
 
 .sidePanelLayoutAnimation {
@@ -295,7 +327,24 @@ hard-coded numbers elsewhere.
 	height: 100%;
 	width: 100%;
 	min-width:140px;
+}
 
+.sidebarWrapper {
+	overflow-x: auto;
+	overflow-y: hidden;
+	min-width: 0;
+}
+
+.sidebarWrapper > .sidebar {
+	position: relative;
+	left: 0;
+	top: 0;
+	height: calc(100% - 38px);
+	overflow-x: visible;
+}
+
+.projectNavSidebarWrapper > .sidebar {
+	height: calc(100% - 4px);
 }
 
 .workingTarget {
@@ -342,50 +391,113 @@ hard-coded numbers elsewhere.
    display: none;
 }
 
+/* 
+ * NOTE: Please don't apply margin values to the splitter as the splitter.js
+ * code doen't take them into account during its layout
+ */
 .splitLayout {
 	position: absolute;
 	left: 33%;  /* override this value if you want a different proportion of the two split panes */
 	height: 100%;
 	z-index: 50;
 	width: 10px;
-	margin-right: 3px;
 	cursor: e-resize;
 	overflow: hidden;
 	visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
 }
 
+/* 
+ * NOTE: Please don't apply margin values to the splitter as the splitter.js
+ * code doen't take them into account during its layout
+ */
 .splitVerticalLayout {
 	position: absolute;
 	top: 33%;  /* override this value if you want a different proportion of the two split panes */
 	width: 100%;
 	z-index: 50;
 	height: 10px;
-	margin-bottom: 3px;
 	cursor: n-resize;
 	overflow: hidden;
 	visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
 }
 
-.splitThumbLayout {
+@media only screen 
+and (min-device-width : 768px) 
+and (max-device-width : 1024px)  {
+	/* 
+	 * NOTE: Please don't apply margin values to the splitter as the splitter.js
+	 * code doen't take them into account during its layout
+	 */
+	.splitLayout {
+		position: absolute;
+		left: 33%;  /* override this value if you want a different proportion of the two split panes */
+		height: 100%;
+		z-index: 50;
+		width: 20px;
+		cursor: e-resize;
+		overflow: hidden;
+		visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
+	}
+	
+	/* 
+	 * NOTE: Please don't apply margin values to the splitter as the splitter.js
+	 * code doen't take them into account during its layout
+	 */
+	.splitVerticalLayout {
+		position: absolute;
+		top: 33%;  /* override this value if you want a different proportion of the two split panes */
+		width: 100%;
+		z-index: 50;
+		height: 20px;
+		cursor: n-resize;
+		overflow: hidden;
+		visibility: hidden;  /* use visibility vs. display because we need a position in calculations */
+	}
+	
+}
+
+.splitThumbLeftLayout {
 	position: absolute;
 	right: 0;
 	height: 3em;
-	width: 5px;
-	top: 49%;
+	width: 50%;
+	top: calc(50% - 1.5em);
 	cursor: pointer;
 	border-top-left-radius: 5px;
 	border-bottom-left-radius: 5px;	
 }
 
-.splitVerticalThumbLayout {
+.splitThumbRightLayout {
+	position: absolute;
+	left: 0;
+	height: 3em;
+	width: 50%;
+	top: calc(50% - 1.5em);
+	cursor: pointer;
+	border-top-right-radius: 5px;
+	border-bottom-right-radius: 5px;	
+}
+
+.splitVerticalThumbUpLayout {
 	position: absolute;
 	bottom: 0;
 	width: 3em;
-	height: 5px;
-	left: 49%;
+	height: 50%;
+	left: calc(50% - 1.5em);
 	cursor: pointer;
 	border-top-left-radius: 5px;
 	border-top-right-radius: 5px;	
+}
+
+.splitVerticalThumbDownLayout {
+	position: absolute;
+	top: 0;
+	width: 3em;
+	height: 50%;
+	left: calc(50% - 1.5em);
+	cursor: pointer;
+	border-bottom-left-radius: 5px;
+	border-bottom-right-radius: 5px;	
 }
 
 .splitLayoutAnimation {
@@ -471,11 +583,13 @@ hard-coded numbers elsewhere.
 }
 
 .sideMenuList{
-	margin: 0;
-	padding: 0;
 	display:inline-block !important;
-	width: 100%;
+	height: calc(100% - 2px);
+	margin: 0;
+	overflow-y: hidden;
+	padding: 0;
 	text-align: center;
+	width: 100%;
 }
 
 .sideMenuItem{
@@ -489,6 +603,35 @@ hard-coded numbers elsewhere.
 .sideMenuItem:hover, .sideMenuItem.expanded {
 	text-decoration:none;
 	color:white !important;
+}
+
+.sideMenu:hover > .sideMenuScrollButton {
+	opacity: 1;
+}
+
+.sideMenuScrollButton {
+	background-color: rgba(0,0,0,0.5) !important;
+	color: white !important;
+	cursor: pointer;
+	display: none;
+	height: 19px;
+	opacity: 0.5;
+	position: absolute;
+	width: 100%;
+	z-index: 100;
+}
+
+.sideMenuScrollButton.visible {
+	display: block;
+}
+
+.sideMenuTopScrollButton {
+	-webkit-transform: rotate(180deg);		/* Safari */
+	transform: rotate(180deg);
+}
+
+.sideMenuBottomScrollButton {
+	bottom: 0;
 }
 
 /* icon links */
@@ -516,6 +659,30 @@ hard-coded numbers elsewhere.
 
 .sideMenuToggle {
 	display: none;
+}
+
+.sideMenu-notification {
+	position: relative; /* Required for absolute positioning of the badge. */
+}
+.sideMenu-notification[level=info] {
+	background-image: radial-gradient(#1EB3DC, #1EB3DC 2px, transparent 3px);
+    background-size: 6px 6px;
+    background-repeat: no-repeat;
+    background-position: 30px 29px;
+}
+
+.sideMenu-notification[level=warn] {
+	background-image: radial-gradient(#FFFF66, #FFFF66 2px, transparent 3px);
+    background-size: 6px 6px;
+    background-repeat: no-repeat;
+    background-position: 30px 29px;
+}
+
+.sideMenu-notification[level=error] {
+	background-image: radial-gradient(#FF0000, #FF0000 2px, transparent 3px);
+    background-size: 6px 6px;
+    background-repeat: no-repeat;
+    background-position: 30px 29px;
 }
 
 /* sub menus */
@@ -601,6 +768,18 @@ hard-coded numbers elsewhere.
     display:inline-block;
 }
 
+.sidebar-decorate-active {
+	position: relative; /* Required for absolute positioning of the badge. */
+    background: 
+        radial-gradient(#1EB3DC, #1EB3DC 2px, #47575F 3px) no-repeat,
+        #47575F;
+    background-position:
+        30px 29px,
+        0 0;
+    background-size: 
+    	8px 8px;
+}
+
 /* .sideMenuitem:hover > li:hover ul {
     display: block;
     position: absolute;
@@ -619,4 +798,26 @@ hard-coded numbers elsewhere.
 	width:100%;
 	top:36px;
 	bottom:0;
+}
+
+.userMenu {
+	align-items: center;
+	color: #ccc;
+	line-height: 16px;
+	display: flex;
+	justify-content: flex-end;
+	
+	-webkit-align-items: center;		/* Safari */
+	display: -webkit-flex; 				/* Safari */
+	-webkit-justify-content: flex-end;	/* Safari */
+}
+
+.userMenu > .userTrigger {
+	margin-top: -4px;
+	padding: 13px 11px;
+	border-left: 1px solid #ddd !important;
+}
+
+.userMenu > .dropdownMenuOpen {
+	top: 36px;
 }

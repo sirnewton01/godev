@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global window document define Navbar*/
-/* jslint browser:true sub:true */
+/*eslint-env browser, amd*/
 
 define([],
 	function(){

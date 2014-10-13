@@ -9,9 +9,9 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define*/
-define(['examples/editor/textStyler', 'orion/editor/textStyler', 'orion/editor/textMateStyler', 'orion/editor/AsyncStyler', 'godev/goTextStyler', 'orion/Deferred'], 
-		function(mTextStyler, mTextStyler2, mTextMateStyler, AsyncStyler, mGoTextStyler, Deferred) {
+/*eslint-env browser, amd*/
+define(['examples/editor/textStyler', 'orion/editor/textStyler', 'orion/editor/textMateStyler', 'orion/editor/AsyncStyler', 'orion/Deferred'], 
+		function(mTextStyler, mTextStyler2, mTextMateStyler, AsyncStyler, Deferred) {
 
 	var NEW = 1;
 

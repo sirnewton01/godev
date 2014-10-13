@@ -1,23 +1,24 @@
 body {
-	font: 14px/18px 'Lucida Sans Unicode', 'Lucida Grande', "HelveticaNeue","Helvetica Neue",Helvetica,Arial,sans-serif;
+	font: 14px/18px 'Lucida Sans Unicode', 'Lucida Grande', "HelveticaNeue",
+		"Helvetica Neue", Helvetica, Arial, sans-serif;
 	color: #333;
-	background:#fafafa;
+	background: #fafafa;
 	clear: both;
-	overflow:hidden;
-	cursor:default;
+	overflow: hidden;
+	cursor: default;
 }
 
 /*Remove button padding in FF*/
 input::-moz-focus-inner {
-    border: 0;
-    padding: 0;
+	border: 0;
+	padding: 0;
 }
 
 input[type="button"]:active {
 	padding: 0;
 }
 
-.orion-banner{
+.orion-banner {
 	margin: 0;
 	height: 100px;
 	padding-top: 2px;
@@ -25,17 +26,20 @@ input[type="button"]:active {
 	padding-left: 8px;
 	padding-right: 8px;
 	vertical-align: baseline;
-	position:absolute;
-	width:100%;
+	position: absolute;
+	width: 100%;
 	background: #444;
 	background: -moz-linear-gradient(top, #444 0%, black 100%);
-	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#555), color-stop(100%,black));
-	background: -webkit-linear-gradient(top, #444 0%,black 100%);
-	background: -o-linear-gradient(top, #444 0%,black 100%);
-	background: -ms-linear-gradient(top, #444 0%,black 100%); /* IE10+ */
-	background: linear-gradient(to bottom, #444 0%,black 100%);
-	-ms-filter: "progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorStr='#444444', EndColorStr='black')"; /* IE9 */
-	-moz-box-shadow: 0 2px 15px rgba(0,0,0,0.25);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #555),
+		color-stop(100%, black));
+	background: -webkit-linear-gradient(top, #444 0%, black 100%);
+	background: -o-linear-gradient(top, #444 0%, black 100%);
+	background: -ms-linear-gradient(top, #444 0%, black 100%); /* IE10+ */
+	background: linear-gradient(to bottom, #444 0%, black 100%);
+	-ms-filter:
+		"progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorStr='#444444', EndColorStr='black')";
+	/* IE9 */
+	-moz-box-shadow: 0 2px 15px rgba(0, 0, 0, 0.25);
 	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 	-webkit-transition: box-shadow 0.2s linear;
 	-moz-transition: box-shadow 0.2s linear;
@@ -45,18 +49,15 @@ input[type="button"]:active {
 	border-bottom: 1px solid #222;
 }
 
-
-
-.orion-twitter-link{
+.orion-twitter-link {
 	background: url('combined.png');
-	height:16px;
-	width:20px;
-	float:right;
-	margin-right:20px;
-	margin-top:65px;
+	height: 16px;
+	width: 20px;
+	float: right;
+	margin-right: 20px;
+	margin-top: 65px;
 	background-position: 0 -362px;
 }
-
 
 .orion-nav-bar {
 	padding-top: 7px;
@@ -66,52 +67,51 @@ input[type="button"]:active {
 	width: 800px;
 }
 
-.orion-logo{
+.orion-logo {
 	background: url('combined.png');
 	background-position: 0 -160px;
-	float:left;
-	height:86px;
-	width:114px;
+	float: left;
+	height: 86px;
+	width: 114px;
 }
 
-.orion-rss-link{
+.orion-rss-link {
 	background: url('combined.png') no-repeat;
-	height:16px;
-	width:20px;
-	float:right;
+	height: 16px;
+	width: 20px;
+	float: right;
 	/* margin-right:20px; */
-	margin-top:65px;
+	margin-top: 65px;
 	background-position: 0 -296px;
 }
 
-
-.orion-slogan{
-	width:412px;
-	float:right;
-	text-transform:lowercase;
-	padding-top:20px;
+.orion-slogan {
+	width: 412px;
+	float: right;
+	text-transform: lowercase;
+	padding-top: 20px;
 }
 
-.orion-slogan-highlight{
-	color:#ffc000;
-	font-size:30px;
-	color:#222;
-	font-size:20px;
+.orion-slogan-highlight {
+	color: #ffc000;
+	font-size: 30px;
+	color: #222;
+	font-size: 20px;
 	font-weight: bold;
-	line-height:26px;
-	display:inline;
-	font-weight:bold;
-	margin-right:3px;
+	line-height: 26px;
+	display: inline;
+	font-weight: bold;
+	margin-right: 3px;
 }
 
-.orion-slogan-lowlight{
-	font-size:35px;
+.orion-slogan-lowlight {
+	font-size: 35px;
 	font-weight: normal;
-	font-size:20px;
-	line-height:35px;
-	color:#FFC000;
-	display:inline;
-	font-weight:bold;
+	font-size: 20px;
+	line-height: 35px;
+	color: #FFC000;
+	display: inline;
+	font-weight: bold;
 }
 
 .orion-welcome-area {
@@ -126,24 +126,24 @@ input[type="button"]:active {
 }
 
 .orion-welcome-area-text {
-	font-size:12px;
+	font-size: 12px;
 	position: absolute;
 	background: white;
-	opacity:0.8;
-	height:108px;
-	width:480px;
-	top:180px;
-	padding:20px;
+	opacity: 0.8;
+	height: 108px;
+	width: 480px;
+	top: 180px;
+	padding: 20px;
 }
 
 .orion-welcome-area-text-content {
 	background: white;
-	font-size:12px;
-	opacity:1;
-	width:100%;
-	width:480px;
-	color:black;
-	font-weight:bold;
+	font-size: 12px;
+	opacity: 1;
+	width: 100%;
+	width: 480px;
+	color: black;
+	font-weight: bold;
 }
 
 .orion-landing-area {
@@ -154,10 +154,10 @@ input[type="button"]:active {
 	height: 328px;
 	width: 838px;
 	margin: -154px 0 0 -450px;
-	min-height:400px;
+	min-height: 400px;
 }
 
-.orion-login,.orion-signup, .orion-reset, .orion-error, .orion-info {
+.orion-login, .orion-signup, .orion-reset, .orion-error, .orion-info {
 	border-radius: 4px;
 	border: solid 1px #DDD;
 }
@@ -170,7 +170,7 @@ input[type="button"]:active {
 	height: 101px;
 }
 
-.orion-login{
+.orion-login {
 	position: absolute;
 	top: 0;
 	left: 536px;
@@ -178,7 +178,7 @@ input[type="button"]:active {
 	height: 150px;
 }
 
-.orion-signup, .orion-reset  {
+.orion-signup, .orion-reset {
 	position: absolute;
 	top: 0;
 	left: 536px;
@@ -186,34 +186,42 @@ input[type="button"]:active {
 	height: 270px;
 }
 
+.orion-signup-linked {
+	position: absolute;
+	top: 0;
+	left: 536px;
+	width: 300px;
+	height: 210px;
+}
+
 .orion-login, .orion-signup, .orion-reset {
 	background: white;
 	/* box-shadow: 0 1px 0 rgba(0,0,0,.1); */
-	padding:10px;
+	padding: 10px;
 }
 
 .orion-form-header, .orion-sheet-header {
 	font-weight: bold;
-	font-size:15px;
+	font-size: 15px;
 	padding-bottom: 10px;
 }
 
 .orion-form-header {
-	margin-bottom:5px;
+	margin-bottom: 5px;
 	border-bottom: solid 1px #EEE;
-	color:#666;
+	color: #666;
 }
 
-.orion-register-header{
+.orion-register-header {
 	font-weight: bold;
-	font-size:15px;
-	float:left;
-	margin-bottom:5px;
-	color:#666;
+	font-size: 15px;
+	float: left;
+	margin-bottom: 5px;
+	color: #666;
 	vertical-align: 8px;
 	padding-right: 20px;
 	padding-bottom: 10px;
-	display:inline;
+	display: inline;
 	/* border-bottom: solid 1px #EEE; */
 }
 
@@ -226,14 +234,15 @@ input[type="button"]:active {
 	width: 100%;
 	padding: 4px;
 	margin: 0;
-	margin-top:5px;
+	margin-top: 5px;
 	outline: none;
 	background-color: white;
 	border: none;
 	border-radius: 3px;
-	font-family: Verdana, Arial, Helvetica, Myriad, Tahoma, clean, sans-serif;
+	font-family: Verdana, Arial, Helvetica, Myriad, Tahoma, clean,
+		sans-serif;
 	font-size: 14px;
-	color:#999;
+	color: #999;
 }
 
 .orion-input-holder {
@@ -242,7 +251,6 @@ input[type="button"]:active {
 	border-bottom: dashed 1px #DDD;
 }
 
-
 .orion-register-input-holder, .orion-reset-input-holder {
 	padding-bottom: 5px;
 	margin-bottom: 15px;
@@ -250,86 +258,86 @@ input[type="button"]:active {
 }
 
 .orion-login-button-holder {
-	padding:0;
-	padding-top:1px;
-	float:right;
+	padding: 0;
+	padding-top: 1px;
+	float: right;
 }
 
 .orion-login-forgot-holder {
-	padding-top:10px;
-	padding-left:5px;
-	float:left;
+	padding-top: 10px;
+	padding-left: 5px;
+	float: left;
 }
 
 .orion-login-button, .orion-send-button {
-	background:#ffc000;
-	border-radius:4px;
-	height:30px;
-	width:80px;
+	background: #ffc000;
+	border-radius: 4px;
+	height: 30px;
+	width: 80px;
 	border: solid 1px #CCC;
-	color:#666;
-	font-size:12px;
-	font-weight:bold;
+	color: #666;
+	font-size: 12px;
+	font-weight: bold;
 	margin-left: 5px;
-	cursor:pointer;
+	cursor: pointer;
 }
 
 .orion-login-button:hover, .orion-send-button:hover {
-	background:white;
-	color:#ffc000;
+	background: white;
+	color: #ffc000;
 }
 
 .orion-register-button {
-	background:#444;
-	border-radius:4px;
-	height:50px;
-	width:150px;
+	background: #444;
+	border-radius: 4px;
+	height: 50px;
+	width: 150px;
 	border: solid 1px #CCC;
-	color:white;
-	font-size:12px;
-	font-weight:bold;
+	color: white;
+	font-size: 12px;
+	font-weight: bold;
 	/* margin-left: 10px; */
 }
 
 .orion-register-button:hover {
-	background:white;
-	color:#666;
+	background: white;
+	color: #666;
 }
 
 .orion-cancel-button {
-	background:white;
-	border-radius:4px;
-	height:30px;
-	width:80px;
+	background: white;
+	border-radius: 4px;
+	height: 30px;
+	width: 80px;
 	border: solid 1px #CCC;
-	color:#666;
-	font-size:12px;
-	font-weight:bold;
+	color: #666;
+	font-size: 12px;
+	font-weight: bold;
 }
 
-.orion-cancel-button:hover{
-	background:#666;
-	color:white;
+.orion-cancel-button:hover {
+	background: #666;
+	color: white;
 }
 
 .orion-or-div {
-	margin:17px;
-	top:10px;
-	height:30px;
-	vertical-align:middle;
-	display:inline;
-	line-height:33px;
+	margin: 17px;
+	top: 10px;
+	height: 30px;
+	vertical-align: middle;
+	display: inline;
+	line-height: 33px;
 }
 
-.orion-forgot-password{
+.orion-forgot-password {
 	font-size: 9pt;
-	color:#999;
-	margin-top:15px;
+	color: #999;
+	margin-top: 15px;
 	cursor: pointer;
 	text-decoration: underline;
 }
 
-.orion-forgot-password:hover{
+.orion-forgot-password:hover {
 	color: #333;
 	text-decoration: none;
 }
@@ -338,7 +346,7 @@ input[type="button"]:active {
 	position: absolute;
 	top: 0;
 	left: 536px;
-	width: 300px;
+	width: 320px;
 	height: 150px;
 }
 
@@ -350,32 +358,32 @@ input[type="button"]:active {
 	height: 35px;
 }
 
-.orion-open-images{
-	padding-top:5px;
-	display:inline;
+.orion-open-images {
+	padding-top: 5px;
+	display: inline;
 }
 
-.orion-error{
+.orion-error {
 	color: #B94A48;
 	background-color: #F2DEDE;
 	border-color: #EED3D7;
 	width: 852px;
-	margin-right:0;
+	margin-right: 0;
 	position: absolute;
 	top: 345px;
-	padding:5px;
-	padding-right:0;
+	padding: 5px;
+	padding-right: 0;
 }
 
 .orion-info {
 	color: #333;
 	background-color: white;
 	width: 852px;
-	margin-right:0;
+	margin-right: 0;
 	position: absolute;
 	top: 390px;
 	padding: 5px;
-	padding-right:0;
+	padding-right: 0;
 }
 
 .orion-info-link {
@@ -384,7 +392,7 @@ input[type="button"]:active {
 	text-decoration: underline;
 }
 
-.orion-info-link:hover{
+.orion-info-link:hover {
 	color: #333;
 	text-decoration: underline;
 }
@@ -410,33 +418,10 @@ a.loginwindow {
 	border-radius: 4px;
 	border: solid 1px #CCC;
 	background: white;
-	box-shadow: 0 1px 0 rgba(0,0,0,.1);
+	box-shadow: 0 1px 0 rgba(0, 0, 0, .1);
 }
 
-.personaIcon{
-	background: url('../images/persona.png') no-repeat;
-	/* background-position: 0 -809px; */
-	width: 70px;
-	height: 50px;
-	/* margin-top: 6px; */
-	opacity:1;
-	margin-left:10px;
-}
-
-.personaIcon:hover{
-	opacity:0.6;
-}
-
-.openIdIcon{
-	background: url('../images/openid.png') no-repeat;
-	/* background-position: 0 -80px; */
-	width: 50px;
-	height: 50px;
-	/* margin-top:2px; */
-	margin-left:10px;
-}
-
-.orionLoginIcon{
+.orionLoginIcon {
 	background: url('../images/oriongrey.png') no-repeat;
 	/* background-position: 0 -80px; */
 	width: 50px;
@@ -445,19 +430,19 @@ a.loginwindow {
 	/* margin-left:10px; */
 }
 
-.orionLoginIcon:hover{
-	opacity:0.6;
+.orionLoginIcon:hover {
+	opacity: 0.6;
 }
 
-.orIcon{
-	border:#DDD;
-	border-radius:4px;
+.orIcon {
+	border: #DDD;
+	border-radius: 4px;
 	width: 50px;
 	height: 50px;
 	margin-left: 7px;
 }
 
-.googleIcon{
+.googleplusIcon {
 	background: url('../images/google.png') no-repeat;
 	background-position: 0 0;
 	width: 50px;
@@ -466,10 +451,20 @@ a.loginwindow {
 	/* margin-top: 3px; */
 }
 
-.googleIcon:hover{
-	opacity:.6;
+.githubIcon {
+	background: url('../images/GitHub-Mark-Light-32px.png') no-repeat;
+	background-position: center;
+	background-color: #414142;
+	width: 50px;
+	height: 50px;
+	float: left;
+	margin-left: 10px;
+	border-radius: 2px;
 }
 
+.loginIcon:hover {
+	opacity: .6;
+}
 
 .openSignIn {
 	height: 23px;
@@ -481,10 +476,11 @@ a.loginwindow {
 	border-radius: 4px;
 }
 
-.loginIcon{
-	float:left;
+.loginIcon {
+	float: left;
 	/* hide text */
 	text-indent: 100%;
 	white-space: nowrap;
 	overflow: hidden;
+	cursor: pointer;
 }

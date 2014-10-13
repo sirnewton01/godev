@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global window define */
+/*eslint-env browser, amd*/
 
 define ([
 	'orion/extensionCommands', //$NON-NLS-0$

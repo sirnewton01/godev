@@ -2,8 +2,6 @@
 	<!-- Requires some js code to bind the home link, link to progress image, and binding NLS variables  -->
 
 	<div id="staticBanner" class="layoutBlock topRowBanner"> <!-- primaryNav -->
-		<div id="centralNavigationArea" style="position:absolute;left:0;top:0;width:39px;height:36px; z-index:1;border-right:1px solid #ddd;"></div>
-
 		<!-- Static "Home" link. TODO delete this -->
 		<a id="home" class="layoutLeft "></a>
 
@@ -18,7 +16,7 @@
 		</div>
 
 		<!-- Right banner component: user identity -->
-		<div class="bannerRightArea" style="z-index:2;">
+		<div class="bannerRightArea">
 			<!-- Global commands support. -->
 			<div id="globalActions" class="spacingLeft layoutLeft"></div>
 
@@ -27,7 +25,7 @@
 			<div id="searchOptions" class="layoutLeft" style="padding-top:1px;display:none;"></div>
 
 			<!-- User identity menu and Progress -->
-			<div id="userMenu" class="spacingRight layoutRight" style="color:#ccc;line-height:16px;">
+			<div id="userMenu" class="userMenu">
 				<div id="progressPane" class="progressWatch" tabindex="0" role="progressbar">
 					<div id="watchButton" class="watchButton"></div>
 					<div id="watchBody" class="watchBody">
@@ -39,9 +37,7 @@
 						</span>
 					</div>
 				</div>
-				
-				<div style="position: absolute;right: 0px;top:0;width: 39px;height:36px; z-index:-50;border-left: 1px solid #ddd;"></div>
-				<span id="userTrigger" tabindex="0" role="button" class="dropdownTrigger" style="z-index:2;">
+				<span id="userTrigger" tabindex="0" role="button" class="dropdownTrigger userTrigger">
 				</span>
 				<ul id="userDropdown" class="dropdownMenu" role="menu"></ul>
 			</div>

@@ -1,6 +1,6 @@
 /*
  * Provide the Orion specific styles. All the document level styls should live in pages.css
-*/
+ */
 .navlink {
 	display: inline-block;
 	padding: 2px;
@@ -21,7 +21,8 @@
 
 .navlinkonpage, .nav_fakelink {
 	text-decoration: none;
-	padding: 2px;
+	padding-top: 2px;
+	padding-bottom: 2px;
 	color: #555;
 }
 
@@ -148,6 +149,11 @@
 	padding: 6px 4px 0;
 }
 
+.parameterMessage {
+	max-width: 400px;
+	padding: 6px 4px;
+}
+
 /* button contained in a slideout next to parameter fields */
 .parameterInlineButton {
 	vertical-align: baseline;
@@ -257,17 +263,13 @@ textarea.parameterInput {
 .selectionCheckmarkSprite {
 	display: inline-block; 
 	vertical-align: middle; 
-	background-image: url(../images/core_sprites.png);
-	padding: 4px;
-	padding-left: 8px;
-	padding-right: 8px;
-	margin-right: 4px;
+	background: url(../images/core_sprites.png) no-repeat top left;
+	border: 0;
 }
 
 .modelDecorationSprite { 
 	display: inline-block; 
 	vertical-align: middle; 
-	background-image: url(../images/core_sprites.png);
 	margin-left: 8px;
 	padding-right: 8px;
 	margin-right: 8px;
@@ -276,7 +278,7 @@ textarea.parameterInput {
 .advancedSearchDecorationSprite { 
 	display: inline-block; 
 	vertical-align: middle; 
-	background-image: url(../images/core_sprites.png);
+	background: url(../images/core_sprites.png) no-repeat top left;
 	margin-left: 0px;
 	padding-right: 0px;
 }
@@ -613,7 +615,6 @@ textarea.parameterInput {
 }
 
 .treetable {
-	border-collapse: collapse;
 	border-spacing: 0;
 	width:100%;
 }
@@ -621,6 +622,7 @@ textarea.parameterInput {
 .miniNavTreeTable {
 	border-spacing: 0;
 	width:100%;
+	padding-left:10px;
 }
 
 .secondaryColumn {
@@ -655,6 +657,7 @@ textarea.parameterInput {
 
 .checkColumn {
 	padding: 0;
+	padding-left:10px;
 }
 
 .testNavTreetable {
@@ -667,12 +670,6 @@ textarea.parameterInput {
 
 .selectionModelContainer {
 	outline: none;
-	-webkit-touch-callout: none;
-	-webkit-user-select: none;
-	-khtml-user-select: none;
-	-moz-user-select: -moz-none; /*-moz-none allows override in children*/
-	-ms-user-select: none;
-	user-select: none;
 }
 
 .treeIterationCursor {
@@ -680,11 +677,11 @@ textarea.parameterInput {
 }
 
 .treeIterationCursorRow {
-	background-color: #f3f6fe;
+	background-color: white;
 }
 
 .treeIterationCursorRow_Dotted {
-	background-color: #f3f6fe;
+	background-color: white;
 }
 
 .searchCmdGroupMargin {
@@ -860,7 +857,6 @@ textarea.parameterInput {
 
 .navigationBreadcrumb{
 	font-family: sans-serif;
-	padding-bottom:5px;
 }
 
 .currentLocation{
@@ -916,7 +912,7 @@ textarea.parameterInput {
 	border-collapse: collapse;
 	border-spacing: 0;
 	padding: 0;
-	margin-top: 30px;
+	margin-top: 40px;
 	overflow-y: hidden; /* prevent vertical scrollbar from showing during expand/collapse */
 }
 
@@ -933,15 +929,14 @@ textarea.parameterInput {
 
 .sectionTable {
 	margin-top: 0;
-	margin-left: 6%;
-	margin-right: 6%;
+	margin-left: 8%;
+	margin-right: 8%;
 	border: 1px solid;
 	border-bottom-left-radius: 3px;
 	border-bottom-right-radius: 3px;
 	border-color:#dadada;
-	box-shadow: 0 1px 2px 0 rgba(0,0,0,0.1);
-	-webkit-transition: all 0.1s ease;
-	transition: all 0.1s ease;
+	-webkit-transition: all 0.1s ease, left 0;
+	transition: all 0.1s ease, left 0;
 	-webkit-transform-origin: top;
 	-ms-transform-origin: top;
 	transform-origin: top;
@@ -949,7 +944,6 @@ textarea.parameterInput {
 
 /* sectionTable preceeded by a sectionWrapper */
 .sectionWrapper+.sectionTable {
-	margin-top: 2px;
 	border-top: none;
 }
 
@@ -966,8 +960,8 @@ textarea.parameterInput {
 
 .sectionWrapper{
 	border: 1px solid;
-	margin-left: 5%;
-	margin-right: 5%;
+	margin-left: 8%;
+	margin-right: 8%;
 	background: none repeat scroll 0 0 #f4f4f4;
 	vertical-align: middle;
 	font-weight: bold;
@@ -975,7 +969,6 @@ textarea.parameterInput {
 	color: gray;
 	margin-bottom: 0;
 	border-color: #dadada;
-	box-shadow: 0 1px 2px 0 rgba(0,0,0,0.2);
 	transition: all 0.1s ease;
 }
 
@@ -1041,6 +1034,10 @@ textarea.parameterInput {
 
 .orionMarkdown h1 {
 	position: relative;
+}
+
+.orionMarkdown h2 {
+	font-size: initial;
 }
 
 .orionMarkdown img {
@@ -1214,4 +1211,20 @@ textarea.parameterInput {
 	border-radius: 3px;
 	font-size: 12px;
 	color: #222;
+}
+
+.openResourceDialogInput {
+	display: inline-block;
+	width: 130px;
+	padding: 4px;
+	margin: 5px;
+	background-color: white;
+	border: 1px solid #CCC;
+	border-radius: 3px;
+	font-size: 12px;
+	color: #222;
+}
+
+.fileExplorerProgressDiv {
+	margin-left: 10px;	
 }

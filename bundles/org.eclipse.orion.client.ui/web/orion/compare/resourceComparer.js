@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * Copyright (c) 2010, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -9,12 +9,29 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define document console prompt window URL*/
-/*jslint forin:true regexp:false sub:true*/
-
-define(['i18n!orion/compare/nls/messages', 'require', 'orion/Deferred', 'orion/webui/littlelib', 'orion/compare/compareUtils', 'orion/compare/diffProvider', 'orion/compare/compareView', 'orion/highlight', 
-		'orion/fileClient', 'orion/globalCommands', 'orion/commands', 'orion/keyBinding', 'orion/searchAndReplace/textSearcher', 'orion/editorCommands', 'orion/objects', 'orion/inputManager', 'orion/editor/editorFeatures', 'orion/URL-shim'], 
-		function(messages, require, Deferred, lib, mCompareUtils, mDiffProvider, mCompareView, Highlight, mFileClient, mGlobalCommands, mCommands, mKeyBinding, mSearcher, mEditorCommands, objects, mInputManager, mEditorFeatures) {
+/*eslint-env browser, amd*/
+/*global prompt URL*/
+define([
+    'i18n!orion/compare/nls/messages',
+    'orion/i18nUtil',
+    'orion/Deferred', 
+    'orion/webui/littlelib', 
+    'orion/compare/compareUtils', 
+    'orion/compare/diffProvider', 
+    'orion/compare/compareView', 
+    'orion/highlight', 
+	'orion/fileClient', 
+	'orion/globalCommands', 
+	'orion/commands', 
+	'orion/keyBinding', 
+	'orion/searchAndReplace/textSearcher', 
+	'orion/editorCommands', 
+	'orion/objects', 
+	'orion/inputManager', 
+	'orion/editor/editorFeatures', 
+	'orion/contentTypes', 
+	'orion/URL-shim'
+], function(messages, i18nUtil, Deferred, lib, mCompareUtils, mDiffProvider, mCompareView, Highlight, mFileClient, mGlobalCommands, mCommands, mKeyBinding, mSearcher, mEditorCommands, objects, mInputManager, mEditorFeatures, mContentTypes) {
 
 var exports = {};
 
@@ -64,7 +81,7 @@ exports.DefaultDiffProvider = (function() {
 			}, function(){});
 		},
 		
-		resolveDiff: function(resource, compareTo, hasConflicts) {
+		resolveDiff: function(resource, compareTo, hasConflicts, ignoreWhitespace) {
 			this._hasConflicts = hasConflicts;
 			if(compareTo){
 				return this._resolveTwoFiles(compareTo, resource);
@@ -74,7 +91,8 @@ exports.DefaultDiffProvider = (function() {
 					return;
 				}
 				var that = this;
-				return that._diffProvider.getDiffContent(resource).then(function(jsonData, secondArg) {
+				var ignoreWS = ignoreWhitespace ? "true" : "false";
+				return that._diffProvider.getDiffContent(resource, {ignoreWS: ignoreWS}).then(function(jsonData) {
 					if (that._hasConflicts) {
 						that._diffContent = jsonData.split("diff --git")[1]; //$NON-NLS-0$
 					} else {
@@ -99,6 +117,8 @@ CompareStyler.prototype = {
 									 false /*bug 378193*/);
 	}
 };
+var SAVE_EMBEDDED = true;
+//SAVE_EMBEDDED = (new URL(window.location.href).query.get("save") === "true");
 
 exports.ResourceComparer = (function() {
 	function ResourceComparer (serviceRegistry, commandRegistry, options, viewOptions) {
@@ -109,6 +129,20 @@ exports.ResourceComparer = (function() {
 		this._searchService = this._registry.getService("orion.core.search"); //$NON-NLS-0$
 		this._progress = this._registry.getService("orion.page.progress"); //$NON-NLS-0$
 		this.setOptions(options, true);
+		this._inputManagers = [];
+		viewOptions.preCreate = this._initInputManagers.bind(this);
+		viewOptions.postCreate = function () {
+			this._inputManagers.forEach(function(inputManager) {
+				if(inputManager.manager){
+					var editor = this._compareView.getWidget().getEditors()[inputManager.manager._editorIndex];
+					editor.addEventListener("DirtyChanged", function(evt) { //$NON-NLS-0$
+						inputManager.manager.setDirty(editor.isDirty());
+					});
+				}
+			}.bind(this));
+		}.bind(this);
+		viewOptions.onInputChanged = this._inputChanged.bind(this);
+		viewOptions.onSave = this.save.bind(this);
 		if(options.toggleable) {
 			this._compareView = new mCompareView.toggleableCompareView(options.type === "inline" ? "inline" : "twoWay", viewOptions); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		} else if(options.type === "inline") { //$NON-NLS-0$
@@ -116,6 +150,10 @@ exports.ResourceComparer = (function() {
 		} else {
 			this._compareView = new mCompareView.TwoWayCompareView(viewOptions);
 		}
+		this._compareView.getWidget().setOptions({ignoreWhitespace: options.ignoreWhitespace});
+		this._compareView.getWidget().setOptions({diffProvider: options.diffProvider});
+		this._compareView.getWidget().setOptions({resource: options.resource});
+		this._compareView.getWidget().setOptions({titleIds: this.options.saveLeft ? this.options.saveLeft.titleIds : null });
 		this._compareView.getWidget().setOptions({extCmdHolder: this});
 		if(!viewOptions.highlighters){
 			this._compareView.getWidget().setOptions({highlighters: [new CompareStyler(serviceRegistry), new CompareStyler(serviceRegistry)]});
@@ -127,16 +165,7 @@ exports.ResourceComparer = (function() {
 			this._compareView.getWidget().setOptions({newFile: {readonly: this._checkReadonly(options.readonly, true)}});
 		}
 		this.initExtCmds();
-		this._initInputManagers();
 		this._compareView.getWidget().initEditors( messages['fetching...']);
-		this._inputManagers.forEach(function(inputManager) {
-			if(inputManager.manager){
-				var editor = this._compareView.getWidget().getEditors()[inputManager.manager._editorIndex];
-				editor.addEventListener("DirtyChanged", function(evt) { //$NON-NLS-0$
-					inputManager.manager.setDirty(editor.isDirty());
-				});
-			}
-		}.bind(this));
 	}
 	ResourceComparer.prototype = {
 		_clearOptions: function(){
@@ -144,8 +173,14 @@ exports.ResourceComparer = (function() {
 		},
 		_checkReadonly: function(readonlyFlag, isLeft){
 			if(isLeft){//Legacy: If not defined, left side readonly is false
+				if(this.options.saveLeft && !SAVE_EMBEDDED) {
+					return true;
+				}
 				return typeof readonlyFlag === "undefined" ? false : readonlyFlag; //$NON-NLS-0$
 			} else {//Legacy: If not defined, right side readonly is true
+				if(this.options.saveRight && !SAVE_EMBEDDED) {
+					return true;
+				}
 				return typeof readonlyFlag === "undefined" ? true : readonlyFlag; //$NON-NLS-0$
 			}
 		},
@@ -153,25 +188,32 @@ exports.ResourceComparer = (function() {
 			return (editorIndex === 1 ? this._compareView.getWidget().options.newFile : this._compareView.getWidget().options.oldFile);
 		},
 		_createInputManager: function() {
-			return new mInputManager.InputManager({
+			var im = new mInputManager.InputManager({
 						serviceRegistry: this._registry,
 						fileClient: this._fileClient,
 						progressService: this._progress
 			});
+			im.getReadOnly = function() {
+				return false;
+			};
+			return im;
+		},
+		_saveCmdVisible: function() {
+			return this._compareView.getWidget().type === "twoWay";
 		},
 		_initInputManagers: function() {
 			this._inputManagers = [{}, {}];
 			//We only create input managers when it is a non toggleable side by side compare widget
-			if(!this.options.toggleable && this._compareView.getWidget()._uiFactory && this._compareView.getWidget().type === "twoWay") { //$NON-NLS-0$
+			if(this._compareView.getWidget()._uiFactory && this._compareView.getWidget().type === "twoWay") { //$NON-NLS-0$
 				//Create the right hand side input manager
 				if(!this._checkReadonly(this.options.readonlyRight)) {
 					this._inputManagers[0].manager = this._createInputManager();
-					this._initInputManager(this._inputManagers[0].manager, 0, this._compareView.getWidget()._uiFactory.getActionDivId());
+					this._initInputManager(this._inputManagers[0].manager, 0, this.options.saveRight ? this.options.saveRight.saveCmdContainerId : this._compareView.getWidget()._uiFactory.getActionDivId(), !!this.options.saveRight);
 				}
 				//Create the left hand side input manager
 				if(!this._checkReadonly(this.options.readonly, true)) {
 					this._inputManagers[1].manager =  this._createInputManager();
-					this._initInputManager(this._inputManagers[1].manager, 1, this._compareView.getWidget()._uiFactory.getActionDivId(true));
+					this._initInputManager(this._inputManagers[1].manager, 1, this.options.saveLeft ? this.options.saveLeft.saveCmdContainerId : this._compareView.getWidget()._uiFactory.getActionDivId(true), !!this.options.saveLeft);
 				}
 			}
 			var that = this;
@@ -190,20 +232,22 @@ exports.ResourceComparer = (function() {
 							navToolbarId: "pageNavigationActions", //$NON-NLS-0$
 							textSearcher: localSearcher
 						});
-						var saveCmdId = inputManager.manager._editorIndex === 1 ? "orion.compare.save.left" : "orion.compare.save.right"; //$NON-NLS-1$ //$NON-NLS-0$
-						commandGenerator.generateSimpleEditorCommands(editor, saveCmdId);
+						var saveCmdId = inputManager.manager._editorIndex === 1 ? (that.options.saveLeft ? that.options.saveLeft.saveCmdId : "orion.compare.save.left") : 
+													(that.options.saveRight ? that.options.saveRight.saveCmdId : "orion.compare.save.right"); //$NON-NLS-1$ //$NON-NLS-0$
+						commandGenerator.generateSimpleEditorCommands(editor, saveCmdId, function() {return that._saveCmdVisible();}, 2000);
 						return keyBindings;
 					};
 					this._getFileOptions(inputManager.manager._editorIndex).keyBindingFactory = keyBindingFactory;
 				}
 			}.bind(this));
 		},
-		_initInputManager: function(inputManger, editorIndex, actionBarId){
+		_initInputManager: function(inputManger, editorIndex, actionBarId, embedded){
 			var that = this;
 			objects.mixin(inputManger, {
 				filePath: "",
 				_editorIndex: editorIndex,
 				_actionBarId: actionBarId,
+				embedded: embedded,
 				getInput: function() {
 					return this.filePath;
 				},
@@ -211,12 +255,35 @@ exports.ResourceComparer = (function() {
 				setDirty: function(dirty) {
 					var editors = that._compareView.getWidget().getEditors();
 					var checkedDirty = dirty;
-					if(editors && editors.length === 2){
-						checkedDirty = editors[0].isDirty() || editors[1].isDirty();
-					}
-					mGlobalCommands.setDirtyIndicator(checkedDirty);
-					if(that._compareView.getWidget().refreshTitle){
-						that._compareView.getWidget().refreshTitle(this._editorIndex, dirty);
+					if(!this.embedded) {
+						if(editors && editors.length === 2){
+							checkedDirty = editors[0].isDirty() || editors[1].isDirty();
+						}
+						mGlobalCommands.setDirtyIndicator(checkedDirty);
+						if(that._compareView.getWidget().refreshTitle){
+							that._compareView.getWidget().refreshTitle(this._editorIndex, dirty);
+						}
+					} else if(that._compareView.getWidget().options.titleIds && that._compareView.getWidget().options.titleIds.length > 0) {
+						var titleNode;
+						if(that._compareView.getWidget().options.maximized && that._compareView.getWidget().options.titleIds.length === 2) {
+							titleNode = lib.node(that._compareView.getWidget().options.titleIds[1]);
+							if(titleNode) {
+								titleNode.textContent = that._compareView.getWidget().options.maximized && dirty ? "*" : "";
+							}
+						}
+						
+						titleNode = lib.node(that._compareView.getWidget().options.titleIds[0]);
+						if(!titleNode) {
+							return;
+						}
+						//lib.empty(titleNode);
+						var label = titleNode.textContent;
+						if(label) {
+							if (label.charAt(label.length -1) === '*') { //$NON-NLS-0$
+								label = label.substring(0, label.length-1);
+							}
+							titleNode.textContent = checkedDirty ? label + "*" : label;
+						}
 					}
 				},
 				
@@ -230,14 +297,16 @@ exports.ResourceComparer = (function() {
 							
 				setInput: function(fileURI, editor) {
 					this._parsedLocation = {resource:fileURI};
-					that._progress.progress(that._fileClient.read(fileURI, true), "Getting file metadata " + fileURI).then( //$NON-NLS-0$
+					that._progress.progress(that._fileClient.read(fileURI, true), i18nUtil.formatMessage(messages["readingFileMetadata"], fileURI)).then( //$NON-NLS-0$
 						function(metadata) {
 							this._fileMetadata = metadata;
-							var toolbar = lib.node(this._actionBarId); //$NON-NLS-0$
-							if (toolbar) {	
-								that._commandService.destroy(toolbar);
-								var editorIndex = this._editorIndex;
-								that._commandService.renderCommands(toolbar.id, toolbar, that._compareView.getWidget().getEditors()[editorIndex], that._compareView.getWidget().getEditors()[editorIndex], "button"); //$NON-NLS-0$
+							if(!this.embedded) {
+								var toolbar = lib.node(this._actionBarId); //$NON-NLS-0$
+								if (toolbar) {	
+									that._commandService.destroy(toolbar);
+									var editorIndex = this._editorIndex;
+									that._commandService.renderCommands(toolbar.id, toolbar, that._compareView.getWidget().getEditors()[editorIndex], that._compareView.getWidget().getEditors()[editorIndex], "tool"); //$NON-NLS-0$
+								}
 							}
 							if(metadata){
 								this.setTitle(metadata.Location, metadata);
@@ -252,16 +321,16 @@ exports.ResourceComparer = (function() {
 				},
 				
 				setTitle : function(title, /*optional*/ metadata) {
-					//TODO: We need a better taget get here. E.g. "Compare file 1 and file 2" 
-					/*
+					if(this.embedded) {
+						return;
+					}
 					var name;
 					if (metadata) {
 						name = metadata.Name;
 					}
-					mGlobalCommands.setPageTarget({task: messages["Compare"], name: name, target: metadata,
+					mGlobalCommands.setPageTarget({task: messages["compareTreeTitle"], name: name, target: metadata,
 								serviceRegistry: that._registry, commandService: that._commandService,
 								searchService: that._searchService, fileService: that._fileClient});
-					*/
 					if (title.charAt(0) === '*') { //$NON-NLS-0$
 						mGlobalCommands.setDirtyIndicator(true);
 					} else {
@@ -269,12 +338,27 @@ exports.ResourceComparer = (function() {
 					} 
 				},
 				
-				afterSave: function(){
+				postSave: function(closing){
 					var editors = that._compareView.getWidget().getEditors();
 					var newContents = editors[this._editorIndex].getTextView().getText();
 					var fileObj = that._getFileOptions(this._editorIndex);
 					fileObj.Content = newContents;
-					that._compareView.getWidget().refresh();
+					if(!closing) {
+						var options = that._compareView.getWidget().options;
+						if(options.diffProvider && options.diffContent) {
+							var ignoreWS = options.ignoreWhitespace ? "true" : "false";
+							options.diffProvider._diffProvider.getDiffContent(options.resource, {ignoreWS: ignoreWS}).then(function(jsonData) {
+								if (options.hasConflicts) {
+									options.diffContent = jsonData.split("diff --git")[1]; //$NON-NLS-0$
+								} else {
+									options.diffContent = jsonData;
+								}
+								that._compareView.getWidget().refresh(true, true, this.embedded ? null : this._editorIndex);
+							}.bind(this), function(){});
+						} else {
+							that._compareView.getWidget().refresh(true, true, this.embedded ? null : this._editorIndex);
+						}
+					}
 				}
 			});
 		},
@@ -294,7 +378,7 @@ exports.ResourceComparer = (function() {
 		generateLink: function(compareWidget){	
 			var diffPos = compareWidget.getCurrentDiffPos();
 			var href = mCompareUtils.generateCompareHref(this.options.resource, {
-				compareTo: this.options.compareTo,
+				compareTo: this.options.compareTo ? this.options.compareTo : undefined,
 				readonly: this.options.readonly,
 				readonlyRight: this.options.readonlyRight,
 				conflict: this.options.hasConflicts,
@@ -307,7 +391,7 @@ exports.ResourceComparer = (function() {
 		openComparePage: function(compareWidget){	
 			var diffPos = compareWidget.getCurrentDiffPos();
 			var href = mCompareUtils.generateCompareHref(this.options.resource, {
-				compareTo: this.options.compareTo,
+				compareTo: this.options.compareTo ? this.options.compareTo : undefined,
 				readonly: !this.options.editableInComparePage,
 				conflict: this.options.hasConflicts,
 				block: diffPos.block ? diffPos.block : 1, 
@@ -320,7 +404,7 @@ exports.ResourceComparer = (function() {
 			if(cmdProvider && cmdProvider.getOptions().commandSpanId) {
 				var commandSpanId = cmdProvider.getOptions().commandSpanId;
 				var generateLinkCommand = new mCommands.Command({
-					tooltip : messages["Generate link of the current diff"],
+					tooltip : messages["GenerateCurDiffLink"],
 					name: messages["Generate Link"],
 					//imageClass : "core-sprite-link", //$NON-NLS-0$
 					id: "orion.compare.generateLink", //$NON-NLS-0$
@@ -334,7 +418,7 @@ exports.ResourceComparer = (function() {
 				var openComparePageCommand = new mCommands.Command({
 					tooltip : messages["Open the compare page"],
 					name: messages["Compare"],
-					//imageClass : "core-sprite-link", //$NON-NLS-0$
+					imageClass : "git-sprite-compare", //$NON-NLS-0$
 					id: "orion.compare.openComparePage", //$NON-NLS-0$
 					groupId: "orion.compareGroup", //$NON-NLS-0$
 					visibleWhen: function(item) {
@@ -358,21 +442,9 @@ exports.ResourceComparer = (function() {
 			}.bind(this));
 			return Deferred.all(promises, function(error) { return {_error: error}; });
 	    },
-		/* Internal */
-		_isImage: function(contentType) {
-			switch (contentType && contentType.id) {
-				case "image/jpeg": //$NON-NLS-0$
-				case "image/png": //$NON-NLS-0$
-				case "image/gif": //$NON-NLS-0$
-				case "image/ico": //$NON-NLS-0$
-				case "image/tiff": //$NON-NLS-0$
-				case "image/svg": //$NON-NLS-0$
-					return true;
-			}
-			return false;
-		},
 	    _loadSingleFile: function(file) {
-	        return this._registry.getService("orion.page.progress").progress(this._fileClient.read(file.URL), "Getting contents of " + file.URL).then( //$NON-NLS-1$ //$NON-NLS-0$
+	        return this._registry.getService("orion.page.progress").progress(this._fileClient.read(file.URL), //$NON-NLS-0$
+	                   i18nUtil.formatMessage(messages["readingFile"], file.URL)).then( //$NON-NLS-0$
 		        function(contents) {
 					file.Content = contents;
 					return file;
@@ -387,6 +459,39 @@ exports.ResourceComparer = (function() {
 		        }.bind(this)
 			);
 	    },
+	    _inputChanged: function() {
+	    	var that =this;
+			this._inputManagers.forEach(function(inputManager) {
+				if(inputManager.manager){
+					var fileOptions = that._getFileOptions(inputManager.manager._editorIndex);
+					var editor = inputManager.manager.getEditor();
+					inputManager.manager.filePath = fileOptions.URL;
+					inputManager.manager.setInput(fileOptions.URL , editor);
+				}
+			});
+	    },
+	    save: function(doSave) {
+			if(doSave) {
+			   	var promises = [];
+				this._inputManagers.forEach(function(inputManager) {
+					if(inputManager.manager){
+						var editor = inputManager.manager.getEditor();
+						if(editor.isDirty()) {
+							promises.push(inputManager.manager.save(true));
+						}
+					}
+				});
+				return Deferred.all(promises);
+			} else {
+				return new Deferred().resolve();
+			}
+	    },
+		isDirty: function(){
+			return this._compareView.isDirty();
+		},
+		destroy: function(){
+			this._compareView.destroy();
+		},
 		start: function(){
 			if(this.options.resource){
 				if(!this.options.diffProvider){
@@ -394,9 +499,15 @@ exports.ResourceComparer = (function() {
 					return;
 				}
 				var that = this;
-				return that.options.diffProvider.resolveDiff(that.options.resource, that.options.compareTo, that.options.hasConflicts).then( function(diffParam){
+				return that.options.diffProvider.resolveDiff(that.options.resource, that.options.compareTo, that.options.hasConflicts, that.options.ignoreWhitespace).then( function(diffParam){
+					if(diffParam.oldFile) {
+						diffParam.oldFile.readonly = that._compareView.getWidget().options.oldFile.readonly;
+					}
+					if(diffParam.newFile) {
+						diffParam.newFile.readonly = that._compareView.getWidget().options.newFile.readonly;
+					}
 					that._compareView.getWidget().setOptions(diffParam);
-					var isImage = that._isImage(diffParam.newFile.Type);
+					var isImage = mContentTypes.isImage(diffParam.newFile.Type);
 					var viewOptions = that._compareView.getWidget().options;
 					if(that._checkReadonly(that.options.readonlyRight) || isImage) {
 						viewOptions.oldFile.readonly = true;
@@ -410,17 +521,10 @@ exports.ResourceComparer = (function() {
 							return new Deferred().resolve(height + 5);
 						});
 					} else {
-						var filesToLoad = ( viewOptions.diffContent ? [viewOptions.oldFile/*, viewOptions.newFile*/] : [viewOptions.oldFile, viewOptions.newFile]); 
+						var filesToLoad = ( viewOptions.diffContent ? [viewOptions.oldFile, viewOptions.newFile] : [viewOptions.oldFile, viewOptions.newFile]); 
 						return that._getFilesContents(filesToLoad).then( function(){
 							var viewHeight = that._compareView.getWidget().refresh(true);
-							this._inputManagers.forEach(function(inputManager) {
-								if(inputManager.manager){
-									var fileOptions = that._getFileOptions(inputManager.manager._editorIndex);
-									var editor = that._compareView.getWidget().getEditors()[inputManager.manager._editorIndex];
-									inputManager.manager.filePath = fileOptions.URL;
-									inputManager.manager.setInput(fileOptions.URL , editor);
-								}
-							});
+							that._inputChanged();							
 							return new Deferred().resolve(viewHeight);
 						}.bind(that));
 					}

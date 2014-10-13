@@ -8,9 +8,7 @@
  * 
  * Contributors: Anton McConville - IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global window console define*/
-/*jslint browser:true*/
-
+/*eslint-env browser, amd*/
 define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 
 	function Checkbox(options, node) {
@@ -37,10 +35,6 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 				this.checkbox = null;
 			}
 		},
-
-		setStorageItem: function(){
-						
-		},
 		
 		isChecked : function(){
 			return this.checkbox.checked;
@@ -59,8 +53,9 @@ define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 		},
         
         change: function(){
-            var value = this.checkbox.value;
-            this.setStorageItem( value );
+            if (this.postChange) {
+				this.postChange(this.checkbox.value);
+			}
         },
         
         postCreate: function(){

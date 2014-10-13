@@ -9,8 +9,8 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global window define prompt */
-/*jslint browser:true devel:true*/
+/*eslint-env browser, amd*/
+/*global prompt */
 
 define([
 	'i18n!orion/edit/nls/messages',
@@ -26,6 +26,7 @@ define([
 	'orion/extensionCommands',
 	'orion/contentTypes',
 	'orion/searchUtils',
+	'orion/objects',
 	'orion/PageUtil',
 	'orion/PageLinks',
 	'orion/editor/annotations',
@@ -33,7 +34,7 @@ define([
 	'orion/regex',
 	'orion/util',
 	'orion/edit/editorContext'
-], function(messages, i18nUtil, lib, openResource, DropDownMenu, Deferred, URITemplate, mCommands, mKeyBinding, mCommandRegistry, mExtensionCommands, mContentTypes, mSearchUtils, mPageUtil, PageLinks, mAnnotations, blamer, regex, util, EditorContext) {
+], function(messages, i18nUtil, lib, openResource, DropDownMenu, Deferred, URITemplate, mCommands, mKeyBinding, mCommandRegistry, mExtensionCommands, mContentTypes, mSearchUtils, objects, mPageUtil, PageLinks, mAnnotations, blamer, regex, util, EditorContext) {
 
 	var exports = {};
 	
@@ -102,7 +103,25 @@ define([
 		return delegatedParent;
 	}
 	exports.createDelegatedUI = createDelegatedUI;
-			
+
+	/**
+	 * Handles a status message from a service by forwarding to the <tt>orion.page.message</tt> service
+	 * and stripping HTML.
+	 * @param {orion.serviceregistry.ServiceRegistry} serviceRegistry
+	 * @param {Object|string} status
+	 */
+	function handleStatusMessage(serviceRegistry, status) {
+		if (status && typeof status.HTML !== "undefined") { //$NON-NLS-0$
+			delete status.HTML;
+		}
+		var statusService = serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
+		if (statusService) {
+			statusService.setProgressResult(status);
+		} else {
+			window.console.log(status);
+		}
+	}
+
 	function EditorCommandFactory (options) {
 		this.serviceRegistry = options.serviceRegistry;
 		this.commandService = options.commandRegistry;
@@ -123,10 +142,10 @@ define([
 		 * Creates the common text editing commands.  Also generates commands for any installed plug-ins that
 		 * contribute editor actions.  
 		 */
-		generateSimpleEditorCommands: function(editor, saveCmdId) {
+		generateSimpleEditorCommands: function(editor, saveCmdId, saveCmdVisibleFunc, saveCommandOrderNumber) {
 			if (!this.isReadOnly) {
 				this._generateUndoStackCommands(editor);
-				this._generateSaveCommand(editor, saveCmdId);
+				this._generateSaveCommand(editor, saveCmdId, saveCmdVisibleFunc, saveCommandOrderNumber);
 			}
 			this._generateSearchFilesCommand(editor);
 			this._generateGotoLineCommnand(editor);
@@ -253,14 +272,18 @@ define([
 				this.commandService.registerCommandContribution(this.editToolbarId || this.pageNavId, "orion.searchFiles", 1, this.editToolbarId ? "orion.menuBarEditGroup/orion.findGroup" : null, !this.editToolbarId, new mKeyBinding.KeyBinding("h", true)); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			}
 		},
-		_generateSaveCommand: function(editor, saveCmdId) {
+		_generateSaveCommand: function(editor, saveCmdId, saveCmdVisibleFunc, commandOrderNumber) {
 			var self = this;
 			var cmdId = saveCmdId ? saveCmdId : "orion.save"; //$NON-NLS-0$
 			var saveCommand = new mCommands.Command({
 				name: messages.Save,
 				tooltip: messages.saveFile,
+				imageClass : "core-sprite-save", //$NON-NLS-0$
 				id: cmdId,
 				visibleWhen: function() {
+					if(saveCmdVisibleFunc) {
+						return saveCmdVisibleFunc();
+					}
 					if (!editor.installed || self.inputManager.getReadOnly()) {
 						return false;
 					}
@@ -272,7 +295,7 @@ define([
 				}
 			});
 			this.commandService.addCommand(saveCommand);
-			this.commandService.registerCommandContribution(this.saveToolbarId || this.toolbarId, cmdId, 1, this.saveToolbarId ? "orion.menuBarFileGroup/orion.saveGroup" : null, false, new mKeyBinding.KeyBinding('s', true)); //$NON-NLS-1$ //$NON-NLS-0$
+			this.commandService.registerCommandContribution(this.saveToolbarId || this.toolbarId, cmdId, typeof commandOrderNumber === "number" ? commandOrderNumber : 1, this.saveToolbarId ? "orion.menuBarFileGroup/orion.saveGroup" : null, false, new mKeyBinding.KeyBinding('s', true)); //$NON-NLS-1$ //$NON-NLS-0$
 			
 			// Add key binding to editor so that the user agent save dialog does not show when auto save is enabled
 			if (editor.getTextView && editor.getTextView()) {
@@ -285,11 +308,11 @@ define([
 
 			// page navigation commands (go to line)
 			var lineParameter = new mCommandRegistry.ParametersDescription(
-				[new mCommandRegistry.CommandParameter('line', 'number', 'Line:')], //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				[new mCommandRegistry.CommandParameter('line', 'number', messages.gotoLinePrompt)], //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				{hasOptionalParameters: false},
 				function() {
 					var line = editor.getModel().getLineAtOffset(editor.getCaretOffset()) + 1;
-					return [new mCommandRegistry.CommandParameter('line', 'number', 'Line:', line.toString())]; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					return [new mCommandRegistry.CommandParameter('line', 'number', messages.gotoLinePrompt, line.toString())]; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				}
 			);
 			
@@ -361,6 +384,9 @@ define([
 				},
 				parameters: findParameter,
 				callback: function(data) {
+					if (lib.node("replaceCompareDiv").classList.contains("replaceCompareDivVisible")) { //$NON-NLS-1$ //$NON-NLS-0$
+						return false; //TODO is there a better way of preventing the command from being executed?
+					}
 					if (self._localSearcher) {
 						var searchString = "";
 						var parsedParam = null;
@@ -386,6 +412,7 @@ define([
 							}
 							self._localSearcher.show({findString: searchString, replaceString: parsedParam.replaceWith});
 							self._localSearcher.find(true, tempOptions);
+							self.commandService.closeParameterCollector(); //TODO is there a better way of hiding the parameter collector?
 						} else {
 							self._localSearcher.show({findString: searchString});
 						}
@@ -478,18 +505,6 @@ define([
 				return keyBinding;
 			}
 
-			function handleStatus(status, allowHTML) {
-				if (!allowHTML && status && typeof status.HTML !== "undefined") { //$NON-NLS-0$
-					delete status.HTML;
-				}
-				var statusService = self.serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
-				if (statusService) {
-					statusService.setProgressResult(status);
-				} else {
-					window.console.log(status);
-				}
-			}
-
 			// add the commands generated by plug-ins who implement the "orion.edit.command" extension.
 			//
 			// Note that the shape of the "orion.edit.command" extension is not in any shape or form that could be considered final.
@@ -501,6 +516,7 @@ define([
 			var actionReferences = serviceRegistry.getServiceReferences("orion.edit.command"); //$NON-NLS-0$
 			var inputManager = this.inputManager;
 			var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
+			var handleStatus = handleStatusMessage.bind(null, serviceRegistry);
 			var makeCommand = function(info, service, options) {
 				var commandVisibleWhen = options.visibleWhen;
 				options.visibleWhen = function(item) {
@@ -546,9 +562,17 @@ define([
 							contentType: inputManager.getContentType(),
 							input: inputManager.getInput()
 						};
-						// Hook up delegated UI and Status handling
 						var editorContext = EditorContext.getEditorContext(serviceRegistry);
-						editorContext.openDelegatedUI = createDelegatedUI;
+						// Hook up delegated UI and Status handling
+						editorContext.openDelegatedUI = function(/*options, ..*/) {
+							var options = arguments[0];
+							options = options || {};
+							options.done = processEditorResult;
+							options.status = handleStatus;
+							options.params = options.params || {};
+							objects.mixin(options.params, inputManager.getFileMetadata());
+							createDelegatedUI.apply(null, Array.prototype.slice.call(arguments));
+						};
 						editorContext.setStatus = handleStatus;
 
 						serviceCall = service.execute(editorContext, context);
@@ -629,6 +653,7 @@ define([
 		}
 	};
 	exports.EditorCommandFactory = EditorCommandFactory;
+	exports.handleStatusMessage = handleStatusMessage;
 
 	return exports;	
 });

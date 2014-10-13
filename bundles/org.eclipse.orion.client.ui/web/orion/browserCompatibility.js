@@ -7,8 +7,8 @@
  * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
  *
  *******************************************************************************/
-/*global alert confirm define localStorage*/
-/*jslint browser:true sub:true regexp:false*/
+/*eslint-env browser, amd*/
+/*global alert confirm */
 
 (function() {
 	function isSupportedBrowser() {
@@ -17,7 +17,7 @@
 			browser: false, 
 			version: false
 		};
-		var VERSION = 1;
+		var REGEXP_VERSION = 1;
 		var browserData = [	{name: 'Chrome/Chromium', regExp: /(?:chrome|crios|chromium)\/(\d+)/i, minVersion: 24}, //$NON-NLS-0$
 							{name: 'Firefox', regExp: /firefox\/(\d+)/i, minVersion: 17}, //$NON-NLS-0$
 							{name: 'Microsoft Internet Explorer', regExp: /msie\s(\d+)/i, minVersion: 10}, //$NON-NLS-0$
@@ -29,7 +29,7 @@
 			var matches = userAgent.match(browser.regExp);
 			if (matches) {
 				isSupported.browser = true;
-				isSupported.version = matches[VERSION] >= browser.minVersion;
+				isSupported.version = matches[REGEXP_VERSION] >= browser.minVersion;
 				isSupported.name = browser.name;
 				break;
 			}

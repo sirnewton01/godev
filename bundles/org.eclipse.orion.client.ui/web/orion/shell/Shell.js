@@ -10,12 +10,10 @@
  *     Kris De Volder (VMWare) - initial API and implementation
  *******************************************************************************/
 
-/*global define Range*/
-/*jslint browser:true*/
-
-define(["i18n!orion/widgets/nls/messages", "orion/i18nUtil", "gcli/index", "gcli/types", "gcli/types/selection", "gcli/argument", "gcli/ui/fields",
+/*eslint-env browser, amd*/
+define(["i18n!orion/widgets/nls/messages", "orion/i18nUtil", "gcli/index", "gcli/types", "gcli/types/selection", "gcli/ui/fields",
 		"gcli/ui/fields/menu", "util/util", "gcli/settings", "gcli/canon", "gcli/cli", "gcli/commands/help", "util/promise"],
-	function(messages, i18nUtil, mGCLI, mTypes, mSelectionType, mArgument, mFields, mMenu, mUtil, mSettings, mCanon, mCli, mHelp, mPromise) {
+	function(messages, i18nUtil, mGCLI, mTypes, mSelectionType, mFields, mMenu, mUtil, mSettings, mCanon, mCli, mHelp, mPromise) {
 
 	function CustomType(typeSpec) {}
 	CustomType.prototype = Object.create(mSelectionType.SelectionType.prototype);
@@ -68,7 +66,7 @@ define(["i18n!orion/widgets/nls/messages", "orion/i18nUtil", "gcli/index", "gcli
 				while (outputDiv.hasChildNodes()) {
 					outputDiv.removeChild(outputDiv.lastChild);
 				}				
-				this.output(i18nUtil.formatMessage(messages["For a list of available commands type '${0}'."], "<b>help</b>")); //$NON-NLS-0$
+				this.output(i18nUtil.formatMessage(messages["AvailableCmdsType"], "<b>help</b>")); //$NON-NLS-0$
 			},
 			/**
 			 * Renders HTML content in the Shell's output area.
@@ -266,7 +264,7 @@ define(["i18n!orion/widgets/nls/messages", "orion/i18nUtil", "gcli/index", "gcli
 				setTimeout(function() {
 					this.commandOutputManager = new mCanon.CommandOutputManager();
 					mGCLI.createDisplay({commandOutputManager: this.commandOutputManager});
-					this.output(i18nUtil.formatMessage(messages["For a list of available commands type '${0}'."], "<b>help</b>")); //$NON-NLS-0$
+					this.output(i18nUtil.formatMessage(messages["AvailableCmdsType"], "<b>help</b>")); //$NON-NLS-0$
 				}.bind(this), 1);
 				mHelp.startup();
 				mHelp.helpListHtml = mHelp.helpListHtml.replace("\"${includeIntro}\"","${false}"); //$NON-NLS-1$ //$NON-NLS-0$

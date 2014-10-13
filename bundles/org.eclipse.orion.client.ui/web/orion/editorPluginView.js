@@ -8,16 +8,14 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define document window Blob console */
+/*eslint-env browser, amd*/
 define([
 	'orion/editor/editor',
 	'orion/commands',
 	'orion/editorCommands',
 	'orion/objects',
-	'orion/webui/littlelib',
-	'orion/PageLinks',
-	'orion/URITemplate'
-], function(mEditor, Commands, mEditorCommands, objects, lib, PageLinks, URITemplate) {
+	'orion/webui/littlelib'
+], function(mEditor, Commands, mEditorCommands, objects, lib) {
 	
 	function handleError(statusService, error) {
 		if (!statusService) {

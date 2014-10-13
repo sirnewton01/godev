@@ -8,9 +8,10 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define document */
-define(['i18n!orion/operations/nls/messages',  'require', 'orion/webui/littlelib', 'orion/explorers/explorer', 'orion/operationsCommands'], function(messages, require, lib,
-		mExplorer, mOperationsCommands) {
+/*eslint-env browser, amd*/
+define(['i18n!orion/operations/nls/messages', 'orion/webui/littlelib', 'orion/explorers/explorer', 'orion/operationsCommands'
+	], function(messages, lib,	mExplorer, mOperationsCommands) {
+	
 	var exports = {};
 
 	exports.OperationsExplorer = (function() {
@@ -172,7 +173,6 @@ define(['i18n!orion/operations/nls/messages',  'require', 'orion/webui/littlelib
 					col.appendChild(h2);
 					h2.textContent = messages["Name"];
 					return col;
-					break;
 				case 1:
 					col = document.createElement("th");
 					col.style.height = "8px;";
@@ -180,7 +180,6 @@ define(['i18n!orion/operations/nls/messages',  'require', 'orion/webui/littlelib
 					col.appendChild(h2);
 					h2.textContent = messages["Actions"];
 					return col;
-					break;
 				case 2: 
 					col = document.createElement("th");
 					col.style.height = "8px;";
@@ -188,7 +187,6 @@ define(['i18n!orion/operations/nls/messages',  'require', 'orion/webui/littlelib
 					col.appendChild(h2);
 					h2.textContent = messages["Status"];
 					return col;
-					break;
 				case 3: 
 					col = document.createElement("th");
 					col.style.height = "8px;";
@@ -196,8 +194,6 @@ define(['i18n!orion/operations/nls/messages',  'require', 'orion/webui/littlelib
 					col.appendChild(h2);
 					h2.textContent = messages["Scheduled"];
 					return col;
-					break;
-
 			}
 			
 		};
@@ -240,10 +236,8 @@ define(['i18n!orion/operations/nls/messages',  'require', 'orion/webui/littlelib
 					}
 				
 				return col;
-				break;
 			case 1:
 				return this.getActionsColumn(item, tableRow);
-				break;
 			case 2:
 				var message = "";
 				if(item.operation && item.operation.error){
@@ -254,7 +248,6 @@ define(['i18n!orion/operations/nls/messages',  'require', 'orion/webui/littlelib
 				col = document.createElement("td"); //$NON-NLS-0$
 				col.textContent = message;
 				return col;
-				break;
 			case 3:
 				if(item.operation && item.operation.timestamp && parseInt(item.operation.timestamp)>0){
 					col = document.createElement("td"); //$NON-NLS-0$

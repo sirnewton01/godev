@@ -7,7 +7,8 @@
 	<script src="../orion/plugin.js"></script>
 	<script src="filePlugin/HTML5LocalFileImpl.js"></script>
 	<script type="text/javascript">
-	/*global window console eclipse orion*/
+	/*eslint-env browser, amd*/
+	/*global orion eclipse*/
 		window.onload = function() {
 			var provider = new orion.PluginProvider();
 			window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;

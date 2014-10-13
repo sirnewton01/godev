@@ -232,3 +232,21 @@
  	background-repeat: repeat-y;
  	background-position: right top
 }
+
+.compare-sprite-inline-2way{
+	font-size: 16px;
+	line-height: normal;
+	vertical-align:middle;
+	color: #333;
+	font-family: 'Orion Icon Font';	
+	padding-right:5px;
+	background: none;
+	border: none;
+	margin: 0;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.compare-sprite-inline-2way:before{ content: '\E04C'; }
+.compare-sprite-inline-2way:after{ content: '\E04A'; }
+

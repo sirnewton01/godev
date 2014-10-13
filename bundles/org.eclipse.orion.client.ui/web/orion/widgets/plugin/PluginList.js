@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -8,16 +8,14 @@
  * 
  * Contributors: Anton McConville - IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global window console define localStorage*/
-/*jslint browser:true sub:true*/
-
+/*eslint-env browser, amd*/
 /* This PluginList widget provides a HTML list placeholder for PluginEntries, and
    provides JavaScript functions for user management of Orion plugins. It is designed
    to contain PluginEntry widgets */
 
-define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/commands', 'orion/commandRegistry', 'orion/commonHTMLFragments', 'orion/objects', 'orion/webui/littlelib',
-		'orion/widgets/plugin/PluginEntry', 'orion/explorers/explorer', 'orion/URITemplate', 'orion/PageLinks'
-		], function(messages, require, Deferred, mCommands, mCommandRegistry, mHTMLFragments, objects, lib, PluginEntry, mExplorer, URITemplate, PageLinks) {
+define(['i18n!orion/settings/nls/messages', 'orion/i18nUtil', 'require', 'orion/Deferred', 'orion/commands', 'orion/commandRegistry', 'orion/commonHTMLFragments', 'orion/objects', 'orion/webui/littlelib',
+		'orion/widgets/plugin/PluginEntry', 'orion/explorers/explorer'
+		], function(messages, i18nUtil, require, Deferred, mCommands, mCommandRegistry, mHTMLFragments, objects, lib, PluginEntry, mExplorer) {
 
 	var Explorer = mExplorer.Explorer;
 	var SelectionRenderer = mExplorer.SelectionRenderer;
@@ -122,18 +120,6 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 				this.pluginSectionHeader.appendChild(slideoutFragment);
 			}
 			this.render();
-
-			this.registry.registerService("orion.cm.managedservice", //$NON-NLS-0$
-				{	updated: function(properties) {
-						var target;
-						if (properties && properties["links.newtab"] !== "undefined") { //$NON-NLS-1$ //$NON-NLS-0$
-							target = properties["links.newtab"] ? "_blank" : "_self"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-						} else {
-							target = "_self"; //$NON-NLS-0$
-						}
-						_this.setTarget(target);
-					}.bind(this)
-				}, {pid: "nav.config"}); //$NON-NLS-0$
 		},
 
 		updateToolbar: function(id){
@@ -151,7 +137,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 			
 			var findMorePluginsCommand = new mCommands.Command({
 				name: messages['Get Plugins'],
-				tooltip: messages["Find More Orion Plugins"],
+				tooltip: messages["FindMorePlugs"],
 				id: "orion.findMorePluginsCommand", //$NON-NLS-0$
 				hrefCallback: function(data){
 					return this.getPluginsLink(data.items);
@@ -166,7 +152,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 			// set up the toolbar level commands	
 			var installPluginCommand = new mCommands.Command({
 				name: messages["Install"],
-				tooltip: messages["Install a plugin by specifying its URL"],
+				tooltip: messages["PlugInstallByURL"],
 				id: "orion.installPlugin", //$NON-NLS-0$
 				parameters: new mCommandRegistry.ParametersDescription([new mCommandRegistry.CommandParameter('url', 'url', messages['Plugin URL:'], '')]), //$NON-NLS-1$ //$NON-NLS-0$
 				callback: function(data) {
@@ -184,7 +170,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 			this.commandService.registerCommandContribution("pluginCommands", "orion.installPlugin", 2, /* not grouped */ null, false, /* no key binding yet */ null, new mCommandRegistry.URLBinding("installPlugin", "url")); //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			var reloadAllPluginsCommand = new mCommands.Command({
 				name: messages["Reload all"],
-				tooltip: messages["Reload all installed plugins"],
+				tooltip: messages["ReloadAllPlugs"],
 				id: "orion.reloadAllPlugins", //$NON-NLS-0$
 				callback: this.reloadPlugins.bind(this)
 			});
@@ -194,7 +180,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 
 			var createPluginCommand = new mCommands.Command({
 				name: messages['Create'],
-				tooltip: messages["Create a new Orion Plugin"],
+				tooltip: messages["CreatePlug"],
 				id: "orion.createPlugin", //$NON-NLS-0$
 				callback: function(data){
 					this.createPlugin(data.items);
@@ -216,7 +202,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 			// Declare row-level commands so they will be rendered when the rows are added.
 			var reloadPluginCommand = new mCommands.Command({
 				name: messages["Reload"],
-				tooltip: messages["Reload the plugin"],
+				tooltip: messages["ReloadPlug"],
 				id: "orion.reloadPlugin", //$NON-NLS-0$
 				imageClass: "core-sprite-refresh", //$NON-NLS-0$
 				visibleWhen: function(items) {  // we expect a URL
@@ -231,7 +217,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 
 			var uninstallPluginCommand = new mCommands.Command({
 				name: messages["Delete"],
-				tooltip: messages["Delete this plugin from the configuration"],
+				tooltip: messages["DeletePlugFromConfig"],
 				imageClass: "core-sprite-delete", //$NON-NLS-0$
 				id: "orion.uninstallPlugin", //$NON-NLS-0$
 				visibleWhen: function(url) {  // we expect a URL
@@ -284,7 +270,6 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 			});			
 			this.commandService.addCommand(enablePluginCommand);
 			this.commandService.registerCommandContribution("pluginCommand", "orion.enablePlugin", 4); //$NON-NLS-1$ //$NON-NLS-0$
-
 		
 			var list = this.pluginList;
 		
@@ -297,18 +282,67 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 			var plugins = this.settings.pluginRegistry.getPlugins();
 			this.pluginTitle.textContent = messages['Plugins'];
 			this.pluginCount.textContent = plugins.length;
-
+			
+			for (var i=0; i<plugins.length; i++) {
+				if (defaultPluginURLs[plugins[i].getLocation()]) {
+					plugins[i].isDefaultPlugin = true;
+				}
+			}			
+			plugins.sort(this._sortPlugins); 
+			
 			// TODO maybe this should only be done once
 			this.explorer = new PluginListExplorer(this.commandService);
 			this.pluginListTree = this.explorer.createTree(this.pluginList.id, new mExplorer.SimpleFlatModel(plugins, "plugin", function(item) { //$NON-NLS-1$ //$NON-NLS-0$
 				return item.getLocation();
-			}), { setFocus: false });
+			}), { /*setFocus: false,*/ noSelection: true});
 
 //			for( var p = 0; p < plugins.length; p++ ){
 //				var pluginEntry = new PluginEntry( {plugin: plugins[p], commandService:this.commandService}  );
 //				list.appendChild( pluginEntry.node );
 //				pluginEntry.show();
 //			}
+		},
+		
+		/**
+		 * @name _sortPlugins
+		 * @description sorts plugins by state, then default config, then name
+		 * @function
+		 * @private
+		 * @param a first object to compare
+		 * @param b second object to return
+		 * @returns -1 for a first, 1 for b first, 0 if equals
+		 */
+		_sortPlugins: function(a, b) {
+			var aState = a.getState();
+			var bState = b.getState();
+			var aHeaders = a.getHeaders();
+			var bHeaders = b.getHeaders();
+
+			if (a.getProblemLoading() && !b.getProblemLoading()){
+				return -1;
+			}
+			if (b.getProblemLoading() && !a.getProblemLoading()){
+				return 1;
+			}
+			
+			if (b.isDefaultPlugin && !a.isDefaultPlugin){
+				return -1;
+			}
+			if (a.isDefaultPlugin && !b.isDefaultPlugin){
+				return 1;
+			}
+			
+			if (!aHeaders || !aHeaders.name){
+				return -1;
+			}
+			if (!bHeaders || !bHeaders.name){
+				return 1;
+			}
+			var n1 = aHeaders.name && aHeaders.name.toLowerCase();
+			var n2 = bHeaders.name && bHeaders.name.toLowerCase();
+			if (n1 < n2) { return -1; }
+			if (n1 > n2) { return 1; }
+			return 0;
 		},
 				
 		pluginURLFocus: function(){
@@ -318,7 +352,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 		
 		pluginURLBlur: function(){
 			if( this.pluginUrlEntry.value === '' ){
-				this.pluginUrlEntry.value = messages['Type a plugin url here ...'];
+				this.pluginUrlEntry.value = messages['TypePlugURL'];
 				this.pluginUrlEntry.style.color = "#AAA" ; //$NON-NLS-0$
 			}
 		},
@@ -329,7 +363,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 		},
 		
 		addPlugin: function( pluginUrl ){
-			this.statusService.setMessage(messages["Installed "] + pluginUrl, 5000, true);
+			this.statusService.setMessage(i18nUtil.formatMessage(messages["Installed"], pluginUrl), 5000, true);
 			this.settings.preferences.getPreferences("/plugins").then(function(plugins) { //$NON-NLS-0$
 				plugins.put(pluginUrl, true);
 			}); // this will force a sync
@@ -347,7 +381,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 		
 		installHandler: function(newPluginUrl){
 			if (/^\S+$/.test(newPluginUrl.trim())) {
-				this.statusService.setMessage(messages["Installing "] + newPluginUrl + "...", null, true);
+				this.statusService.setMessage(i18nUtil.formatMessage(messages["Installing"], newPluginUrl), null, true);
 				if( this.settings.pluginRegistry.getPlugin(newPluginUrl) ){
 					this.statusService.setErrorMessage(messages["Already installed"]);
 				} else {
@@ -360,7 +394,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 		
 		reloaded: function(){
 			var settingsPluginList = this.settings.pluginRegistry.getPlugins();
-			this.statusService.setMessage( messages["Reloaded "] + settingsPluginList.length + messages[" plugin"] + ( settingsPluginList.length===1 ? "": "s") + ".", 5000, true );
+			this.statusService.setMessage( ( settingsPluginList.length===1 ? i18nUtil.formatMessage(messages["ReloadedPlug"], settingsPluginList.length): i18nUtil.formatMessage(messages["ReloadedPlug"], settingsPluginList.length)), 5000, true );
 			this.render();
 		},
 		
@@ -369,7 +403,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 			var plugin = this.settings.pluginRegistry.getPlugin(url);
 			if (plugin) {
 				plugin.update().then(this.render.bind(this));
-				this.statusService.setMessage(messages['Reloaded '] + url, 5000, true);
+				this.statusService.setMessage( i18nUtil.formatMessage(messages["Reloaded"], url), 5000, true);
 			}
 		},
 		
@@ -377,7 +411,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 			var plugin = this.settings.pluginRegistry.getPlugin(url);
 			if (plugin) {
 				plugin.stop();
-				this.statusService.setMessage("Disabled " + url, 5000, true);
+				this.statusService.setMessage(i18nUtil.formatMessage(messages["Disabled"], url), 5000, true);
 				this.settings.preferences.getPreferences("/plugins").then(function(plugins) { //$NON-NLS-0$
 					plugins.put(url, false);
 					this.render(this);
@@ -390,7 +424,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 			var plugin = this.settings.pluginRegistry.getPlugin(url);
 			if (plugin) {
 				plugin.start({lazy:true});
-				this.statusService.setMessage("Enabled " + url, 5000, true);
+				this.statusService.setMessage(i18nUtil.formatMessage(messages["Enabled"], url), 5000, true);
 				this.settings.preferences.getPreferences("/plugins").then(function(plugins) { //$NON-NLS-0$
 					plugins.put(url, false);
 					this.render(this);
@@ -418,7 +452,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 			var plugin = this.settings.pluginRegistry.getPlugin(url);
 			if (plugin) {
 				plugin.uninstall().then(function() {
-					this.statusService.setMessage(messages["Uninstalled "] + url, 5000, true);
+					this.statusService.setMessage(i18nUtil.formatMessage(messages["Uninstalled"], url), 5000, true);
 					this.settings.preferences.getPreferences("/plugins").then(function(plugins) { //$NON-NLS-0$
 						plugins.keys().some(function(key) {
 							if (_normalizeURL(require.toUrl(key)) === _normalizeURL(url)) {
@@ -441,7 +475,7 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/Deferred', 'orion/
 				
 			// TODO: Should be internationalized
 				
-			var confirmMessage = messages["Are you sure you want to uninstall '"] + url + "'?"; //$NON-NLS-1$
+			var confirmMessage = i18nUtil.formatMessage(messages["UninstallCfrm"],url); //$NON-NLS-1$
 			if (window.confirm(confirmMessage)) {
 				this.forceRemove(url);
 			}

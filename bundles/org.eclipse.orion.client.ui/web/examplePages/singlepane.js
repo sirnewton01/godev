@@ -9,17 +9,10 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define orion window document */
-/*jslint browser:true*/
-
-/*
- * Glue code for content.html
- */
-
-define(['i18n!orion/content/nls/messages', 'require', 'orion/bootstrap', 'orion/webui/littlelib', 'orion/status', 'orion/progress', 'orion/commandRegistry', 'orion/fileClient', 'orion/operationsClient',
+/*eslint-env browser, amd*/
+define(['orion/bootstrap', 'orion/webui/littlelib', 'orion/status', 'orion/progress', 'orion/commandRegistry', 'orion/fileClient', 'orion/operationsClient',
 	        'orion/searchClient', 'orion/globalCommands', 'orion/PageUtil'], 
-			function(messages, require, mBootstrap, lib, mStatus, mProgress, mCommandRegistry, mFileClient, mOperationsClient, mSearchClient, 
-				mGlobalCommands, PageUtil) {
+			function(mBootstrap, lib, mStatus, mProgress, mCommandRegistry, mFileClient, mOperationsClient, mSearchClient, mGlobalCommands, PageUtil) {
 
 		mBootstrap.startup().then(function(core) {
 			var serviceRegistry = core.serviceRegistry;

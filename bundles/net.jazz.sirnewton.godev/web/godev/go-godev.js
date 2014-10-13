@@ -12,13 +12,12 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
     
     provider.registerService("orion.page.link.category", null, {
 		id: "godoc",
-		nameKey: "Go Doc",
-		nls: "orion/nls/messages",
+		name: "Go Doc",
 		imageClass: "core-sprite-search",
 		order: 50
 	});
 	
-	provider.registerServiceProvider("orion.page.link", {}, {
+    provider.registerServiceProvider("orion.page.link", null, {
         name: "Go Doc",
         id: "godev.godoc",
         category: "godoc",
@@ -27,13 +26,12 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
         
     provider.registerService("orion.page.link.category", null, {
 		id: "debug",
-		nameKey: "Debug",
-		nls: "orion/nls/messages",
+		name: "Debug",
 		imageClass: "core-sprite-rightarrow",
 		order: 50
 	});
 	
-	provider.registerServiceProvider("orion.page.link", {}, {
+    provider.registerServiceProvider("orion.page.link", null, {
         name: "Debug",
         id: "godev.debug",
         category: "debug",

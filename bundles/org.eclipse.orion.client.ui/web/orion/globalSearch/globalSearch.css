@@ -9,18 +9,22 @@
 
 .search_primaryColumn {
 	padding-left: 0 !important;
+	padding-top: 3px !important;
 	vertical-align: top;
-	width: 45px;
+	white-space: nowrap;
+	width: 38px;
 }
 
 .search_primaryColumn_Details {
 	padding-left: 0 !important;
+	text-align: right;
 	vertical-align: middle;
 	width: 45px;
 }
 
 .search_secondaryColumn{
 	color: #666666;	
+	white-space: nowrap;
 }
 
 .search_report {
@@ -75,21 +79,6 @@
 .outlinerSplitLayout {
 }
 
-.advSearchOptContainer {
-	color: black;
-	display: block;
-	border:  1px solid #666;
-	background: white;
-	max-height: 300px;
-	max-width: 300px;
-	min-width: 150px;
-	position: absolute;
-	overflow-y: auto;
-	overflow-x: hidden;
-	padding: 2px;
-	z-index:200;
-}
-
 .searchOptionBlock {
 	margin-left: 2px;
 	margin-right: 0px;
@@ -111,19 +100,6 @@
 
 .search-filter-input {
 	min-width:20em;
-}
-
-.commandButton.search-button {
-	visibility: visible;
-	display: inline-block;
-	padding: 8px 15px;
-	border: none;
-	vertical-align: middle;
-	border-left: 1px solid lightgray;
-	border-radius: 0 3px 3px 0;
-	font-size:14px;
-	transition: all 0.1s ease;
-	max-width: 150px; /* for transition */
 }
 
 .search-filter-text {

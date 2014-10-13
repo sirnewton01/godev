@@ -11,8 +11,8 @@
  *		Felipe Heidrich (IBM Corporation) - initial API and implementation
  ******************************************************************************/
  
- /*global define  */
-define(['i18n!profile/nls/messages', 'orion/webui/littlelib'], function(messages, lib) {
+/*eslint-env browser, amd*/
+define(['orion/webui/littlelib'], function(lib) {
 
 
 function updateNavTools (registry, commandService, explorer, toolbarId, pageNavId, selectionToolbarId, item) {

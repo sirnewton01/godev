@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define console */
+/*eslint-env browser, amd*/
 define([
 	'orion/Deferred',
 	'orion/i18nUtil',
@@ -19,17 +19,18 @@ define([
 	var SETTINGS_PROP = 'settings'; //$NON-NLS-0$
 	var DEFAULT_CATEGORY = 'unsorted'; //$NON-NLS-0$
 
+	var hasOwnProperty = Object.prototype.hasOwnProperty;
+
 	/**
+	 * @param {String} type
 	 * @param {Object} value
 	 * @param {orion.metatype.AttributeDefinition} attributeDefinition
 	 */
-	function equalsDefaultValue(value, attributeDefinition) {
-		var defaultValue = attributeDefinition.getDefaultValue();
-		var result = value === defaultValue;
-		if (attributeDefinition.getType() === 'string') { //$NON-NLS-0$
-			result = result || (value === '' && defaultValue === null);
-		}
-		return result;
+	function equals(type, value, defaultValue) {
+		if (type === 'string') //$NON-NLS-0$
+			return value === defaultValue || (value === '' && defaultValue === null);
+		else
+			return value === defaultValue;
 	}
 
 	function getStringOrNull(obj, property) {
@@ -45,11 +46,10 @@ define([
 		 * @name orion.settings.Setting#isDefaults
 		 * @function
 		 * @param {Object} properties A map of AttributeDefinition IDs to values.
-		 * @description Returns whether a given properties map equals the default value of this setting. This
-		 * tests if the following two conditions hold:
-		 * <ul>
-		 * <li>The ID of every AttributeDefinition in this setting appears as a key in the map, and</li>
-		 * <li>The key's corresponding value equals the AttributeDefinition's default value.</li>
+		 * @param {Object} [defaultProperties] If provided, gives a map of effective default values to compare properties
+		 * against. If not provided, the default values defined in the <tt>AttributeDefinition</tt>s are used.
+		 * @description Returns whether a given properties map is equivalent to the default value of this setting.
+		 * Default values are drawn either from <tt>defaultProperties</tt> if provided, otherwise from the <tt>AttributeDefinition</tt>.
 		 * </ul>
 		 * @returns {Boolean} <code>true</code> if the given <code>properties</code> map equals the defaults.
 		 */
@@ -155,9 +155,18 @@ define([
 		getTags: function() {
 			return this.tags || [];
 		},
-		isDefaults: function(properties) {
+		isDefaults: function(properties, defaultProperties) {
+			defaultProperties = defaultProperties || {};
 			return this.getAttributeDefinitions().every(function(attributeDefinition) {
-				return equalsDefaultValue(properties[attributeDefinition.getId()], attributeDefinition);
+				var attributeId = attributeDefinition.getId();
+				if (!(hasOwnProperty.call(properties, attributeId)))
+					return true; // Attribute not set, so consider as equal to default
+				var value = properties[attributeId], defaultValue;
+				if (hasOwnProperty.call(defaultProperties, attributeId))
+					defaultValue = defaultProperties[attributeId];
+				else
+					defaultValue = attributeDefinition.getDefaultValue();
+				return equals(attributeDefinition.getType(), value, defaultValue);
 			});
 		},
 		// Private, for translation
@@ -199,7 +208,7 @@ define([
 			setting.properties = ocd.getAttributeDefinitions();
 			settingsMap[setting.getPid()] = setting;
 			var category = setting.getCategory() || DEFAULT_CATEGORY;
-			if (!Object.prototype.hasOwnProperty.call(categoriesMap, category)) {
+			if (!hasOwnProperty.call(categoriesMap, category)) {
 				categoriesMap[category] = [];
 			}
 			categoriesMap[category].push(setting.getPid());

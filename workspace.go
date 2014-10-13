@@ -43,10 +43,12 @@ type WorkspacesList struct {
 func getWsProjects() ([]Project, []FileDetails) {
 	projects := make([]Project, 0, 0)
 	children := make([]FileDetails, 0, 0)
-
 	nameMap := make(map[string]string)
 
+	logger.Printf("Retrieving workspace projects from source directories\n")
+
 	for _, srcDir := range srcDirs {
+		logger.Printf("Walking %v to get projects.\n", srcDir)
 		if strings.HasPrefix(srcDir, goroot) {
 			continue
 		}
@@ -68,6 +70,7 @@ func getWsProjects() ([]Project, []FileDetails) {
 
 		dir.Close()
 		for _, name := range names {
+			logger.Printf("Found project %v\n", name)
 			if strings.HasPrefix(name, ".") {
 				continue
 			}
@@ -78,8 +81,10 @@ func getWsProjects() ([]Project, []FileDetails) {
 
 			fileinfo, err := os.Stat(filesDir + "/" + name)
 			if err != nil {
+				logger.Printf("Error: %v\n", err.Error())
 				return []Project{}, []FileDetails{}
 			}
+
 			projectInfo := Project{Id: name, Location: "/workspace/project/" + name, ContentLocation: "/file/" + name}
 			projects = append(projects, projectInfo)
 

@@ -1,0 +1,463 @@
+@import "../compare/compareView.css";
+
+@import "../globalSearch/globalSearch.css";
+
+@import "../widgets/input/ComboTextInput.css";
+
+.searchResultsWrapperDiv .treeTableRow > td {
+	padding: 0 3px;
+	overflow: hidden;
+}
+
+.searchResultsWrapperDiv > b {
+	margin-left: 10px;
+}
+
+.searchWrapper {
+	height: 100%;
+	width: 100%;
+}
+
+
+.searchOptWrapperDiv {
+	height: 224px;
+	transition: height 0.2s ease;
+}
+
+.replaceModeActive > .searchOptWrapperDiv {
+	height: 262px;
+}
+
+.searchWrapper.searchOptionsHidden > .searchOptWrapperDiv {
+	height: 0;
+	overflow: hidden;
+}
+
+.searchResultsWrapperDiv {
+	height: calc(100% - 220px - 54px); /* subtract height of search options*/
+	transition: height 0.2s ease; /* avoid extra scroll bar while switching between search and replace modes */
+	width: 100%;
+}
+
+.searchResultsWrapperDiv > div {
+	border-top: 1px solid lightgray;
+	height: 100%;
+	overflow: auto;
+	width: 100%;
+}
+
+.searchResultsWrapperDiv > div > .treetable {
+	background: white;
+	table-layout: fixed;
+}
+
+.searchWrapper.searchOptionsHidden > .searchResultsWrapperDiv{
+	height: calc(100% - 70px);
+}
+
+.replaceModeActive > .searchResultsWrapperDiv {
+	height: calc(100% - 220px - 54px - 38px); /* subtract height of search options and replace box */
+}
+
+.searchWrapper > .comboTextInputWrapper {
+	margin: 5px 10px 0 10px;
+}
+
+.searchWrapper label {
+	-moz-user-select: -moz-none;
+	-ms-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+.replaceWrapper {
+	display: block;
+	max-height: 50px; /* for transition */
+	overflow: visible;
+	transition: max-height 0.2s ease;
+}
+
+.replaceWrapperHidden {
+	max-height: 0; /* for transition */
+	overflow: hidden;
+}
+
+.fileNamePatternsTextInput {
+	min-width: 219px;
+}
+
+.fileNamePatternsHint {
+	color: #777;
+	font-size: 11px;
+	margin: 0 0 2px 0;
+	padding: 0 2px;
+	display: block;
+	opacity: 0;
+	text-align: center;
+	transition: opacity 0.1s ease;
+	width: 252px;
+}
+
+.fileNamePatternsHintVisible {
+	opacity: 1 !important;
+}
+
+.fileNamePatternsInput {
+	margin: 0;
+}
+
+.toggleDisplayLink {
+	display: block;
+	margin: 0;
+}
+
+.toggleDisplayLink.linkHidden {
+	display: none;
+}
+
+.toggleSearchOptionsLink {
+	margin: 5px;
+	white-space: nowrap;
+}
+
+.searchMainOptionBlock {
+	margin: 5px 10px 0 10px;
+}
+
+.searchOptionBlock {
+	margin: 15px 10px;
+	min-width: 254px;
+	width: calc(100% - 20px);
+}
+
+.searchOption {
+	white-space: nowrap;
+}
+
+.oneLine {
+	white-space: nowrap;
+}
+.oneLine .searchOption {
+	display: inline-block;
+	margin-right: 28px;
+}
+.oneLine .searchOption:last-child {
+	margin: 0;
+}
+
+.searchLabel {
+	margin: 1px 0;
+}
+
+.searchCheckboxLabel {
+	vertical-align: middle;
+}
+
+.searchCheckbox {
+	margin: 0 0 0 5px;
+	vertical-align: middle;
+}
+
+.searchScopeInputWrapper {
+	background-color: whitesmoke;
+	border: 1px solid lightgray;
+	border-radius: 3px;
+	display: inline-block;
+	white-space: nowrap;
+}
+
+.searchScopeElementWrapper {
+	display: inline-block;
+	width: 224px;
+}
+
+.searchScopeElement {
+	color: #222;
+	cursor: initial;
+	display: inline-block;
+	font-weight: normal;
+	margin: 0 5px;
+	overflow: hidden;
+	padding: 0;
+	max-width: 100%; /* prevents span from overflowing parent */
+	text-overflow: ellipsis;
+	vertical-align: bottom;
+	white-space: nowrap;
+}
+
+.commandButton.searchScopeSelectButton {
+	border: none;
+	border-left: 1px solid lightgray;
+	border-bottom-left-radius: 0;
+	border-top-left-radius: 0;
+	cursor: pointer;
+	font-size: 12px;
+	margin: 0;
+	padding: 6px;
+	text-transform: none;
+	vertical-align: baseline;
+}
+
+.searchButton > span {
+	font-size: 14px;
+	color: white;
+}
+
+.commandButton.comboTextInputButton.searchButton {
+	background-color: #7fa4c0;
+	padding: 3px 5px 5px 5px;
+}
+
+.commandButton.comboTextInputButton.searchButton.isHidden {
+	padding: 3px 0 5px 0;
+}
+
+.replaceWrapper > .comboTextInputWrapper > .comboTextInputButton {
+	background-color: #7fa4c0;
+	color: white;
+	padding: 7px 10px;
+}
+
+.projectNavSidebarWrapper > .searchWrapperActive {
+	height: calc(100% - 14px);
+}
+
+.filePathSpan {
+	display: inline-flex;
+	display: -webkit-inline-flex;		/* Safari */
+	outline: none;
+	padding: 0 2px;
+	vertical-align: middle;
+	white-space: nowrap;
+	width: 100%;
+}
+
+.filePathSpan > a.navlink {
+	align-items: baseline;
+	-webkit-align-items: baseline;		/* Safari */
+	display: inline-flex;
+	display: -webkit-inline-flex;		/* Safari */
+	padding: 7px 10px 7px 2px;
+	width: 100%;
+}
+
+.fullPathSpan {
+	color: #666 !important;
+	display: none;
+	flex-grow: 0;
+	flex-shrink: 2;
+	-webkit-flex-grow: 0;		/* Safari */
+	-webkit-flex-shrink: 2;		/* Safari */
+	font-size: 8pt; 
+	font-weight: normal;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.showFullPath .fullPathSpan {
+	display: inline-block;
+	min-width: 20px;
+}
+
+.fileNameSpan {
+	flex-grow: 0;
+	flex-shrink: 0;
+	-webkit-flex-grow: 0;		/* Safari */
+	-webkit-flex-shrink: 0;		/* Safari */
+	font-weight: bold;
+	margin-right: 5px;
+}
+
+.fileParentSpan {
+	color: #666 !important;
+	flex-grow: 0;
+	flex-shrink: 0;
+	-webkit-flex-grow: 0;		/* Safari */
+	-webkit-flex-shrink: 0;		/* Safari */
+	font-size: 8pt; 
+	font-weight: normal;
+}
+
+.ellipsisSpan {
+	color: #666 !important;
+	flex-grow: 0;
+	flex-shrink: 0;
+	-webkit-flex-grow: 0;		/* Safari */
+	-webkit-flex-shrink: 0;		/* Safari */
+	font-size: 8pt; 
+	font-weight: normal;
+}
+
+.showFullPath .ellipsisSpan {
+	display: none;
+}
+
+.replaceFileNameSpan {
+	color: black;
+	cursor: pointer;
+}
+
+.deleteSearchRowButton {
+	margin-left: 2px !important;
+}
+
+.searchDetailRow {
+	background: white !important;
+}
+
+.navlink.searchDetailLink {
+	padding: 5px 0;
+	vertical-align: baseline;
+	width: 100%;
+}
+
+/* search match occurrences */
+.navlink.searchDetailLink > span > b {
+	color: black;
+	background: #cedce7;
+}
+
+.searchWrapper:not(.searchWrapperActive) > .comboTextInputWrapper > .comboTextInputButton {
+	background-color: white;
+	border-color: white;
+}
+
+.searchWrapper:not(.searchWrapperActive) > .comboTextInputWrapper > .comboTextInputButton > span {
+	color: #aaa;
+}
+
+.searchWrapper > .comboTextInputWrapper > .recentEntryButton {
+	max-width: 25px;
+	transition: max-width 0.2s ease;
+}
+
+.searchWrapper:not(.searchWrapperActive) > .comboTextInputWrapper > .recentEntryButton {
+	max-width: 0;
+}
+
+.searchWrapperActive > .comboTextInputWrapper > .comboTextInputButton {
+	background-color: rgb(221, 221, 221);
+}
+
+.replaceCompareTitleDiv {
+	border: 1px solid lightgray;
+	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.33);
+	background: white;
+	display: none;
+	font-size: 8pt;
+	font-weight: bold;
+	height: 20px;
+	left: 1px;
+	padding: 3px 10px;
+	position: absolute;
+	top: -19px;
+	z-index: 1;
+}
+
+.replaceCompareTitleDivVisible {
+	display: block;
+}
+
+.replaceCompareDiv {
+	display: none;
+	z-index: 51;
+}
+
+.replaceCompareDivVisible {
+	display: block;
+}
+
+
+.searchResultsTitle {
+	display: inline-block;
+	font-weight: bold;
+	margin: 0;
+	margin-left: 5px;
+	color: #333;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	vertical-align: middle;
+	white-space: nowrap;
+	width: calc(100% - 5px); /*subtract margin to prevent overflow*/
+}
+
+.searchPageActions {
+	display: block;
+	margin: 5px 0;
+	white-space: nowrap;
+}
+
+.searchPageActions > .orionButton > .core-sprite-move-down, .searchPageActions > .orionButton > .core-sprite-move-up {
+	padding-left: 0;
+}
+
+.sprite-switch-full-path {
+	font-size: 15px;
+	font-weight: bold;
+	line-height: normal;
+	vertical-align:middle;
+	color: #777;
+	padding-right:5px;
+	background: none;
+	border: none;
+	margin: 0;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.searchPageActions > .orionSwitch {
+	display: inline-block;
+	margin-bottom: 1px;
+	vertical-align: bottom;
+}
+
+.orionSwitchInner.sprite-switch-full-path:before{
+	content: '\002f*\002f'; /* forward slash * forward slash, using unicode value to avoid CSS minification bug */
+	padding-top: 2px;
+	padding-left: 4px;
+}
+.orionSwitchInner.sprite-switch-full-path:after{
+	content: '.../';
+	padding-top: 2px;
+	padding-right: 4px;
+}
+
+.treeTableRow > td.search_report {
+	padding: 2px 0;
+	width: 100%;
+}
+
+.filePathSpan > .navlink > .imageSprite {
+	padding: 0 5px;
+}
+
+.filePathSpan > .navlink > .core-sprite-ok {
+	background-position: 0;
+	color: green;
+	flex-grow: 0;
+	flex-shrink: 0;
+	-webkit-flex-grow: 0;		/* Safari */
+	-webkit-flex-shrink: 0;		/* Safari */
+	font-size: 14px;
+	font-weight: bold;
+	height: auto;
+	width: auto;
+}
+
+.filePathSpan > .navlink > .core-sprite-ok:before {
+	content: '\2713'; /* check mark */
+}
+
+.replacementStatusSpan {
+	flex-grow: 0;
+	flex-shrink: 0;
+	-webkit-flex-grow: 0;		/* Safari */
+	-webkit-flex-shrink: 0;		/* Safari */
+	white-space: nowrap;
+}
+
+.imageSprite.staleSearchResultIcon {
+	color: #d8ab27;
+	font-size: 14px;
+	padding: 3px 0 0 17px;	
+}

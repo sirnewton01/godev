@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*jslint amd:true*/
-/*global describe:true it:true console */
+/*eslint-env amd, mocha, node*/
 define([
 	"chai/chai",
 	"esprima",
@@ -88,6 +87,18 @@ define([
 					index : error.index,
 					message : error.message,
 					token : error.token
+				});
+			}
+			s += JSON.stringify(expected);
+			s += ',\n\t\t\t\tcomments: ';
+			expected = [];
+			for(i = 0; i < ast.comments.length; i++) {
+				var comment = ast.comments[i];
+				expected.push({
+					kind : comment.kind,
+					start : comment.range[0],
+					end : comment.range[1],
+					value : comment.value
 				});
 			}
 			s += JSON.stringify(expected);
@@ -170,6 +181,27 @@ define([
 						assert.equal(actual.lineNumber, expected.lineNumber, pf("Error %s has incorrect %s", i, "lineNumber"));
 					}
 					assert.equal(actual.message.replace(/^Line [0-9]*: /, ""), expected.message, pf("Error %s has incorrect %s", i, "message"));
+				});
+			}
+			//Check comments
+			var expectedComments = data.comments, actualComments = ast.comments;
+			if(expectedComments) {
+			    expectedComments = Array.isArray(expectedComments) ? expectedComments : [expectedComments];
+				assert.equal(actualComments.length, expectedComments.length, "Incorrect number of errors");
+				expectedComments.forEach(function(expected, i) {
+					var actual = actualComments[i];
+					if (typeof expected.value === "string") {
+						assert.equal(actual.value, expected.value, 'Expected comment has wrong value:\n'+expected.value);
+					}
+					if (typeof expected.kind === "string") {
+						assert.equal(actual.kind, expected.kind, 'Expected comment has wrong kind: '+expected.kind);
+					}
+					if (typeof expected.start === "number") {
+						assert.equal(actual.range[0], expected.start, 'Expected comment has wrong start: '+expected.start);
+					}
+					if (typeof expected.end === "number") {
+						assert.equal(actual.range[1], expected.end, 'Expected comment has wrong end: '+expected.end);
+					}
 				});
 			}
 		}
@@ -443,6 +475,42 @@ define([
 				nodes: [{"type":"IfStatement","range":[0,11]},{"type":"CallExpression","range":[3,8]},{"type":"Identifier","name":"foo","range":[3,6]},{"type":"BlockStatement","range":[9,11]}],
 				tokens: [{"type":"Keyword","range":[0,2],"value":"if"},{"type":"Punctuator","range":[2,3],"value":"("},{"type":"Identifier","range":[3,6],"value":"foo"},{"type":"Punctuator","range":[6,7],"value":"("},{"type":"Punctuator","range":[7,8],"value":")"},{"type":"Punctuator","range":[9,10],"value":"{"},{"type":"Punctuator","range":[10,11],"value":"}"},{"type":"Punctuator","range":[9,10],"value":"{"},{"type":"Punctuator","range":[10,11],"value":"}"}],
 				errors: [{"lineNumber":1,"index":9,"message":"Unexpected token {","token":"{"}]
+			};
+			runTest(data);
+		});
+		it('with missing ) 1', function() {
+			var data = { 
+				source: "with(foo ",
+				nodes: [{"type":"WithStatement","range":[0,9]},{"type":"Identifier","name":"foo","range":[5,8]}],
+				tokens: [{"type":"Keyword","range":[0,4],"value":"with"},{"type":"Punctuator","range":[4,5],"value":"("},{"type":"Identifier","range":[5,8],"value":"foo"}],
+				errors: [{"lineNumber":1,"index":9,"message":"Unexpected end of input"}]
+			};
+			runTest(data);
+		});
+		it('with missing ) 2', function() {
+			var data = { 
+				source: "with(foo {",
+				nodes: [{"type":"WithStatement","range":[0,10]},{"type":"Identifier","name":"foo","range":[5,8]},{"type":"BlockStatement","range":[9,10]}],
+				tokens: [{"type":"Keyword","range":[0,4],"value":"with"},{"type":"Punctuator","range":[4,5],"value":"("},{"type":"Identifier","range":[5,8],"value":"foo"},{"type":"Punctuator","range":[9,10],"value":"{"},{"type":"Punctuator","range":[9,10],"value":"{"}],
+				errors: [{"lineNumber":1,"index":9,"message":"Unexpected token {","token":"{"},{"lineNumber":1,"index":10,"message":"Unexpected end of input"}]
+			};
+			runTest(data);
+		});
+		it('with missing ) 3', function() {
+			var data = { 
+				source: "with(foo {}",
+				nodes: [{"type":"WithStatement","range":[0,11]},{"type":"Identifier","name":"foo","range":[5,8]},{"type":"BlockStatement","range":[9,11]}],
+				tokens: [{"type":"Keyword","range":[0,4],"value":"with"},{"type":"Punctuator","range":[4,5],"value":"("},{"type":"Identifier","range":[5,8],"value":"foo"},{"type":"Punctuator","range":[9,10],"value":"{"},{"type":"Punctuator","range":[10,11],"value":"}"},{"type":"Punctuator","range":[9,10],"value":"{"},{"type":"Punctuator","range":[10,11],"value":"}"}],
+				errors: [{"lineNumber":1,"index":9,"message":"Unexpected token {","token":"{"}]
+			};
+			runTest(data);
+		});
+		it('with missing ) 4', function() {
+			var data = { 
+				source: "with(foo() {}",
+				nodes: [{"type":"WithStatement","range":[0,13]},{"type":"CallExpression","range":[5,10]},{"type":"Identifier","name":"foo","range":[5,8]},{"type":"BlockStatement","range":[11,13]}],
+				tokens: [{"type":"Keyword","range":[0,4],"value":"with"},{"type":"Punctuator","range":[4,5],"value":"("},{"type":"Identifier","range":[5,8],"value":"foo"},{"type":"Punctuator","range":[8,9],"value":"("},{"type":"Punctuator","range":[9,10],"value":")"},{"type":"Punctuator","range":[11,12],"value":"{"},{"type":"Punctuator","range":[12,13],"value":"}"},{"type":"Punctuator","range":[11,12],"value":"{"},{"type":"Punctuator","range":[12,13],"value":"}"}],
+				errors: [{"lineNumber":1,"index":11,"message":"Unexpected token {","token":"{"}]
 			};
 			runTest(data);
 		});
@@ -1507,7 +1575,7 @@ define([
 				source: "function f() {	return {b:{	cc:3, dd:''hey\\'' e}c:2};}",
 				nodes: [{"type":"FunctionDeclaration","range":[0,42]},{"type":"Identifier","name":"f","range":[9,10]},{"type":"BlockStatement","range":[13,42]},{"type":"ReturnStatement","range":[15,42]}],
 				tokens: [{"type":"Keyword","range":[0,8],"value":"function"},{"type":"Identifier","range":[9,10],"value":"f"},{"type":"Punctuator","range":[10,11],"value":"("},{"type":"Punctuator","range":[11,12],"value":")"},{"type":"Punctuator","range":[13,14],"value":"{"},{"type":"Keyword","range":[15,21],"value":"return"},{"type":"Punctuator","range":[22,23],"value":"{"},{"type":"Identifier","range":[23,24],"value":"b"},{"type":"Punctuator","range":[24,25],"value":":"},{"type":"Punctuator","range":[25,26],"value":"{"},{"type":"Identifier","range":[27,29],"value":"cc"},{"type":"Punctuator","range":[29,30],"value":":"},{"type":"Numeric","range":[30,31],"value":"3"},{"type":"Punctuator","range":[31,32],"value":","},{"type":"Identifier","range":[33,35],"value":"dd"},{"type":"Punctuator","range":[35,36],"value":":"},{"type":"String","range":[36,38],"value":"''"}],
-				errors: [{"lineNumber":1,"index":42,"message":"Unexpected token ILLEGAL"},{"lineNumber":1,"index":36,"message":"Unexpected string","token":""}]
+				errors: [{"lineNumber":1,"index":42,"message":"Unexpected token ''"},{"lineNumber":1,"index":42,"message":"Unexpected token ILLEGAL"},{"lineNumber":1,"index":36,"message":"Unexpected string","token":""}]
 			});
 		});
 		
@@ -1516,7 +1584,7 @@ define([
 				source: "function f() {	return {b:{	cc:3, dd:hey\\'' e}c:2};}",
 				nodes: [{"type":"FunctionDeclaration","range":[0,40]},{"type":"Identifier","name":"f","range":[9,10]},{"type":"BlockStatement","range":[13,40]},{"type":"ReturnStatement","range":[15,40]}],
 				tokens: [{"type":"Keyword","range":[0,8],"value":"function"},{"type":"Identifier","range":[9,10],"value":"f"},{"type":"Punctuator","range":[10,11],"value":"("},{"type":"Punctuator","range":[11,12],"value":")"},{"type":"Punctuator","range":[13,14],"value":"{"},{"type":"Keyword","range":[15,21],"value":"return"},{"type":"Punctuator","range":[22,23],"value":"{"},{"type":"Identifier","range":[23,24],"value":"b"},{"type":"Punctuator","range":[24,25],"value":":"},{"type":"Punctuator","range":[25,26],"value":"{"},{"type":"Identifier","range":[27,29],"value":"cc"},{"type":"Punctuator","range":[29,30],"value":":"},{"type":"Numeric","range":[30,31],"value":"3"},{"type":"Punctuator","range":[31,32],"value":","},{"type":"Identifier","range":[33,35],"value":"dd"},{"type":"Punctuator","range":[35,36],"value":":"}],
-				errors: [{"lineNumber":1,"index":35,"message":"Unexpected token :","token":":"},{"lineNumber":1,"index":40,"message":"Unexpected token ILLEGAL"}]
+				errors: [{"lineNumber":1,"index":40,"message":"Unexpected token :"},{"lineNumber":1,"index":35,"message":"Unexpected token :","token":":"},{"lineNumber":1,"index":40,"message":"Unexpected token ILLEGAL"}]
 			});
 		});
 		
@@ -1525,7 +1593,7 @@ define([
 				source: "function f() {	return {b:{	cc:3, dd:hey\\' e}c:2};}",
 				nodes: [{"type":"FunctionDeclaration","range":[0,40]},{"type":"Identifier","name":"f","range":[9,10]},{"type":"BlockStatement","range":[13,40]},{"type":"ReturnStatement","range":[15,40]}],
 				tokens: [{"type":"Keyword","range":[0,8],"value":"function"},{"type":"Identifier","range":[9,10],"value":"f"},{"type":"Punctuator","range":[10,11],"value":"("},{"type":"Punctuator","range":[11,12],"value":")"},{"type":"Punctuator","range":[13,14],"value":"{"},{"type":"Keyword","range":[15,21],"value":"return"},{"type":"Punctuator","range":[22,23],"value":"{"},{"type":"Identifier","range":[23,24],"value":"b"},{"type":"Punctuator","range":[24,25],"value":":"},{"type":"Punctuator","range":[25,26],"value":"{"},{"type":"Identifier","range":[27,29],"value":"cc"},{"type":"Punctuator","range":[29,30],"value":":"},{"type":"Numeric","range":[30,31],"value":"3"},{"type":"Punctuator","range":[31,32],"value":","},{"type":"Identifier","range":[33,35],"value":"dd"},{"type":"Punctuator","range":[35,36],"value":":"}],
-				errors: [{"lineNumber":1,"index":35,"message":"Unexpected token :","token":":"},{"lineNumber":1,"index":40,"message":"Unexpected token ILLEGAL"}]
+				errors: [{"lineNumber":1,"index":40,"message":"Unexpected token :"},{"lineNumber":1,"index":35,"message":"Unexpected token :","token":":"},{"lineNumber":1,"index":40,"message":"Unexpected token ILLEGAL"}]
 			});
 		});
 		
@@ -1534,7 +1602,7 @@ define([
 				source: "function f() {	return {b:{	cc:3, dd:'hey\\' e}c:2};}",
 				nodes: [{"type":"FunctionDeclaration","range":[0,51]},{"type":"Identifier","name":"f","range":[9,10]},{"type":"BlockStatement","range":[13,51]},{"type":"ReturnStatement","range":[15,51]}],
 				tokens: [{"type":"Keyword","range":[0,8],"value":"function"},{"type":"Identifier","range":[9,10],"value":"f"},{"type":"Punctuator","range":[10,11],"value":"("},{"type":"Punctuator","range":[11,12],"value":")"},{"type":"Punctuator","range":[13,14],"value":"{"},{"type":"Keyword","range":[15,21],"value":"return"},{"type":"Punctuator","range":[22,23],"value":"{"},{"type":"Identifier","range":[23,24],"value":"b"},{"type":"Punctuator","range":[24,25],"value":":"},{"type":"Punctuator","range":[25,26],"value":"{"},{"type":"Identifier","range":[27,29],"value":"cc"},{"type":"Punctuator","range":[29,30],"value":":"},{"type":"Numeric","range":[30,31],"value":"3"},{"type":"Punctuator","range":[31,32],"value":","},{"type":"Identifier","range":[33,35],"value":"dd"},{"type":"Punctuator","range":[35,36],"value":":"},{"type":"String","range":[36,51],"value":"'hey\\' e}c:2};}"}],
-				errors: [{"lineNumber":1,"index":51,"message":"Unexpected token ILLEGAL"},{"lineNumber":1,"index":51,"message":"Unexpected end of input"}]
+				errors: [{"lineNumber":1,"index":51,"message":"Unexpected token ILLEGAL"},{"lineNumber":1,"index":51,"message":"Unexpected end of input"},{"lineNumber":1,"index":51,"message":"Unexpected token 'hey\\' e}c:2};}"}]
 			});
 		});
 		
@@ -1543,7 +1611,7 @@ define([
 				source: "var v = {a b:{cc:3, dd:'hey' e} c:2};function f() {return {a b:{cc:3, dd:hey\\' e} c:2};}",
 				nodes: [{"type":"VariableDeclaration","kind":"var","range":[0,37]},{"type":"VariableDeclarator","range":[4,36]},{"type":"Identifier","name":"v","range":[4,5]},{"type":"ObjectExpression","range":[8,36]},{"type":"Property","kind":"init","range":[12,31]},{"type":"Identifier","name":"b","range":[12,12]},{"type":"ObjectExpression","range":[13,31]},{"type":"Property","kind":"init","range":[14,18]},{"type":"Identifier","name":"cc","range":[14,16]},{"type":"Literal","range":[17,18],"value":3},{"type":"Property","kind":"init","range":[20,28]},{"type":"Identifier","name":"dd","range":[20,22]},{"type":"Literal","range":[23,28],"value":"hey"},{"type":"Property","kind":"init","range":[32,35]},{"type":"Identifier","name":"c","range":[32,33]},{"type":"Literal","range":[34,35],"value":2},{"type":"FunctionDeclaration","range":[37,77]},{"type":"Identifier","name":"f","range":[46,47]},{"type":"BlockStatement","range":[50,77]},{"type":"ReturnStatement","range":[51,77]}],
 				tokens: [{"type":"Keyword","range":[0,3],"value":"var"},{"type":"Identifier","range":[4,5],"value":"v"},{"type":"Punctuator","range":[6,7],"value":"="},{"type":"Punctuator","range":[8,9],"value":"{"},{"type":"Identifier","range":[9,10],"value":"a"},{"type":"Identifier","range":[11,12],"value":"b"},{"type":"Punctuator","range":[12,13],"value":":"},{"type":"Punctuator","range":[13,14],"value":"{"},{"type":"Identifier","range":[14,16],"value":"cc"},{"type":"Punctuator","range":[16,17],"value":":"},{"type":"Numeric","range":[17,18],"value":"3"},{"type":"Punctuator","range":[18,19],"value":","},{"type":"Identifier","range":[20,22],"value":"dd"},{"type":"Punctuator","range":[22,23],"value":":"},{"type":"String","range":[23,28],"value":"'hey'"},{"type":"Identifier","range":[29,30],"value":"e"},{"type":"Punctuator","range":[30,31],"value":"}"},{"type":"Identifier","range":[32,33],"value":"c"},{"type":"Punctuator","range":[33,34],"value":":"},{"type":"Numeric","range":[34,35],"value":"2"},{"type":"Punctuator","range":[35,36],"value":"}"},{"type":"Punctuator","range":[36,37],"value":";"},{"type":"Keyword","range":[37,45],"value":"function"},{"type":"Identifier","range":[46,47],"value":"f"},{"type":"Punctuator","range":[47,48],"value":"("},{"type":"Punctuator","range":[48,49],"value":")"},{"type":"Punctuator","range":[50,51],"value":"{"},{"type":"Keyword","range":[51,57],"value":"return"},{"type":"Punctuator","range":[58,59],"value":"{"},{"type":"Identifier","range":[59,60],"value":"a"},{"type":"Identifier","range":[61,62],"value":"b"},{"type":"Punctuator","range":[62,63],"value":":"},{"type":"Punctuator","range":[63,64],"value":"{"},{"type":"Identifier","range":[64,66],"value":"cc"},{"type":"Punctuator","range":[66,67],"value":":"},{"type":"Numeric","range":[67,68],"value":"3"},{"type":"Punctuator","range":[68,69],"value":","},{"type":"Identifier","range":[70,72],"value":"dd"},{"type":"Punctuator","range":[72,73],"value":":"}],
-				errors: [{"lineNumber":1,"index":9,"message":"Unexpected token a","token":"a"},{"lineNumber":1,"index":28,"message":"Missing expected ','"},{"lineNumber":1,"index":29,"message":"Unexpected token e","token":"e"},{"lineNumber":1,"index":31,"message":"Missing expected ','"},{"lineNumber":1,"index":59,"message":"Unexpected token a","token":"a"},{"lineNumber":1,"index":72,"message":"Unexpected token :","token":":"},{"lineNumber":1,"index":77,"message":"Unexpected token ILLEGAL"}]
+				errors: [{"lineNumber":1,"index":9,"message":"Unexpected token a","token":"a"},{"lineNumber":1,"index":28,"message":"Missing expected ','"},{"lineNumber":1,"index":29,"message":"Unexpected token e","token":"e"},{"lineNumber":1,"index":31,"message":"Missing expected ','"},{"lineNumber":1,"index":59,"message":"Unexpected token a","token":"a"},{"lineNumber":1,"index":77,"message":"Unexpected token :"},{"lineNumber":1,"index":72,"message":"Unexpected token :","token":":"},{"lineNumber":1,"index":77,"message":"Unexpected token ILLEGAL"}]
 			});
 		});
 		
@@ -1552,7 +1620,7 @@ define([
 				source: "var v = {a b:{cc:3, dd:'hey' e} c:2};function f() {return {a b:{cc:3, dd:'hey\\' e} c:2};}",
 				nodes: [{"type":"VariableDeclaration","kind":"var","range":[0,37]},{"type":"VariableDeclarator","range":[4,36]},{"type":"Identifier","name":"v","range":[4,5]},{"type":"ObjectExpression","range":[8,36]},{"type":"Property","kind":"init","range":[12,31]},{"type":"Identifier","name":"b","range":[12,12]},{"type":"ObjectExpression","range":[13,31]},{"type":"Property","kind":"init","range":[14,18]},{"type":"Identifier","name":"cc","range":[14,16]},{"type":"Literal","range":[17,18],"value":3},{"type":"Property","kind":"init","range":[20,28]},{"type":"Identifier","name":"dd","range":[20,22]},{"type":"Literal","range":[23,28],"value":"hey"},{"type":"Property","kind":"init","range":[32,35]},{"type":"Identifier","name":"c","range":[32,33]},{"type":"Literal","range":[34,35],"value":2},{"type":"FunctionDeclaration","range":[37,89]},{"type":"Identifier","name":"f","range":[46,47]},{"type":"BlockStatement","range":[50,89]},{"type":"ReturnStatement","range":[51,89]}],
 				tokens: [{"type":"Keyword","range":[0,3],"value":"var"},{"type":"Identifier","range":[4,5],"value":"v"},{"type":"Punctuator","range":[6,7],"value":"="},{"type":"Punctuator","range":[8,9],"value":"{"},{"type":"Identifier","range":[9,10],"value":"a"},{"type":"Identifier","range":[11,12],"value":"b"},{"type":"Punctuator","range":[12,13],"value":":"},{"type":"Punctuator","range":[13,14],"value":"{"},{"type":"Identifier","range":[14,16],"value":"cc"},{"type":"Punctuator","range":[16,17],"value":":"},{"type":"Numeric","range":[17,18],"value":"3"},{"type":"Punctuator","range":[18,19],"value":","},{"type":"Identifier","range":[20,22],"value":"dd"},{"type":"Punctuator","range":[22,23],"value":":"},{"type":"String","range":[23,28],"value":"'hey'"},{"type":"Identifier","range":[29,30],"value":"e"},{"type":"Punctuator","range":[30,31],"value":"}"},{"type":"Identifier","range":[32,33],"value":"c"},{"type":"Punctuator","range":[33,34],"value":":"},{"type":"Numeric","range":[34,35],"value":"2"},{"type":"Punctuator","range":[35,36],"value":"}"},{"type":"Punctuator","range":[36,37],"value":";"},{"type":"Keyword","range":[37,45],"value":"function"},{"type":"Identifier","range":[46,47],"value":"f"},{"type":"Punctuator","range":[47,48],"value":"("},{"type":"Punctuator","range":[48,49],"value":")"},{"type":"Punctuator","range":[50,51],"value":"{"},{"type":"Keyword","range":[51,57],"value":"return"},{"type":"Punctuator","range":[58,59],"value":"{"},{"type":"Identifier","range":[59,60],"value":"a"},{"type":"Identifier","range":[61,62],"value":"b"},{"type":"Punctuator","range":[62,63],"value":":"},{"type":"Punctuator","range":[63,64],"value":"{"},{"type":"Identifier","range":[64,66],"value":"cc"},{"type":"Punctuator","range":[66,67],"value":":"},{"type":"Numeric","range":[67,68],"value":"3"},{"type":"Punctuator","range":[68,69],"value":","},{"type":"Identifier","range":[70,72],"value":"dd"},{"type":"Punctuator","range":[72,73],"value":":"},{"type":"String","range":[73,89],"value":"'hey\\' e} c:2};}"}],
-				errors: [{"lineNumber":1,"index":9,"message":"Unexpected token a","token":"a"},{"lineNumber":1,"index":28,"message":"Missing expected ','"},{"lineNumber":1,"index":29,"message":"Unexpected token e","token":"e"},{"lineNumber":1,"index":31,"message":"Missing expected ','"},{"lineNumber":1,"index":59,"message":"Unexpected token a","token":"a"},{"lineNumber":1,"index":89,"message":"Unexpected token ILLEGAL"},{"lineNumber":1,"index":89,"message":"Unexpected end of input"}]
+				errors: [{"lineNumber":1,"index":9,"message":"Unexpected token a","token":"a"},{"lineNumber":1,"index":28,"message":"Missing expected ','"},{"lineNumber":1,"index":29,"message":"Unexpected token e","token":"e"},{"lineNumber":1,"index":31,"message":"Missing expected ','"},{"lineNumber":1,"index":59,"message":"Unexpected token a","token":"a"},{"lineNumber":1,"index":89,"message":"Unexpected token ILLEGAL"},{"lineNumber":1,"index":89,"message":"Unexpected end of input"},{"lineNumber":1,"index":89,"message":"Unexpected token 'hey\\' e} c:2};}"}]
 			});
 		});
 		
@@ -1561,7 +1629,7 @@ define([
 				source: "var v = {a b:{cc:3, dd:\\'hey' e} c:2};function f() {return {a b:{cc:3, dd:hey\\' e} c:2};}",
 				nodes: [],
 				tokens: [{"type":"Keyword","range":[0,3],"value":"var"},{"type":"Identifier","range":[4,5],"value":"v"},{"type":"Punctuator","range":[6,7],"value":"="},{"type":"Punctuator","range":[8,9],"value":"{"},{"type":"Identifier","range":[9,10],"value":"a"},{"type":"Identifier","range":[11,12],"value":"b"},{"type":"Punctuator","range":[12,13],"value":":"},{"type":"Punctuator","range":[13,14],"value":"{"},{"type":"Identifier","range":[14,16],"value":"cc"},{"type":"Punctuator","range":[16,17],"value":":"},{"type":"Numeric","range":[17,18],"value":"3"},{"type":"Punctuator","range":[18,19],"value":","},{"type":"Identifier","range":[20,22],"value":"dd"},{"type":"Punctuator","range":[22,23],"value":":"}],
-				errors: [{"lineNumber":1,"index":9,"message":"Unexpected token a","token":"a"},{"lineNumber":1,"index":22,"message":"Unexpected token :","token":":"}]
+				errors: [{"lineNumber":1,"index":9,"message":"Unexpected token a","token":"a"},{"lineNumber":1,"index":24,"message":"Unexpected token :"},{"lineNumber":1,"index":22,"message":"Unexpected token :","token":":"}]
 			});
 		});
 		
@@ -1614,6 +1682,231 @@ define([
 		it('no infinite loop 1', function() {
 			runTest({
 				source: "f({p: function(errors) {if(/^U/.test('')) {error.token = ast.tokens[token.index>0index-1]}}});",
+			});
+		});
+		/**
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=437086
+		 */
+		it('no infinite loop 2', function() {
+			runTest({
+				source: "switch(foo) { case 1: var }",
+				nodes: [],
+				tokens: [{"type":"Keyword","range":[0,6],"value":"switch"},{"type":"Punctuator","range":[6,7],"value":"("},{"type":"Identifier","range":[7,10],"value":"foo"},{"type":"Punctuator","range":[10,11],"value":")"},{"type":"Punctuator","range":[12,13],"value":"{"},{"type":"Keyword","range":[14,18],"value":"case"},{"type":"Numeric","range":[19,20],"value":"1"},{"type":"Punctuator","range":[20,21],"value":":"},{"type":"Keyword","range":[22,25],"value":"var"},{"type":"Punctuator","range":[26,27],"value":"}"}],
+				errors: [{"lineNumber":1,"index":26,"message":"Unexpected token }","token":"}"},{"lineNumber":1,"index":27,"message":"Unexpected end of input"}]
+			});
+		});
+		
+		/**
+		 * Unclosed doc tag recovery
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440582
+		 * @since 7.0
+		 */
+		it('doc comment recovery 1', function() {
+			runTest({
+				source: "/*",
+				nodes: [],
+				tokens: [],
+				errors: [{"lineNumber":1,"index":2,"message":"Unexpected token ILLEGAL"}],
+				comments: [{"start":0,"end":2,"value":""}]
+			});
+		});
+		
+		/**
+		 * Unclosed doc tag recovery
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440582
+		 * @since 7.0
+		 */
+		it('doc comment recovery 2', function() {
+			runTest({
+				source: "/**",
+				nodes: [],
+				tokens: [],
+				errors: [{"lineNumber":1,"index":3,"message":"Unexpected token ILLEGAL"}],
+				comments: [{"start":0,"end":3,"value":"*"}]
+			});
+		});
+		
+		/**
+		 * Unclosed doc tag recovery
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440582
+		 * @since 7.0
+		 */
+		it('doc comment recovery 3', function() {
+			runTest({
+				source: "/** var foo = 10;",
+				nodes: [],
+				tokens: [],
+				errors: [{"lineNumber":1,"index":17,"message":"Unexpected token ILLEGAL"}],
+				comments: [{"start":0,"end":17,"value":"* var foo = 10;"}]
+			});
+		});
+		
+		/**
+		 * Unclosed doc tag recovery
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=440582
+		 * @since 7.0
+		 */
+		it('doc comment recovery 4', function() {
+			runTest({
+				source: "var bar /* = 4;",
+				nodes: [{"type":"VariableDeclaration","kind":"var","range":[0,15]},{"type":"VariableDeclarator","range":[4,7]},{"type":"Identifier","name":"bar","range":[4,7]}],
+				tokens: [{"type":"Keyword","range":[0,3],"value":"var"},{"type":"Identifier","range":[4,7],"value":"bar"}],
+				errors: [{"lineNumber":1,"index":15,"message":"Unexpected token ILLEGAL"}],
+				comments: [{"start":8,"end":15,"value":" = 4;"}]
+			});
+		});
+		/**
+		 * Unclosed doc tag recovery
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=442189
+		 * @since 7.0
+		 */
+		it('doc comment recovery 5', function() {
+			runTest({
+				source: "/* \n\n",
+				nodes: [],
+				tokens: [],
+				errors: [{"lineNumber":3,"index":5,"message":"Unexpected token ILLEGAL"}],
+				comments: [{"start":0,"end":5,"value":" \n\n"}]
+			});
+		});
+		/**
+		 * Unclosed doc tag recovery
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=442189
+		 * @since 7.0
+		 */
+		it('doc comment recovery 6', function() {
+			runTest({
+				source: "var foo = 1; /* \n\n",
+                nodes: [{"type":"VariableDeclaration","kind":"var","range":[0,12]},{"type":"VariableDeclarator","range":[4,11]},{"type":"Identifier","name":"foo","range":[4,7]},{"type":"Literal","range":[10,11],"value":1}],
+				tokens: [{"type":"Keyword","range":[0,3],"value":"var"},{"type":"Identifier","range":[4,7],"value":"foo"},{"type":"Punctuator","range":[8,9],"value":"="},{"type":"Numeric","range":[10,11],"value":"1"},{"type":"Punctuator","range":[11,12],"value":";"}],
+				errors: [{"lineNumber":3,"index":18,"message":"Unexpected token ILLEGAL"}],
+				comments: [{"start":13,"end":18,"value":" \n\n"}]
+			});
+		});
+		/**
+		 * Unclosed doc tag recovery
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=442189
+		 * @since 7.0
+		 */
+		it('doc comment recovery 7', function() {
+			runTest({
+				source: "if(foo /* \n\n",
+                nodes: [{"type":"IfStatement","range":[0,12]},{"type":"Identifier","name":"foo","range":[3,6]}],
+				tokens: [{"type":"Keyword","range":[0,2],"value":"if"},{"type":"Punctuator","range":[2,3],"value":"("},{"type":"Identifier","range":[3,6],"value":"foo"}],
+				errors: [{"lineNumber":3,"index":12,"message":"Unexpected token ILLEGAL"},{"lineNumber":3,"index":12,"message":"Unexpected end of input"}],
+				comments: [{"start":7,"end":12,"value":" \n\n"}]
+			});
+		});
+		
+		/**
+		 * Incomplete '`' tokens
+		 * 
+		 * Since we have no taken-based recovery this test throws an exception that is normally caught by the 
+		 * AST manager
+		 * 
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=444885
+		 * @since 7.0
+		 */
+		it('Incomplete tick 1', function() {
+		    try {
+    			runTest({
+    				source: "`",
+                    nodes: [],
+    				tokens: [],
+    				errors: [{"lineNumber":1,"index":0,"message":"Unexpected token ILLEGAL","token":"`"}],
+    				comments: [] 
+    			});
+			} catch(ex) {
+			    assert.equal(ex.lineNumber, 1, "The exception line number is not correct");
+			    assert.equal(ex.index, 0, 'The exception index is not correct');
+			    assert.equal(ex.message, "Line 1: Unexpected token ILLEGAL", 'The exception message is not correct');
+			    assert.equal(ex.token, "`", 'The exception token is not correct');
+			}
+		});
+		
+		/**
+		 * incomplete '`' tokens
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=444885
+		 * @since 7.0
+		 */
+		it('Incomplete tick 2', function() {
+			runTest({
+				source: "function f() { var x;` }",
+                nodes: [{"type":"FunctionDeclaration","range":[13,22]},{"type":"Identifier","name":"f","range":[9,10]},{"type":"BlockStatement","range":[23,22]},{"type":"VariableDeclaration","kind":"var","range":[15,22]},{"type":"VariableDeclarator","range":[19,20]},{"type":"Identifier","name":"x","range":[19,20]}],
+				tokens: [{"type":"Keyword","range":[0,8],"value":"function"},{"type":"Identifier","range":[9,10],"value":"f"},{"type":"Punctuator","range":[10,11],"value":"("},{"type":"Punctuator","range":[11,12],"value":")"},{"type":"Punctuator","range":[13,14],"value":"{"},{"type":"Keyword","range":[15,18],"value":"var"},{"type":"Identifier","range":[19,20],"value":"x"},{"type":"Punctuator","range":[20,21],"value":";"}],
+				errors: [{"lineNumber":1,"index":21,"message":"Unexpected token ILLEGAL","token":"`"}],
+				comments: []
+			});
+		});
+		
+		/**
+		 * Incomplete '`' tokens
+		 * 
+		 * Since we have no taken-based recovery this test throws an exception that is normally caught by the 
+		 * AST manager
+		 * 
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=444885
+		 * @since 7.0
+		 */
+		it('Incomplete tick 3', function() {
+		    try {
+    			runTest({
+    				source: "function f() {` }",
+                    nodes: [],
+    				tokens: [],
+    				errors: [{"lineNumber":1,"index":14,"message":"Unexpected token ILLEGAL","token":"`"}],
+    				comments: []
+    			});
+			} catch(ex) {
+			    assert.equal(ex.lineNumber, 1, "The exception line number is not correct");
+			    assert.equal(ex.index, 14, 'The exception index is not correct');
+			    assert.equal(ex.message, "Line 1: Unexpected token ILLEGAL", 'The exception message is not correct');
+			    assert.equal(ex.token, "`", 'The exception token is not correct');
+			}
+		});
+		
+		/**
+		 * incomplete '/' tokens
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=444885
+		 * @since 7.0
+		 */
+		it('Incomplete regex 1', function() {
+			runTest({
+				source: "/",
+                nodes: [{"type":"ExpressionStatement","range":[0,1]}],
+				tokens: [{"type":"Punctuator","range":[0,1],"value":"/"}],
+				errors: [{"lineNumber":1,"index":1,"message":"Invalid regular expression: missing /"},{"lineNumber":1,"index":0,"message":"Unexpected token /","token":"/"}],
+				comments: []
+			});
+		});
+		
+		/**
+		 * incomplete '/' tokens
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=444885
+		 * @since 7.0
+		 */
+		it('Incomplete regex 2', function() {
+			runTest({
+				source: "function f() { var x;/ }",
+                nodes: [{"type":"FunctionDeclaration","range":[0,22]},{"type":"Identifier","name":"f","range":[9,10]},{"type":"BlockStatement","range":[13,22]},{"type":"VariableDeclaration","kind":"var","range":[15,21]},{"type":"VariableDeclarator","range":[19,20]},{"type":"Identifier","name":"x","range":[19,20]},{"type":"ExpressionStatement","range":[21,24]},{"type":"ExpressionStatement","range":[23,24]}],
+				tokens: [{"type":"Keyword","range":[0,8],"value":"function"},{"type":"Identifier","range":[9,10],"value":"f"},{"type":"Punctuator","range":[10,11],"value":"("},{"type":"Punctuator","range":[11,12],"value":")"},{"type":"Punctuator","range":[13,14],"value":"{"},{"type":"Keyword","range":[15,18],"value":"var"},{"type":"Identifier","range":[19,20],"value":"x"},{"type":"Punctuator","range":[20,21],"value":";"},{"type":"Punctuator","range":[21,22],"value":"/"},{"type":"Punctuator","range":[23,24],"value":"}"}],
+				errors: [{"lineNumber":1,"index":24,"message":"Invalid regular expression: missing /"},{"lineNumber":1,"index":21,"message":"Unexpected token /","token":"/"},{"lineNumber":1,"index":23,"message":"Unexpected token }","token":"}"}],
+				comments: []
+			});
+		});
+		
+		/**
+		 * incomplete '/' tokens
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=444885
+		 * @since 7.0
+		 */
+		it('Incomplete regex 3', function() {
+			runTest({
+				source: "function f() { var x; }/",
+                nodes: [{"type":"FunctionDeclaration","range":[0,23]},{"type":"Identifier","name":"f","range":[9,10]},{"type":"BlockStatement","range":[13,23]},{"type":"VariableDeclaration","kind":"var","range":[15,21]},{"type":"VariableDeclarator","range":[19,20]},{"type":"Identifier","name":"x","range":[19,20]},{"type":"ExpressionStatement","range":[23,24]}],
+				tokens: [{"type":"Keyword","range":[0,8],"value":"function"},{"type":"Identifier","range":[9,10],"value":"f"},{"type":"Punctuator","range":[10,11],"value":"("},{"type":"Punctuator","range":[11,12],"value":")"},{"type":"Punctuator","range":[13,14],"value":"{"},{"type":"Keyword","range":[15,18],"value":"var"},{"type":"Identifier","range":[19,20],"value":"x"},{"type":"Punctuator","range":[20,21],"value":";"},{"type":"Punctuator","range":[22,23],"value":"}"},{"type":"Punctuator","range":[23,24],"value":"/"}],
+				errors: [{"lineNumber":1,"index":24,"message":"Invalid regular expression: missing /"},{"lineNumber":1,"index":23,"message":"Unexpected token /","token":"/"}],
+				comments: []
 			});
 		});
 	});

@@ -10,8 +10,7 @@
  *               Alex Lakatos - fix for bug#369781
  ******************************************************************************/
 
-/*global define */
-
+/*eslint-env browser, amd*/
 define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eventTarget'], function(mAnnotations, mEventTarget) { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 
 	/*
@@ -768,7 +767,7 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 		if (initFn) {
 			initFn(this);
 		}
-		this._subBlocks = styler.computeBlocks(model, model.getText(this.start, this.end), this, this.start, null, null, null);
+		this._subBlocks = styler.computeBlocks(model, model.getText(this.contentStart, this.end), this, this.contentStart, null, null, null);
 	}
 	Block.prototype = {
 		adjustBounds: function(index, value) {
@@ -793,6 +792,9 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 		getBlocks: function() {
 			return this._subBlocks;
 		},
+		getBlockAtIndex: function(index) {
+			return binarySearch(this.getBlocks(), index, true);
+		},
 		isRenderingWhitespace: function() {
 			return this.styler._isRenderingWhitespace();
 		}
@@ -808,7 +810,7 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 	};
 
 	function TextStyler(view, annotationModel, stylerAdapter) {
-		this._whitespacesVisible = this._spacesVisible = this._tabsVisible = false;
+		this._whitespacesVisible = false;
 		this._highlightCaretLine = false;
 		this._foldingEnabled = true;
 		this._detectTasks = true;
@@ -863,6 +865,11 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 		view.redrawLines();
 	}
 	TextStyler.prototype = {
+		addAnnotationProvider: function(value) {
+			if (typeof value === "function") { //$NON-NLS-0$
+				this._annotationProviders.push(value);
+			}
+		},
 		computeBlocks: function(model, text, block, offset, startIndex, endIndex, maxBlockCount) {
 			return this._stylerAdapter.computeBlocks(model, text, block, offset, startIndex, endIndex, maxBlockCount);
 		},
@@ -913,6 +920,15 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 			}
 			return result;
 		},
+		removeAnnotationProvider: function(value) {
+			if (typeof value !== "function") { //$NON-NLS-0$
+				return;
+			}
+			var index = this._annotationProviders.indexOf(value);
+			if (index !== -1) {
+				this._annotationProviders.splice(index, 1);
+			}
+		},
 		setDetectHyperlinks: function() {
 		},
 		setDetectTasks: function(enabled) {
@@ -923,18 +939,6 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 		},
 		setHighlightCaretLine: function(highlight) {
 			this._highlightCaretLine = highlight;
-		},
-		setSpacesVisible: function(visible) {
-			if (this._spacesVisible === visible) { return; }
-			this._spacesVisible = visible;
-			this.setWhitespacesVisible(this._tabsVisible || this._spacesVisible, false);
-			this._view.redraw();
-		},
-		setTabsVisible: function(visible) {
-			if (this._tabsVisible === visible) { return; }
-			this._tabsVisible = visible;
-			this.setWhitespacesVisible(this._tabsVisible || this._spacesVisible, false);
-			this._view.redraw();
 		},
 		setWhitespacesVisible: function(visible, redraw) {
 			if (this._whitespacesVisible === visible) { return; }
@@ -1013,10 +1017,12 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 				if (offset < blockStart) {
 					this._stylerAdapter.parse(text.substring(offset - start, blockStart - start), offset, block, styles);
 					styles.forEach(function(current) {
-						if (current.style.indexOf(bracketMatch.beginName) === 0) {
-							result.push(current.start + 1);
-						} else if (current.style.indexOf(bracketMatch.endName) === 0) {
-							result.push(-(current.start + 1));
+						if (current.style) {
+							if (current.style.indexOf(bracketMatch.beginName) === 0) {
+								result.push(current.start + 1);
+							} else if (current.style.indexOf(bracketMatch.endName) === 0) {
+								result.push(-(current.start + 1));
+							}
 						}
 					});
 					styles = [];
@@ -1199,7 +1205,7 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 			return styles;
 		},
 		_isRenderingWhitespace: function() {
-			return this._whitespacesVisible && (this._tabsVisible || this._spacesVisible);
+			return this._whitespacesVisible;
 		},
 		_onDestroy: function() {
 			this.destroy();
@@ -1215,12 +1221,8 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 				}
 			});
 			if (this._isRenderingWhitespace()) {
-				if (this._spacesVisible) {
-					this._spliceStyles(this._spacePattern, e.ranges, e.lineText, e.lineStart);
-				}
-				if (this._tabsVisible) {
-					this._spliceStyles(this._tabPattern, e.ranges, e.lineText, e.lineStart);
-				}
+				this._spliceStyles(this._spacePattern, e.ranges, e.lineText, e.lineStart);
+				this._spliceStyles(this._tabPattern, e.ranges, e.lineText, e.lineStart);
 			}
 		},
 		_onModelChanged: function(e) {
@@ -1246,7 +1248,12 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 				 * text whose styling may be affected by this model change.
 				 */
 				if (!blockExtended && parentBlock) {
-					/* verify that ancestorBlock's start and end matches are not affected by this change */
+					/* verify that ancestorBlock's start and end bounds are not affected by this change */
+					if (changeCount < 0 && ancestorBlock.end - start <= -changeCount) {
+						/* the end bound has definitely been affected, no verifyBlock() required, move up to the parent */
+						ancestorBlock = parentBlock;
+						continue;
+					}
 					text = baseModel.getText(ancestorBlock.start, Math.min(charCount, ancestorBlock.end + changeCount + 1));
 					if (!this._stylerAdapter.verifyBlock(baseModel, text, ancestorBlock, changeCount)) {
 						ancestorBlock = parentBlock;
@@ -1283,10 +1290,10 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 					ts = blocks[blockStart].start;
 					if (ts > start) { ts += changeCount; }
 				} else if (blockStart === blockCount && blockCount > 0 && ancestorBlock.end - changeCount === blocks[blockCount - 1].end) {
-					ts = blocks[blockCount - 1].start;
+					ts = blocks[--blockStart].start;
 					if (ts > start) { ts += changeCount; }
 				} else {
-					ts = lineStart;
+					ts = Math.max(lineStart, ancestorBlock.contentStart);
 				}
 
 				if (blockEnd < blockCount) {
@@ -1378,15 +1385,15 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 
 			if (!blocks.length && !newBlocks.length) {
 				this.dispatchEvent({
-					type: "BlocksChanged",
-					old: [ancestorBlock],
-					"new": [ancestorBlock]
+					type: "BlocksChanged", //$NON-NLS-0$
+					oldBlocks: [ancestorBlock],
+					newBlocks: [ancestorBlock]
 				});
 			} else {
 				this.dispatchEvent({
-					type: "BlocksChanged",
-					old: blocks.slice(blockStart, blockEnd),
-					"new": newBlocks
+					type: "BlocksChanged", //$NON-NLS-0$
+					oldBlocks: blocks.slice(blockStart, blockEnd),
+					newBlocks: newBlocks
 				});
 			}
 
@@ -1451,6 +1458,13 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 				if (this._detectTasks) {
 					this._computeTasks(ancestorBlock, baseModel, add, ts, te);
 				}
+				this._annotationProviders.forEach(function(current) {
+					var providerRemove = [];
+					var providerAdd = [];
+					current(this._annotationModel, baseModel, ancestorBlock, ts, te, providerRemove, providerAdd);
+					remove = remove.concat(providerRemove);
+					add = add.concat(providerAdd);
+				}.bind(this));
 				this._annotationModel.replaceAnnotations(remove, add);
 			}
 		},
@@ -1555,7 +1569,7 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 		_updateFolding: function(block, baseModel, viewModel, allFolding, _add, start, end) {
 			start = start || block.start;
 			end = end || block.end;
-			if (block.start <= end && start <= block.end) {
+			if (!block.doNotFold && block.start <= end && start <= block.end) {
 				var index = binarySearch(allFolding, block.start, true);
 				if (!(index < allFolding.length && allFolding[index].start === block.start && allFolding[index].end === block.end)) {
 					var annotation = this._createFoldingAnnotation(viewModel, baseModel, block.start, block.end);
@@ -1568,6 +1582,7 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 				}.bind(this));
 			}
 		},
+		_annotationProviders: [],
 		_caretLineStyle: {styleClass: "meta annotation currentLine"}, //$NON-NLS-0$
 		_spacePattern: {regex: /[ ]/g, style: {styleClass: "punctuation separator space", unmergeable: true}}, //$NON-NLS-0$
 		_tabPattern: {regex: /\t/g, style: {styleClass: "punctuation separator tab", unmergeable: true}} //$NON-NLS-0$

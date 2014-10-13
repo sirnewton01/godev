@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define esprima:true describe:true it:true*/
+/*eslint-env amd, mocha*/
 define([
 	'javascript/astManager',
 	'chai/chai',

@@ -10,9 +10,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define*/
-/*jslint browser:true*/
-
+/*eslint-env browser, amd*/
 define(["orion/Deferred", "orion/urlUtils", "marked/marked"], function(Deferred, mUrlUtils, marked) {
 
 	var orion = {};
@@ -121,7 +119,7 @@ define(["orion/Deferred", "orion/urlUtils", "marked/marked"], function(Deferred,
 					 */
 					this.rootElement.className += " string-result-output"; //$NON-NLS-0$
 					var segments = mUrlUtils.detectValidURL(string);
-					if (segments) {
+					if (segments.length) {
 						mUrlUtils.processURLSegments(element, segments);				
 					} else {
 						element.textContent = string;

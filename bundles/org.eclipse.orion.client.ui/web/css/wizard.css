@@ -1,0 +1,25 @@
+.wizardPage {
+    padding: 15px;
+    overflow: auto;
+}
+
+.wizardCommonPane {
+    border-top: 1px solid #eee;
+    padding: 15px;
+    width: 370px;
+}
+
+.wizardButtonRow {
+  padding: 10px 20px 20px;
+  text-align: right;
+}
+
+.wizardButtonRow .okButton{
+	background-color: #7fa4c0;
+    border: 1px solid #7fa4c0;
+    color: white;
+}
+
+.wizardButtonRow button:not(:last-child){
+	margin-right: 12px;	
+}

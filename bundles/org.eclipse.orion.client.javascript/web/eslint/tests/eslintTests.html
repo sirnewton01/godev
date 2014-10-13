@@ -4,8 +4,8 @@
 	<title>eslint mocha tests</title>
 	<script src="../../requirejs/require.js"></script>
 	<script>
-		/*jslint amd:true*/
-		/*global mocha*/
+	   /*global mocha*/
+		/*eslint-env amd*/
 		require({
 			baseUrl: "../../",
 			paths: {
@@ -25,15 +25,15 @@
 					name: "eslint/conf",
 					main: "eslint/conf"
 				}]
-	});
-	require(["mocha/mocha"], function() {
-		mocha.setup("bdd");
-		require([
-			"eslint/tests/load-tests"
-		], function(){
-			mocha.run();
-		});
-	});
+    	});
+    	require(["mocha/mocha"], function() {
+    		mocha.setup("bdd");
+    		require([
+    			"eslint/tests/load-tests"
+    		], function(){
+    			mocha.run();
+    		});
+    	});
 	</script>
 </head>
 <body>

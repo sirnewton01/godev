@@ -9,8 +9,12 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define window console*/
-define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCommands'], function(messages, Deferred, mExtensionCommands){
+/*eslint-env browser, amd*/
+define([
+	'orion/Deferred',
+	'orion/extensionCommands',
+	'orion/i18nUtil',
+], function(Deferred, mExtensionCommands, i18nUtil){
 
 	function _toJSON(text) {
 		try {
@@ -18,6 +22,16 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 		} catch (e) {
 			return {__TEXT__: String(text)};
 		}
+	}
+
+	/**
+	 * @param {Object} target
+	 * @param {orion.serviceregistry.ServiceReference} serviceReference
+	 */
+	function mixinProperties(target, serviceReference) {
+		serviceReference.getPropertyKeys().forEach(function(key) {
+			target[key] = serviceReference.getProperty(key);
+		});
 	}
 
 	/**
@@ -219,12 +233,14 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 						}
 						deferred.reject(dependency.Location + " could not be found in your workspace");
 			}, function(error){deferred.reject(error);});
-		} else {
-			var handler = this.getProjectHandler(dependency.Type);
+			return deferred;
+		}
+		return this.getProjectHandler(dependency.Type).then(function(handler) {
 			if(handler===null){
 				deferred.reject(dependency.Type + " is not supported.");
 				return deferred;
 			}
+
 			var validator;
 			if(handler.validationProperties){
 				validator = mExtensionCommands._makeValidator(handler, this.serviceRegistry, []);
@@ -256,8 +272,8 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 					}
 				});
 			}, deferred.reject);
-		}
-		return deferred;
+			return deferred;
+		}.bind(this));
 	},
 	/**
 		* @param {Object} projectMetadata Project metadata
@@ -386,6 +402,11 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 	
 	_getProjectDeployService: function(serviceReference){
 		var service = this.serviceRegistry.getService(serviceReference);
+		mixinProperties(service, serviceReference);
+		/*
+		Expected properties:
+		id, nls, name{Key}, tooltip{Key}, parameters, optionalParameters, validationProperties, logLocationTemplate
+		*/
 		service.id = serviceReference.getProperty("id");
 		service.name = serviceReference.getProperty("name");
 		service.tooltip = serviceReference.getProperty("tooltip");
@@ -418,45 +439,97 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 		}
 		return types;
 	},
-	
+
 	getProjectDelpoyService: function(serviceId, type){
-		for(var i=0; i<this.allProjectDeployReferences.length; i++){
-			if(this.allProjectDeployReferences[i].getProperty("id") === serviceId){
-				return this._getProjectDeployService(this.allProjectDeployReferences[i]);
+		var foundRef;
+		// Find by id
+		this.allProjectDeployReferences.some(function(serviceRef) {
+			if(serviceRef.getProperty("id") === serviceId){
+				return (foundRef = serviceRef); // break
 			}
-		}
+			return false;
+		});
 		if(type){
-			for(var i=0; i<this.allProjectDeployReferences.length; i++){
-				var deployTypes = this.allProjectDeployReferences[i].getProperty("deployTypes");
-				if(!deployTypes){
-					continue;
+			// Find by type
+			this.allProjectDeployReferences.some(function(serviceRef) {
+				if ((serviceRef.getProperty("deployTypes") || []).indexOf(type) !== -1) {
+					return (foundRef = serviceRef); // break
 				}
-				if(deployTypes.some(function(typeFromService){return type === typeFromService;})){
-					return this._getProjectDeployService(this.allProjectDeployReferences[i]);
-				}
-			}
+				return false;
+			});
 		}
+		return this._nlsService(this._getProjectDeployService(foundRef));
 	},
-	
+
 	_getProjectHandlerService: function(serviceReference){
+		/*
+		Expected properties:
+		id, nls, type,
+		addParameters || addParamethers,
+		optionalParameters || optionalParamethers,
+		addDependencyName{Key}, addDependencyTooltip{Key}, addProjectName{Key} addProjectTooltip{Key},
+		actionComment, validationProperties
+		*/
 		var service = this.serviceRegistry.getService(serviceReference);
-		service.id = serviceReference.getProperty("id");
-		service.addParameters =  serviceReference.getProperty("addParameters") || serviceReference.getProperty("addParamethers");
-		service.optionalParameters = serviceReference.getProperty("optionalParameters") || serviceReference.getProperty("optionalParamethers");
-		service.addDependencyName =  serviceReference.getProperty("addDependencyName");
-		service.addDependencyTooltip = serviceReference.getProperty("addDependencyTooltip");
-		service.type = serviceReference.getProperty("type");
-		service.actionComment = serviceReference.getProperty("actionComment");
-		service.addProjectName = serviceReference.getProperty("addProjectName");
-		service.addProjectTooltip = serviceReference.getProperty("addProjectTooltip");
-		service.validationProperties = serviceReference.getProperty("validationProperties");
+		mixinProperties(service, serviceReference);
+
+		// Canonicalize legacy names
+		service.addParameters = service.addParameters || service.addParamethers;
+		service.optionalParameters = service.optionalParameters || service.optionalParamethers;
+		delete service.addParamethers;
+		delete service.optionalParamethers;
 		return service;
 	},
+
 	
+	_translateKeys: function(target, messages) {
+		var isI18nKey = RegExp.prototype.test.bind(/Key$/);
+		Object.keys(target).filter(isI18nKey).forEach(function(key) {
+			var translated = messages[target[key]],
+			    baseName = key.substring(0, key.length - "Key".length), //$NON-NLS-0$
+			    fallback = target[baseName] || key;
+			target[baseName] = translated || fallback;
+			delete target[key]; // target.F is translated so delete target.FKey
+		});
+	},
+	
+	_translateParamArray: function(parameters, messages) {
+		if( Array.isArray(parameters)) {
+			parameters.forEach(function(parameters) {
+				this._translateKeys(parameters, messages);
+			}.bind(this));
+		}
+	},
+	
+	/**
+	 * Translates service's i18nable fields. A field F is i18nable if there's another field named FKey,
+	 * giving the message key to use for translating F. `service.nls` gives the message bundle path.
+	 *
+	 * @param {Object} service
+	 * @returns {orion.Promise} A promise resolving to the service, after its i18nable fields are translated.
+	 */
+	_nlsService: function(service) {
+		var _this = this;
+		function replaceNlsFields(target, messages) {
+			messages = messages || {};
+			_this._translateKeys(target, messages);
+			_this._translateParamArray(target.addParameters, messages);
+			_this._translateParamArray(target.optionalParameters, messages);
+			return target;
+		}
+		var loadMessages = service.nls ? i18nUtil.getMessageBundle(service.nls) : new Deferred().resolve();
+		var nlsService = replaceNlsFields.bind(null, service);
+		return loadMessages.then(nlsService, nlsService);
+	},
+
+	/**
+	 * @returns {orion.Promise} A promise resolving to the handler (the returned handler is localized)
+	 */
 	getProjectHandler: function(type){
 		for(var i=0; i<this.allProjectHandlersReferences.length; i++){
 			if(this.allProjectHandlersReferences[i].getProperty("type") === type){
-				return this._getProjectHandlerService(this.allProjectHandlersReferences[i]);
+				var handler = this._getProjectHandlerService(this.allProjectHandlersReferences[i]);
+				return this._nlsService(handler);
 			}
 		}
 	},
@@ -475,8 +548,13 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 	
 	_getLaunchConfigurationsDir: function(projectMetadata, create){
 		var deferred = new Deferred();
-		if(projectMetadata.ContentLocation) {
-			this.fileClient.fetchChildren(projectMetadata.ContentLocation).then(function(children){
+		var fetchLocation = projectMetadata.ContentLocation;
+		if(fetchLocation) {
+			if (fetchLocation.indexOf("?depth=") === -1) { //$NON-NLS-0$
+				fetchLocation += "?depth=1"; //$NON-NLS-0$
+			}
+			this.fileClient.read(fetchLocation, true).then(function(projectDir){
+				var children = projectDir.Children;
 				for(var i=0; i<children.length; i++){
 					if(children[i].Name && children[i].Name===this._launchConfigurationsDir){
 						deferred.resolve(children[i]);
@@ -484,7 +562,11 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 					}
 				}
 				if(create){
-					this.fileClient.createFolder(projectMetadata.ContentLocation, this._launchConfigurationsDir).then(deferred.resolve, deferred.reject);
+					this.fileClient.createFolder(projectMetadata.ContentLocation, this._launchConfigurationsDir).then(
+						function(result){
+							result.parent = projectDir;
+							deferred.resolve(result);
+						}, deferred.reject);
 				} else {
 					deferred.resolve(null);
 				}
@@ -497,6 +579,8 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 	
 	getProjectLaunchConfigurations: function(projectMetadata){
 		var deferred = new Deferred();
+		var combinedResult = new Deferred();
+		
 		this._getLaunchConfigurationsDir(projectMetadata).then(function(launchConfMeta){
 			if(!launchConfMeta){
 				deferred.resolve([]);
@@ -506,13 +590,16 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 				var readConfigurationDeferreds = [];
 				for(var i=0; i<launchConfMeta.Children.length; i++){
 					var def = new Deferred();
+					var file = launchConfMeta.Children[i];
 					readConfigurationDeferreds.push(def);
-					(function(def){
-					this.fileClient.read(launchConfMeta.Children[i].Location).then(function(launchConf){
+					(function(def, file){
+					this.fileClient.read(file.Location).then(function(launchConf){
 						try{
 							launchConf = JSON.parse(launchConf);
 							launchConf.Name = launchConf.Name || launchConfMeta.Name.replace(".launch", "");
 							launchConf.project = projectMetadata;
+							launchConf.File = file;
+							launchConf.File.parent = launchConfMeta;
 							def.resolve(launchConf);
 						} catch(e){
 							console.error(e);
@@ -522,7 +609,7 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 						console.error(e);
 						def.resolve();
 					});
-					}).bind(this)(def);
+					}).bind(this)(def, file);
 				}
 				Deferred.all(readConfigurationDeferreds).then(function(result){
 					if(!result || !result.length){
@@ -545,11 +632,89 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 				}.bind(this), deferred.reject);
 			}	
 		}.bind(this), deferred.reject);
-
-		return deferred;
+		
+		deferred.then(function(results){
+			var i = 0;
+			function addPluginLaunchConfugurations(i, deferred){
+				if(i >= this.allProjectDeployReferences.length){
+					return deferred;
+				}
+				var deployServiceRef = this.allProjectDeployReferences[i];
+				var deployService = this._getProjectDeployService(deployServiceRef);
+				if(deployService.getLaunchConfigurations){
+					var retDef = new Deferred();
+					deferred.then(function(lConfs){
+						i++;
+						var tempDef = new Deferred();
+						deployService.getLaunchConfigurations(projectMetadata, lConfs).then(function(lConfs1){
+							lConfs1.forEach(function(lc){
+								if(!lc.ServiceId){
+									lc.ServiceId = deployService.id;
+								}
+							});
+							tempDef.resolve(lConfs1);
+						}, tempDef.reject);
+						addPluginLaunchConfugurations.bind(this)(i, tempDef).then(retDef.resolve, retDef.reject);
+					}.bind(this), retDef.reject);
+					return retDef;
+				} else {
+					i++;
+					return addPluginLaunchConfugurations.bind(this)(i, deferred);
+				}
+			};
+			
+			var lConfs = [];
+			results.forEach(function(lc){
+				lConfs.push(this.formPluginLaunchConfiguration(lc));
+			}.bind(this));
+			
+			var tempDef = new Deferred();
+			tempDef.resolve(lConfs);
+			addPluginLaunchConfugurations.bind(this)(i, tempDef).then(function(lConfs){
+				for(var i=0; i<lConfs.length; i++){
+						var lConf = lConfs[i];
+						lConfs[i] = this.formLaunchConfiguration(lConf.ConfigurationName, lConf.ServiceId, lConf.Parameters, lConf.Url, lConf.ManageUrl, lConf.Path, lConf.Type, lConf.File);
+					}
+					combinedResult.resolve(lConfs);
+			}.bind(this), combinedResult.reject);
+		}.bind(this), combinedResult.reject);
+			
+		return combinedResult;
 	},
 	
-	saveProjectLaunchConfiguration: function(projectMetadata, configurationName, serviceId, params, url, manageUrl, path, urlTitle, deployType){
+	formLaunchConfiguration: function(configurationName, serviceId, params, url, manageUrl, path, deployType, file){
+		var launchConfigurationEnry = {
+			Name: configurationName,
+			ServiceId: serviceId,
+			Params: params,
+			Url: url,
+			ManageUrl: manageUrl,
+			Path: path,
+			File: file
+		};
+		
+		if(deployType){
+			launchConfigurationEnry.Type = deployType;
+		}
+		return launchConfigurationEnry;
+	},
+	formPluginLaunchConfiguration: function(lc){
+		return this._formPluginLaunchConfiguration(lc.Name, lc.ServiceId, lc.Params, lc.Url, lc.ManageUrl, lc.Path, lc.Type, lc.File)
+	},
+	_formPluginLaunchConfiguration: function(configurationName, serviceId, params, url, manageUrl, path, deployType, file){
+		return {
+			ConfigurationName: configurationName,
+			Parameters: params,
+			Url: url,
+			Type: deployType,
+			ManageUrl: manageUrl,
+			Path: path,
+			File: file,
+			ServiceId: serviceId
+		}
+	},
+	
+	saveProjectLaunchConfiguration: function(projectMetadata, configurationName, serviceId, params, url, manageUrl, path, deployType){
 		var deferred = new Deferred();
 		var configurationFile = configurationName;
 		configurationFile = configurationFile.replace(/\ /g,' ');
@@ -557,40 +722,34 @@ define(['i18n!orion/navigate/nls/messages', 'orion/Deferred', 'orion/extensionCo
 		if(configurationFile.indexOf(".launch")<0){
 			configurationFile+=".launch";
 		}
-		var launchConfigurationEnry = {
-			Name: configurationName,
-			ServiceId: serviceId,
-			Params: params,
-			Url: url,
-			ManageUrl: manageUrl,
-			Path: path
-		};
-		if(urlTitle){
-			launchConfigurationEnry.UrlTitle= urlTitle;
-		}
-		if(deployType){
-			launchConfigurationEnry.Type = deployType;
-		}
+		var launchConfigurationEnry = this.formLaunchConfiguration(configurationName, serviceId, params, url, manageUrl, path, deployType);
+		
 		this._getLaunchConfigurationsDir(projectMetadata, true).then(function(launchConfDir){
 			if(launchConfDir.Children){
 				for(var i=0; i<launchConfDir.Children.length; i++){
 					if(launchConfDir.Children[i].Name === configurationFile){
-//not sure if we won't need this later, see Bug 428460						
-//						if(window.confirm("Launch configuration " + configurationFile + " already exists, do you want to replace it?")){
-							this.fileClient.write(launchConfDir.Children[i].Location, JSON.stringify(launchConfigurationEnry)).then(
+						//not sure if we won't need this later, see Bug 428460						
+						//if(window.confirm("Launch configuration " + configurationFile + " already exists, do you want to replace it?")){
+							
+							this.fileClient.write(launchConfDir.Children[i].Location, JSON.stringify(launchConfigurationEnry, null, 2)).then(
 							function(){
+								launchConfigurationEnry.File = launchConfDir.Children[i];
+								launchConfigurationEnry.File.parent = launchConfDir;
 								deferred.resolve(launchConfigurationEnry);
 							}, deferred.reject);
 							return;
-//						} else {
-//							deferred.reject("Launch configuration already exists");
-//							return;
-//						}
+						//						} else {
+						//deferred.reject("Launch configuration already exists");
+						//return;
+						//}
 					}
 				}
 				this.fileClient.createFile(launchConfDir.Location, configurationFile).then(function(result){
-					this.fileClient.write(result.Location, JSON.stringify(launchConfigurationEnry)).then(
+					delete launchConfigurationEnry.File;
+					this.fileClient.write(result.Location, JSON.stringify(launchConfigurationEnry, null, 2)).then(
 					function(){
+						launchConfigurationEnry.File = result;
+						launchConfigurationEnry.File.parent = launchConfDir;
 						deferred.resolve(launchConfigurationEnry);
 					}, deferred.reject);
 				}.bind(this), deferred.reject);

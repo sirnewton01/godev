@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define document window*/
-/*jslint regexp:false*/
+/*eslint-env browser, amd*/
 define([
 	'require',
 	'orion/i18nUtil',

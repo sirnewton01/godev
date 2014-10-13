@@ -9,9 +9,8 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define document console prompt window*/
-
-define(['jsdiff/diff'], function(JsDiff) {
+/*eslint-env browser, amd*/
+define(['jsdiff/diff'], function(mJsDiff) {
 
 var orion = orion || {};
 
@@ -23,7 +22,8 @@ orion.JSDiffAdapter = (function() {
 	 * @name orion.JSDiffAdapter
 	 * 
 	 */
-	function JSDiffAdapter() {
+	function JSDiffAdapter(ignoreWhitespace) {
+		this._ignoreWhitespace = ignoreWhitespace;
 	}
 	
 	JSDiffAdapter.prototype = {
@@ -41,7 +41,7 @@ orion.JSDiffAdapter = (function() {
 			var newLineAtEndOld = (splitOld[splitOld.length-1] === "");
 			var newLineAtEndNew = (splitNew[splitNew.length-1] === "");
 			
-			var diff = JsDiff.diffLines(oldStr, newStr);
+			var diff = mJsDiff.diffLines(oldStr, newStr, this._ignoreWhitespace);
 			var map = [];
 			var changContents = [];
 			var linesAdded = 0;
@@ -128,7 +128,7 @@ orion.JSDiffAdapter = (function() {
 		},
 		
 		adaptCharDiff : function(oldStr, newStr, word) {
-			var diff = word ? JsDiff.diffWords(oldStr, newStr) : JsDiff.diffChars(oldStr, newStr);
+			var diff = word ? mJsDiff.diffWords(oldStr, newStr, this._ignoreWhitespace) : mJsDiff.diffChars(oldStr, newStr, this._ignoreWhitespace);
 			var map = [];
 			var oldStart = 0;
 			var newStart = 0;
@@ -148,7 +148,11 @@ orion.JSDiffAdapter = (function() {
 						charsRemoved = 0;
 					}
 					newStart += current.value.length;
-					oldStart += current.value.length;
+					if(current.helperValue) {
+						oldStart += current.helperValue.length;
+					} else {
+						oldStart += current.value.length;
+					}
 				} else if (current.added) {
 					charsAdded += current.value.length;
 				} else {

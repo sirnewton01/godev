@@ -28,7 +28,7 @@
     <link rel="stylesheet" type="text/css" href="http://eclipse.org/orion/compare/releases/4.0/built-compare.css"/>
 	<script src="http://requirejs.org/docs/release/2.1.4/minified/require.js"></script>
 	<script>
-	/*global require window */
+	/*eslint-env browser, amd*/
     require(["http://eclipse.org/orion/compare/releases/4.0/built-compare.min.js"], function(Compare) {
 		var document = window.document;
 		var contentOnLeft = "Sample Orion compare contents on left side\n\nYou can replace the contents here and and click on [Compare Again] to see the new result\n"; //$NON-NLS-0$

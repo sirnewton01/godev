@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint amd:true*/
+/*eslint-env amd*/
 define([
 	'javascript/contentAssist/indexFiles/nodeIndex',
 	'javascript/contentAssist/typesFromIndexFile',

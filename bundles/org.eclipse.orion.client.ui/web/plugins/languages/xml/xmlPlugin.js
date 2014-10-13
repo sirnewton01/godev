@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global esprima*/
-/*jslint amd:true*/
+/*eslint-env browser, amd*/
 define(['orion/plugin', 'orion/editor/stylers/application_xml/syntax'], function(PluginProvider, mXML) {
 
 	/**
@@ -31,7 +30,7 @@ define(['orion/plugin', 'orion/editor/stylers/application_xml/syntax'], function
 			{	id: "application/xml",
 				"extends": "text/plain",
 				name: "XML",
-				extension: ["xml"],
+				extension: ["xml", "xib"],
 				imageClass: "file-sprite-xml"
 			}, {id: "application/xhtml+xml",
 				"extends": "text/plain",

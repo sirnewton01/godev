@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define prompt */
-
+/*eslint-env browser, amd*/
 define("orion/editor/actions", [ //$NON-NLS-0$
 	'i18n!orion/editor/nls/messages', //$NON-NLS-0$
 	'orion/keyBinding', //$NON-NLS-0$
@@ -648,6 +647,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			var editor = this.editor;
 			var textView = editor.getTextView();
 			if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			if (textView.getOptions("singleMode")) { return false; } //$NON-NLS-0$
 			var selection = editor.getSelection();
 			if (selection.start === selection.end) {
 				var model = editor.getModel();
@@ -884,6 +884,14 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			 */
 			var proposal = event.data.proposal;
 
+			// If escapePosition is not provided, positioned the cursor at the end of the inserted text 
+			function escapePosition() {
+				if (typeof proposal.escapePosition === "number") { //$NON-NLS-0$
+					return proposal.escapePosition;
+				}
+				return event.data.start + proposal.proposal.length;
+			}
+
 			//if the proposal specifies linked positions, build the model and enter linked mode
 			if (proposal.positions && proposal.positions.length > 0 && this.linkedMode) {
 				var positionGroups = [];
@@ -897,14 +905,14 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				}
 				this.linkedMode.enterLinkedMode({
 					groups: positionGroups,
-					escapePosition: proposal.escapePosition
+					escapePosition: escapePosition()
 				});
 			} else if (proposal.groups && proposal.groups.length > 0 && this.linkedMode) {
 				this.linkedMode.enterLinkedMode({
 					groups: proposal.groups,
-					escapePosition: proposal.escapePosition
+					escapePosition: escapePosition()
 				});
-			} else if (proposal.escapePosition) {
+			} else if (typeof proposal.escapePosition === "number") { //$NON-NLS-0$
 				//we don't want linked mode, but there is an escape position, so just set cursor position
 				var textView = this.editor.getTextView();
 				textView.setCaretOffset(proposal.escapePosition);
@@ -1077,8 +1085,8 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				selEnd = selection.end + (l * (lastLine - firstLine + 1));
 			}
 			this.endUndo();
-			textView.setRedraw(true);
 			editor.setSelection(selStart, selEnd);
+			textView.setRedraw(true);
 			return true;
 		},
 		trimTrailingWhitespaces: function() {
@@ -1110,8 +1118,8 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				}
 			}
 			editor.getUndoStack().endCompoundChange();
-			editor.getTextView().setRedraw(true);
 			editor.setSelection(selection.start, selection.end, false);
+			editor.getTextView().setRedraw(true);
 		},
 		startUndo: function() {
 			if (this.undoStack) {

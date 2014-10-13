@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -8,16 +8,12 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global window define document */
-
+/*eslint-env browser, amd*/
 define([
 	'orion/webui/littlelib', 
 	'orion/webui/dropdown', 
-	'orion/objects',
-	'orion/webui/tooltip',
-	'i18n!orion/nls/messages',
-	'text!orion/webui/dropdownseparator.html'
-], function(lib, mDropdown, objects, Tooltip, messages, DropdownSeparatorFragment) {
+	'orion/objects'
+], function(lib, mDropdown, objects) {
 
 	var Dropdown = mDropdown.Dropdown;
 	
@@ -35,14 +31,14 @@ define([
 	function ContextMenu(options) {
 		options.skipTriggerEventListeners = true; //we want different event listeners on the trigger node
 		Dropdown.call(this, options); //invoke super constructor
-		this._initialize(options);
+		this._initialize();
 	}
 	
 	ContextMenu.prototype = Object.create(Dropdown.prototype);
 	
 	objects.mixin(ContextMenu.prototype, /** @lends orion.webui.contextmenu.ContextMenu.prototype */ {
 			
-		_initialize: function(options) {
+		_initialize: function() {
 			if (!this._dropdownNode.dropdown) {
 				//used by commandRegistry to set the parentNode of a child dropdown menu
 				this._dropdownNode.dropdown = this;

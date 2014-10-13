@@ -8,11 +8,11 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define*/
-/*jslint browser:true devel:true sub:true*/
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/edit/nls/messages',
 	'orion/commands',
+	'orion/i18nUtil',
 	'orion/objects',
 	'orion/webui/littlelib',
 	'orion/explorers/explorer-table',
@@ -20,11 +20,10 @@ define([
 	'orion/projectCommands',
 	'orion/PageUtil',
 	'orion/URITemplate',
-	'orion/Deferred',
-	'orion/projectClient'
+	'orion/Deferred'
 ], function(
-	messages, mCommands, objects, lib, mExplorer, mCommonNav, ProjectCommands,
-	PageUtil, URITemplate, Deferred, mProjectClient
+	messages, mCommands, i18nUtil, objects, lib, mExplorer, mCommonNav, ProjectCommands,
+	PageUtil, URITemplate, Deferred
 ) {
 	var CommonNavExplorer = mCommonNav.CommonNavExplorer;
 	var CommonNavRenderer = mCommonNav.CommonNavRenderer;
@@ -201,7 +200,7 @@ define([
 					commandRegistry.registerCommandContribution(fileActionsScope, command.id, position++, "orion.menuBarFileGroup/orion.newContentGroup/orion.newDependency"); //$NON-NLS-0$
 				});
 
-				commandRegistry.addCommandGroup(additionalActionsScope, "orion.deployNavGroup", 1000, messages["Deploy As"], null, null, null, messages["Deploy As"], "dropdownSelection"); //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$							
+				commandRegistry.addCommandGroup(additionalActionsScope, "orion.deployNavGroup", 1000, messages["Deploy As"], null, null, null, messages["Deploy As"], "dropdownSelection", true); //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$							
 				this.deployCommands = ProjectCommands.getDeployProjectCommands(commandRegistry);
 				if(this.deployCommands && this.deployCommands.length>0){
 					this.defaultDeployCommand = this.deployCommands[0];
@@ -253,22 +252,32 @@ define([
 								var defaultCommand = ProjectCommands.getDefaultLaunchCommand(_self.treeRoot.Project.Name);
 								if (defaultCommand) {
 									_self.defaultDeployCommand = _self.commandRegistry.findCommand(defaultCommand);
+									if(!self.defaultDeployCommand) return;
 									_self.deployCommand.tooltip = _self.defaultDeployCommand.tooltip ? _self.defaultDeployCommand.tooltip : _self.defaultDeployCommand.name;
 									CommonNavExplorer.prototype.updateCommands.apply(_self, selections);
 								}
 								return;
 							}
 							_self.selection.getSelections(function(selections){
+								if(event.type === "deleteAll"){
+									for(var i =_self.treeRoot.Project.launchConfigurations.length-1; i>=0; i--){
+										if(_self.treeRoot.Project.launchConfigurations[i].File){
+											_self.treeRoot.Project.launchConfigurations.splice(i,1);
+										}
+									}
+									doUpdateForLaunchConfigurations.apply(_self, [_self.treeRoot.Project.launchConfigurations]);
+									return;
+								}
 								if(event.oldValue){
 									for(var i=0; i<_self.treeRoot.Project.launchConfigurations.length; i++){
 										var lConf = _self.treeRoot.Project.launchConfigurations[i];
-										if(lConf.Name === event.oldValue.Name && lConf.ServiceId === event.oldValue.ServiceId){
+										if((lConf.Name === event.oldValue.Name && lConf.ServiceId === event.oldValue.ServiceId) || (lConf.File && event.oldValue.File && (lConf.File.Location === event.oldValue.File.Location))){
 											if(event.newValue){
 												_self.treeRoot.Project.launchConfigurations[i] = event.newValue;
 												doUpdateForLaunchConfigurations.apply(_self, [_self.treeRoot.Project.launchConfigurations, selections]);
 												return;
 											}
-											_self.treeRoot.Project.launchConfigurations[i].splice(i, 1);
+											_self.treeRoot.Project.launchConfigurations.splice(i, 1);
 											break;
 										}
 									}
@@ -279,7 +288,7 @@ define([
 								doUpdateForLaunchConfigurations.apply(_self, [_self.treeRoot.Project.launchConfigurations]);
 							});
 						};
-						this._launchConfigurationEventTypes = ["create", "delete", "changedDefault"]; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+						this._launchConfigurationEventTypes = ["create", "delete", "changedDefault", "deleteAll"]; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 						this._launchConfigurationEventTypes.forEach(function(eventType) {
 							_self.launchConfigurationDispatcher.addEventListener(eventType, _self.launchConfigurationListener);
 						});
@@ -301,6 +310,9 @@ define([
 			delete input.resource;
 			window.location.href = uriTemplate.expand({resource: resource, params: input});
 			this.sidebar.setViewMode("nav"); //$NON-NLS-0$
+		},
+		getTreeRoot: function() {
+			return this.fileMetadata;
 		},
 		changedItem: function(item, forceExpand){
 			if(!item || !this.model){
@@ -344,7 +356,7 @@ define([
 				var nameText = item.Dependency ? item.Dependency.Name : (item.Project ? item.Project.Name : item.Name);
 				var itemNode = lib.$("a", col); //$NON-NLS-0$
 				if(item.disconnected){
-					nameText += " " + messages.disconnected; //$NON-NLS-0$
+					nameText = i18nUtil.formatMessage(messages.Disconnected, nameText);
 					itemNode.removeAttribute("href"); //$NON-NLS-0$
 				}
 				lib.empty(itemNode);
@@ -454,14 +466,14 @@ define([
 				toolbarNode: this.toolbarNode
 			});
 			this.explorer.display(this.project);
-			this.sidebar.hideToolbar();
+			this.toolbarNode.parentNode.classList.add("projectNavSidebarWrapper"); //$NON-NLS-0$
 		},
 		destroy: function() {
 			if (this.explorer) {
 				this.explorer.destroy();
 			}
 			this.explorer = null;
-			this.sidebar.showToolbar();
+			this.toolbarNode.parentNode.classList.remove("projectNavSidebarWrapper"); //$NON-NLS-0$
 		},
 		getProjectJson: function(metadata) {
 			function getJson(children) {

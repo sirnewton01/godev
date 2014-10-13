@@ -10,9 +10,7 @@
  *     Kris De Volder (VMWare) - initial API and implementation
  *******************************************************************************/
 
-/*global define*/
-/*jslint browser:true*/
-
+/*eslint-env browser, amd*/
 define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", "orion/Deferred", "shell/resultWriters"],
 	function(messages, mShell, i18nUtil, Deferred, mResultWriters) {
 
@@ -238,7 +236,7 @@ define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", 
 				var successFn = function(file) {
 					this.callback = function() {
 						var string = i18nUtil.formatMessage(
-							messages["Wrote ${0}"],
+							messages["WroteMsg"],
 							typeof(file) === "string" ? file : this.shellPageFileService.computePathString(file)); //$NON-NLS-0$
 						var writer = new mResultWriters.ShellStringWriter(element);
 						writer.write(string + "\n"); //$NON-NLS-0$
@@ -253,7 +251,7 @@ define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", 
 				var errorFn = function(file) {
 					this.callback = function(error) {
 						var string = i18nUtil.formatMessage(
-							messages["Failed to write ${0}"],
+							messages["WriteFailMsg"],
 							typeof(file) === "string" ? file : this.shellPageFileService.computePathString(file)); //$NON-NLS-0$
 						string += " [" + error + "]"; //$NON-NLS-1$ //$NON-NLS-0$
 						var writer = new mResultWriters.ShellStringWriter(element);
@@ -290,7 +288,7 @@ define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", 
 								} else if (segment === "..") { //$NON-NLS-0$
 									if (index === 0) {
 										/* invalid, destination must be a descendent of the cwd */
-										errorFn(i18nUtil.formatMessage(messages["Cannot write ${0}, it is not a descendent of the output directory"], file.path));
+										errorFn(i18nUtil.formatMessage(messages["WriteFailNotDescendentOfOutputDir"], file.path));
 										return;
 									}
 									pathSegments.splice(index-- - 1, 2);
@@ -353,7 +351,7 @@ define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", 
 					return {
 						value: undefined,
 						status: mShell.CompletionStatus.ERROR,
-						message: i18nUtil.formatMessage(messages["'${0}' is not valid"], string),
+						message: i18nUtil.formatMessage(messages["notValid"], string),
 						predictions: null
 					};
 				}
@@ -370,7 +368,7 @@ define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", 
 					}
 					if (exactMatch) {
 						status = mShell.CompletionStatus.ERROR;
-						message = i18nUtil.formatMessage(messages["'${0}' already exists"], string);
+						message = i18nUtil.formatMessage(messages["AlreadyExist"], string);
 					} else {
 						// TODO validate filename?
 						status = mShell.CompletionStatus.MATCH;
@@ -405,7 +403,7 @@ define(["i18n!orion/shell/nls/messages", "orion/shell/Shell", "orion/i18nUtil", 
 							status = mShell.CompletionStatus.PARTIAL;
 						} else {
 							status = mShell.CompletionStatus.ERROR;
-							message = i18nUtil.formatMessage(messages["'${0}' is not valid"], string);
+							message = i18nUtil.formatMessage(messages["notValid"], string);
 						}
 					} else { /* exist is undefined */
 						// TODO validate filename?

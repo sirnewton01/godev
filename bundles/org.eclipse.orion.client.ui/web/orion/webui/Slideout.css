@@ -1,0 +1,53 @@
+.slideoutWrapper {
+	background: whitesmoke;
+	border: 1px solid rgb(222, 222, 222);
+	border-radius: 0 5px 5px 0;
+	height: calc(100% - 11px);
+	overflow-x: auto; /*allow horiz scrollbar if pane not wide enough*/
+	overflow-y: hidden;
+	position: absolute;
+	top: 0;
+	-webkit-transform: translateX(-100%);		/* Safari */
+	transform: translateX(-100%);
+	transition: -webkit-transform 0.2s ease; 	/* Safari*/
+	transition: transform 0.2s ease;
+	visibility: visible;
+	width: calc(100% - 2px);
+	z-index: 100;
+}
+
+.slideoutWrapperVisible {
+	-webkit-transform: translateX(0);	/* Safari */
+	transform: translateX(0);
+}
+
+.slideoutNoVisibility {
+	visibility: hidden !important; /* this class is separate because it is applied after the transition duration */
+}
+
+.slideoutWrapper > .slideoutDismissButton {
+	background-color: rgb(245, 245, 245);
+	border-radius: 0 3px 0 3px;
+	display: none;
+	margin: 0;
+	opacity: 0.7;
+	padding: 4px;
+	position: absolute;
+	right: 0;
+	z-index: 1;
+}
+
+.slideoutWrapper.slideoutWrapperVisible > .slideoutDismissButton {
+	display: inline-block;
+}
+
+.slideoutWrapper.slideoutWrapperVisible > .slideoutDismissButton:hover {
+	opacity: 1;
+}
+
+.slideoutContent {
+	height: calc(100% - 10px);
+	margin: 0;
+	padding: 4px 0;
+	width: 100%;
+}

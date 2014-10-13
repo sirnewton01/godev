@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define*/
+/*eslint-env browser, amd*/
 define([
 	'orion/plugin',
 	'stringexternalizer/nonnlsSearchUtil'
@@ -83,7 +83,7 @@ define([
 	provider.registerService('orion.navigate.command', null, {
 		id: 'orion.nonnls.externalize',
 		nameKey: 'Strings Xtrnalizr',
-		tooltipKey: 'Externalize Strings from JavaScript files in this folder',
+		tooltipKey: 'Externalize strings',
 		nls: 'orion/navigate/nls/messages',
 		forceSingleItem: true,
 		validationProperties:
@@ -103,7 +103,7 @@ define([
 					tags: 'validation javascript js nls'.split(' '),
 					properties: [
 						{	id: 'enabled',
-							name: 'Warn on unexternalized strings',
+							name: 'Warn on unexternalized strings:',
 							defaultValue: true,
 							type: 'boolean'
 						}

@@ -9,10 +9,10 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
- /*jslint browser:true devel:true sub:true*/
- /*global define window document*/
+/*eslint-env browser, amd*/
 
-define(['i18n!profile/nls/messages', 'require', 'orion/webui/littlelib', 'orion/explorers/explorer', 'orion/profile/usersUtil', 'orion/explorers/navigationUtils'], function(messages, require, lib, mExplorer, mUsersUtil, mNavUtils) {
+define(['i18n!profile/nls/messages', 'orion/i18nUtil', 'require', 'orion/webui/littlelib', 'orion/explorers/explorer', 'orion/profile/usersUtil', 'orion/explorers/navigationUtils'], 
+		function(messages, i18nUtil, require, lib, mExplorer, mUsersUtil, mNavUtils) {
 
 
 var eclipse = eclipse || {};
@@ -136,6 +136,9 @@ eclipse.UsersRenderer = (function() {
 		case 3:
 			h2.textContent = messages["Last Login"];
 			return col;
+		case 4:
+			h2.textContent = messages["Disk Usage"];
+			return col;
 		}
 	};
 	
@@ -164,6 +167,16 @@ eclipse.UsersRenderer = (function() {
 		case 3:
 			td = document.createElement("td"); //$NON-NLS-0$
 			td.textContent = item.LastLogInTimestamp ? new Date(parseInt(item.LastLogInTimestamp, 10)).toLocaleString() : '\u00a0'; //$NON-NLS-0$
+			return td;
+		case 4:
+			td = document.createElement("td"); //$NON-NLS-0$
+			var diskUsage = item.diskUsage ? item.diskUsage : " "; //$NON-NLS-0$
+			var diskUsageTextContent = '\u00a0'; //$NON-NLS-0$
+			if (diskUsage !== " ") {
+				var diskUsageTimestamp = item.diskUsageTimestamp ? new Date(parseInt(item.diskUsageTimestamp, 10)).toLocaleString() : '\u00a0'; //$NON-NLS-0$
+				diskUsageTextContent = i18nUtil.formatMessage(messages["A(lastCalculated B)"], diskUsage, diskUsageTimestamp); //$NON-NLS-1$ //$NON-NLS-0$
+			};
+			td.textContent = diskUsageTextContent;
 			return td;
 		}
 		

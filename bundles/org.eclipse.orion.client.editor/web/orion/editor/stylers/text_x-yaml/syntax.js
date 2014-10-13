@@ -1,16 +1,15 @@
 /*******************************************************************************
  * @license
  * Copyright (c) 2014 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
+ *
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define*/
-
+/*eslint-env browser, amd*/
 define("orion/editor/stylers/text_x-yaml/syntax", [], function() { //$NON-NLS-0$
 	var keywords = ["false", "null", "true"]; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 	var casts = ["!!bool", "!!float", "!!int", "!!map", "!!null", "!!omap", "!!seq", "!!str"]; //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
@@ -46,10 +45,10 @@ define("orion/editor/stylers/text_x-yaml/syntax", [], function() { //$NON-NLS-0$
 						name: "keyword.control.yaml" //$NON-NLS-0$
 					}, {
 						match: "(?i)^\\s*(?:-?[0-9]*(?:\\.[0-9]+)?(?:e[-+][1-9][0-9]*)?)\\s*$", //$NON-NLS-0$
-						name: "constant.numeric" //$NON-NLS-0$
+						name: "constant.numeric.yaml" //$NON-NLS-0$
 					}, {
 						match: "(?i)^\\s*(?:-?[1-9][0-9]*|0|-?\\.inf|\\.nan)\\s*$", //$NON-NLS-0$
-						name: "constant.numeric" //$NON-NLS-0$
+						name: "constant.numeric.yaml" //$NON-NLS-0$
 					}
 				]
 			}, {

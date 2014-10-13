@@ -9,11 +9,12 @@
  ******************************************************************************/
 
 //NLS_CHARSET=UTF-8
-
+/*eslint-env browser, amd*/
 define({
-	"Plugin content could not be found": "Plugin content could not be found",
-	"Content has been saved.  Click OK to go to the navigator, Cancel to keep editing.": "Content has been saved.  Click OK to go to the navigator, Cancel to keep editing.",
-	"Content plugin ${0} has saved data.": "Content plugin ${0} has saved data.",
+	"PluginContentNotFound": "Plugin content could not be found",
+	"ContentSavedMsg": "Content has been saved.  Click OK to go to the navigator, Cancel to keep editing.",
+	"ContentSavedData": "Content plugin ${0} has saved data.",
 	"Save": "Save",
-	"Click ${0} to store this file into Orion.": "Click ${0} to store this file into Orion."
+	"StoreFileMsg": "Click ${0} to store this file into Orion.",
+	"ResrcOutOfSync": "Resource is out of sync with the server. Do you want to save it anyway?"
 });

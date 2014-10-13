@@ -1,121 +1,141 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta name="copyright" content="Copyright (c) 2010,2012 IBM Corporation and others.">
-<meta http-equiv="Content-Language" content="en-us">
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<link rel="stylesheet" type="text/css" href="css/landing.css" />
-<script src="../requirejs/require.js"></script>
-<script type="text/javascript">
-/*global require*/
-require({
-  baseUrl: '..',
+	<head>
+		<meta name="copyright" content="Copyright (c) 2010,2012 IBM Corporation and others.">
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<link rel="stylesheet" type="text/css" href="css/landing.css" />
+		<script src="../requirejs/require.js"></script>
+		<script type="text/javascript">
+			/*eslint-env browser, amd*/
+			require({
+			  baseUrl: '..',
 
-  // set the paths to our library packages
-  packages: [],
-  paths: {
-	  text: 'requirejs/text',
-	  i18n: 'requirejs/i18n',
-	  domReady: 'requirejs/domReady'
-  }
-});
-require(["mixloginstatic/LoginWindow"]);
-</script>
-<title>Login Page</title>
-</head>
-<body style="margin: 0; padding: 0;" tabindex="-1">
-	<div class="orion-banner">
-		<div class="orion-nav-bar">
-			<header class="orion-logo" role="banner"></header>
-			<nav role="navigation">
+			  // set the paths to our library packages
+			  packages: [],
+			  paths: {
+				  text: 'requirejs/text',
+				  i18n: 'requirejs/i18n',
+				  domReady: 'requirejs/domReady'
+			  }
+			});
+			require(["mixloginstatic/LoginWindow"]);
+		</script>
+		<title>Orion Login Page</title>
+	</head>
+	<body style="margin: 0; padding: 0;" tabindex="-1">
+		<div class="orion-banner">
+			<div class="orion-nav-bar">
+				<header class="orion-logo" role="banner"></header>
 				<!-- BEGIN GODEV CUSTOMIZATION
 				<a class="orion-rss-link" href="http://planetorion.org/news/" target="_blank" title="Orion News" alt="Orion News" tabindex="100"></a>
 				<a class="orion-twitter-link" href="http://twitter.com/orionhub" target="_blank" title="Orion Twitter" alt="Orion Twitter" tabindex="99"></a>
 				END GODEV CUSTOMIZATION -->
-			</nav>
+			</div>
 		</div>
-	</div>
-	<div class="orion-login-container" id="login-window" style="display:none;">
-		<div class="orion-landing-area" role="main">
-			<aside id="orionInfoArea" class="orion-info" style="visibility: hidden;" tabindex="0" role="complementary" aria-atomic="true" aria-live="assertive">
-					<div id="orionInfoMessage" class="orion-info-message">&nbsp;</div>
-					<div id="orionInfoLink" class="orion-info-link"><a href="/mixloginstatic/ServerStatus.html"> [more info...]</a></div>
-			</aside>
-			<div id="errorWin" class="orion-error" style="visibility: hidden;" aria-atomic="true" aria-live="assertive">
-					<div id="errorMessage">&nbsp;</div>
-			</div>
+		<div class="orion-login-container" id="login-window" style="display:none;">
+			<div class="orion-landing-area" role="main">
+				<aside id="orionInfoArea" class="orion-info" style="visibility: hidden;" tabindex="0" role="complementary" aria-atomic="true" aria-live="assertive">
+						<div id="orionInfoMessage" class="orion-info-message">&nbsp;</div>
+						<div id="orionInfoLink" class="orion-info-link"><a href="/mixloginstatic/ServerStatus.html"> [more info...]</a></div>
+				</aside>
+				<div id="errorWin" class="orion-error" style="visibility: hidden;" aria-atomic="true" aria-live="assertive">
+						<div id="errorMessage">&nbsp;</div>
+				</div>
 
-			<div class="orion-welcome-area-disable"><img src="../images/godev-logo-large.jpg" width="320px" height="320px"></div>
-			<div class="orion-login" id="orionLoginForm" style="visibility: hidden;">
-				<div id="orion-login-header" class="orion-form-header">Log in</div>
-				<form>
-					<div class="orion-input-holder">
-						<input type="text" class="orion-text-input" name="login" id="login" placeholder="username" title="Username" autocomplete="on" autofocus="autofocus" spellcheck="false" autocapitalize="off">
-					</div>
-					<div class="orion-input-holder">
-						<input name="password" type="password" id="password" class="orion-text-input" placeholder="password" title="Password">
-					</div>
-					<div class="orion-login-button-holder">
-						<input type="button" name="password" id="loginButton" class="orion-login-button" value="Sign in" tabindex="0">
-					</div>
-					<div class="orion-login-button-holder">
-						<input type="button" id="cancelLoginButton" class="orion-cancel-button" value="Cancel" tabindex="0">
-					</div>
+				<div class="orion-welcome-area"></div>
+				<div class="orion-login" id="orionLoginForm" style="visibility: hidden;">
+					<div id="orion-login-header" class="orion-form-header">Log in</div>
+					<form>
+						<div class="orion-input-holder">
+							<input type="text" class="orion-text-input" name="login" id="login" placeholder="username" title="Username" autocomplete="on" autofocus="autofocus" spellcheck="false" autocapitalize="off">
+						</div>
+						<div class="orion-input-holder">
+							<input name="password" type="password" id="password" class="orion-text-input" placeholder="password" title="Password">
+						</div>
+						<div class="orion-login-button-holder">
+							<input type="button" name="password" id="loginButton" class="orion-login-button" value="Sign in" tabindex="0">
+						</div>
+						<div class="orion-login-button-holder">
+							<input type="button" id="cancelLoginButton" class="orion-cancel-button" value="Cancel" tabindex="0">
+						</div>
 
-					<div class="orion-login-forgot-holder">
-						<a id="resetUserLink" class="orion-forgot-password">Forgot password?</a>
-					</div>
-				</form>
-			</div>
+						<div class="orion-login-forgot-holder">
+							<a id="resetUserLink" class="orion-forgot-password">Forgot password?</a>
+						</div>
+					</form>
+				</div>
 
-			<div class="orion-signup" id="newUserHeaderShown" style="visibility: hidden;">
-				<div id="orion-signup-header" class="orion-form-header">Create an account</div>
-				<form>
-					<div class="orion-register-input-holder">
-						<input type="text" class="orion-text-input" placeholder="username" title="Username" autocomplete="on" autofocus="autofocus" id="create_login" spellcheck="false" autocapitalize="off">
-					</div>
-					<div class="orion-register-input-holder">
-						<input type="password" class="orion-text-input" placeholder="password" title="Password" autocomplete="on" id="create_password" aria-required="true">
-					</div>
-					<div class="orion-register-input-holder">
-						<input type="password" class="orion-text-input" placeholder="retype password" title="Retype password" autocomplete="on" name="passwordRetype" id="create_passwordRetype" aria-required="true">
-					</div>
-					<div class="orion-register-input-holder">
-						<input type="text" class="orion-text-input" placeholder="email" title="Email" autocomplete="on" name="email" id="create_email" aria-required="true">
-					</div>
-					<div class="orion-login-button-holder">
-						<input id="createButton" type="button" class="orion-login-button" value="Sign up" tabindex="0">
-					</div>
-					<div style="padding-right: 5px;"></div>
-					<div class="orion-login-button-holder">
-						<input id="hideRegisterButton" type="button" class="orion-cancel-button" value="Cancel" tabindex="0">
-					</div>
+				<div class="orion-signup" id="newUserHeaderShown" style="visibility: hidden;">
+					<div id="orion-signup-header" class="orion-form-header">Create an account</div>
+					<form>
+						<div class="orion-register-input-holder">
+							<input type="text" class="orion-text-input" placeholder="username" title="Username" autocomplete="on" autofocus="autofocus" id="create_login" spellcheck="false" autocapitalize="off">
+						</div>
+						<div class="orion-register-input-holder">
+							<input type="password" class="orion-text-input" placeholder="password" title="Password" autocomplete="on" id="create_password" aria-required="true">
+						</div>
+						<div class="orion-register-input-holder">
+							<input type="password" class="orion-text-input" placeholder="retype password" title="Retype password" autocomplete="on" name="passwordRetype" id="create_passwordRetype" aria-required="true">
+						</div>
+						<div class="orion-register-input-holder">
+							<input type="text" class="orion-text-input" placeholder="email" title="Email" autocomplete="on" name="email" id="create_email" aria-required="true">
+						</div>
+						<div class="orion-login-button-holder">
+							<input id="createButton" type="button" class="orion-login-button" value="Sign up" tabindex="0">
+						</div>
+						<div style="padding-right: 5px;"></div>
+						<div class="orion-login-button-holder">
+							<input id="hideRegisterButton" type="button" class="orion-cancel-button" value="Cancel" tabindex="0">
+						</div>
 
-				</form>
-			</div>
+					</form>
+				</div>
+				<div class="orion-signup orion-signup-linked" id="createLinkedHeaderShown" style="visibility: hidden;">
+					<div id="orion-create-linked-header" class="orion-form-header">Create a linked account</div>
+					<form>
+						<div class="orion-register-input-holder">
+							<label>Username:</label>
+							<div style="padding-right: 5px;"></div>
+							<input type="text" class="orion-text-input" placeholder="username" title="Username" autocomplete="on" autofocus="autofocus" id="create_linked_login" spellcheck="false" autocapitalize="off">
+						</div>
+						<div class="orion-register-input-holder">
+							<label>Email:</label>
+							<div style="padding-right: 5px;"></div>
+							<input type="text" class="orion-text-input" placeholder="email" title="Email" autocomplete="on" name="email" id="create_linked_email" aria-required="true">
+						</div>
+						<div class="orion-login-button-holder">
+							<input id="createLinkedButton" type="button" class="orion-login-button" value="Sign up" tabindex="0">
+						</div>
+						<div style="padding-right: 5px;"></div>
+						<div class="orion-login-button-holder">
+							<input id="hideLinkedRegisterButton" type="button" class="orion-cancel-button" value="Cancel" tabindex="0">
+						</div>
 
-			<div class="orion-reset" id="orionReset" style="visibility: hidden;">
-				<div id="orion-reset-header" class="orion-form-header">Reset Orion account</div>
-				<div class="orion-reset-note">Provide your username or email to reset your password.</div>
-				<form>
-					<div class="orion-reset-input-holder">
-						<input type="text" class="orion-text-input" id="reset" placeholder="username" autocapitalize="off">
-					</div>
-					<div class="orion-reset-input-holder">
-						<input type="text" class="orion-text-input" id="resetEmail" placeholder="email">
-					</div>
-					<div class="orion-login-button-holder">
-						<input type="button" id="sendResetButton" class="orion-send-button" tabindex="0" value="Send">
-					</div>
-					<div class="orion-login-button-holder">
-						<input type="button" id="cancelResetButton" class="orion-cancel-button" tabindex="0" value="Cancel">
-					</div>
-				</form>
-			</div>
+					</form>
+				</div>
+				<div class="orion-reset" id="orionReset" style="visibility: hidden; height: 212px;">
+					<div id="orion-reset-header" class="orion-form-header">Reset Orion account</div>
+					<div class="orion-reset-note">Provide your username or email to reset your password.</div>
+					<form>
+						<div class="orion-reset-input-holder">
+							<input type="text" class="orion-text-input" id="reset" placeholder="username" autocapitalize="off">
+						</div>
+						<div class="orion-reset-input-holder">
+							<input type="text" class="orion-text-input" id="resetEmail" placeholder="email">
+						</div>
+						<div class="orion-login-button-holder">
+							<input type="button" id="sendResetButton" class="orion-send-button" tabindex="0" value="Send">
+						</div>
+						<div class="orion-login-button-holder">
+							<input type="button" id="cancelResetButton" class="orion-cancel-button" tabindex="0" value="Cancel">
+						</div>
+					</form>
+				</div>
 
-			<div class="orion-open" id="orionOpen" style="visibility: visible;" tabindex="-1">
-				<div id="existingAccountLogin" class="orion-sheet-header" tabindex="-1">Sign in to access this godev server:</div>
-				<div class="orion-open-images" tabindex="-1">
+				<div class="orion-open" id="orionOpen" style="visibility: visible;" tabindex="-1">
+					<div id="existingAccountLogin" class="orion-sheet-header" tabindex="-1">Have an account? Sign in:</div>
+					<div class="orion-open-images" tabindex="-1">
 					<!-- BEGIN GODEV CUSTOMIZATION
 					<a id="orionLogin" href="#orionLoginForm" class="loginIcon orionLoginIcon" tabindex="0">
 						Sign in with existing Orion account
@@ -124,21 +144,18 @@ require(["mixloginstatic/LoginWindow"]);
 						Sign in with associated Google account
 					</a>
 					END GODEV CUSTOMIZATION--> 
-					
-					<a id="personaLogin" class="loginIcon personaIcon" tabindex="0">
-						Sign in with associated Mozilla Persona account
-					</a>
+					</div>
 				</div>
-			</div>
 
-			<div class="orion-register" id="orionRegister">
-				<div id="orion-register-header" class="orion-sheet-header">Need an account?</div>
-				<form>
-					<input id="registerButton" type="button" class="orion-register-button" value="Create a new account" tabindex="0">
-				</form>
-			</div>
+				<div class="orion-register" id="orionRegister">
+					<div id="orion-register-header" class="orion-sheet-header">Need an account?</div>
+					<form>
+						<input id="registerButton" type="button" class="orion-register-button" value="Create a new account" tabindex="0">
+					</form>
+				</div>
 
+			</div>
 		</div>
-	</div>
-</body>
+
+	</body>
 </html>

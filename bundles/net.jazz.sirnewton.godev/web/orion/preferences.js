@@ -9,8 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define window localStorage */
-
+/*eslint-env browser, amd*/
 define(['require', 'orion/Deferred', 'orion/xhr'], function(require, Deferred, xhr){
 	/**
 	 * Constructs a new preferences instance. This constructor is not

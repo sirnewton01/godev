@@ -9,8 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define window */
-
+/*eslint-env browser, amd*/
 define([], function(){
 	/**
 	 * Constructs a new dialog service. Clients should obtain a dialog service by

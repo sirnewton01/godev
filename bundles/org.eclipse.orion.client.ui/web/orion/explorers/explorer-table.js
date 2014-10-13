@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global clearTimeout console define document setTimeout window */
-/*jslint regexp:false forin:true*/
-
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/navigate/nls/messages',
 	'orion/Deferred',
@@ -210,24 +208,6 @@ define([
 		var parent = lib.node(this.parentId);
 		if (parent) {
 			parent.addEventListener("click", this._clickListener); //$NON-NLS-0$
-		}
-
-		// Same tab/new tab setting
-		var renderer = this.renderer;
-		if (this.registry) {
-			this.registry.registerService("orion.cm.managedservice", //$NON-NLS-0$
-				{	updated: function(properties) {
-						var target;
-						if (properties && properties["links.newtab"] !== "undefined") { //$NON-NLS-1$ //$NON-NLS-0$
-							target = properties["links.newtab"] ? "_blank" : "_self"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-						} else {
-							target = "_self"; //$NON-NLS-0$
-						}
-						if (renderer.setTarget) {
-							renderer.setTarget(target);
-						}
-					}
-				}, {pid: "nav.config"}); //$NON-NLS-0$
 		}
 	}
 	
@@ -576,7 +556,7 @@ define([
 					if (entry.isFile) {
 						// can't drop files directly into workspace.
 						if (targetIsRoot){ //$NON-NLS-0$
-							internalErrorHandler(messages["You cannot copy files directly into the workspace.  Create a folder first."]); //$NON-NLS-0$
+							internalErrorHandler(messages["CreateFolderErr"]); //$NON-NLS-0$
 						} else {
 							entry.file(function(file) {
 								if (deferredWrapper) {
@@ -585,7 +565,7 @@ define([
 									var unzip = file.name.indexOf(".zip") === file.name.length-4 && window.confirm(i18nUtil.formatMessage(messages["Unzip ${0}?"], file.name)); //$NON-NLS-1$ //$NON-NLS-0$
 									var handlers = {
 										error: function(event) {
-											var errorMessage = messages["Uploading the following file failed: "] + file.name;
+											var errorMessage = messages["UploadingFileErr"] + file.name;
 											if (statusService) {
 												statusService.setProgressResult({Severity: "Error", Message: errorMessage}); //$NON-NLS-0$ 
 											} else {
@@ -684,9 +664,9 @@ define([
 							// The File API in HTML5 doesn't specify a way to check explicitly (when this code was written).
 							// see http://www.w3.org/TR/FileAPI/#file
 							if (!file.size && !file.type) {
-								errorHandler(i18nUtil.formatMessage(messages["Did not drop ${0}.  Folder drop is not supported in this browser."], file.name)); //$NON-NLS-0$
+								errorHandler(i18nUtil.formatMessage(messages["FolderDropNotSupported"], file.name)); //$NON-NLS-0$
 							} else if (mFileUtils.isAtRoot(item.Location)){ //$NON-NLS-0$
-								errorHandler(messages["You cannot copy files directly into the workspace.  Create a folder first."]); //$NON-NLS-0$ 
+								errorHandler(messages["CreateFolderErr"]); //$NON-NLS-0$ 
 							} else {
 								explorer._uploadFile(item, file, true);
 							}
@@ -743,7 +723,7 @@ define([
 							this.changedItem(targetItem);
 						}.bind(this),
 						error: function(event) {
-							var errorMessage = messages["Uploading the following file failed: "] + file.name; //$NON-NLS-0$
+							var errorMessage = messages["UploadingFileErr"] + file.name; //$NON-NLS-0$
 							if (statusService) {
 								statusService.setProgressResult({Severity: "Error", Message: errorMessage});	//$NON-NLS-0$ 
 							} else {
@@ -897,6 +877,11 @@ define([
 					if (!row) {
 						return this.changedItem(parent, true).then(function() {
 							var row = this.getRow(item);
+							if (!row) {
+								parent.children.unshift(item);
+								this.myTree.refresh(parent, parent.children, false);
+								row = this.getRow(item);	
+							}
 							return row ? row._item : new Deferred().reject();
 						}.bind(this));
 					}
@@ -931,7 +916,16 @@ define([
 			}.bind(this), deferred.reject);
 			return deferred;
 		},
-
+		
+		/**
+		 * Create and return the row for the given item
+		 * @param {Object} The parent of the row.
+		 * @param {Object} The contents of the row.
+		 */
+		insertMissingItem: function(parent, item) {
+			return null;
+		},
+		
 		/**
 		 * Shows and selects the given item.
 		 * @param {Object} The item to be revealed.
@@ -940,12 +934,7 @@ define([
 		 */
 		reveal: function(item, reroot) {
 			return this.showItem(item, reroot).then(function(result) {
-				var navHandler = this.getNavHandler();
-				if (navHandler) {
-					navHandler.cursorOn(result, true);
-					navHandler.setSelection(result);
-				}
-				return result;
+				this.select(result);
 			}.bind(this));
 		},
 
@@ -1024,16 +1013,11 @@ define([
 			this._lastPath = path;
 			var self = this;
 			if (force || (path !== this.treeRoot.Path)) {
-				return this.load(this.fileClient.loadWorkspace(path), messages["Loading "] + path).then(function(p) {
+				return this.load(this.fileClient.loadWorkspace(path), messages["Loading "] + path, postLoad).then(function(p) {
 					self.treeRoot.Path = path;
-					if (typeof postLoad === "function") { //$NON-NLS-0$
-						postLoad();
-					}
-					self.dispatchEvent({ type: "rootChanged", root: self.treeRoot }); //$NON-NLS-0$
 					return new Deferred().resolve(self.treeRoot);
 				}, function(err) {
 					self.treeRoot.Path = null;
-					self.dispatchEvent({ type: "rootChanged", root: self.treeRoot }); //$NON-NLS-0$
 					return new Deferred().reject(err);
 				});
 			}
@@ -1056,6 +1040,7 @@ define([
 			if(!progress){
 				progress = document.createElement("div"); //$NON-NLS-0$
 				progress.id = "progress"; //$NON-NLS-0$
+				progress.classList.add("fileExplorerProgressDiv"); //$NON-NLS-0$
 				lib.empty(parent);
 				parent.appendChild(progress);
 			}
@@ -1104,6 +1089,7 @@ define([
 							deferred.resolve(tree);
 						},
 						navHandlerFactory: self.navHandlerFactory,
+						showRoot: self.showRoot,
 						setFocus: (typeof self.setFocus === "undefined" ? true : self.setFocus), //$NON-NLS-0$
 						selectionPolicy: self.renderer.selectionPolicy, 
 						onCollapse: function(model) {
@@ -1126,6 +1112,7 @@ define([
 						if (typeof self.onchange === "function") { //$NON-NLS-0$
 							self.onchange(self.treeRoot);
 						}
+						self.dispatchEvent({ type: "rootChanged", root: self.treeRoot }); //$NON-NLS-0$
 						return self.treeRoot;
 					});
 				},
@@ -1135,6 +1122,7 @@ define([
 					if (self.registry) {
 						self.registry.getService("orion.page.message").setProgressResult(error); //$NON-NLS-0$
 					}
+					self.dispatchEvent({ type: "rootChanged", root: self.treeRoot }); //$NON-NLS-0$
 					return new Deferred().reject(error);
 				}
 			);

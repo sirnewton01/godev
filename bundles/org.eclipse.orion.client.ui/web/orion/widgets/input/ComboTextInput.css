@@ -1,0 +1,73 @@
+.comboTextInputWrapper {
+	background: white;
+    border: 1px solid lightgray;
+    border-radius: 3px;
+    display: inline-block;
+    padding: 0;
+    margin: 5px 0;
+    text-align: right;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.comboTextInputWrapperFocussed {
+	border-color: #999;
+}
+
+.comboTextInputField {
+	border: none;
+	display: inline-block;
+	font-size: 12px;
+	outline: none;
+	margin: 5px;
+	min-width: 215px;
+	padding: 0;
+	position: relative;
+	vertical-align: middle;
+	transition: all 0.2s ease;
+}
+
+.orionButton.recentEntryButton {
+	background: white;
+	border: none;
+	border-radius: 3px;
+	box-shadow: none;
+	cursor: pointer;
+	display: inline-block;
+	opacity: 1;
+	outline: none;
+	padding: 2px;
+	position: relative;
+	transition: opacity 0.2s ease;
+	vertical-align: middle;
+}
+
+.orionButton.recentEntryButton.isHidden {
+	cursor: default;
+	opacity: 0;
+}
+
+.recentEntryButton:hover > .recentEntryArrow {
+	color: #F58B0F;
+}
+
+.commandButton.comboTextInputButton {
+	visibility: visible;
+	display: inline-block;
+	padding: 8px 10px;
+	border: none;
+	vertical-align: middle;
+	border-left: 1px solid lightgray;
+	border-radius: 0 2px 2px 0;
+	font-size: 12px;
+	transition: all 0.1s ease;
+	max-width: 150px; /* for transition */
+}
+
+.commandButton.comboTextInputButton.isHidden {
+	border-width: 0;
+	max-width: 0;
+	overflow: hidden;
+	padding-left: 0;
+	padding-right: 0;
+}

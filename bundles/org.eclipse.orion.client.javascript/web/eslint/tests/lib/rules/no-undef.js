@@ -9,31 +9,17 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint mocha:true node:true amd:true*/
+/*eslint-env amd, node, mocha*/
 (function(root, factory) {
-	if (typeof exports === "object") //$NON-NLS-0$
+	if (typeof exports === "object") {//$NON-NLS-0$
 		module.exports = factory(require, exports, module, require("assert"), require("../../../lib/eslint"));
-	else if(typeof define === "function" && define.amd) //$NON-NLS-0$
+	} else if(typeof define === "function" && define.amd) { //$NON-NLS-0$
 		define(["require", "exports", "module", "chai/chai", "eslint"], factory);
+	}
 }(this, function(require, exports, module, assert, eslint) {
 	assert = assert.assert /*chai*/ || assert;
 
 	var RULE_ID = "no-undef";
-
-	/**
-	 * TODO remove this shim once we have permission to use `chai`
-	 */
-	assert.include = assert.include || function(actual, expected, message) {
-		var has = false;
-		if (typeof actual === "string" || Array.isArray(actual)) {
-			has = actual.indexOf(expected) !== -1;
-		} else if (actual && typeof actual === "object") {
-			has = Object.prototype.hasOwnProperty.call(actual, expected);
-		}
-		if (!has) {
-			assert.fail(actual, expected, message || "Expected actual to include expected", "include");
-		}
-	};
 
 	describe(RULE_ID, function() {
 
@@ -248,8 +234,8 @@
 				assert.include(messages[0].node.type, "Identifier");
 			});
 
-			it("should not report a violation when evaluating reference to a browser global with 'jslint browser:true'", function() {
-				var topic = "/*jslint browser:true*/ window;";
+			it("should not report a violation when evaluating reference to a browser global with 'eslint-env browser'", function() {
+				var topic = "/*eslint-env browser*/ window;";
 
 				var config = { rules: {} };
 				config.rules[RULE_ID] = 1;
@@ -258,8 +244,8 @@
 				assert.equal(messages.length, 0);
 			});
 
-			it("should not report a violation when evaluating reference to a browser global with 'jshint browser:true'", function() {
-				var topic = "/*jshint browser:true*/ window;";
+			it("should not report a violation when evaluating reference to a browser global with 'eslint-env browser'", function() {
+				var topic = "/*eslint-env browser*/ window;";
 
 				var config = { rules: {} };
 				config.rules[RULE_ID] = 1;
@@ -268,8 +254,10 @@
 				assert.equal(messages.length, 0);
 			});
 
-			it("should report a violation (undeclared global) when evaluating reference to a browser global with 'jshint browser:false'", function() {
-				var topic = "/*jshint browser:false*/ window;";
+            //XXX This test is no bogus since eslint-env does not consider :true/:false - having it there
+            //means true, left out is false
+			it("should report a violation (undeclared global) when evaluating reference to a browser global with 'eslint-env browser'", function() {
+				var topic = "/*eslint-env browser:false*/ window;";
 
 				var config = { rules: {} };
 				config.rules[RULE_ID] = 1;
@@ -299,8 +287,8 @@
 				assert.include(messages[0].node.type, "Identifier");
 			});
 
-			it("should not report a violation when evaluating reference to a node global with 'jshint node:true'", function() {
-				var topic = "/*jshint node:true*/ require(\"a\");";
+			it("should not report a violation when evaluating reference to a node global with 'eslint-env node'", function() {
+				var topic = "/*eslint-env node*/ require(\"a\");";
 
 				var config = { rules: {} };
 				config.rules[RULE_ID] = 1;
@@ -308,9 +296,10 @@
 				var messages = eslint.verify(topic, config);
 				assert.equal(messages.length, 0);
 			});
-
-			it("should report a violation (undeclared global) when evaluating reference to a node global with 'jshint node:false'", function() {
-				var topic = "/*jshint node:false*/ require(\"a\");";
+            //XXX This test is no bogus since eslint-env does not consider :true/:false - having it there
+            //means true, left out is false
+			it("should report a violation (undeclared global) when evaluating reference to a node global with eslint-env node:false", function() {
+				var topic = "/*eslint-env node:false*/ require(\"a\");";
 
 				var config = { rules: {} };
 				config.rules[RULE_ID] = 1;

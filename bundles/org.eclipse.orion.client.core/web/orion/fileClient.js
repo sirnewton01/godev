@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global window define */
-/*jslint forin:true devel:true*/
-
+/*eslint-env browser, amd*/
 /** @namespace The global container for eclipse APIs. */
 
 define(['i18n!orion/navigate/nls/messages', "orion/Deferred", "orion/i18nUtil"], function(messages, Deferred, i18nUtil){
@@ -23,7 +21,7 @@ define(['i18n!orion/navigate/nls/messages', "orion/Deferred", "orion/i18nUtil"],
 	function _doServiceCall(fileService, funcName, funcArgs) {
 		//if the function is not implemented in the file service, we throw an exception to the caller
 		if(!fileService[funcName]){
-			throw funcName + messages[" is not supported in this file system"];
+			throw new Error(i18nUtil.formatMessage(messages["NotSupportFileSystem"], funcName));
 		}
 		return fileService[funcName].apply(fileService, funcArgs);
 	}
@@ -31,11 +29,11 @@ define(['i18n!orion/navigate/nls/messages', "orion/Deferred", "orion/i18nUtil"],
 	function _copy(sourceService, sourceLocation, targetService, targetLocation) {
 		
 		if (!sourceService.readBlob) {
-			throw messages["source file service does not support binary read"];
+			throw new Error(messages["SrcNotSupportBinRead"]);
 		}
 
 		if (!targetService.writeBlob) {
-			throw messages["target file service does not support binary write"];
+			throw new Error(messages["TargetNotSupportBinWrite"]);
 		}
 	
 		if (sourceLocation[sourceLocation.length -1] !== "/") { //$NON-NLS-0$
@@ -93,6 +91,11 @@ define(['i18n!orion/navigate/nls/messages', "orion/Deferred", "orion/i18nUtil"],
 				}
 			}
 		}
+		_references.sort(function (ref1, ref2) {
+			var ranking1 = ref1.getProperty("ranking") || 0;
+			var ranking2 = ref2.getProperty("ranking")  || 0;
+			return ranking1 - ranking2;
+		});
 		var _patterns = [];
 		var _services = [];
 		var _names = [];
@@ -156,11 +159,19 @@ define(['i18n!orion/navigate/nls/messages', "orion/Deferred", "orion/i18nUtil"],
 				Name: _references[j].getProperty("Name")		 //$NON-NLS-0$
 			};
 
-			var patternString = _references[j].getProperty("pattern") || _references[j].getProperty("top").replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1"); //$NON-NLS-1$ //$NON-NLS-0$
-			if (patternString[0] !== "^") { //$NON-NLS-0$
-				patternString = "^" + patternString; //$NON-NLS-0$
+			var patternStringArray = _references[j].getProperty("pattern") || _references[j].getProperty("top").replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1"); //$NON-NLS-1$ //$NON-NLS-0$
+			if (!Array.isArray(patternStringArray)) {
+				patternStringArray = [patternStringArray];
 			}
-			_patterns[j] = new RegExp(patternString);			
+			var patterns = [];
+			for (var k = 0; k < patternStringArray.length; k++) {
+				var patternString = patternStringArray[k];
+				if (patternString[0] !== "^") { //$NON-NLS-0$
+					patternString = "^" + patternString; //$NON-NLS-0$
+				}
+				patterns.push(new RegExp(patternString));
+			}
+			_patterns[j] = patterns;			
 			_services[j] = serviceRegistry.getService(_references[j]);
 			_names[j] = _references[j].getProperty("Name"); //$NON-NLS-0$
 			
@@ -181,11 +192,13 @@ define(['i18n!orion/navigate/nls/messages', "orion/Deferred", "orion/i18nUtil"],
 				return _services[0] ? 0 : -1;
 			}
 			for(var i = 0; i < _patterns.length; ++i) {
-				if (_patterns[i].test(location)) {
-					return i;
+				for (var j = 0; j < _patterns[i].length; j++) {
+					if (_patterns[i][j].test(location)) {
+						return i;
+					}
 				}
 			}
-			throw messages['No Matching FileService for location:'] + location;
+			throw new Error(i18nUtil.formatMessage(messages['NoFileSrv'], location));
 		};
 		
 		this._getService = function(location) {
@@ -446,7 +459,7 @@ define(['i18n!orion/navigate/nls/messages', "orion/Deferred", "orion/i18nUtil"],
 		 * @param {boolean} searchParams.nameSearch Optional. If true, the search performs only file name search. 
 		 * @param {String} searchParams.fileType Optional. The file type. If specified, search will be performed under this file type. E.g. "*.*" means all file types. "html" means html files.
 		 * @param {Boolean} searchParams.regEx Optional. The option of regular expression search.
-		 * @param {integer} searchParams.start Optional. The zero based strat number for the range of the returned hits. E.g if there are 1000 hits in total, then 5 means the 6th hit.
+		 * @param {integer} searchParams.start Optional. The zero based start number for the range of the returned hits. E.g if there are 1000 hits in total, then 5 means the 6th hit.
 		 * @param {integer} searchParams.rows Optional. The number of hits of the range. E.g if there are 1000 hits in total and start=5 and rows=40, then the return range is 6th-45th.
 		 */
 		search: function(searchParams) {

@@ -10,14 +10,18 @@
  *     Andrew Eisenberg (VMware) - initial API and implementation
  * 	   IBM Corporation - bug fixes / improvements
  ******************************************************************************/
-
-/*global define esprima */
+/*global esprima */
+/*eslint-env amd*/
 define([
 ], function() {
 
 	return {
 
-		restricted: {range:true, errors:true, target:true, extras:true, comments:true, parent:true, tokens:true},
+		allowed: {alternate:true, argument:true, arguments:true, block:true, body:true, callee:true,cases:true, consequent:true, 
+		          declarations:true, defaults:true, discriminant:true, elements:true, expression:true, expressions:true, finalizer:true, 
+		          guardedHandlers:true, handler:true, handlers:true, head:true, id:true, init:true, key:true, label:true, left:true, 
+		          object:true, operator:true, param:true, params:true, properties:true, property:true, rest:true, right:true, test:true, 
+		          update:true, value:true},
 		
 		/**
 		 * Generic AST visitor.  Visits all typed children in source order
@@ -33,11 +37,12 @@ define([
 		visit: function(node, context, operation, postoperation) {
 			if (operation(node, context, true)) {
 				// gather children to visit
-				var i, key;
+				var i = 0;
 				var children = [];
-				for (key in node) {
-					if (!this.restricted[key]) {
-						var child = node[key];
+				var keys = Object.keys(node);
+				for(var k = 0; k < keys.length; k++) {
+				    if (this.allowed[keys[k]]) {
+						var child = node[keys[k]];
 						if (child instanceof Array) {
 							for (i = 0; i < child.length; i++) {
 								if (child[i] && child[i].type) {

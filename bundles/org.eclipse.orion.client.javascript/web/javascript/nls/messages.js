@@ -7,7 +7,7 @@
  * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
  * 
  ******************************************************************************/
-/* global define */
+/* eslint-env amd */
 define(['orion/i18n!javascript/nls/messages', 'javascript/nls/root/messages'], function(bundle, root) {
 	var result = {
 		root: root

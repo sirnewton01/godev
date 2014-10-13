@@ -9,13 +9,12 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define document*/
+/*eslint-env browser, amd*/
 define([
-	'require',
 	'orion/PageLinks',
 	'orion/plugin',
 	'orion/URITemplate'
-], function(require, PageLinks, PluginProvider, URITemplate) {
+], function(PageLinks, PluginProvider, URITemplate) {
 	var serviceImpl = { /* All data is in properties */ };
 
 	var headers = {
@@ -33,13 +32,6 @@ define([
 		nls: "orion/nls/messages",
 		imageClass: "core-sprite-edit",
 		order: 10
-	});
-	provider.registerService("orion.page.link.category", null, {
-		id: "search",
-		nameKey: "Search",
-		nls: "orion/nls/messages",
-		imageClass: "core-sprite-search",
-		order: 30
 	});
 	provider.registerService("orion.page.link.category", null, {
 		id: "shell",
@@ -63,7 +55,7 @@ define([
 		nls: "orion/nls/messages",
 		tooltip: "Edit code",
 		category: "edit",
-		"default": true, // Only show if nothing more specific is available
+		order: 1000, // low priority
 		uriTemplate: "{+OrionHome}/edit/edit.html"
 	});
 	provider.registerService("orion.page.link", serviceImpl, {
@@ -71,17 +63,8 @@ define([
 		id: "orion.shell",
 		nls: "orion/nls/messages",
 		category: "shell",
-		"default": true, // Only show if nothing more specific is available
+		order: 1000, // low priority
 		uriTemplate: "{+OrionHome}/shell/shellPage.html"
-	});
-	provider.registerService("orion.page.link", serviceImpl, {
-		nameKey: "Search",
-		id: "orion.Search",
-		nls: "orion/nls/messages",
-		category: "search",
-		"default": true, // Only show if nothing more specific is available
-		order: 10,
-		uriTemplate: "{+OrionHome}/search/search.html",
 	});
 
 	provider.registerService("orion.page.link", null, {
@@ -89,7 +72,7 @@ define([
 		id: "orion.settings",
 		nls: "orion/widgets/nls/messages",
 		category: "settings",
-		"default": true, // Only show if nothing more specific is available
+		order: 1000, // low priority
 		uriTemplate: "{+OrionHome}/settings/settings.html"
 	});
 
@@ -149,7 +132,6 @@ define([
 //		nls: "orion/nls/messages",
 //		category: "edit",
 //		order: 5,
-//		force: true, // Show even when it's a no-op
 //		validationProperties: [{
 //			source: "Parents:length",
 //			match: 0
@@ -175,7 +157,7 @@ define([
 		id: "orion.help",
 		nameKey: "Help",
 		nls: "orion/widgets/nls/messages",
-		uriTemplate: require.toUrl("help/index.jsp"),
+		uriTemplate: "{+OrionHome}/help/help.html",
 		category: "user.0"
 	});
 	
@@ -208,30 +190,6 @@ define([
 		contentURITemplate: pluginHelloWorld.href
 	});
 
-	provider.registerService("orion.core.setting", null, {
-		settings: [
-			{
-				pid: "nav.config",
-				nls: "orion/settings/nls/messages",
-				nameKey: "Navigation",
-				category: "general",
-				categoryKey: "General",
-				properties: [
-					{
-						id: "links.newtab",
-						nameKey: "Links",
-						type: "boolean",
-						defaultValue: false,
-						options: [
-							{ value: true, labelKey: "Open in new tab" },
-							{ value: false, labelKey: "Open in same tab" }
-						]
-					}
-				]
-			}
-		]
-	});
-
 	var getPluginsTemplate = "http://orion-plugins.googlecode.com/git/index.html#?target={InstallTarget}&version={Version}&OrionHome={OrionHome}";
 	provider.registerService("orion.core.getplugins", null, {
 		uri: decodeURIComponent(new URITemplate(getPluginsTemplate).expand({
@@ -239,33 +197,6 @@ define([
 			InstallTarget: PageLinks.getOrionHome() + "/settings/settings.html",
 			OrionHome: PageLinks.getOrionHome()
 		}))
-	});
-
-	// Getting Started
-	provider.registerService("orion.page.getstarted", null, {
-		data: [
-			{
-				label:"Add",
-				image:"../images/add.png",
-				secondaryImage: "../images/add-large-dulled.png",
-				alt: "Add Content",
-				media:"../media/Create.gif"
-			},
-			{
-				label:"Modify",
-				image:"../images/modify.png",
-				secondaryImage: "../images/gear-large-dulled.png",
-				alt: "Modify Content",
-				media:"../media/Modify.gif"
-			},
-			{
-				label:"Manage",
-				image:"../images/manage.png",
-				secondaryImage: "../images/hamburger-large-dulled.png",
-				alt: "Manage Content",
-				media:"../media/Manage.gif"
-			}
-		]
 	});
 
 	provider.connect();

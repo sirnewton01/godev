@@ -9,12 +9,13 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint mocha:true node:true amd:true*/
+/*eslint-env amd, node, mocha*/
 (function(root, factory) {
-	if (typeof exports === "object") //$NON-NLS-0$
+	if (typeof exports === "object") {//$NON-NLS-0$
 		module.exports = factory(require, exports, module, require("assert"), require("../../../lib/eslint"));
-	else if(typeof define === "function" && define.amd) //$NON-NLS-0$
+	} else if(typeof define === "function" && define.amd) { //$NON-NLS-0$
 		define(["require", "exports", "module", "chai/chai", "eslint"], factory);
+	}
 }(this, function(require, exports, module, assert, eslint) {
 	assert = assert.assert /*chai*/ || assert;
 
@@ -164,7 +165,7 @@
 				var messages = eslint.verify(topic, config);
 				assert.equal(messages.length, 1);
 				assert.equal(messages[0].ruleId, RULE_ID);
-				assert.equal(messages[0].message, "Missing documentation for function \'f\'");
+				assert.equal(messages[0].message, "Missing documentation for function \'f\'.");
 				assert.equal(messages[0].node.type, "Identifier");
 			});
 			it("for function expression member", function() {
@@ -175,7 +176,7 @@
 				var messages = eslint.verify(topic, config);
 				assert.equal(messages.length, 1);
 				assert.equal(messages[0].ruleId, RULE_ID);
-				assert.equal(messages[0].message, "Missing documentation for function \'member\'");
+				assert.equal(messages[0].message, "Missing documentation for function \'member\'.");
 				assert.equal(messages[0].node.type, "Identifier");
 			});
 			it("for function expression literal member", function() {
@@ -186,7 +187,7 @@
 				var messages = eslint.verify(topic, config);
 				assert.equal(messages.length, 1);
 				assert.equal(messages[0].ruleId, RULE_ID);
-				assert.equal(messages[0].message, "Missing documentation for function \'member\'");
+				assert.equal(messages[0].message, "Missing documentation for function \'member\'.");
 				assert.equal(messages[0].node.type, "Literal");
 			});
 			it("for inner function expression", function() {
@@ -197,7 +198,7 @@
 				var messages = eslint.verify(topic, config);
 				assert.equal(messages.length, 1);
 				assert.equal(messages[0].ruleId, RULE_ID);
-				assert.equal(messages[0].message, "Missing documentation for function \'f\'");
+				assert.equal(messages[0].message, "Missing documentation for function \'f\'.");
 				assert.equal(messages[0].node.type, "Identifier");
 			});
 			it("should include {type: 'decl'} as related object", function() {

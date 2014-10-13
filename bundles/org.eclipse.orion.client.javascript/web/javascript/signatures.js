@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define*/
+/*eslint-env amd*/
 define([
 ], function() {
 
@@ -32,7 +32,8 @@ define([
 				}
 				var val = this.getNameFrom(astnode);
 				return {
-					sig: val,
+					sig: val.name,
+					details: val.details,
 					range: this.getSignatureSourceRangeFrom(astnode)
 				};
 			}
@@ -74,17 +75,67 @@ define([
 		},
 		
 		/**
+		 * @name getPropertyListFrom
+		 * @description Retrieves the properties from the given AST node iff it is a object declaration.
+		 * @function
+		 * @public
+		 * @memberof javascript.Signatures.prototype
+		 * @param {Object} astnode The AST node to compute the parameters from
+		 * @param {Integer} maxLength maximum length of string to return,  defaults to 50
+		 * @returns {String} A list of named properties, comma separated in source defined order, surrounded by {}. 
+		 * 			Ellipsis will be added if no properties are available or max length reached.
+		 */
+		getPropertyListFrom: function(astnode, maxLength) {
+			if (!maxLength){
+				maxLength = 50;
+			}
+			if (maxLength < 0){
+				maxLength = 0;
+			}
+			if(astnode) {
+				var props = astnode.properties;
+				if(props && props.length > 0) {
+					var length = props.length;
+					var name;
+					var value = '{';  //$NON-NLS-0$
+					for(var i = 0; i < length; i++) {
+						if(props[i].key && props[i].key.name) {
+							name = props[i].key.name;
+						} else {
+							name = 'Object';  //$NON-NLS-0$
+						}
+						
+						if ((value.length + name.length) > (maxLength+1)){
+							value += '...';   //$NON-NLS-0$
+							break;
+						} else {
+							value += name;
+							if(i < length -1) {
+								value += ', ';  //$NON-NLS-0$
+							}
+						}
+					}
+					value += '}';  //$NON-NLS-0$
+					return value;
+				}
+			}
+			return '{...}';  //$NON-NLS-0$
+		},
+		
+		/**
 		 * @name getNameFrom
-		 * @description Returns the name to display for the given AST node. If there is an attached doc node it
+		 * @description Returns an object describing what to display for the given AST node. If there is an attached doc node it
 		 * will be consulted to help compute the name to display
 		 * @function
 		 * @public
 		 * @memberof javascript.Signatures.prototype
 		 * @param {Object} astnode The AST node to compute the name from
-		 * @returns {String} The computed name to display for the node or <code>null</code> if one could not be computed
+		 * @returns {String} An object containing 'name', the computed name to display for the node or <code>null</code> if one could not be 
+		 * 					computed and possibly 'details' if optional display information is computed
 		 */
 		getNameFrom: function(astnode) {
 			var name = "Anonyous " + astnode.type;  //$NON-NLS-0$
+			var details;
 			if(astnode && astnode.type) {
 				if(astnode.type === 'FunctionDeclaration') {  //$NON-NLS-0$
 					//TODO with the attached doc node we can augment this infos
@@ -95,7 +146,6 @@ define([
 							name += fparams;
 						}
 						name += ')';  //$NON-NLS-0$
-						return name;
 					}
 				}
 				else if(astnode.type === 'FunctionExpression') {  //$NON-NLS-0$
@@ -105,10 +155,10 @@ define([
 						name += feparams;
 					}
 					name += ')';  //$NON-NLS-0$
-					return name;
 				}
 				else if(astnode.type === 'ObjectExpression') {  //$NON-NLS-0$
-					name = 'closure {...}';  //$NON-NLS-0$
+					name = 'closure ';  //$NON-NLS-0$
+					details = this.getPropertyListFrom(astnode);
 				}
 				else if(astnode.type === 'Property') {  //$NON-NLS-0$
 					if(astnode.value) {
@@ -133,11 +183,12 @@ define([
 						else if(astnode.value.type === 'ObjectExpression') {  //$NON-NLS-0$
 							if(astnode.key) {
 								if(astnode.key.name) {
-									name = astnode.key.name + ' {...}';  //$NON-NLS-0$
+									name = astnode.key.name + ' ';  //$NON-NLS-0$
 								}
 								else if(astnode.key.value) {
-									name = astnode.key.value + ' {...}';  //$NON-NLS-0$
+									name = astnode.key.value + ' ';  //$NON-NLS-0$
 								}
+								details = this.getPropertyListFrom(astnode.value);
 							}
 						}
 						else if(astnode.key) {
@@ -154,7 +205,8 @@ define([
 					if(astnode.init) {
 						if(astnode.init.type === 'ObjectExpression') {  //$NON-NLS-0$
 							if(astnode.id && astnode.id.name) {
-								name = 'var '+astnode.id.name+ ' = {...}';  //$NON-NLS-0$  //$NON-NLS-1$
+								name = 'var '+astnode.id.name+ ' = ';  //$NON-NLS-0$  //$NON-NLS-1$
+								details = this.getPropertyListFrom(astnode.init);
 							}
 						}
 						else if(astnode.init.type === 'FunctionExpression') {  //$NON-NLS-0$
@@ -185,7 +237,8 @@ define([
 							if(name) {
 								//append the right stuff
 								if(isobject) {
-									name += ' {...}';  //$NON-NLS-0$
+									name += ' ';  //$NON-NLS-0$
+									details = this.getPropertyListFrom(astnode.right); 
 								}
 								else {
 									name += '(';  //$NON-NLS-0$
@@ -206,12 +259,13 @@ define([
 					if(astnode.argument) {
 						if(astnode.argument.type === 'ObjectExpression' ||  //$NON-NLS-0$
 							astnode.argument.type === 'FunctionExpression') {  //$NON-NLS-0$
-								name = 'return {...}';  //$NON-NLS-0$
+								name = 'return ';  //$NON-NLS-0$
+								details = this.getPropertyListFrom(astnode.argument);
 						}
 					}
 				}
 			}
-			return name;
+			return {name: name, details: details};
 		},
 		
 		/**

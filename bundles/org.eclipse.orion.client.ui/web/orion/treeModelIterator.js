@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define window */
-/*jslint regexp:false browser:true forin:true*/
-
+/*eslint-env browser, amd*/
 define([], function(){
 
 var exports = {};

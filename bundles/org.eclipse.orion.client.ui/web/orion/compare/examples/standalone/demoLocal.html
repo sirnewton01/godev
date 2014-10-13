@@ -1,0 +1,571 @@
+<!doctype html>
+<html>
+<head>
+	<title>Orion Compare Editor Sample</title>
+	<style type="text/css">
+		body {
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+			background-color: #ededed;
+		}
+		.lineHighlight{
+			outline: 2px dotted black;
+		}
+		.lineHighlightGutter{
+			background-image: url('problem.gif');;
+		}
+		.compareContainer {
+			position: absolute;
+			top: 80px;  /* $ToolbarHeight + 1 */
+			bottom: 0;
+			width: 99%;
+			overflow-y: auto;
+			margin-left:5px;
+			border:1px solid #bebebe;
+		}
+	</style>
+	<!--
+    <link rel="stylesheet" type="text/css" href="built-compare.css"/>
+	<script src="require.min.js"></script>
+	<script>
+    require(["built-compare.min.js"], function(Compare) {
+	-->
+    <link rel="stylesheet" type="text/css" href="built-compare.css"/>
+	<script src="http://requirejs.org/docs/release/2.1.4/minified/require.js"></script>
+	<script>
+	/*eslint-env browser, amd*/
+    require(["built-compare-amd.js"], function(Compare) {
+	var document = window.document;
+
+	/** Buttons */	
+	var bCompare = document.getElementById("doCompare"); //$NON-NLS-0$
+	var bLoadSample = document.getElementById("loadSample"); //$NON-NLS-0$
+	var bAnimateDiffs = document.getElementById("animateDiffs"); //$NON-NLS-0$
+	
+	var bCompareType = document.getElementById("compareTypeSelect"); //$NON-NLS-0$
+	var bContentTypeTD = document.getElementById("contentTypes"); //$NON-NLS-0$
+	var bContentType = document.getElementById("contentTypeSelect"); //$NON-NLS-0$
+	var bAnimateInterval = document.getElementById("animateInterval"); //$NON-NLS-0$
+	
+	var compareType = "byTwoContents"; //$NON-NLS-0$
+	var contentType = "js"; //$NON-NLS-0$
+	
+	
+	var contentOnLeft = "Sample Orion compare contents on left side\n\nYou can replace the contents here and and click on [Compare Again] to see the new result\n"; //$NON-NLS-0$
+	var	contentOnRight = "Sample Orion compare contents on right side\n\nYou can replace the contents here and and click on [Compare Again] to see the new result\n"; //$NON-NLS-0$
+	var contentOnLeftURL = "Put file URL here\n"; //$NON-NLS-0$
+	var	contentOnRightURL = "Put file URL here\n"; //$NON-NLS-0$
+	
+    var options = {
+        parentDivId: "compareParentDiv", //$NON-NLS-0$
+        newFile: {
+            Name: "left." + contentType, //$NON-NLS-0$
+            readonly: false,
+            Content: contentOnLeft
+        },
+        oldFile: {
+            Name: "right." + contentType, //$NON-NLS-0$
+            readonly: false,
+            Content: contentOnRight
+        }
+    };
+	var GOTO_LINE = 12;
+	var compare = new Compare(options, "compareCmdDiv", "twoWay", true/*toggleable*/); //$NON-NLS-1$ //$NON-NLS-0$
+	
+	function hookUp() {
+		compare.getCompareView().getWidget().addEventListener("contentLoaded", function(){ //$NON-NLS-0$
+	 		compare.getCompareView().getWidget().gotoLine(GOTO_LINE, 0, 0, function() {
+	 			
+	 			/*
+	 			 * Things you only need to do once
+	 			 */
+	 			//getMainEditor is the new API by which you can get either the left hand side editor in tow way mode or just he merged editor in inline mode
+	 			var editor = compare.getCompareView().getWidget().getMainEditor();
+	 		 	//annotationModel is the handler you add or remove you annotation models
+	 		 	var annotationModel = editor.getAnnotationModel();
+	  		 	if(!annotationModel){
+			 		return;
+	 		 	}
+	 		 	//Get the line styler inside the editor
+			 	var annoStyler = editor.getAnnotationStyler();
+	 		 	
+	 		 	//Get the REAL line number(if in inline mode, the GOTO_LINE has to be calculated because the textView is a merged one )
+	 		 	var lineNumber = compare.getCompareView().getWidget().getLineNumber(GOTO_LINE);
+	 		 	
+	 		 	//As the annotation model is a range that is based on the charater offset of the {star, end}, you have to use the textModel to calculate that)
+	 		 	var textModel = compare.getCompareView().getWidget().getMainEditor().getTextView().getModel();
+	 		 	var startIndex = textModel.getLineStart(lineNumber);
+	 		 	var endIndex = textModel.getLineEnd(lineNumber);
+	 		 	
+	 		 	//Add your annotation type to the editor 
+	 		 	annoStyler.addAnnotationType("compare.demo.customize.linehighlight");
+	 		 	//Add the same annotation type ot the annotation ruler(gutter)
+	 		 	editor.getAnnotationRuler().addAnnotationType("compare.demo.customize.linehighlight");
+	  			/*
+	 			 * Eond of things you only need to do once
+	 			 */
+			 	
+	  		 	//Add and/or remove your annotation models
+	 		 	//The first param is an array of the annotations you want to remove
+	 		 	//The second param is an array of the annotations you want to add
+	 		 	annotationModel.replaceAnnotations([], [{
+		 		 	start: startIndex,
+		 		 	end: endIndex,
+		 		 	title: "",
+		 		 	type: "compare.demo.customize.linehighlight",
+		 		 	html: "",
+		 		 	style: {styleClass: "lineHighlightGutter"}, //Gutter style at the line		 		 		 		 
+		 		 	lineStyle: {styleClass: "lineHighlight"} //The line style in the editor
+	 		 	}]);
+	 		});
+	 	});
+	 }
+  		 
+	function getFile(file) {
+		try {
+			var objXml = new XMLHttpRequest();
+			objXml.open("GET",file,false); //$NON-NLS-0$
+			objXml.send(null);
+			return objXml.responseText;
+		} catch (e) {
+			return null;
+		}
+	}
+
+	function onLoadSample() {
+		if(sampleLeft && sampleRight) {
+			bCompareType.selectedIndex = 0;
+			compareType = bCompareType.options[bCompareType.selectedIndex].value;
+			bContentType.selectedIndex = 0;
+			contentType = bContentType.options[bContentType.selectedIndex].value;
+			bContentTypeTD.style.display = "block"; //$NON-NLS-0$
+			
+			var widget = compare.getCompareView().getWidget();
+			widget.options.oldFile.Content = sampleRight;
+			widget.options.newFile.Content = sampleLeft;
+			widget.options.oldFile.URL = null;
+			widget.options.newFile.URL = null;
+			widget.options.oldFile.Name = "sampleRight.js"; //$NON-NLS-0$
+			widget.options.newFile.Name = "sampleLeft.js"; //$NON-NLS-0$
+			widget.options.mapper = null;
+			compare.refresh(true);
+			hookUp();
+		}
+	}
+	function animateDiffs() {
+		var widget = compare.getCompareView().getWidget();
+		if(widget.nextChange()){
+			var interval = parseInt(bAnimateInterval.options[bAnimateInterval.selectedIndex].value, 10);
+			window.setTimeout(animateDiffs, interval);
+		}
+	}
+	function onAnimateDiffs() {
+		var widget = compare.getCompareView().getWidget();
+		widget.initDiffNav();
+		var interval = parseInt(bAnimateInterval.options[bAnimateInterval.selectedIndex].value, 10);
+		window.setTimeout(animateDiffs, interval);
+	}
+	function doCompare() {
+		var widget = compare.getCompareView().getWidget();
+		if(widget.type === "twoWay"){ //$NON-NLS-0$
+			var editors = widget.getEditors();
+			var oldContents = editors[0].getTextView().getText();
+			var newContents = editors[1].getTextView().getText();
+			if(compareType === "byTwoContents"){ //$NON-NLS-0$
+				widget.options.oldFile.Content = oldContents;
+				widget.options.newFile.Content = newContents;
+				widget.options.oldFile.URL = null;
+				widget.options.newFile.URL = null;
+			} else {
+				widget.options.oldFile.URL = oldContents;
+				widget.options.newFile.URL = newContents;
+				bCompareType.selectedIndex = 0;
+				compareType = bCompareType.options[bCompareType.selectedIndex].value;
+				bContentTypeTD.style.display = "block"; //$NON-NLS-0$
+			}
+			widget.options.mapper = null;
+			compare.refresh(true);
+			hookUp();
+			//widget.refresh();
+		}
+	}
+	function onCompareType(evt) {
+		compareType = bCompareType.options[bCompareType.selectedIndex].value;
+		var widget = compare.getCompareView().getWidget();
+		if(compareType === "byTwoContents"){ //$NON-NLS-0$
+			widget.options.oldFile.Content = contentOnRight;
+			widget.options.newFile.Content = contentOnLeft;
+			widget.options.oldFile.URL = null;
+			widget.options.newFile.URL = null;
+			bContentTypeTD.style.display = "block"; //$NON-NLS-0$
+		} else {
+			widget.options.oldFile.Content = contentOnRightURL;
+			widget.options.newFile.Content = contentOnLeftURL;
+			widget.options.oldFile.URL = null;
+			widget.options.newFile.URL = null;
+			bContentTypeTD.style.display = "none"; //$NON-NLS-0$
+		}
+		widget.options.mapper = null;
+		widget.refresh(true);
+	}
+	
+	function onContentType(evt) {
+		contentType = bContentType.options[bContentType.selectedIndex].value;
+		var widget = compare.getCompareView().getWidget();
+		widget.options.oldFile.Name = "right." + contentType; //$NON-NLS-0$
+		widget.options.newFile.Name = "left." + contentType; //$NON-NLS-0$
+	}
+	
+	/* Adding events */
+	bCompare.onclick = doCompare;
+	bLoadSample.onclick = onLoadSample;
+	bAnimateDiffs.onclick = onAnimateDiffs;
+	bCompareType.onchange = onCompareType;
+	bContentType.onchange = onContentType;
+	
+		var sampleLeft = "/*******************************************************************************\n" + 
+				" * @license\n" + 
+				" * Copyright (c) 2012, 2013 IBM Corporation and others.\n" + 
+				" * All rights reserved. This program and the accompanying materials are made \n" + 
+				" * available under the terms of the Eclipse Public License v3.0 \n" + 
+				" * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution \n" + 
+				" * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). \n" + 
+				" *\n" + 
+				" * Contributors:\n" + 
+				" *     IBM Corporation - initial API and implementation\n" + 
+				" *******************************************************************************/\n" + 
+				" \n" + 
+				"/*globals define XMLHttpRequest window */\n" + 
+				"\n" + 
+				"define(['orion/compare/builder/compare'],   \n" + 
+				" \n" + 
+				"function(Compare) {\n" + 
+				"	var document = window.document;\n" + 
+				"\n" + 
+				"	/** Buttons */	\n" + 
+				"	var bCompare = document.getElementById(\"doCompare\"); //$NON-NLS-0$\n" + 
+				"	var bLoadSampleNew = document.getElementById(\"loadSample\"); //$NON-NLS-0$\n" + 
+				"	var bCompareTypeNew = document.getElementById(\"compareTypeSelect\"); //$NON-NLS-0$\n" + 
+				"	var bContentTypeTD = document.getElementById(\"contentTypes\"); //$NON-NLS-0$\n" + 
+				"	var bContentType = document.getElementById(\"contentTypeSelect\"); //$NON-NLS-0$\n" + 
+				"	\n" + 
+				"	var compareType = \"byTwoContents\"; //$NON-NLS-0$\n" + 
+				"	var contentType = \"js\"; //$NON-NLS-0$\n" + 
+				"	\n" + 
+				"	\n" + 
+				"	var contentOnLeft = \"Sample Orion compare contents on left side\\n\\nYou can replace the contents here and and click on [Refresh Compare] to see the new result\\n\"; //$NON-NLS-0$\n" + 
+				"	var	contentOnRight = \"Sample Orion compare contents on right side\\n\\nYou can replace the contents here and and click on [Refresh Compare] to see the new result\\n\"; //$NON-NLS-0$\n" + 
+				"	\n" + 
+				"    var options = {\n" + 
+				"        parentDivId: \"compareParentDiv\", //$NON-NLS-0$\n" + 
+				"        commandSpanId: \"compareCmdDiv\", //$NON-NLS-0$\n" + 
+				"        newFile: {\n" + 
+				"            Name: \"left.\" + contentType, //$NON-NLS-0$\n" + 
+				"            readonly: false,\n" + 
+				"            Content: contentOnLeft\n" + 
+				"        },\n" + 
+				"        oldFile: {\n" + 
+				"            Name: \"right.\" + contentType, //$NON-NLS-0$\n" + 
+				"            readonly: false,\n" + 
+				"            Content: contentOnRight\n" + 
+				"        }\n" + 
+				"    };\n" + 
+				"	\n" + 
+				"	var compare = new Compare(options);\n" + 
+				"	\n" + 
+				"	function getFile(file) {\n" + 
+				"		try {\n" + 
+				"			var objXml = new XMLHttpRequest();\n" + 
+				"			objXml.open(\"GET\",file,false); //$NON-NLS-0$\n" + 
+				"			objXml.send(null);\n" + 
+				"			return objXml.responseText;\n" + 
+				"		} catch (e) {\n" + 
+				"			return null;\n" + 
+				"		}\n" + 
+				"	}\n" + 
+				"\n" + 
+				"	function onLoadSample() {\n" + 
+				"		var sampleLeft = getFile(\"./standalone/sampleLeft.js\");\n" + 
+				"		var sampleRight = getFile(\"./standalone/sampleRight.js\");\n" + 
+				"		if(sampleLeft && sampleRight) {\n" + 
+				"			bCompareType.selectedIndex = 0;\n" + 
+				"			compareType = bCompareType.options[bCompareType.selectedIndex].value;\n" + 
+				"			bContentType.selectedIndex = 0;\n" + 
+				"			contentType = bContentType.options[bContentType.selectedIndex].value;\n" + 
+				"			bContentTypeTD.style.display = \"block\"; //$NON-NLS-0$\n" + 
+				"			\n" + 
+				"			var widget = compare.getCompareView().getWidget();\n" + 
+				"			widget.options.oldFile.Content = sampleRight;\n" + 
+				"			widget.options.newFile.Content = sampleLeft;\n" + 
+				"			widget.options.oldFile.URL = null;\n" + 
+				"			widget.options.newFile.URL = null;\n" + 
+				"			widget.options.oldFile.Name = \"sampRight.js\";\n" + 
+				"			widget.options.newFile.Name = \"sampleLeft.js\";\n" + 
+				"			widget.options.mapper = null;\n" + 
+				"			compare.refresh();\n" + 
+				"		}\n" + 
+				"	}\n" + 
+				"	function doCompare() {\n" + 
+				"		var widget = compare.getCompareView().getWidget();\n" + 
+				"		if(widget.type === \"twoWay\"){ //$NON-NLS-0$\n" + 
+				"			var editors = widget._editors;\n" + 
+				"			var oldContents = editors[0].getTextView().getText();\n" + 
+				"			var newContents = editors[1].getTextView().getText();\n" + 
+				"			if(compareType === \"byTwoContents\"){ //$NON-NLS-0$\n" + 
+				"				widget.options.oldFile.Content = oldContents;\n" + 
+				"				widget.options.newFile.Content = newContents;\n" + 
+				"				widget.options.oldFile.URL = null;\n" + 
+				"				widget.options.newFile.URL = null;\n" + 
+				"			} else {\n" + 
+				"				widget.options.oldFile.URL = oldContents;\n" + 
+				"				widget.options.newFile.URL = newContents;\n" + 
+				"				bCompareType.selectedIndex = 0;\n" + 
+				"				compareType = bCompareType.options[bCompareType.selectedIndex].value;\n" + 
+				"				bContentTypeTD.style.display = \"block\"; //$NON-NLS-0$\n" + 
+				"			}\n" + 
+				"			widget.options.mapper = null;\n" + 
+				"			compare.refresh();\n" + 
+				"			//widget.refresh();\n" + 
+				"		}\n" + 
+				"	}\n" + 
+				"	function onCompareType(evt) {\n" + 
+				"		compareType = bCompareType.options[bCompareType.selectedIndex].value;\n" + 
+				"		var widget = compare.getCompareView().getWidget();\n" + 
+				"		if(compareType === \"byTwoContents\"){ //$NON-NLS-0$\n" + 
+				"			widget.options.oldFile.Content = contentOnRight;\n" + 
+				"			widget.options123.newFile.Content = contentOnLeft123;\n" + 
+				"			widget.opzzzns.oldFile.URL = null;\n" + 
+				"			widget.options.newFile.URL = null;\n" + 
+				"			bContentTypeTD.style.display = \"block\"; //$NON-NLS-0$\n" + 
+				"		} else {\n" + 
+				"			widget.options.oldFile.Content = contentOnRightURL;\n" + 
+				"			widget.options.newFile.Content = contentOnLeftURL;\n" + 
+				"			widget.options.oldFile.URL = null;\n" + 
+				"			widget.options.newFile.URL = null;\n" + 
+				"			bContentTypeTD.style.display = \"none\"; //$NON-NLS-0$\n" + 
+				"		}\n" + 
+				"		widget.options.mapper = null;\n" + 
+				"		widget.refresh();\n" + 
+				"	}\n" + 
+				"	\n" + 
+				"	function onContentType(evt) {\n" + 
+				"		contentTypeNew = bContentType.options[bContentType.selectedIndex].valueNew;\n" + 
+				"		var widget = compare.getCompareView().getWidget();\n" + 
+				"		widget.options.oldFile.Name = \"right.\" + contentType;\n" + 
+				"		widget.options.newFile.Name = \"left.\" + contentType;\n" + 
+				"		\n" + 
+				"		//Added some new stuff here\n" + 
+				"	}\n" + 
+				"	\n" + 
+				"	/* Adding events */\n" + 
+				"	bCompare.onclick = doCompare;\n" + 
+				"	bLoadSample.onclick = onLoadSample;\n" + 
+				"	bCompareType.onchange = onCompareType //something new;\n" + 
+				"	bContentType.onchange = onContentType;\n" + 
+				" });\n" + 
+				"";
+				
+	var sampleRight = "/*******************************************************************************\n" + 
+			" * @license\n" + 
+			" * Copyright (c) 2011, 2012 IBM Corporation and others.\n" + 
+			" * All rights reserved. This program and the accompanying materials are made \n" + 
+			" * available under the terms of the Eclipse Public License v1.0 \n" + 
+			" * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution \n" + 
+			" * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). \n" + 
+			" *\n" + 
+			" * Contributors:\n" + 
+			" *     IBM Corporation - initial API and implementation\n" + 
+			" *******************************************************************************/\n" + 
+			" \n" + 
+			"/*globals define XMLHttpRequest window */\n" + 
+			"\n" + 
+			"define(['orion/compare/builder/compare'],   \n" + 
+			" \n" + 
+			"function(Compare) {\n" + 
+			"	var document = window.document;\n" + 
+			"\n" + 
+			"	/** Buttons */	\n" + 
+			"	var bCompare = document.getElementById(\"doCompare\"); //$NON-NLS-0$\n" + 
+			"	var bLoadSample = document.getElementById(\"loadSample\"); //$NON-NLS-0$\n" + 
+			"	var bCompareType = document.getElementById(\"compareTypeSelect\"); //$NON-NLS-0$\n" + 
+			"	var bContentTypeTD = document.getElementById(\"contentTypes\"); //$NON-NLS-0$\n" + 
+			"	var bContentType = document.getElementById(\"contentTypeSelect\"); //$NON-NLS-0$\n" + 
+			"	\n" + 
+			"	var compareType = \"byTwoContents\"; //$NON-NLS-0$\n" + 
+			"	var contentType = \"js\"; //$NON-NLS-0$\n" + 
+			"	\n" + 
+			"	\n" + 
+			"	var contentOnLeft = \"Sample Orion compare contents on left side\\n\\nYou can replace the contents here and and click on [Refresh Compare] to see the new result\\n\"; //$NON-NLS-0$\n" + 
+			"	var	contentOnRight = \"Sample Orion compare contents on right side\\n\\nYou can replace the contents here and and click on [Refresh Compare] to see the new result\\n\"; //$NON-NLS-0$\n" + 
+			"	var contentOnLeftURL = \"Put file URL here\\n\"; //$NON-NLS-0$\n" + 
+			"	var	contentOnRightURL = \"Put file URL here\\n\"; //$NON-NLS-0$\n" + 
+			"	\n" + 
+			"    var options = {\n" + 
+			"        parentDivId: \"compareParentDiv\", //$NON-NLS-0$\n" + 
+			"        commandSpanId: \"compareCmdDiv\", //$NON-NLS-0$\n" + 
+			"        newFile: {\n" + 
+			"            Name: \"left.\" + contentType, //$NON-NLS-0$\n" + 
+			"            readonly: false,\n" + 
+			"            Content: contentOnLeft\n" + 
+			"        },\n" + 
+			"        oldFile: {\n" + 
+			"            Name: \"right.\" + contentType, //$NON-NLS-0$\n" + 
+			"            readonly: false,\n" + 
+			"            Content: contentOnRight\n" + 
+			"        }\n" + 
+			"    };\n" + 
+			"	\n" + 
+			"	var compare = new Compare(options);\n" + 
+			"	\n" + 
+			"	function getFile(file) {\n" + 
+			"		try {\n" + 
+			"			var objXml = new XMLHttpRequest();\n" + 
+			"			objXml.open(\"GET\",file,false); //$NON-NLS-0$\n" + 
+			"			objXml.send(null);\n" + 
+			"			return objXml.responseText;\n" + 
+			"		} catch (e) {\n" + 
+			"			return null;\n" + 
+			"		}\n" + 
+			"	}\n" + 
+			"\n" + 
+			"	function onLoadSample() {\n" + 
+			"		var sampleLeft = getFile(\"./standalone/sampleLeft.js\");\n" + 
+			"		var sampleRight = getFile(\"./standalone/sampleRight.js\");\n" + 
+			"		if(sampleLeft && sampleRight) {\n" + 
+			"			bCompareType.selectedIndex = 0;\n" + 
+			"			compareType = bCompareType.options[bCompareType.selectedIndex].value;\n" + 
+			"			bContentType.selectedIndex = 0;\n" + 
+			"			contentType = bContentType.options[bContentType.selectedIndex].value;\n" + 
+			"			bContentTypeTD.style.display = \"block\"; //$NON-NLS-0$\n" + 
+			"			\n" + 
+			"			var widget = compare.getCompareView().getWidget();\n" + 
+			"			widget.options.oldFile.Content = sampleRight;\n" + 
+			"			widget.options.newFile.Content = sampleLeft;\n" + 
+			"			widget.options.oldFile.URL = null;\n" + 
+			"			widget.options.newFile.URL = null;\n" + 
+			"			widget.options.oldFile.Name = \"sampRight.js\";\n" + 
+			"			widget.options.newFile.Name = \"sampleLeft.js\";\n" + 
+			"			widget.options.mapper = null;\n" + 
+			"			compare.refresh();\n" + 
+			"		}\n" + 
+			"	}\n" + 
+			"	function doCompare() {\n" + 
+			"		var widget = compare.getCompareView().getWidget();\n" + 
+			"		if(widget.type === \"twoWay\"){ //$NON-NLS-0$\n" + 
+			"			var editors = widget._editors;\n" + 
+			"			var oldContents = editors[0].getTextView().getText();\n" + 
+			"			var newContents = editors[1].getTextView().getText();\n" + 
+			"			if(compareType === \"byTwoContents\"){ //$NON-NLS-0$\n" + 
+			"				widget.options.oldFile.Content = oldContents;\n" + 
+			"				widget.options.newFile.Content = newContents;\n" + 
+			"				widget.options.oldFile.URL = null;\n" + 
+			"				widget.options.newFile.URL = null;\n" + 
+			"			} else {\n" + 
+			"				widget.options.oldFile.URL = oldContents;\n" + 
+			"				widget.options.newFile.URL = newContents;\n" + 
+			"				bCompareType.selectedIndex = 0;\n" + 
+			"				compareType = bCompareType.options[bCompareType.selectedIndex].value;\n" + 
+			"				bContentTypeTD.style.display = \"block\"; //$NON-NLS-0$\n" + 
+			"			}\n" + 
+			"			widget.options.mapper = null;\n" + 
+			"			compare.refresh();\n" + 
+			"			//widget.refresh();\n" + 
+			"		}\n" + 
+			"	}\n" + 
+			"	function onCompareType(evt) {\n" + 
+			"		compareType = bCompareType.options[bCompareType.selectedIndex].value;\n" + 
+			"		var widget = compare.getCompareView().getWidget();\n" + 
+			"		if(compareType === \"byTwoContents\"){ //$NON-NLS-0$\n" + 
+			"			widget.options.oldFile.Content = contentOnRight;\n" + 
+			"			widget.options.newFile.Content = contentOnLeft;\n" + 
+			"			widget.options.oldFile.URL = null;\n" + 
+			"			widget.options.newFile.URL = null;\n" + 
+			"			bContentTypeTD.style.display = \"block\"; //$NON-NLS-0$\n" + 
+			"		} else {\n" + 
+			"			widget.options.oldFile.Content = contentOnRightURL;\n" + 
+			"			widget.options.newFile.Content = contentOnLeftURL;\n" + 
+			"			widget.options.oldFile.URL = null;\n" + 
+			"			widget.options.newFile.URL = null;\n" + 
+			"			bContentTypeTD.style.display = \"none\"; //$NON-NLS-0$\n" + 
+			"		}\n" + 
+			"		widget.options.mapper = null;\n" + 
+			"		widget.refresh();\n" + 
+			"	}\n" + 
+			"	\n" + 
+			"	function onContentType(evt) {\n" + 
+			"		contentType = bContentType.options[bContentType.selectedIndex].value;\n" + 
+			"		var widget = compare.getCompareView().getWidget();\n" + 
+			"		widget.options.oldFile.Name = \"right.\" + contentType;\n" + 
+			"		widget.options.newFile.Name = \"left.\" + contentType;\n" + 
+			"	}\n" + 
+			"	\n" + 
+			"	/* Adding events */\n" + 
+			"	bCompare.onclick = doCompare;\n" + 
+			"	bLoadSample.onclick = onLoadSample;\n" + 
+			"	bCompareType.onchange = onCompareType;\n" + 
+			"	bContentType.onchange = onContentType;\n" + 
+			" });\n" + 
+			"";
+	});
+</script>
+</head>
+
+<body>
+    <div style="height:30px;width:99%;">
+	<table>
+	<tr>
+	<td>
+		<label style="padding-left:5px;margin-top:1px;" for="compareTypeSelect">Compare with</label>
+		<select id="compareTypeSelect" style="margin-top:5px;">
+			<option value="byTwoContents">Two text contents</option>
+			<option value="byFileURLs">Two file URLs</option>
+			<!-- <option value="byDiff">Base contents + unified diff</option> -->
+		</select>
+	</td>
+	<td id="contentTypes">
+		<label style="padding-left:5px;margin-top:1px;" for="fileTypeSelect">Content type</label>
+		<select id="contentTypeSelect" style="margin-top:5px;">
+			<option value="js">JavaScript</option>
+			<option value="html">HTML</option>
+			<option value="css">Css</option>
+			<option value="java">Java</option>
+			<option value="txt">Plain</option>
+		</select>
+	</td>
+	</tr>
+	</table>
+    </div>
+    <hr>
+    <div style="height:28px;width:99%;">
+	<table style="float:left;">
+	<tr>
+	<td>
+		<button id="loadSample" type="button">Load sample</button>
+    </td>
+	<td>
+		<button id="doCompare" type="button">Compare Again</button>
+    </td>
+	<td>
+		<button id="animateDiffs" type="button">Walk all diffs</button>
+    </td>
+	<td>
+		<label for="animateInterval">With</label>
+		<select id="animateInterval">
+			<option value="500">500ms</option>
+			<option value="1000">1000ms</option>
+			<option value="1500">1500ms</option>
+			<option value="2000">2000ms</option>
+			<option value="3000">3000ms</option>
+		</select>
+	</td>
+	</tr>
+	</table>
+        <span id="compareCmdDiv" style="float:right;"></span> 
+    </div>
+    <hr>
+    <div>
+        <div id="compareParentDiv" class="compareContainer"></div>
+    </div>
+</body>
+</html>

@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2010, 2012 IBM Corporation and others. All rights reserved.
+ * Copyright (c) 2010, 2014 IBM Corporation and others. All rights reserved.
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
@@ -10,17 +10,14 @@
  *	IBM Corporation - initial API and implementation
  *	Adrian Aichner - regular expression capture group support in replace
  ******************************************************************************/
-/*global console define window document navigator*/
-/*jslint sub:true*/
-
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/search/nls/messages', 
 	'orion/editor/find', 'orion/commands', 
-	'orion/objects', 
-	'orion/searchUtils', 
+	'orion/objects',
 	'orion/inputCompletion/inputCompletion', 
 	'orion/webui/littlelib' ], 
-	function(messages, mFind, mCommands, objects, mSearchUtils, mInputCompletion, lib){
+	function(messages, mFind, mCommands, objects, mInputCompletion, lib){
 	
 	var MAX_RECENT_FIND_NUMBER = 30;
 	function TextSearcher(editor, serviceRegistry, cmdservice, undoStack, options) {
@@ -78,11 +75,11 @@ define([
 		_showReplaceInfo: function() {
 			if(this._regex) {
 				this._replaceInfo.src = "data:image/gif;base64,R0lGODlhBwAIAMQAAMzX6cbT5kh4qFiIuKC40FCIuGSXwmWZw2SaxGacxmadxmWcxbPM4GigyJW92JzC26DI0P///////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAABIALAAAAAAHAAgAAAUmoEQUQkFI0PBEz5A2yII0w9AwkUPbRpTsjUNEQUsFIgCXiGSShAAAOw==";//$NON-NLS-0$
-				this._replaceInfo.title=messages["Regular expression is on. You can click here or use options to turn it off - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>."];
+				this._replaceInfo.title=messages["regexOptionOn"];
 				this._replaceInfo.style.display = "";
 			} else {
 				this._replaceInfo.src ="data:image/gif;base64,R0lGODlhBwAIAEAAACH5BAEAABIALAAAAAAHAAgAhwAAAAAAMwAAZgAAmQAAzAAA/wArAAArMwArZgArmQArzAAr/wBVAABVMwBVZgBVmQBVzABV/wCAAACAMwCAZgCAmQCAzACA/wCqAACqMwCqZgCqmQCqzACq/wDVAADVMwDVZgDVmQDVzADV/wD/AAD/MwD/ZgD/mQD/zAD//zMAADMAMzMAZjMAmTMAzDMA/zMrADMrMzMrZjMrmTMrzDMr/zNVADNVMzNVZjNVmTNVzDNV/zOAADOAMzOAZjOAmTOAzDOA/zOqADOqMzOqZjOqmTOqzDOq/zPVADPVMzPVZjPVmTPVzDPV/zP/ADP/MzP/ZjP/mTP/zDP//2YAAGYAM2YAZmYAmWYAzGYA/2YrAGYrM2YrZmYrmWYrzGYr/2ZVAGZVM2ZVZmZVmWZVzGZV/2aAAGaAM2aAZmaAmWaAzGaA/2aqAGaqM2aqZmaqmWaqzGaq/2bVAGbVM2bVZmbVmWbVzGbV/2b/AGb/M2b/Zmb/mWb/zGb//5kAAJkAM5kAZpkAmZkAzJkA/5krAJkrM5krZpkrmZkrzJkr/5lVAJlVM5lVZplVmZlVzJlV/5mAAJmAM5mAZpmAmZmAzJmA/5mqAJmqM5mqZpmqmZmqzJmq/5nVAJnVM5nVZpnVmZnVzJnV/5n/AJn/M5n/Zpn/mZn/zJn//8wAAMwAM8wAZswAmcwAzMwA/8wrAMwrM8wrZswrmcwrzMwr/8xVAMxVM8xVZsxVmcxVzMxV/8yAAMyAM8yAZsyAmcyAzMyA/8yqAMyqM8yqZsyqmcyqzMyq/8zVAMzVM8zVZszVmczVzMzV/8z/AMz/M8z/Zsz/mcz/zMz///8AAP8AM/8AZv8Amf8AzP8A//8rAP8rM/8rZv8rmf8rzP8r//9VAP9VM/9VZv9Vmf9VzP9V//+AAP+AM/+AZv+Amf+AzP+A//+qAP+qM/+qZv+qmf+qzP+q///VAP/VM//VZv/Vmf/VzP/V////AP//M///Zv//mf//zP///wAAAAAAAAAAAAAAAAgsAPcpQzMJjbJ9xNAQQ6hwUqaHDws+3PeQoMN9DiUuzFRQ2ZiDyyYdHFhwYUAAOw==";
-				this._replaceInfo.title=messages["Regular expression is off. You can click here or use options to turn it on for replacement - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>."];
+				this._replaceInfo.title=messages["regexOptionOff"];
 				this._replaceInfo.style.display = "";
 			}
 		},
@@ -280,7 +277,7 @@ define([
 					onDelete: function(item, evtTarget) {
 						this._removeRecentSearch(item, evtTarget);
 					}.bind(this),
-					deleteToolTips: messages['Click or use delete key to delete the search term']
+					deleteToolTips: messages['DeleteSearchTrmMsg']
 				});
 	    	}
 	    },

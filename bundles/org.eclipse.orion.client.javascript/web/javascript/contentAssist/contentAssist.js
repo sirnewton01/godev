@@ -11,8 +11,7 @@
  *	 Andrew Eisenberg (VMware) - implemented visitor pattern
  *   IBM Corporation - Various improvements
  ******************************************************************************/
-
-/*global doctrine:true define:true */
+/*eslint-env amd */
 define([
 	'javascript/contentAssist/typeEnvironment',  //$NON-NLS-0$
 	'javascript/contentAssist/typeInference',  //$NON-NLS-0$
@@ -24,18 +23,25 @@ define([
 	'orion/Deferred',  //$NON-NLS-0$
 	'orion/objects',  //$NON-NLS-0$
 	'estraverse',  //$NON-NLS-0$
-	'javascript/contentAssist/indexer'  //$NON-NLS-0$
-], function(typeEnv, typeInf, typeUtils, proposalUtils, mTemplates, JSSyntax, Templates, Deferred, Objects, Estraverse, Indexer) {
+	'javascript/contentAssist/indexer',  //$NON-NLS-0$
+	'javascript/finder',
+	'javascript/signatures',
+	'eslint/load-rules-async',
+	'eslint/conf/environments'
+], function(typeEnv, typeInf, typeUtils, proposalUtils, mTemplates, JSSyntax, Templates, Deferred, Objects, Estraverse, Indexer,
+            Finder, Signatures, Rules, ESLintEnv) {
 
 	/**
 	 * @description Creates a new delegate to create keyword and template proposals
 	 */
 	function TemplateProvider() {
+	    //constructor
  	}
  	
 	TemplateProvider.prototype = new mTemplates.TemplateContentAssist(JSSyntax.keywords, []);
+	
 	Objects.mixin(TemplateProvider.prototype, {
-		uninterestingChars: ":!@#$^&*.?<>", //$NON-NLS-0$
+		uninterestingChars: ":!#$^&.?<>", //$NON-NLS-0$
 		/**
 		 * @description Override from TemplateContentAssist
 		 */
@@ -100,7 +106,7 @@ define([
 			var templates = Templates.getTemplatesForKind(completionKind.kind); //this.getTemplates();
 			for (var t = 0; t < templates.length; t++) {
 				var template = templates[t];
-				if (template.match(prefix)) {
+				if (this._looselyMatches(template, prefix, completionKind, context)) {
 					var proposal = template.getProposal(prefix, offset, context);
 					this.removePrefix(prefix, proposal);
 					proposals.push(proposal);
@@ -127,9 +133,49 @@ define([
 					unselectable: true
 				});
 			}
-			
 			return proposals;
 		},
+		
+		/**
+		 * @name _looselyMatches
+		 * @description Returns if the template applies to more than a simple prefix match
+		 * @function
+		 * @private
+		 * @param {TemplateProvider.Template} template
+		 * @param {String} prefix 
+		 * @param {String} kind
+		 * @param {Object} context
+		 * @returns {Boolean} If the template / context / kind is allowed
+		 * @since 7.0
+		 */
+		_looselyMatches: function _looselyMatches(template, prefix, kind, context) {
+		    if(template.match(prefix)) {
+		        //must match the prefix always
+		        if(typeof context.line !== 'undefined') {
+    		        var len = context.line.length - (typeof prefix !== 'undefined' ? prefix.length : 0);
+    		        var line = context.line.slice(0, (len > -1 ? len : 0)).trim();
+    		        if(kind.kind === 'jsdoc') {
+    		            // don't propose tag templates when one exists already on the same line
+    		            return !/^[\/]?[\*]+\s*[@]/ig.test(line);
+    		        } 
+		        }
+		        if(kind.kind === 'doc') {
+		            var comment = kind.node.value.trim();
+		            if(comment) {
+		                var idx = context.offset - prefix.length - kind.node.range[0];
+		                if(idx > -1) {
+		                    var val = /^(eslint-\w+|eslint?)(\s|$)/ig.exec(comment.slice(0, idx));
+    		                if(val) {
+    	                        //nothing else is allowed in the directives - eslint won't parse it
+    	                        return false;
+    		                }
+		                } 
+		            }
+		        }
+		        return true;
+		    }
+		    return false;
+		}
 	});
 
 	/**
@@ -152,16 +198,13 @@ define([
 	 */
 	Objects.mixin(JSContentAssist.prototype, {
 
-		browserRegExp: /browser\s*:\s*true/,
-		nodeRegExp: /node\s*:\s*true/,
-		amdRegExp: /amd\s*:\s*true/,
-
 		/**
 		 * Called by the framework to initialize this provider before any <tt>computeContentAssist</tt> calls.
 		 */
 		initialize: function() {
+		    //override
 		},
-
+        
 		/**
 		 * @description Implements the Orion content assist API v4.0
 		 */
@@ -224,6 +267,7 @@ define([
 			// note that if selection has length > 0, then just ignore everything past the start
 			var completionKind = this._getCompletionContext(ast, offset, buffer);
 			if (completionKind) {
+			    context.prefix = proposalUtils.getPrefix(buffer, context, completionKind.kind);
 				var self = this;
 				return typeEnv.createEnvironment({
 					buffer: buffer,
@@ -241,8 +285,9 @@ define([
 					}
 					var target = typeInf.inferTypes(ast, environment, self.lintOptions);
 					var proposalsObj = { };
-					self._createInferredProposals(target, environment, completionKind.kind, context.prefix, offset - context.prefix.length, proposalsObj);
-					return [].concat(self._filterAndSortProposals(proposalsObj), 
+					self._createInferredProposals(target, environment, completionKind.kind, context, buffer, offset - context.prefix.length, proposalsObj);
+					return [].concat(self._filterAndSortProposals(proposalsObj),
+					                 self._createDocProposals(context, completionKind, buffer, environment, ast),
 									 self._createTemplateProposals(context, completionKind, buffer),
 									 self._createKeywordProposals(context, completionKind, buffer));
 				});
@@ -302,20 +347,239 @@ define([
 		},
 		
 		/**
+		 * @description Create proposals specific to JSDoc
+		 * @returns {Array} The array of proposals
+		 * @since 7.0
+		 */
+		_createDocProposals: function(context, kind, buffer, env, ast) {
+		    var proposals = [];
+		    if(kind.kind === 'jsdoc') {
+    		    var offset = context.offset > context.prefix.length ? context.offset-context.prefix.length-1 : 0;
+    		    switch(buffer.charAt(offset)) {
+    		        case '{': {
+    		            proposals = this._getAllObjectProposals(context, env);
+    		            break;
+    		        }
+    		        case '.': {
+    		            //TODO re-write the inferencing code to only pick out 'typed' proposals - we 
+    		            //only want non-functions here
+    		            return [];
+    		            /*var idx = offset-1;
+    		            var char = buffer.charAt(idx);
+    		            var tname = '';
+    		            while(idx > 0 && /[^\s\{]/.test(char)) {
+    		               tname = char+tname;
+    		               idx--;
+    		               char = buffer.charAt(idx);
+    		            }
+    		            if(tname && tname !== '') {
+    		                var pObj = Object.create(null);
+    		                this._createInferredProposals(tname, env, {kind:'member'}, context, buffer, offset+1, pObj, 100, false);
+    		                proposals = this._filterAndSortProposals(pObj);
+    		            }
+    		            break; */
+    		        }
+    		        case '*':
+    		        case ' ': {
+    		            var node = Finder.findNode(kind.node.range[1], ast, {parents:true, next:true});
+        	               if(node) {
+        	                   var isdecl = node.type === 'FunctionDeclaration';
+        	                   var ismember = node.type === 'ExpressionStatement';
+        	                   if(isdecl || (node.type === 'Property' && node.value.type === 'FunctionExpression') || ismember) {
+        	                       if(ismember && node.expression && node.expression.type === 'AssignmentExpression') {
+        	                           node = node.expression;
+        	                           if(node.left.type !== 'MemberExpression' && node.right.type !== 'FunctionExpression') {
+        	                               break;
+        	                           }
+        	                       }
+        	                       var val;
+            	                   if((val = /\s*\*\s*\@name\s*(\w*)/ig.exec(context.line)) !== null) {
+            	                       if(val[1] === context.prefix) {
+            	                           var name;
+            	                           if(ismember) {
+                	                           name = Signatures.expandMemberExpression(node.left, '');
+                	                       } else {
+                	                           name = isdecl ? node.id.name : node.key.name;
+                	                       }
+                	                       proposals.push({
+                								proposal: name,
+                								relevance: 100,
+                								name: name,
+                								description: ' - The name of the function',
+                								style: 'emphasis',
+                								overwrite: true
+            							    });
+        							}
+            	                   } else if((val = /\s*\*\s*\@param\s*(?:\{\w*\})?\s*(\w*)/ig.exec(context.line)) !== null) {
+            	                       if(val[1] === context.prefix) {
+            	                           var params = isdecl ? node.params : node.value.params;
+            	                           if(params) {
+            	                               for(var i = 0; i < params.length; i++) {
+            	                                   name = params[i].name;
+            	                                   if(proposalUtils.looselyMatches(context.prefix, name)) { 
+                	                                   proposals.push({
+                            								proposal: name,
+                            								relevance: 100,
+                            								name: name,
+                            								description: ' - Function parameter',
+                            								style: 'emphasis',
+                            								overwrite: true
+                        							    });
+                    							    }
+            	                               }
+            	                           }
+            	                       }
+            	                   }
+        	                   }
+        	               }
+    		        }
+    		    }
+	        } else if(kind.kind === 'doc') {
+	            var comment = kind.node.value.trim();
+	            if(comment) {
+    	            if(/^(?:\/\*)?\s*eslint(?:-enable|-disable)?\s+/gi.test(context.line)) {
+    	                //eslint eslint-enable eslint-disable
+    	                var rules = Rules.getRules();
+    	                var rulekeys = Object.keys(rules).sort();
+    	                for(i = 0; i < rulekeys.length; i++) {
+    	                    var rulekey = rulekeys[i];
+                            if(proposalUtils.looselyMatches(context.prefix, rulekey)) {
+                                var rule = rules[rulekey];
+                                proposals.push({
+    								proposal: rulekey,
+    								relevance: 100,
+    								name: rulekey,
+    								description: ' - '+(rule.description ? rule.description : 'ESLint rule name'),
+    								prefix: context.prefix,
+    								style: 'emphasis',
+    								overwrite: true
+    						    });
+    					    }
+    	                }
+    	            } else if(/^(?:\/\*)?\s*eslint-env\s+/gi.test(context.line)) {
+    	                //eslint-env (comma-separated list)
+    	                var keys = Object.keys(ESLintEnv).sort();
+    	                for(i = 0; i < keys.length; i++) {
+    	                    var key = keys[i];
+    	                    if(key !== 'builtin' && proposalUtils.looselyMatches(context.prefix, key)) {
+    	                        proposals.push({
+    								proposal: key,
+    								relevance: 100,
+    								name: key,
+    								description: ' - ESLint environment name',
+    								style: 'emphasis',
+    								overwrite: true
+    						    });
+    	                    }
+    	                }
+    	            }
+	            }
+            }
+	        return proposals;
+		},
+		
+		/**
+		 * @description Returns all of the object proposals from the type environment
+		 * @param {Object} context
+		 * @param {javascript.contentAssist.TypeEnvironment} env The type environment
+		 * @returns {Array} The array of proposals
+		 * @since 7.0
+		 */
+		_getAllObjectProposals: function _getAllObjectProposals(context, env) {
+		    var proposals = [];
+		    var types = env.getAllTypes();
+		    var keys = Object.keys(types);
+		    var prop, type;
+	        for(var i = 0; i < keys.length; i++) {
+	            prop = keys[i];
+	            type = types[prop];
+	            if(prop.slice(0, 4) === 'gen~') {
+	                //a generated type, resolve it
+	                if(type.$$fntype && type.$$fntype.type !== 'FunctionType' && proposalUtils.looselyMatches(context.prefix, prop)) {
+    	                proposals.push({
+    						proposal: prop,
+    						relevance: 100,
+    						name: prop,
+    						description: this._createProposalDescription(type, env),
+    						style: 'emphasis',
+    						overwrite: true
+    					});
+	                }
+	            } else if(prop === 'Global') {
+	                //pull up the global types, global is not generated nor tagged builtin
+	                var gtype;
+	                global: for(var p in type) {
+	                    //we intentionally want the types from the proto chain
+	                    if(!proposalUtils.looselyMatches(context.prefix, p)) {
+	                        continue global;
+	                    }
+	                    if(/^(?:\$\$|get|set|is|encode|decode|clear|eval).*/.test(p)) {
+	                        //filter out some common function globals that are tagged as objects
+	                        continue global;
+	                    }
+	                    gtype = type[p];
+	                    if(typeof gtype === 'function' || Function.prototype.isPrototypeOf(gtype)) {
+	                        continue global;
+	                    }
+	                    proposals.push({
+    						proposal: p,
+    						relevance: 100,
+    						name: p,
+    						description: this._createProposalDescription(gtype, env),
+    						style: 'emphasis',
+    						overwrite: true
+    					});
+	                }
+	            } else {
+    	            if(type.$$isBuiltin && !type.$$fntype && proposalUtils.looselyMatches(context.prefix, prop)) {
+    	                proposals.push({
+    						proposal: prop,
+    						relevance: 100,
+    						name: prop,
+    						description: this._createProposalDescription(type, env),
+    						style: 'emphasis',
+    						overwrite: true
+    					});
+    	            }
+	            }
+	        }
+	        if(proposals.length > 0) {
+	            proposals.sort(function(p1, p2) {
+    					if (p1.name < p2.name) {
+    						return -1;
+    					}
+    					if (p1.name > p2.name) {
+    						return 1;
+    					}
+    					return 0;
+    				});
+	        }
+		    return proposals;
+		},
+		
+		/**
 		 * @description Create the array of inferred proposals
 		 * @function
 		 * @private
 		 * @param {String} targetTypeName The name of the type to find
 		 * @param {Object} env The backing type environment
-		 * @param {String} completionKind The kind of the completion
-		 * @param {String} prefix The start of the expression to complete
+		 * @param {String} kind The kind of the completion
+		 * @param {Object} context The content assist context
+		 * @param {String} buffer The complete text of the file
 		 * @param {Number} replaceStart The offset into the source where to start the completion
 		 * @param {Object} proposals The object that attach computed proposals to
 		 * @param {Number} relevance The ordering relevance of the proposals
 		 * @param {Object} visited Those types visited thus far while computing proposals (to detect cycles)
 		 */
-		_createInferredProposals: function(targetTypeName, env, completionKind, prefix, replaceStart, proposals, relevance, visited) {
-			var prop, propTypeObj, propName, res, type = env.lookupQualifiedType(targetTypeName), proto = type.$$proto;
+		_createInferredProposals: function(targetTypeName, env, kind, context, buffer, replaceStart, proposals, relevance, visited) {
+		    if(kind === 'jsdoc' || kind === 'doc') {
+    	        return;
+		    } 
+			var type = env.lookupQualifiedType(targetTypeName);
+			if(!type) {
+			    return;
+			}
+			var proto = type.$$proto;
 			if (!relevance) {
 				relevance = 100;
 			}
@@ -331,10 +595,9 @@ define([
 				}
 				if (!cycle) {
 					visited[proto.typeObj.name] = true;
-					this._createInferredProposals(proto.typeObj.name, env, completionKind, prefix, replaceStart, proposals, relevance - 10, visited);
+					this._createInferredProposals(proto.typeObj.name, env, kind, context, buffer, replaceStart, proposals, relevance - 10, visited);
 				}
 			}
-	
 			// add a separator proposal
 			proposals['---dummy' + relevance] = {
 				proposal: '',
@@ -350,7 +613,8 @@ define([
 			// the next level is not Object
 			var realProto = Object.getPrototypeOf(type);
 			var protoIsObject = !Object.getPrototypeOf(realProto);
-			for (prop in type) {
+			var propName;
+			for (var prop in type) {
 				if (type.hasOwnProperty(prop) || (!protoIsObject && realProto.hasOwnProperty(prop))) {
 					if (prop.charAt(0) === "$" && prop.charAt(1) === "$") {
 						// special property
@@ -362,7 +626,7 @@ define([
 					} else {
 						propName = prop;
 					}
-					if (propName === "this" && completionKind === "member") {
+					if (propName === "this" && kind === "member") {
 						// don't show "this" proposals for non-top-level locations
 						// (eg- this.this is wrong)
 						continue;
@@ -371,16 +635,14 @@ define([
 						// minified files sometimes have invalid property names (eg- numbers).  Ignore them)
 						continue;
 					}
-					if (proposalUtils.looselyMatches(prefix, propName)) {
-						propTypeObj = type[prop].typeObj;
-						// if propTypeObj is a reference to a function type,
-						// extract the actual function type
+					if (proposalUtils.looselyMatches(context.prefix, propName)) {
+						var propTypeObj = type[prop].typeObj;
+						// if propTypeObj is a reference to a function type, extract the actual function type
 						if ((env._allTypes[propTypeObj.name]) && (env._allTypes[propTypeObj.name].$$fntype)) {
 							propTypeObj = env._allTypes[propTypeObj.name].$$fntype;
 						}
 						if (propTypeObj.type === 'FunctionType') {
-							res = this._calculateFunctionProposal(propName,
-									propTypeObj, replaceStart - 1);
+							var res = this._calculateFunctionProposal(propName, propTypeObj, replaceStart - 1);
 							proposals["$"+propName] = {
 								proposal: res.completion,
 								name: res.completion,
@@ -484,10 +746,9 @@ define([
 		_filterAndSortProposals: function(proposalsObj) {
 			// convert from object to array
 			var proposals = [];
-			for (var prop in proposalsObj) {
-				if (proposalsObj.hasOwnProperty(prop)) {
-					proposals.push(proposalsObj[prop]);
-				}
+			var keys = Object.keys(proposalsObj);
+			for(var i = 0; i < keys.length; i++) {
+			    proposals.push(proposalsObj[keys[i]]);
 			}
 			proposals.sort(function(l,r) {
 				// sort by relevance and then by name
@@ -511,7 +772,7 @@ define([
 			var toRemove = [];
 	
 			// now remove any leading or trailing dummy proposals as well as double dummies
-			var i = proposals.length -1;
+			i = proposals.length -1;
 			while (i >= 0 && proposals[i].description.indexOf('---') === 0) {
 				toRemove[i] = true;
 				i--;
@@ -549,12 +810,14 @@ define([
 		_findGlobalObject: function(comments, lintOptions) {
 			for (var i = 0; i < comments.length; i++) {
 				var comment = comments[i];
-				if (comment.type === "Block" && (comment.value.substring(0, "jslint".length) === "jslint" ||
-												  comment.value.substring(0,"jshint".length) === "jshint")) {
+				var value = comment.value.trim();
+				if (comment.type === "Block" && value.match(/^(?:jslint|jshint|eslint-env).*/)) {
 					// the lint options section.  now look for the browser or node
-					if (comment.value.match(this.browserRegExp) || comment.value.match(this.amdRegExp)) {
+					if (value.match(/^(?:jslint|jshint)\s+.*(?:browser|amd)\s*:\s*true(?:\s+|$).*/) || 
+					    value.match(/^eslint-env\s+.*(?:browser|amd)(?:\s+|$).*/)) {
 						return "Window";
-					} else if (comment.value.match(this.nodeRegExp)) {
+					} else if (value.match(/^(?:jslint|jshint)\s+.*node\s*:\s*true(?:\s+|$).*/) ||
+					           value.match(/^eslint-env\s+.*node(?:\s+|$).*/)) {
 						return "Module";
 					} else {
 						return "Global";
@@ -562,7 +825,7 @@ define([
 				}
 			}
 			if (lintOptions && lintOptions.options) {
-				if (lintOptions.options.browser === true) {
+				if (lintOptions.options.browser === true || lintOptions.options.amd === true) {
 					return "Window";
 				} else if (lintOptions.options.node === true) {
 					return "Module";
@@ -580,6 +843,25 @@ define([
 		 * @since 6.0
 		 */
 		_getCompletionContext: function(ast, offset, contents) {
+		    var comment = Finder.findComment(offset, ast);
+		    if(comment) {
+		        switch(comment.type) {
+		            case 'Block': {
+		                var start  = comment.range[0];
+        		        if(contents.charAt(start) === '/' && contents.charAt(start+1) === '*') {
+                            if(contents.charAt(start+2) === '*' && offset > start+2) { // must be past the second '*'
+                                return {kind:'jsdoc', node: comment};  
+                            } else if(offset > start+1) { //must be past the '*'
+                		            return {kind:'doc', node: comment};
+                		        }
+        		        }
+		            }
+		            //$FALLTHROUGH$
+		            default: return null;
+		        }
+		        
+		        return null;
+		    }
 			var parents = [];
 			Estraverse.traverse(ast, {
 				skipped: false,

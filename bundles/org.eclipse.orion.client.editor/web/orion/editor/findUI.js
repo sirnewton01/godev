@@ -9,8 +9,7 @@
  * Contributors: 
  *	IBM Corporation - initial API and implementation
  ******************************************************************************/
-/* globals define window */
-
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/editor/nls/messages',
 	'orion/editor/find',

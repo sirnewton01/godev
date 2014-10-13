@@ -8,9 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define*/
-/*jslint browser:true */
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui/dialog', 'text!orion/webui/dialogs/promptdialog.html', 'orion/EventTarget'], 
 function(messages, lib, dialog, PromptDialogFragment, EventTarget) {
 

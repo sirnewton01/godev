@@ -9,14 +9,13 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
- /*jslint browser:true devel:true sub:true */
- /*global define window orion */
+/*eslint-env browser, amd*/
 
-define(['i18n!profile/nls/messages', 'require', 'orion/webui/littlelib', 'orion/i18nUtil', 'orion/bootstrap', 'orion/status', 'orion/progress', 'orion/operationsClient', 
+define(['i18n!profile/nls/messages', 'require', 'orion/i18nUtil', 'orion/bootstrap', 'orion/status', 'orion/progress', 'orion/operationsClient', 
 			'orion/commandRegistry', 'orion/commands', 'orion/selection',
-	        'orion/searchClient', 'orion/fileClient', 'orion/globalCommands', 'orion/profile/UsersList', 'orion/profile/usersUtil',
+	        'orion/searchClient', 'orion/fileClient', 'orion/globalCommands', 'orion/profile/UsersList',
 	        'orion/profile/dialogs/NewUserDialog', 'orion/profile/dialogs/ResetPasswordDialog'], 
-			function(messages, require, lib, i18nUtil, mBootstrap, mStatus, mProgress, mOperationsClient, mCommandRegistry, mCommands, mSelection, mSearchClient, mFileClient, mGlobalCommands, mUsersList, mUsersUtil, NewUserDialog, ResetPasswordDialog) {
+			function(messages, require, i18nUtil, mBootstrap, mStatus, mProgress, mOperationsClient, mCommandRegistry, mCommands, mSelection, mSearchClient, mFileClient, mGlobalCommands, mUsersList, NewUserDialog, ResetPasswordDialog) {
 
 	mBootstrap.startup().then(function(core) {
 		var serviceRegistry = core.serviceRegistry;
@@ -126,7 +125,7 @@ define(['i18n!profile/nls/messages', 'require', 'orion/webui/littlelib', 'orion/
 				var item = data.items;
 				var userService = serviceRegistry.getService("orion.core.user"); //$NON-NLS-0$
 				if(Array.isArray(item) && item.length > 1){
-					if(confirm(i18nUtil.formatMessage(messages["Are you sure you want to delete these ${0} users?"], item.length))){
+					if(confirm(i18nUtil.formatMessage(messages["ConfirmDeleteUsers"], item.length))){
 						var usersProcessed = 0;
 						for(var i=0; i<item.length; i++){
 							userService.deleteUser(item[i].Location).then(function(jsonData) {
@@ -140,7 +139,7 @@ define(['i18n!profile/nls/messages', 'require', 'orion/webui/littlelib', 'orion/
 					
 				}else{
 					item = Array.isArray(item) ? item[0] : item;
-					if (confirm(i18nUtil.formatMessage(messages["Are you sure you want to delete user ${0}?"], item.login))) {
+					if (confirm(i18nUtil.formatMessage(messages["ConfirmDeleteUser"], item.login))) {
 						userService.deleteUser(item.Location).then(function(jsonData) {
 						  usersList.loadUsers();
 					  });

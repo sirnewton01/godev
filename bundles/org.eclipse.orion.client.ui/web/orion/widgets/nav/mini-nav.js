@@ -8,19 +8,15 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define URL*/
-/*jslint browser:true sub:true*/
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/edit/nls/messages',
 	'orion/objects',
-	'orion/webui/littlelib',
 	'orion/widgets/nav/common-nav',
-	'orion/fileCommands',
 	'orion/PageUtil',
-	'orion/Deferred',
 	'orion/widgets/filesystem/filesystemSwitcher',
 	'orion/URL-shim'
-], function(messages, objects, lib, mCommonNav, FileCommands, PageUtil, Deferred, mFilesystemSwitcher, _) {
+], function(messages, objects, mCommonNav, PageUtil, mFilesystemSwitcher) {
 	var CommonNavExplorer = mCommonNav.CommonNavExplorer;
 	var CommonNavRenderer = mCommonNav.CommonNavRenderer;
 
@@ -35,7 +31,6 @@ define([
 			var _self = this;
 			// Broadcast changes of our explorer root to the sidebarNavInputManager
 			this.addEventListener("rootChanged", function(event) { //$NON-NLS-0$
-				_self.sidebarNavInputManager.dispatchEvent(event);
 				_self.sidebarNavInputManager.dispatchEvent({type: "InputChanged", input: event.root.ChildrenLocation}); //$NON-NLS-0$
 			});
 			sidebarNavInputManager.setInput = function(input) {

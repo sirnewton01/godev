@@ -9,11 +9,9 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint browser:true*/
-/*global define orion window */
-
-define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', 'orion/uiUtils'], 
-		function(messages, require, lib, uiUtil) {
+/*eslint-env browser, amd*/
+define(['orion/webui/littlelib', 'orion/uiUtils'], 
+		function(lib, uiUtil) {
 	/**
 	 * Holds the current opened modal dialog.
 	 */

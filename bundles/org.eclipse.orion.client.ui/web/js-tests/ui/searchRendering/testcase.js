@@ -8,7 +8,7 @@
  * Contributors: VMware - initial API and implementation
  *     Andrew Eisenberg - initial API and implementation
  ******************************************************************************/
-/*global define document*/
+/*eslint-env browser, amd*/
 define(["chai/chai", "orion/serviceregistry", "orion/searchRenderer"], 
 		function(chai, mServiceregistry, mSearchRenderer) {
 	var assert = chai.assert;

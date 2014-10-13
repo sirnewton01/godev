@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013 IBM Corporation and others.
+ * Copyright (c) 2013, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -8,12 +8,14 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
-/*global define document window*/
-define(['orion/projects/projectExplorer',
+/*eslint-env browser, amd*/
+define([
+    'i18n!orion/edit/nls/messages',
+    'orion/projects/projectExplorer',
 	'orion/selection',
 	'orion/URITemplate',
-	'orion/webui/littlelib',
-	'orion/fileCommands'], function(mProjectExplorer, Selection, URITemplate, lib, FileCommands) {
+	'orion/fileCommands'
+], function(messages, mProjectExplorer, Selection, URITemplate, FileCommands) {
 	
 		var uriTemplate = new URITemplate("#{,resource,params*}"); //$NON-NLS-0$
 	
@@ -106,14 +108,14 @@ define(['orion/projects/projectExplorer',
 					return;
 				}
 				if(parent){
-					_self.progress.progress(_self.projectClient.readAllProjects(parent), "Listing projects").then(function(projects){
+					_self.progress.progress(_self.projectClient.readAllProjects(parent), messages['listingProjects']).then(function(projects){
 						_self.workspace = parent;
 						_self.projects = projects;
 						_self.projectExplorer.loadProjects(projects);
 					});
 				} else {
-					_self.progress.progress(_self.fileClient.loadWorkspace(), "Getting workspace information").then(function(workspace){
-						_self.progress.progress(_self.projectClient.readAllProjects(parent), "Listing projects").then(function(projects){
+					_self.progress.progress(_self.fileClient.loadWorkspace(), messages['gettingWorkspaceInfo']).then(function(workspace){
+						_self.progress.progress(_self.projectClient.readAllProjects(parent), messages['listingProjects']).then(function(projects){
 							_self.workspace = workspace;
 							_self.projects = projects;
 							_self.projectExplorer.loadProjects(projects);

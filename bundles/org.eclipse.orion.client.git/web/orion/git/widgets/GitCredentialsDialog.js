@@ -9,7 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
-  /*globals define window setTimeout, FileReader URL*/
+/*eslint-env browser, amd*/
 
 define([ 'i18n!git/nls/gitmessages', 'orion/git/gitPreferenceStorage', 'orion/webui/dialog', 'orion/git/util'],
  function(messages, GitPreferenceStorage, dialog, mGitUtil) {

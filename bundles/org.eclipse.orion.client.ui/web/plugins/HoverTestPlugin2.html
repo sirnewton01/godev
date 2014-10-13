@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Hover Test Plugin</title>
+	<script src="../requirejs/require.js"></script>
+	<script>
+		/*eslint-env browser, amd*/
+		require({
+			baseUrl: '..',
+			paths: {
+				text: 'requirejs/text',
+				i18n: 'requirejs/i18n',
+				domReady: 'requirejs/domReady'
+			}
+		});
+		require(["plugins/HoverTestPlugin2"]);
+	</script>
+</head>
+<body>
+</body>
+</html>

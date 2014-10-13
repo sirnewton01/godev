@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global global self Uint8Array Uint16Array*/
+/*eslint-env browser, amd*/
 // Encoding Shim -- see http://encoding.spec.whatwg.org/
 (function(global) {
 	function EncodingError() {

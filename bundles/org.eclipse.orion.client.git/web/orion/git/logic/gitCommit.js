@@ -9,11 +9,15 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*globals document define*/
+/*eslint-env browser, amd*/
 
-define(['i18n!git/nls/gitmessages','orion/commandRegistry','orion/Deferred','orion/git/widgets/CommitDialog',
-        'orion/git/logic/gitCommon', 'orion/i18nUtil'], 
-		function(messages,mCommandRegistry,Deferred,mCommit,mGitCommon,i18nUtil) {
+define([
+	'i18n!git/nls/gitmessages',
+	'orion/Deferred',
+	'orion/git/logic/gitCommon',
+	'orion/i18nUtil',
+], 
+function(messages, Deferred, mGitCommon, i18nUtil) {
 	
 	var handleProgressServiceResponse = mGitCommon.handleProgressServiceResponse;
 	
@@ -24,36 +28,17 @@ define(['i18n!git/nls/gitmessages','orion/commandRegistry','orion/Deferred','ori
 	return function(dependencies) {
 		
 		var serviceRegistry = dependencies.serviceRegistry;
-		var commandService = dependencies.commandService;
 		
-		/* Fetches the appropriate commit message when the 'amend' flag is used */
-		var amendEventListener = new mCommandRegistry.CommandEventListener('change', function(event, commandInvocation){ //$NON-NLS-0$
-			var target = event.target;
-			var item = commandInvocation.items.status;
-			var commitMessageBox = document.getElementById("name" + "parameterCollector"); //$NON-NLS-0$//$NON-NLS-1$
-				
-			if(target.checked){
-				var progressService = serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
-				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
-				var deferred = progress.progress(serviceRegistry.getService("orion.git.provider").doGitLog(item.CommitLocation + "?page=1&pageSize=1"), messages["Fetching previous commit message"]); //$NON-NLS-0$ 
-					
-				progressService.createProgressMonitor(deferred, messages["Fetching previous commit message"], deferred.then(function(resp){
-					// use the last commit message
-					var message = resp.Children[0].Message;
-					commitMessageBox.value = message;
-				}), function(error){
-					commitMessageBox.value = ""; //$NON-NLS-0$
-				});
-			} else {
-				commitMessageBox.value = ""; //$NON-NLS-0$
-			}
-		});
-		
-		var parameters = new mCommandRegistry.ParametersDescription(
-				[new mCommandRegistry.CommandParameter('name', 'text', messages['Commit message:'], "", 4), //$NON-NLS-0$  //$NON-NLS-1$  //$NON-NLS-3$
-				 new mCommandRegistry.CommandParameter('amend', 'boolean', messages['Amend:'], false, null, amendEventListener), //$NON-NLS-0$  //$NON-NLS-1$
-				 new mCommandRegistry.CommandParameter('changeId', 'boolean', messages['ChangeId:'], false)], //$NON-NLS-0$  //$NON-NLS-1$
-				 {hasOptionalParameters: true});
+		var getAmendMessage = function(location) {
+			var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
+			var deferred = new Deferred();
+			progress.progress(serviceRegistry.getService("orion.git.provider").doGitLog(location + "?page=1&pageSize=1"), messages["Fetching previous commit message"]).then(function(resp) { //$NON-NLS-1$ //$NON-NLS-0$ 
+				deferred.resolve(resp.Children[0].Message);
+			}, function(){
+				deferred.resolve("");
+			});
+			return deferred;
+		};
 		
 		var setGitCloneConfig = function(key,value,location) {
 			var gitService = serviceRegistry.getService("orion.git.provider"); //$NON-NLS-0$
@@ -87,6 +72,20 @@ define(['i18n!git/nls/gitmessages','orion/commandRegistry','orion/Deferred','ori
 			return deferred;
 		};
 		
+		var getGitCloneConfig = function(config) {
+			var result = {};
+			for (var i=0; i < config.length; i++){
+				if (config[i].Key === "user.name"){ //$NON-NLS-0$
+					result.CommitterName = config[i].Value;
+					result.AuthorName = config[i].Value;
+				} else if (config[i].Key === "user.email"){ //$NON-NLS-0$
+					result.CommitterEmail = config[i].Value;
+					result.AuthorEmail = config[i].Value;
+				}
+			}
+			return result;
+		};
+		
 		var displayErrorOnStatus = function(error) {
 			var display = {};
 			display.Severity = "Error"; //$NON-NLS-0$
@@ -97,8 +96,7 @@ define(['i18n!git/nls/gitmessages','orion/commandRegistry','orion/Deferred','ori
 				if (error.status === 401) {
 					display.HTML = true;
 					display.Message = "<span>"; //$NON-NLS-0$
-					display.Message += i18nUtil.formatMessage(messages["Authentication required for: ${0}. ${1} and re-try the request."], resp.label, "<a target=\"_blank\" href=\"" + resp.SignInLocation //$NON-NLS-1$ //$NON-NLS-0$
-					+ "\">" + messages["Login"] + "</a>") + "</span>"; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					display.Message += i18nUtil.formatMessage(messages["AuthMsgLink"], resp.label, resp.SignInLocation, messages["Login"]); //$NON-NLS-0$
 				} else {
 					display.Message = resp.DetailedMessage ? resp.DetailedMessage : (resp.Message ? resp.Message : messages["Problem while performing the action"]);
 				}
@@ -106,13 +104,13 @@ define(['i18n!git/nls/gitmessages','orion/commandRegistry','orion/Deferred','ori
 				display.Message = messages["Problem while performing the action"];
 			}
 			
-			serviceRegistry.getService("orion.page.message").setProgressResult(display); 
+			serviceRegistry.getService("orion.page.message").setProgressResult(display); //$NON-NLS-0$
 		};
 		
 		var perform = function(data) {
 			var d = new Deferred();
 				
-			var item = data.items.status;
+			var item = data.items.status || data.handler.status;
 			var location = item.Clone.ConfigLocation;
 			var handleError = function(error){
 				handleProgressServiceResponse(error, {}, serviceRegistry);
@@ -120,17 +118,16 @@ define(['i18n!git/nls/gitmessages','orion/commandRegistry','orion/Deferred','ori
 			var commitFunction = function(body){
 				if (body.persist) {
 					setGitCloneConfig("user.name",body.CommitterName,location).then(function() { //$NON-NLS-0$
-							setGitCloneConfig("user.email", body.CommitterEmail, location).then(function() {}, //$NON-NLS-0$
-								function(err) {
-									handleError(err);
-									d.reject(err);
-								});	
-							},
-							function(err) {
-								handleError(err);
-								d.reject(err);
-							});	
-					}
+						setGitCloneConfig("user.email", body.CommitterEmail, location).then(function() { //$NON-NLS-0$
+						}, function(err) {
+							handleError(err);
+							d.reject(err);
+						});	
+					}, function(err) {
+						handleError(err);
+						d.reject(err);
+					});	
+				}
 				var progressService = serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
 				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
 				var deferred = progress.progress(serviceRegistry.getService("orion.git.provider").commitAll(item.Clone.HeadLocation, null, JSON.stringify(body)), messages["Committing changes"]); //$NON-NLS-0$ //$NON-NLS-1$
@@ -138,7 +135,7 @@ define(['i18n!git/nls/gitmessages','orion/commandRegistry','orion/Deferred','ori
 					deferred,
 					messages["Committing changes"]); //$NON-NLS-0$
 				deferred.then(
-					function(jsonData){
+					function(){
 						d.resolve();
 					}, 
 					function(err) {
@@ -148,61 +145,22 @@ define(['i18n!git/nls/gitmessages','orion/commandRegistry','orion/Deferred','ori
 				);
 			};
 					
-			var gatherCommitInformation = function(body, config){
-				for (var i=0; i < config.length; i++){
-					if (config[i].Key === "user.name"){ //$NON-NLS-0$
-						body.CommitterName = config[i].Value;
-						body.AuthorName = config[i].Value;
-					} else if (config[i].Key === "user.email"){ //$NON-NLS-0$
-						body.CommitterEmail = config[i].Value;
-						body.AuthorEmail = config[i].Value;
-					}
-				}
-					
-				if (body.Message && body.CommitterName && body.CommitterEmail && !data.parameters.optionsRequested) {
+			var body = data.userData;
+			if (body.Amend && !body.Message){
+				getAmendMessage(item.CommitLocation).then(function(msg) {
+					body.Message = msg;
 					commitFunction(body);
-				} else {
-					var dialog = new mCommit.CommitDialog({
-						body: body,
-						func: commitFunction
-					});
-						dialog.show();
-					}
-				};
-					
-			var body = {};
-			body.Message = data.parameters.valueFor("name"); //$NON-NLS-0$
-			body.Amend = data.parameters.valueFor("amend"); //$NON-NLS-0$
-			body.ChangeId = data.parameters.valueFor("changeId"); //$NON-NLS-0$
-				
-			var config = item.Clone.Config;
-			if(body.Amend && !body.Message){
-				var progressService = serviceRegistry.getService("orion.page.message"); //$NON-NLS-0$
-				var progress = serviceRegistry.getService("orion.page.progress"); //$NON-NLS-0$
-				var deferred = progress.progress(serviceRegistry.getService("orion.git.provider").doGitLog(item.CommitLocation + "?page=1&pageSize=1"), messages["Committing changes"]); //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$ 
-				progressService.createProgressMonitor(
-					deferred,
-					messages["Committing changes"]); //$NON-NLS-0$
-				deferred.then(
-					function(resp){
-						// use the last commit message
-						body.Message = resp.Children[0].Message;
-						gatherCommitInformation(body, config);
-					}, function(error){
-						//unexpected error, fall back to default
-						gatherCommitInformation(body, config);
-					}
-				);
+				});
 			} else {
-					gatherCommitInformation(body, config);
+				commitFunction(body);
 			}
 			return d;
 		};
 		return {
 			perform:perform,
-			parameters:parameters,
 			displayErrorOnStatus:displayErrorOnStatus,
-			amendEventListener:amendEventListener,
+			getAmendMessage: getAmendMessage,
+			getGitCloneConfig: getGitCloneConfig,
 			setGitCloneConfig: setGitCloneConfig
 		};
 	};

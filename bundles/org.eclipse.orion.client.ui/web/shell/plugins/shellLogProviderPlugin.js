@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global document define*/
+/*eslint-env browser, amd*/
 define(['require', 'orion/plugin', 'orion/xhr', 'orion/Deferred', 'orion/i18nUtil'],
  function(require, PluginProvider, _xhr, Deferred, i18nUtil) {
 	

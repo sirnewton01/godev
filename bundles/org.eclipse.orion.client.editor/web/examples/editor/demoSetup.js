@@ -10,7 +10,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
  
-/*globals define XMLHttpRequest log */
+/*eslint-env browser, amd*/
  
 define(["require", 
 		"orion/keyBinding",
@@ -63,6 +63,13 @@ define(["require",
 		}
 	}
 	
+	function updateZoomRuler(view, options) {
+		view.removeRuler(view.zoomRuler);
+		if (options.showZoomRuler) {
+			view.addRuler(view.zoomRuler);
+		}
+	}
+	
 	function updateKeyMode(view, options) {
 		view.removeKeyMode(vi);
 		view.removeKeyMode(emacs);
@@ -80,6 +87,7 @@ define(["require",
 				view.setOptions(options);
 				updateKeyMode(view, options);
 				updateMarginRuler(view, options);
+				updateZoomRuler(view, options);
 			}
 			return view;
 		}
@@ -214,6 +222,8 @@ define(["require",
 		view.addRuler(linesRuler);
 		
 		view.marginLines = new mRulers.LineNumberRuler(annotationModel, "margin", {styleClass: "ruler lines"}, {styleClass: "rulerLines odd"}, {styleClass: "rulerLines even"}); //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+
+		view.zoomRuler = new mRulers.ZoomRuler(util.isIOS || util.isAndroid ? "right" : "innerRight", {styleClass: "ruler zoom"}); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		
 		if (foldingEnabled) {
 			var foldingRuler = view.folding = new mRulers.FoldingRuler(annotationModel, "left", {styleClass: "ruler folding"}); //$NON-NLS-1$ //$NON-NLS-0$
@@ -222,6 +232,7 @@ define(["require",
 		}
 		view.addRuler(overviewRuler);
 		updateMarginRuler(view, options);
+		updateZoomRuler(view, options);
 		return view;
 	}
 	exports.checkView = checkView;

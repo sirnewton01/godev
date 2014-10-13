@@ -9,7 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define document*/
+/*eslint-env browser, amd*/
 define([
 	'require',
 	'orion/commands',
@@ -102,7 +102,7 @@ define([
 		* [interface] starts the progress indicator
 		*/
 		start: function(){
-			var image = document.createElement("img");
+			var image = document.createElement("span");
 			image.id = this._prefix+this._id;
 			image.style.textDecoration = "blink";
 			image.appendChild(document.createTextNode(" ..."));
@@ -197,7 +197,9 @@ define([
 		
 		// default error handler
 		errorHandler : function(i, err){
-			this.explorer.progressIndicators[i].error(err);
+			if (this.explorer.progressIndicators[i]) {
+				this.explorer.progressIndicators[i].error(err);
+			}
 		}
 	};
 	
@@ -235,7 +237,9 @@ define([
 					that._renderAfterItemPopulation(i);
 					
 					//stop indicator
-					that.progressIndicators[i].stop();
+					if (that.progressIndicators[i]) {
+						that.progressIndicators[i].stop();
+					}
 				};
 			};
 			
@@ -252,7 +256,9 @@ define([
 				this._renderBeforeItemPopulation(i);
 				
 				//start indicator
-				this.progressIndicators[i].start();
+				if (this.progressIndicators[i]) {
+					this.progressIndicators[i].start();
+				}
 				
 				//population
 				this._model.getDetails(i).then(

@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2013 IBM Corporation and others.
+ * Copyright (c) 2013,2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -10,8 +10,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
  
-/*globals define*/
-
+/*eslint-env browser, amd*/
 define("orion/editor/textTheme", //$NON-NLS-0$
 [
 	'require', //$NON-NLS-0$
@@ -123,86 +122,41 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 		onThemeChanged: function(themeChangedEvent) {
 			return this.dispatchEvent(themeChangedEvent);
 		},
-		/**
-		 * @private
-		 */
 		buildStyleSheet: function(themeClass, settings) {
-			
-			var result = [];
-			result.push("");
-			
-			result.push("." + themeClass + " {"); //$NON-NLS-1$ //$NON-NLS-0$
-			if (settings.fontFamily) {
-				result.push("\tfont-family: " + settings.fontFamily + ";"); //$NON-NLS-1$ //$NON-NLS-0$
-			}
-			if (settings.fontSize) {
-				result.push("\tfont-size: " + settings.fontSize + ";"); //$NON-NLS-1$ //$NON-NLS-0$
-			}
-			if (settings.fontSize) {			
-				result.push("\tcolor: " + settings.text + ";"); //$NON-NLS-1$ //$NON-NLS-0$
-			}
-			result.push("}"); //$NON-NLS-0$
-			
-			//From textview.css
-			result.push("." + themeClass + ".textview {"); //$NON-NLS-1$ //$NON-NLS-0$
-			if (settings.background) {		
-				result.push("\tbackground-color: " + settings.background + ";"); //$NON-NLS-1$ //$NON-NLS-0$
-			}
-			
-			result.push("}"); //$NON-NLS-0$
-			
-			result.push("." + themeClass + " .textviewLeftRuler {"); //$NON-NLS-1$ //$NON-NLS-0$
-			
-			if(settings.leftRuler){
-				result.push("\tborder-right: 1px solid " + settings.leftRuler + ";"); //$NON-NLS-1$ //$NON-NLS-0$
-			}
-			
-			result.push("}"); //$NON-NLS-0$
-			
-			result.push("." + themeClass + " .textviewRightRuler {"); //$NON-NLS-1$ //$NON-NLS-0$
-			
-			if(settings.rightRuler){
-				result.push("\tborder-left: 1px solid " + settings.rightRuler + ";"); //$NON-NLS-1$ //$NON-NLS-0$
-			}
-			
-			result.push("}"); //$NON-NLS-0$
-			
-			
-			function defineRule(className, value, isBackground) {
-				if (value) {
-					result.push("." + themeClass + " ." + className + " {"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-					result.push("\t" + (isBackground ? "background-color" : "color") + ": " + value + ";"); //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			var convertCSSname = function(name) {
+				return name.replace(this._capitalRegEx, function(match) {
+					return "-" + match; //$NON-NLS-0$
+				}.bind(this)).toLowerCase();
+			}.bind(this);
+
+			var parseStyles = function(object, ancestors, className, isTopLevel, result) {
+				var localResult = [];
+				var keys = Object.keys(object);
+				keys.forEach(function(key) {
+					var value = object[key];
+					if (typeof(value) === "string") { //$NON-NLS-0$
+						localResult.push("\t" + convertCSSname(key) + ": " + value + ";"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					} else {
+						parseStyles(
+							value,
+							className === key ? ancestors : ancestors + (isTopLevel ? " ." : ".") + key, //$NON-NLS-1$ //$NON-NLS-0$
+							className,
+							false,
+							result);
+					}
+				});
+				if (localResult.length) {
+					result.push(ancestors + (isTopLevel ? ".textview" : "") + " {"); //$NON-NLS-0$
+					result.push.apply(result, localResult);
 					result.push("}"); //$NON-NLS-0$
 				}
-			}
-			
-			//From rulers.css
-			defineRule("ruler.annotations", settings.annotationRuler, true); //$NON-NLS-0$
-			defineRule("ruler.lines", settings.annotationRuler, true); //$NON-NLS-0$
-			defineRule("ruler.folding", settings.annotationRuler, true); //$NON-NLS-0$
-			defineRule("ruler.overview", settings.overviewRuler, true); //$NON-NLS-0$
-			defineRule("rulerLines", settings.lineNumber, false); //$NON-NLS-0$
-			defineRule("rulerLines.even", settings.lineNumberEven, false); //$NON-NLS-0$
-			defineRule("rulerLines.odd", settings.lineNumberOdd, false); //$NON-NLS-0$
-			
-			//From annotations.css
-			defineRule("annotationLine.currentLine", settings.currentLine, true); //$NON-NLS-0$
-			
-			//From textstyler.css
-			defineRule("entity-name-tag", settings.keyword, false); //$NON-NLS-0$
-			defineRule("entity-other-attribute-name", settings.attribute, false); //$NON-NLS-0$
-			defineRule("string-quoted", settings.string, false); //$NON-NLS-0$
-			defineRule("meta.annotation.currentLine", settings.currentLine, true); //$NON-NLS-0$
-			defineRule("keyword", settings.keyword, false); //$NON-NLS-0$
-			defineRule("string", settings.string, false); //$NON-NLS-0$\
-			defineRule("constant", settings.constant, false); //$NON-NLS-0$
-			defineRule("comment", settings.comment, false); //$NON-NLS-0$
-			defineRule("comment.block.documentation", settings.comment, false); //$NON-NLS-0$
-			defineRule("keyword.other.documentation.markup", settings.comment, false); //$NON-NLS-0$
-			defineRule("keyword.other.documentation.markup", settings.comment, false); //$NON-NLS-0$
+			};
 
+			var result = [""];
+			parseStyles(settings.styles, "." + themeClass, settings.className, true, result); //$NON-NLS-0$
 			return result.join("\n"); //$NON-NLS-0$
 		},
+
 		/**
 		 * @private
 		 */
@@ -262,7 +216,8 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 					self._createStyle(className, cssText, callback, false);
 				});
 			}
-		}
+		},
+		_capitalRegEx: /[A-Z]/g
 	};
 	mEventTarget.EventTarget.addMixin(TextTheme.prototype);
 	

@@ -9,10 +9,8 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define window*/
-/*jslint regexp:false browser:true forin:true*/
-
-define(['require', 'orion/searchExplorer', 'stringexternalizer/strExternalizerModel', 'stringexternalizer/nonnlsSearchUtil'], function(require, mSearchExplorer, mStrExternalizerModel, mSearchUtils){
+/*eslint-env browser, amd*/
+define(['orion/searchExplorer', 'stringexternalizer/strExternalizerModel', 'stringexternalizer/nonnlsSearchUtil'], function(mSearchExplorer, mStrExternalizerModel, mSearchUtils){
 
 	/**
 	 * Creates a new search results generator.

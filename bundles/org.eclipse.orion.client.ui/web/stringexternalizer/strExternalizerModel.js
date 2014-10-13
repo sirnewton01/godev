@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define console window*/
-/*jslint regexp:false browser:true forin:true*/
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/stringexternalizer/nls/messages', 'require', 'orion/Deferred', 'orion/i18nUtil', 'orion/explorers/explorer', 'orion/searchUtils', 'stringexternalizer/nonnlsSearchUtil'],
 
 function(messages, require, Deferred, i18nUtil, mExplorer, mSearchUtils, mNonnlsSearchUtil) {
@@ -22,7 +20,7 @@ function(messages, require, Deferred, i18nUtil, mExplorer, mSearchUtils, mNonnls
             message: message ? message : (passed ? messages["Passed"] : messages["Failed"]),
             status: passed ? "pass" : "failed" //$NON-NLS-0$ //$NON-NLS-0$
         });
-    };
+    }
     
     function _matchesReplaced(fileModel) {
         var matchesReplaced = 0;
@@ -37,7 +35,7 @@ function(messages, require, Deferred, i18nUtil, mExplorer, mSearchUtils, mNonnls
             }
         }
         return matchesReplaced;
-    };
+    }
 
     /*
      *	The model to support the string externalizer in the generaic searchExplorer.
@@ -164,7 +162,7 @@ function(messages, require, Deferred, i18nUtil, mExplorer, mSearchUtils, mNonnls
         return {
             name: modelItem.fullPathName,
             href: require.toUrl("stringexternalizer/strExternalizer.html") + "#" + modelItem.parentLocation, //$NON-NLS-1$ //$NON-NLS-0$,
-            tooltip: i18nUtil.formatMessage(messages["Externalize string from ${0} only"], modelItem.fullPathName)
+            tooltip: i18nUtil.formatMessage(messages["ExternalizeStrMsg"], modelItem.fullPathName)
         };
     };
 
@@ -315,7 +313,7 @@ function(messages, require, Deferred, i18nUtil, mExplorer, mSearchUtils, mNonnls
             return this.registry.getService("orion.page.progress").progress(this.fileClient.read(fileItem.Location, true), "Reading file metadata " + fileItem.Location).then(function(metadata) {
                 //If the file has been modified by others when trying to write it, we should report this status in the report list
                 if (fileItem.LocalTimeStamp !== metadata.LocalTimeStamp) {
-                    _writeReport(reportList, fileItem, false, messages["Resource has been changed by others"]);
+                    _writeReport(reportList, fileItem, false, messages["ResourceChanged"]);
                 } else if (!fileItem.contents) {//If fiel item does not have contents yet, we should get the contents first
                     return that.registry.getService("orion.page.progress").progress(that.fileClient.read(fileItem.Location), "Reading file " + fileItem.Location).then(function(contents) {
                         fileItem.contents = contents;

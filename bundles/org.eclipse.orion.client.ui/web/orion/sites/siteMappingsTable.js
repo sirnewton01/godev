@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define document */
-/*jslint sub:true*/
+/*eslint-env browser, amd*/
 define(['i18n!orion/sites/nls/messages', 'orion/commands', 'orion/explorers/explorer', 'orion/i18nUtil', 'orion/Deferred', 'orion/webui/littlelib', 'orion/EventTarget'],
 		function(messages, mCommands, mExplorer, i18nUtil, Deferred, lib, EventTarget) {
 
@@ -39,14 +38,14 @@ mSiteMappingsTable.Model = (function() {
 	Model.prototype = new mExplorer.ExplorerFlatModel();
 	mixin(Model.prototype, {
 		getId: function(/**Object*/ item) {
-			var result;
 			if (item === this.root) {
-				result = this.rootId;
-			} else {
-				result = "mapping_" + this.items.indexOf(item); //$NON-NLS-0$
+				item.removeAll = true; // This is a hack see treetable.js
+				return this.rootId;
 			}
-			return result;
-		}});
+			// Just generate an ID based on position in the table
+			return "mapping_" + this.items.indexOf(item); //$NON-NLS-0$
+		}
+	});
 	return Model;
 }());
 

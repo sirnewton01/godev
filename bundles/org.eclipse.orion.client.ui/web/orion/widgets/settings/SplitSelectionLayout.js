@@ -8,13 +8,12 @@
  * 
  * Contributors: Anton McConville - IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global widgets orion  window console define localStorage*/
-/*jslint browser:true*/
+/*eslint-env browser, amd*/
 
 /* This SettingsContainer widget is a container with a left and right side. The left is for choosing a 
    category, the right shows the resulting HTML for that category. */
 
-define(['i18n!orion/settings/nls/messages', 'require', 'orion/webui/littlelib', 'orion/objects'], function(messages, require, lib, objects) {
+define(['orion/webui/littlelib', 'orion/objects'], function(lib, objects) {
 	/**
 	 * @name orion.widgets.settings.SplitSelectionLayout
 	 * @class
@@ -36,11 +35,9 @@ define(['i18n!orion/settings/nls/messages', 'require', 'orion/webui/littlelib', 
 	}
 	objects.mixin(SplitSelectionLayout.prototype, /** @lends orion.widgets.settings.SplitSelectionLayout.prototype */ {
 		categoriesTemplateString: '' + //$NON-NLS-0$
-			'<div id="categories" class="categories">' +  //$NON-NLS-0$
 				'<div id="categoryNode" class="sidePanelMargins">' + //$NON-NLS-0$
 					'<ul class="navbar" role="tablist" aria-labelledby="content-title"></ul>' +  //$NON-NLS-0$
-				'</div>' + //$NON-NLS-0$
-			'</div>', //$NON-NLS-0$
+				'</div>', //$NON-NLS-0$
 		contentTemplateString: '' + //$NON-NLS-0$
 			'<div class="settings" role="tabpanel">' + //$NON-NLS-0$
 			'	<div class="split-selection-table"></div>' + //$NON-NLS-0$

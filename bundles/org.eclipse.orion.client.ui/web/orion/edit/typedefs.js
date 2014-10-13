@@ -8,14 +8,15 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation 
  ******************************************************************************/
-/*jslint amd:true*/
+/*eslint-env browser, amd*/
 define([
 	"orion/objects",
-	"orion/serviceTracker"
-], function(objects, ServiceTracker) {
+	"orion/serviceTracker",
+	"orion/i18nUtil"
+], function(objects, ServiceTracker, i18nUtil) {
 
 	function err(msg, serviceRef) {
-		throw new Error(msg + " [service id: " + serviceRef.getProperty("service.id") + "]"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$ 
+		throw new Error(i18nUtil.formatMessage("${0} [service id: ${1}]", msg, serviceRef.getProperty("service.id"))); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$ 
 	}
 
 	/**

@@ -8,9 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define */
-/*jslint browser:true*/
-
+/*eslint-env browser, amd*/
 define(['orion/objects', 'orion/webui/littlelib'], function(objects, lib) {
 
 	function LabeledCommand(options, node) {

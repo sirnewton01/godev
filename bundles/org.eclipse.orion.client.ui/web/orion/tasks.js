@@ -9,10 +9,8 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
-/*global window document define setTimeout */
-/*jslint forin:true*/
-
-define(['i18n!orion/nls/messages', 'require', 'orion/webui/littlelib', 'orion/section', 'orion/commandRegistry'], function(messages, require, lib, mSection, mCommands){
+/*eslint-env browser, amd*/
+define(['i18n!orion/nls/messages', 'orion/webui/littlelib', 'orion/section'], function(messages, lib, mSection){
 
 	/**
 	 * Creates a new user interface element showing a list of tasks

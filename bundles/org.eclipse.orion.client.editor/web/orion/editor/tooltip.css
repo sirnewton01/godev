@@ -10,7 +10,7 @@
 /* Styles for the view tooltips */
 .textviewTooltip {
 	font-family: "Consolas", "Monaco", "Vera Mono", monospace;
-	font-size: 10pt;
+	font-size: 12px;
 	background-color: InfoBackground;
 	color: InfoText;
 	padding: 2px;

@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define*/
+/*eslint-env browser, amd*/
 define([
 	'js-tests/editor/mockTextView',
 	'orion/editor/editor',

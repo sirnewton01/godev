@@ -9,14 +9,28 @@
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define localStorage*/
+/*eslint-env browser, amd*/
 define(['require', 'orion/Deferred'], function(require, Deferred) {
 
 	var messageBundleDeffereds = {};
 
+	/**
+	 * Performs string substitution. Can be invoked in 2 ways:
+	 *
+	 * i) vargs giving numbered substition values:
+	 *   formatMessage("${0} is ${1}", "foo", "bar")  // "foo is bar"
+	 *
+	 * ii) a map giving the substitutions:
+	 *   formatMessage("${thing} is ${1}", {1: "bar", thing: "foo"})  // "foo is bar"
+	 */
 	function formatMessage(msg) {
-		var args = arguments;
-		return msg.replace(/\$\{([^\}]+)\}/g, function(str, index) {
+		var pattern = /\$\{([^\}]+)\}/g, args = arguments;
+		if (args.length === 2 && args[1] && typeof args[1] === "object") {
+			return msg.replace(pattern, function(str, key) {
+				return args[1][key];
+			});
+		}
+		return msg.replace(pattern, function(str, index) {
 			return args[(index << 0) + 1];
 		});
 	}

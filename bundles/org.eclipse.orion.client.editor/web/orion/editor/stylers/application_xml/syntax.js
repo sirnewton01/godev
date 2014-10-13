@@ -9,7 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define*/
+/*eslint-env browser, amd*/
 
 define("orion/editor/stylers/application_xml/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-1$ //$NON-NLS-0$
 
@@ -49,7 +49,7 @@ define("orion/editor/stylers/application_xml/syntax", ["orion/editor/stylers/lib
 				end: ">", //$NON-NLS-0$
 				name: "meta.tag.doctype.xml", //$NON-NLS-0$
 				captures: {
-					0: {name: "entity.name.tag.doctype.xml"}, //$NON-NLS-0$
+					0: {name: "meta.tag.doctype.xml"}, //$NON-NLS-0$
 				},
 				patterns: [
 					{include: "#comment"}, //$NON-NLS-0$
@@ -61,7 +61,7 @@ define("orion/editor/stylers/application_xml/syntax", ["orion/editor/stylers/lib
 				begin: "</?[A-Za-z0-9]+", //$NON-NLS-0$
 				end: "/?>", //$NON-NLS-0$
 				captures: {
-					0: {name: "entity.name.tag.xml"}, //$NON-NLS-0$
+					0: {name: "meta.tag.xml"}, //$NON-NLS-0$
 				},
 				name: "meta.tag.xml", //$NON-NLS-0$
 				patterns: [
@@ -74,7 +74,7 @@ define("orion/editor/stylers/application_xml/syntax", ["orion/editor/stylers/lib
 				begin: "<\\?xml", //$NON-NLS-0$
 				end: "\\?>", //$NON-NLS-0$
 				captures: {
-					0: {name: "entity.name.tag.declaration.xml"}, //$NON-NLS-0$
+					0: {name: "meta.tag.declaration.xml"}, //$NON-NLS-0$
 				},
 				patterns: [
 					{include: "#comment"}, //$NON-NLS-0$

@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation 
  ******************************************************************************/
 
-/*jslint browser:true */
-/*global define*/
-
+/*eslint-env browser, amd*/
 define(['orion/Deferred'], function(Deferred) {
 
 	/**

@@ -8,8 +8,7 @@
  * 
  * Contributors: Anton McConville - IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define window */
-/*jslint browser:true*/
+/*eslint-env browser, amd*/
 
 define([], 
 	function() {

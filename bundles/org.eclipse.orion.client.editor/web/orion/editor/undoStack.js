@@ -9,8 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define */
-
+/*eslint-env browser, amd*/
 define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 
 	/** 
@@ -127,13 +126,13 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 			for (var i=this.changes.length - 1; i >= 0; i--) {
 				this.changes[i].undo(view, false);
 			}
-			if (this.changes.length > 1 && view) {
-				view.setRedraw(true);
-			}
 			if (select && view) {
 				var start = this.startSelection.start;
 				var end = this.startSelection.end;
 				view.setSelection(this.startCaret ? start : end, this.startCaret ? end : start);
+			}
+			if (this.changes.length > 1 && view) {
+				view.setRedraw(true);
 			}
 			var owner = this.owner;
 			if (owner && owner.undo) {

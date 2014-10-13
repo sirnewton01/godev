@@ -115,9 +115,7 @@ These variables can be set in the same place you set your GOPATH and PATH variab
 
 ## Mozilla Persona Authentication
 
-Godev is capable of using the Mozilla Persona (https://persona.org) service to authenticate without the magic URL. This is especially useful when you decide to work on a different computer than the one where you launched godev. To activate this feature you launch godev with the "-remoteAccount" parameter and provide the email address you will use to authenticate.
-
-When you access godev from your browser you will be redirected to a login page where you can authenticate. You may need to refresh your browser page afterwards.
+Deprecated: Unfortunately, the persona system has been deprecated by Mozilla and has been removed from Orion.
 
 # Debugging
 

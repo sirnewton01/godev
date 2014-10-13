@@ -8,8 +8,8 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define eclipse window parent document URL*/
-
+/*eslint-env browser, amd*/
+/*global URL*/
 define(["orion/xhr", "orion/plugin", "orion/operation", "orion/Deferred", "orion/URL-shim", "domReady!"], function(xhr, PluginProvider, operation, Deferred) {
 	var temp = document.createElement('a');
 	temp.href = "../mixloginstatic/LoginWindow.html";

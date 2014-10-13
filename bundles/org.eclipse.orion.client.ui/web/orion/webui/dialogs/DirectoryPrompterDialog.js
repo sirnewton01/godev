@@ -8,11 +8,9 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define window orion document */
-/*jslint browser:true */
-
-define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui/dialog', 'orion/fileUtils', 'orion/selection', 'orion/explorers/navigationUtils', 'orion/explorers/explorer', 'orion/explorers/explorer-table'], 
-function(messages, lib, dialog, mFileUtils, mSelection, mNavUtils, mExplorer, mExplorerTable) {
+/*eslint-env browser, amd*/
+define(['i18n!orion/widgets/nls/messages', 'orion/webui/dialog', 'orion/fileUtils', 'orion/selection', 'orion/explorers/explorer', 'orion/explorers/explorer-table'], 
+function(messages, dialog, mFileUtils, mSelection, mExplorer, mExplorerTable) {
 
 	function DirectoryPrompterRenderer (options, explorer) {
 		this.explorer = explorer;

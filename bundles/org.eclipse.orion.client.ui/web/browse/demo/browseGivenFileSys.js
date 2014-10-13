@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global document define window console eclipse orion*/
+/*eslint-env browser, amd*/
 define(['orion/widgets/browse/fileBrowser', 'orion/serviceregistry', 'orion/pluginregistry'],
 function(mFileBrowser, mServiceRegistry, mPluginRegistry) {
 		// figure out plugin to install from repoURL

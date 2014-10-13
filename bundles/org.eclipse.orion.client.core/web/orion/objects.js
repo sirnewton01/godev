@@ -8,13 +8,14 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define*/
+/*eslint-env browser, amd*/
 define([], function() {
 	function mixin(target/*, source..*/) {
-		for (var j = 1; j < arguments.length; j++) {
+		var hasOwnProperty = Object.prototype.hasOwnProperty;
+		for (var j = 1, len = arguments.length; j < len; j++) {
 			var source = arguments[j];
 			for (var key in source) {
-				if (Object.prototype.hasOwnProperty.call(source, key)) {
+				if (hasOwnProperty.call(source, key)) {
 					target[key] = source[key];
 				}
 			}

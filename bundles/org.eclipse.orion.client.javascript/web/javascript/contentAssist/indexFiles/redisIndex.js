@@ -9,143 +9,135 @@
  * Contributors:
  *     IBM Corporation - Initial API and implementation
  ******************************************************************************/
- /*global define */
+ /*eslint-env amd*/
 define('javascript/contentAssist/indexFiles/redisIndex', [], 
 function () {
 	return {
 		"!name": "redis",
-		"this": "<top>",
-		"global": "<top>",
-		"redis": "redis",
-		"RedisClient" : "redis.RedisClient",
-		"Multi" : "redis.Multi",
 		"commands" : "Commands",
 		"!define": {
 			"redis": {
-        		"debug_mode": {
-          			"!type": "Boolean",
-      			},
+        		"debug_mode": "Boolean",
         		"createClient": {
-		        	"!type": "fn(port_arg: Number, host_arg: String, options: Object) -> +redis.RedisClient",
+		        	    "!type": "fn(port_arg: Number, host_arg: String, options: Object) -> +RedisClient",
 		        },
         		"print": {
   					"!type" : "fn(err: Error, reply: Object)"
-  				},
-        		"RedisClient": {
-        			"!type": "fn(stream: Object, options: Object)",
-          			"prototype": {
+  				}
+		    },
+		    "RedisClient": {
+    			"!type": "fn(stream: Object, options: Object)",
+      			"prototype": {
             			"initialize_retry_vars": {
-  							"!type" : "fn()"
-  						},
+  						"!type" : "fn()"
+  					},
             			"unref": {
-  							"!type" : "fn()"
-  						},
+  						"!type" : "fn()"
+  					},
             			"flush_and_error": {
-              				"!type": "fn(message: String)",
+              			"!type": "fn(message: String)",
             			},
 	            		"on_error": {
-  							"!type" : "fn(msg: String)"
-  						},
+  						"!type" : "fn(msg: String)"
+  					},
 	            		"do_auth": {
-  							"!type" : "fn()"
-  						},
-			            "on_connect": {
-  							"!type" : "fn()"
-  						},
-			            "init_parser": {
-  							"!type" : "fn()"
-  						},
-			            "on_ready": {
-  							"!type" : "fn()"
-  						},
-			            "on_info_cmd": {
-  							"!type" : "fn(err: Error, res: Object)"
-  						},
-			            "ready_check": {
-  							"!type" : "fn()"
-  						},
-			            "send_offline_queue": {
-  							"!type" : "fn()"
-  						},
-			            "connection_gone": {
-  							"!type" : "fn(why: String)"
-  						},
-			            "on_data": {
-  							"!type" : "fn(data: Object)"
-  						},
-			            "return_error": {
-  							"!type" : "fn(err: Error)"
-  						},
-			            "return_reply": {
-  							"!type" : "fn(reply: Object)"
-  						},
-			            "send_command": {
-  							"!type" : "fn(command: String, args: Object, callback: fn()) -> Object"
-  						},
-			            "pub_sub_command": {
-  							"!type" : "fn(command_obj: Object)"
-  						},
-			            "end": {
-  							"!type" : "fn()"
-  						},
-			            "select": {
+  						"!type" : "fn()"
+  					},
+			        "on_connect": {
+  					    "!type" : "fn()"
+  					},
+			        "init_parser": {
+  					    "!type" : "fn()"
+  					},
+			        "on_ready": {
+  					    "!type" : "fn()"
+  					},
+			        "on_info_cmd": {
+  						"!type" : "fn(err: Error, res: Object)"
+  					},
+			        "ready_check": {
+  						"!type" : "fn()"
+  					},
+			        "send_offline_queue": {
+  						"!type" : "fn()"
+  					},
+			        "connection_gone": {
+  						"!type" : "fn(why: String)"
+  					},
+			        "on_data": {
+  						"!type" : "fn(data: Object)"
+  					},
+			        "return_error": {
+  						"!type" : "fn(err: Error)"
+  					},
+			        "return_reply": {
+  						"!type" : "fn(reply: Object)"
+  					},
+			        "send_command": {
+  						"!type" : "fn(command: String, args: Object, callback: fn()) -> Object"
+  					},
+			        "pub_sub_command": {
+  						"!type" : "fn(command_obj: Object)"
+  					},
+			        "end": {
+  						"!type" : "fn()"
+  					},
+		            "select": {
 			            	"!type": "fn(db: Object, callback: fn())",
-			            },
-			            "auth": {
-			            	"!type": "fn()",
-			            },
-			            "hmget": {
-  							"!type" : "fn(arg1: Object, arg2: Object, arg3: Object)"
-  						},
-			            "hmset": {
-  							"!type" : "fn(args: Object, callback: fn())"
-  						},
-			            "multi": {
-  							"!type" : "fn(args: Object) -> +redis.Multi"
-  						},
-			            "MULTI": {
-			              "!type": "fn(args: Object) -> +redis.Multi",
-			            },
-			            "EVAL": {
-  							"!type" : "fn()"
-  						},
-			            "SELECT": {
-  							"!type" : "fn()"
-  						},
-			            "AUTH": {
-  							"!type" : "fn()"
-  						},
-			            "HMGET": {
-  							"!type" : "fn(arg1: Object, arg2: Object, arg3: Object)"
-  						},
-			            "HMSET": {
-  							"!type" : "fn(args: Object, callback: fn())"
-  						},
-			            "eval": {
-  							"!type" : "fn()"
-  						}
-          			}
-		      	},
-			    "Multi": {
-			    	"!proto" : "Object",
-			    	"!type" : "fn(client: RedisClient, args: Object)",
-			    	"prototype": {
-			            "hmset": {
-			              "!type": "fn() -> +redis.Multi",
-			            },
+		            },
+		            "auth": {
+		            	    "!type": "fn()",
+		            },
+		            "hmget": {
+  						"!type" : "fn(arg1: Object, arg2: Object, arg3: Object)"
+  					},
+		            "hmset": {
+  						"!type" : "fn(args: Object, callback: fn())"
+  					},
+		           "multi": {
+  						"!type" : "fn(args: Object) -> +Multi"
+  					},
+		            "MULTI": {
+		              "!type": "fn(args: Object) -> +Multi",
+		            },
+		            "EVAL": {
+  						"!type" : "fn()"
+  					},
+		            "SELECT": {
+						"!type" : "fn()"
+					},
+		            "AUTH": {
+  						"!type" : "fn()"
+  					},
+		            "HMGET": {
+  						"!type" : "fn(arg1: Object, arg2: Object, arg3: Object)"
+  					},
+		            "HMSET": {
+  						"!type" : "fn(args: Object, callback: fn())"
+  					},
+		            "eval": {
+  						"!type" : "fn()"
+  					}
+       			},
+       		},
+		    "Multi": {
+		    	    "!proto" : "Object",
+		    	    "!type" : "fn(client: RedisClient, args: Object)",
+		    	    "prototype": {
+		            "hmset": {
+		              "!type": "fn() -> +Multi",
+		            },
 		            	"exec": {
-  							"!type" : "fn(callback: fn()) -> Boolean"
-  						},
+						"!type" : "fn(callback: fn()) -> Boolean"
+  					},
 		            	"HMSET": {
-  							"!type" : "fn()"
-  						},
+  						"!type" : "fn()"
+  					},
 		            	"EXEC": {
-  							"!type" : "fn()"
-  						}
-		        	},
-          			"queue": "[[MULTI]]",
-        		},
-      		},
+  						"!type" : "fn()"
+  					}
+	        	    },
+  		    },
 	      	"Commands": {
 	      		"!proto" : "Object",
 			    "append" : "String",
@@ -300,7 +292,7 @@ function () {
 			    "sscan" : "String",
 			    "hscan" : "String",
 			    "zscan" : "String"
-	      	}
-	    }
-  	}
+      	    }
+       }
+    };
 });

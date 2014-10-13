@@ -9,11 +9,9 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global window define orion URL*/
-/*browser:true*/
-
-define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/contentTypes", "orion/URITemplate", "orion/i18nUtil", "orion/URL-shim", "orion/PageLinks", "i18n!orion/edit/nls/messages"],
-	function(require, Deferred, mCommands, mRegex, mContentTypes, URITemplate, i18nUtil, _, PageLinks, messages){
+/*eslint-env browser, amd*/
+define(["orion/Deferred", "orion/commands", "orion/contentTypes", "orion/URITemplate", "orion/i18nUtil", "orion/PageLinks", "i18n!orion/edit/nls/messages", "orion/URL-shim"],
+	function(Deferred, mCommands, mContentTypes, URITemplate, i18nUtil, PageLinks, messages){
 
 	/**
 	 * Utility methods
@@ -302,7 +300,22 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 					}
 				}
 			}
-			// now content types
+			
+			// Check content type validation
+			if (!validator.info.contentType && !validator.info.excludedContentTypes){
+				// Validation doesn't care about content type
+				return true;
+			}
+			
+			// Directories don't match any content types except */*
+			if (item.Directory) {
+				// */* is a special case used by openWithCommand that applies to directories (Bug 445677)
+				if (validator.info.contentType && validator.info.contentType.indexOf('*/*') >= 0){
+					return true;
+				}
+				return false;
+			}
+			
 			var showCommand = true;
 			var contentType = contentTypes ? mContentTypes.getFilenameContentType(item.Name, contentTypes) : null;
 			contentType = contentType || {
@@ -405,7 +418,7 @@ define(["require", "orion/Deferred", "orion/commands", "orion/regex", "orion/con
 	 * Helper function which returns the id from an info object.
 	 */
 	function getIdFromInfo(info) {
-		return info.id || info.name
+		return info.id || info.name;
 	}
 
 	var DEFAULT_NAME = messages["UnnamedCommand"]; //$NON-NLS-0$

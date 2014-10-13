@@ -1,7 +1,7 @@
 .textview {
 	background-color: white;
 	font-family: "Consolas", "Monaco", "Vera Mono", monospace;
-	font-size: 10pt;
+	font-size: 12px;
 	min-width: 50px;
 	min-height: 50px;
 }
@@ -20,6 +20,11 @@
 
 .textviewRightRuler {
 	border-left: 1px solid #eaeaea;
+}
+
+.textviewInnerRightRuler {
+	border-left: 1px solid #eaeaea;
+	background-color: white;
 }
 
 .textviewMarginRuler {

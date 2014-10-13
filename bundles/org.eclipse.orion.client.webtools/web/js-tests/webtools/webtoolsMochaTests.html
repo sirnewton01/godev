@@ -5,18 +5,20 @@
 	<link rel="stylesheet" href="../../mocha/mocha.css" />
 	<script src="../../requirejs/require.js"></script>
 	<script>
-		/*jslint amd:true*/
+		/*eslint-env browser, amd*/
 		require({
 		baseUrl: "../../",
 		paths: {
 			text: "requirejs/text",
 			i18n: "requirejs/i18n",
+			csslint: "csslint/csslint"
 		}
 	});
 	require(["mocha/sauce"], function(mochaSauce) {
 		mochaSauce.setup("bdd");
 		require([
-			"js-tests/webtools/cssValidatorTests"
+			"js-tests/webtools/cssValidatorTests",
+			"js-tests/webtools/cssOutlinerTests"
 		], function(){
 			mochaSauce.run();
 		});
@@ -24,7 +26,8 @@
 	</script>
 </head>
 <body>
-	<h3>Webtools Mocha Tests</h3>
-	<div id="mocha"></div>
+	<div id="mocha">
+		<h1>Webtools Mocha Tests</h1>
+	</div>
 </body>
 </html>

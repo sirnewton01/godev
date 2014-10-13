@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - Initial API and implementation
  ******************************************************************************/
- /*global define */
+  /*eslint-env amd*/
 define('javascript/contentAssist/indexFiles/expressIndex', [], 
 function () {
 	return {

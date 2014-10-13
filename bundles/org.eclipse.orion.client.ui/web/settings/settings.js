@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2011, 2012 IBM Corporation and others.
+ * Copyright (c) 2011, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -10,14 +10,11 @@
  *     Anton McConville (IBM Corporation) - initial API and implementation
  *
  *******************************************************************************/
-/*global define window widgets localStorage*/
-/*jslint browser:true devel:true*/
-
-define(['i18n!orion/settings/nls/messages', 'orion/browserCompatibility', 'orion/bootstrap', 'orion/status', 'orion/progress', 'orion/commandRegistry', 'orion/commands', 'orion/keyBinding', 'orion/profile/usersClient',
-		'orion/operationsClient', 'orion/fileClient', 'orion/searchClient', 'orion/dialogs', 'orion/globalCommands', 'orion/webui/littlelib', 'orion/config',
-		'orion/metatype', 'orion/settings/settingsRegistry', 'orion/widgets/settings/SettingsContainer'],
-		function(messages, mBrowserCompatibility, mBootstrap, mStatus, mProgress, mCommandRegistry, mCommands, KeyBinding, mUsersClient, mOperationsClient, mFileClient, mSearchClient, 
-			mDialogs, mGlobalCommands, lib, mConfig, mMetaType, SettingsRegistry, SettingsContainer) {
+/*eslint-env browser, amd*/
+define(['i18n!orion/settings/nls/messages', 'orion/bootstrap', 'orion/status', 'orion/progress', 'orion/commandRegistry', 'orion/commands', 'orion/keyBinding', 'orion/profile/usersClient',
+		'orion/operationsClient', 'orion/fileClient', 'orion/searchClient', 'orion/dialogs', 'orion/globalCommands', 'orion/webui/littlelib', 'orion/metatype', 'orion/settings/settingsRegistry', 'orion/widgets/settings/SettingsContainer'],
+		function(messages, mBootstrap, mStatus, mProgress, mCommandRegistry, mCommands, KeyBinding, mUsersClient, mOperationsClient, mFileClient, mSearchClient, 
+			mDialogs, mGlobalCommands, lib, mMetaType, SettingsRegistry, SettingsContainer) {
 
 	mBootstrap.startup().then(function(core) {
 		var serviceRegistry = core.serviceRegistry;
@@ -41,8 +38,8 @@ define(['i18n!orion/settings/nls/messages', 'orion/browserCompatibility', 'orion
 		// would be nice to have a "restore defaults" command for each settings page but until that can be done,
 		// add a command with a "secret key binding" for blowing away the preferences.
 		var clearPrefsCommand  = new mCommands.Command({
-			name: "Clear themes and editor settings", 
-			tooltip: "Clear all settings associated with editor themes and window themes", 
+			name: messages['clearThemeAndEditorSettings.name'],  //$NON-NLS-0$
+			tooltip: messages['clearThemeAndEditorSettings.tooltip'],  //$NON-NLS-0$
 			id: "orion.clearThemes", //$NON-NLS-0$
 			callback: function(data) {
 				preferences.getPreferences('/themes', 2).then(function(prefs) { //$NON-NLS-0$
@@ -73,7 +70,8 @@ define(['i18n!orion/settings/nls/messages', 'orion/browserCompatibility', 'orion
 									userClient: usersClient,
 									settingsRegistry: settingsRegistry
 									};
-
+									
+		lib.node("categoriesTitle").innerHTML = messages["Categories"]; //$NON-NLS-1$ //$NON-NLS-0$
 		var settingsContainer = new SettingsContainer( containerParameters, lib.node("categoriesContainer"), lib.node("settings")); //$NON-NLS-0$
 		settingsContainer.show();
 

@@ -8,7 +8,7 @@
  *
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
- /*global define console window document navigator */
+/*eslint-env browser, amd*/
  
  define(['orion/Deferred'], function(Deferred){
  

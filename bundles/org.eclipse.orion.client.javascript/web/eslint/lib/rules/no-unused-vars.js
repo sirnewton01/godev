@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2013 IBM Corporation and others.
+ * Copyright (c) 2013, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License v1.0
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
@@ -9,29 +9,11 @@
  * Contributors:
  *	 IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint node:true amd:true*/
-(function(root, factory) {
-	if(typeof exports === 'object') {  //$NON-NLS-0$
-		module.exports = factory(require, exports, module);
-	}
-	else if(typeof define === 'function' && define.amd) {  //$NON-NLS-0$
-		define(['require', 'exports', 'module'], factory);
-	}
-	else {
-		var req = function(id) {return root[id];},
-			exp = root,
-			mod = {exports: exp};
-		root.rules.noundef = factory(req, exp, mod);
-	}
-}(this, function(require, exports, module) {
-	/**
-	 * @name module.exports
-	 * @description Rule exports
-	 * @function
-	 * @param context
-	 * @returns {Object} Rule exports
-	 */
-	module.exports = function(context) {
+/*eslint-env amd */
+define([
+'logger'
+], function(Logger) {
+	return function(context) {
 		"use strict";  //$NON-NLS-0$
 
 		function isRead(ref) {
@@ -71,14 +53,14 @@
 					}
 					var references = getReferences(scope, variable), id = variable.defs[0].node.id;
 					if (!references.length) {
-						context.report(id, "'{{name}}' is never used.", {name: id.name});
+						context.report(id, "'${0}' is never used.", {0:id.name, nls: 'no-unused-vars-unused'});
 					} else if (!references.some(isRead)) {
-						context.report(id, "'{{name}}' is never read.", {name: id.name});
+						context.report(id, "'${0}' is never read.", {0:id.name, nls: 'no-unused-vars-unread'});
 					}
 				});
 			}
 			catch(ex) {
-				console.log(ex);
+				Logger.log(ex);
 			}
 		}
 
@@ -88,5 +70,4 @@
 			"FunctionExpression": check  //$NON-NLS-0$
 		};
 	};
-	return module.exports;
-}));
+});

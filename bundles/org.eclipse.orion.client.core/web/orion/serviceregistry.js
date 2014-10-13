@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define console */
-
+/*eslint-env browser, amd*/
 define(["orion/Deferred", "orion/EventTarget"], function(Deferred, EventTarget) {
 
 	/**

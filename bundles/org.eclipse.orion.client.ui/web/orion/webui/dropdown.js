@@ -8,9 +8,8 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global window define document */
-
-define(['require', 'orion/webui/littlelib', 'orion/EventTarget'], function(require, lib, EventTarget) {
+/*eslint-env browser, amd*/
+define(['orion/webui/littlelib', 'orion/EventTarget'], function(lib, EventTarget) {
 
 	/**
 	 * Attaches dropdown behavior to a given node.  Assumes the triggering node and dropdown node

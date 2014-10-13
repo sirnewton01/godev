@@ -9,8 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
-/*global define*/
-
+/*eslint-env browser, amd*/
 define("orion/editor/util", [], function() { //$NON-NLS-0$
 	
 	/** @private */
@@ -43,6 +42,26 @@ define("orion/editor/util", [], function() { //$NON-NLS-0$
 			return false;
 		}
 		return topNode === node || (topNode.compareDocumentPosition(node) & 16) !== 0;
+	}
+	/** @private */
+	function getNodeStyle(node, prop, defaultValue) {
+		var value;
+		if (node) {
+			value = node.style[prop];
+			if (!value) {
+				if (node.currentStyle) {
+					var index = 0, p = prop;
+					while ((index = p.indexOf("-", index)) !== -1) { //$NON-NLS-0$
+						p = p.substring(0, index) + p.substring(index + 1, index + 2).toUpperCase() + p.substring(index + 2);
+					}
+					value = node.currentStyle[p];
+				} else {
+					var css = node.ownerDocument.defaultView.getComputedStyle(node, null);
+					value = css ? css.getPropertyValue(prop) : null;
+				}
+			}
+		}
+		return value || defaultValue;
 	}
 
 	/**
@@ -113,6 +132,7 @@ define("orion/editor/util", [], function() { //$NON-NLS-0$
 
 	return {
 		contains: contains,
+		getNodeStyle: getNodeStyle,
 		addEventListener: addEventListener,
 		removeEventListener: removeEventListener,
 		Animation: Animation

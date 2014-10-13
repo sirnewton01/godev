@@ -9,11 +9,15 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define window */
-/*jslint regexp:false browser:true forin:true*/
-
-define(['i18n!orion/nls/messages', 'require', 'orion/webui/littlelib', 'orion/webui/treetable', 'orion/explorers/explorerNavHandler', 'orion/commands'], 
-function(messages, require, lib, mTreeTable, mNavHandler, mCommands){
+/*eslint-env browser, amd*/
+define([
+	'i18n!orion/nls/messages',
+	'orion/webui/littlelib',
+	'orion/webui/treetable',
+	'orion/explorers/explorerNavHandler',
+	'orion/uiUtils',
+	'orion/commands'
+], function(messages, lib, mTreeTable, mNavHandler, UiUtils, mCommands){
 
 var exports = {};
 
@@ -173,7 +177,7 @@ exports.Explorer = (function() {
 		 * @param {Object} options optional parameters of the tree(custom indent, onCollapse callback)
 		 */
 		createTree: function (parentId, model, options){
-			parentId = typeof parentId === "string" ? parentId : (parentId.id || parentId);
+			parentId = typeof parentId === "string" ? parentId : (parentId.id || parentId); //$NON-NLS-0$
 			if(this.selection) {
 				this.selection.setSelections([]);
 			}
@@ -186,7 +190,7 @@ exports.Explorer = (function() {
 				lib.empty(existing);
 			}
 			if (model){
-				model.rootId = treeId;
+				model.rootId = treeId + "Root"; //$NON-NLS-0$
 			}
 			this.model = model;
 			this._parentId = parentId;
@@ -205,6 +209,7 @@ exports.Explorer = (function() {
 				renderer: this.renderer,
 				showRoot: options ? !!options.showRoot : false,  
 				indent: options ? options.indent: undefined,
+				preCollapse: options ? options.preCollapse: undefined,
 				onCollapse: options ? options.onCollapse: undefined,
 				navHandlerFactory: options ? options.navHandlerFactory: undefined,
 				tableElement: options ? options.tableElement : undefined,
@@ -222,6 +227,14 @@ exports.Explorer = (function() {
 		
 		getNavDict: function(){
 			return this._navDict;
+		},
+		
+		select: function(item) {
+			var navHandler = this.getNavHandler();
+			if (navHandler) {
+				navHandler.cursorOn(item, true);
+				navHandler.setSelection(item);
+			}
 		},
 		
 		refreshSelection: function(){
@@ -259,7 +272,7 @@ exports.Explorer = (function() {
 				return;
 			}
 			if(!this.getNavHandler()){
-				if (options && options.navHandlerFactory && typeof options.navHandlerFactory.createNavHandler === "function") {
+				if (options && options.navHandlerFactory && typeof options.navHandlerFactory.createNavHandler === "function") { //$NON-NLS-0$
 					this._navHandler = options.navHandlerFactory.createNavHandler(this, this._navDict, options);
 				} else {
 					var getChildrenFunc = options ? options.getChildrenFunc : null;
@@ -320,7 +333,16 @@ exports.createExplorerCommands = function(commandService, visibleWhen) {
 			return isVisible(item);
 		},
 		callback : function(data) {
-			data.items.collapseAll();
+			if(typeof data.items.preCollapseAll === "function") { //$NON-NLS-0$
+				data.items.preCollapseAll().then(function (result){
+					if(!result) {
+						return;
+					}
+					data.items.collapseAll();
+				});
+			} else {
+				data.items.collapseAll();
+			}
 	}});
 	commandService.addCommand(expandAllCommand);
 	commandService.addCommand(collapseAllCommand);
@@ -446,8 +468,12 @@ exports.ExplorerRenderer = (function() {
 				this._useCheckboxSelection = options.checkbox === undefined ? false : options.checkbox;
 				this.selectionPolicy = options.singleSelection ? "singleSelection" : "";//$NON-NLS-0$
 				this._cachePrefix = options.cachePrefix;
-				this.getCheckedFunc = options.getCheckedFunc;
-				this.onCheckedFunc = options.onCheckedFunc;
+				if (options.getCheckedFunc) {
+					this.getCheckedFunc = options.getCheckedFunc;
+				}
+				if (options.onCheckedFunc) {
+					this.onCheckedFunc = options.onCheckedFunc;
+				}
 				this._noRowHighlighting = options.noRowHighlighting; // Whether to have alternating light/dark rows
 				this._highlightSelection = true;
 				this._treeTableClass = options.treeTableClass || "treetable";  //$NON-NLS-0$
@@ -475,7 +501,48 @@ exports.ExplorerRenderer = (function() {
 				tableNode.classList.add(this._treeTableClass); 
 			}
 			this.renderTableHeader(tableNode);
-
+			var self = this;
+			tableNode.onclick = function(evt) {
+				var target = evt.target;
+				var tableRow = target;
+				while (tableRow && tableRow !== tableNode) {
+					if (tableRow._item) break;
+					tableRow = tableRow.parentNode;
+				}
+				if (!tableRow) return;
+				var expandImage = lib.node(self.expandCollapseImageId(tableRow.id));
+				if (!expandImage) return;
+				if (expandImage !== target) {
+					var item = tableRow._item;
+					if (!self.explorer.isRowSelectable || self.explorer.isRowSelectable(item)) {
+						if (item.selectable === undefined || item.selectable) return;
+					}
+					if (UiUtils.isFormElement(target, tableRow)) {
+						return;
+					}
+				}
+				if (!self.explorer.getNavHandler().isDisabled(tableRow)) {
+					self.tableTree.toggle(tableRow.id);
+					var expanded = self.tableTree.isExpanded(tableRow.id);
+					if (expanded) {
+						self._expanded.push(tableRow.id);
+						if (self.explorer.postUserExpand) {
+							self.explorer.postUserExpand(tableRow.id);
+						}
+					} else {
+						for (var i in self._expanded) {
+							if (self._expanded[i] === tableRow.id) {
+								self._expanded.splice(i, 1);
+								break;
+							}
+						}
+					}
+					var prefPath = self._getUIStatePreferencePath();
+					if (prefPath && window.sessionStorage) {
+						self._storeExpansions(prefPath);
+					}
+				}
+			};
 		},
 		getActionsColumn: function(item, tableRow, renderType, columnClass, renderAsGrid){
 			renderType = renderType || "tool"; //$NON-NLS-0$
@@ -524,7 +591,8 @@ exports.ExplorerRenderer = (function() {
 				var self = this;
 				check.addEventListener("click", function(evt) { //$NON-NLS-0$
 					var newValue = evt.target.checked ? false : true;
-					self.onCheck(tableRow, evt.target, newValue, true);
+					self.onCheck(tableRow, evt.target, newValue, true, false, item);
+					lib.stop(evt);
 				}, false);
 				return checkColumn;
 			}
@@ -534,7 +602,7 @@ exports.ExplorerRenderer = (function() {
 			return rowId + "selectedState"; //$NON-NLS-0$
 		},
 			
-		onCheck: function(tableRow, checkBox, checked, manually, setSelection){
+		onCheck: function(tableRow, checkBox, checked, manually, setSelection, item){
 			checkBox.checked = checked;
 			if (checked) {
 				checkBox.classList.add("core-sprite-check_on"); //$NON-NLS-0$
@@ -542,7 +610,7 @@ exports.ExplorerRenderer = (function() {
 				checkBox.classList.remove("core-sprite-check_on"); //$NON-NLS-0$
 			}
 			if(this.onCheckedFunc){
-				this.onCheckedFunc(checkBox.rowId, checked, manually);
+				this.onCheckedFunc(checkBox.rowId, checked, manually, item);
 			}
 			if(this.explorer.getNavHandler() && setSelection){
 				this.explorer.getNavHandler().setSelection(this.explorer.getNavDict().getValue(tableRow.id).model, true);	
@@ -679,31 +747,6 @@ exports.ExplorerRenderer = (function() {
 				decorateImage.classList.add(spriteClass || "imageSprite"); //$NON-NLS-0$
 				decorateImage.classList.add(decorateImageClass);
 			}
-			var self = this;
-			// TODO should really avoid creating 1 listener per expandImage here
-			expandImage.onclick = function(evt) {
-				if (!self.explorer.getNavHandler().isDisabled(tableRow)) {
-					self.tableTree.toggle(tableRow.id);
-					var expanded = self.tableTree.isExpanded(tableRow.id);
-					if (expanded) {
-						self._expanded.push(tableRow.id);
-						if (self.explorer.postUserExpand) {
-							self.explorer.postUserExpand(tableRow.id);
-						}
-					} else {
-						for (var i in self._expanded) {
-							if (self._expanded[i] === tableRow.id) {
-								self._expanded.splice(i, 1);
-								break;
-							}
-						}
-					}
-					var prefPath = self._getUIStatePreferencePath();
-					if (prefPath && window.sessionStorage) {
-						self._storeExpansions(prefPath);
-					}
-				}
-			};
 			return expandImage;
 		},
 		
@@ -719,10 +762,12 @@ exports.ExplorerRenderer = (function() {
 				this.explorer.initNavHandler();			
 			}
 			if (!this._noRowHighlighting){
-				if(lib.$(".sectionTreeTable", this.tableNode.parentNode) || lib.$(".treetable", this.tableNode.parentNode)) {
+				var even = "darkSectionTreeTableRow"; //$NON-NLS-0$
+				var odd = "lightSectionTreeTableRow"; //$NON-NLS-0$
+				if(lib.$(".sectionTreeTable", this.tableNode.parentNode) || lib.$(".treetable", this.tableNode.parentNode)) { //$NON-NLS-1$ //$NON-NLS-0$
 					lib.$$array(".treeTableRow", this.tableNode).forEach(function(node, i) { //$NON-NLS-0$
-						var on = (!(i % 2)) ? "darkSectionTreeTableRow" : "lightSectionTreeTableRow";
-						var off = (on === "darkSectionTreeTableRow") ? "lightSectionTreeTableRow" : "darkSectionTreeTableRow";
+						var on = (!(i % 2)) ? odd : even;
+						var off = (on === odd) ? even : odd;
 						node.classList.add(on);
 						node.classList.remove(off);
 					});
@@ -801,28 +846,33 @@ exports.SelectionRenderer = (function(){
 		}
 	};
 	
+	SelectionRenderer.prototype.initSelectableRow = function(item, tableRow) {
+		var self = this;
+		tableRow.addEventListener("click", function(evt) { //$NON-NLS-0$
+			if(self.explorer.getNavHandler()){
+				self.explorer.getNavHandler().onClick(item, evt);
+			}
+		}, false);
+	};
+	
 	SelectionRenderer.prototype.renderRow = function(item, tableRow) {
 		tableRow.verticalAlign = "baseline"; //$NON-NLS-0$
 		tableRow.classList.add("treeTableRow"); //$NON-NLS-0$
 
 		var navDict = this.explorer.getNavDict();
 		if(navDict){
-			if (this.explorer.selectionPolicy !== "cursorOnly") {
+			if (this.explorer.selectionPolicy !== "cursorOnly") { //$NON-NLS-0$
 				tableRow.classList.add("selectableNavRow"); //$NON-NLS-0$
 			}
 			
 			navDict.addRow(item, tableRow);
-			var self = this;
-			tableRow.addEventListener("click", function(evt) { //$NON-NLS-0$
-				if(self.explorer.getNavHandler()){
-					self.explorer.getNavHandler().onClick(item, evt);
-				}
-			}, false);
 		}
-		var checkColumn = this.getCheckboxColumn(item, tableRow);
-		if(checkColumn) {
-			checkColumn.classList.add('checkColumn'); //$NON-NLS-0$
-			tableRow.appendChild(checkColumn);
+		if (item.selectable === undefined || item.selectable) {
+			var checkColumn = this.getCheckboxColumn(item, tableRow);
+			if(checkColumn) {
+				checkColumn.classList.add('checkColumn'); //$NON-NLS-0$
+				tableRow.appendChild(checkColumn);
+			}
 		}
 
 		var i = 0;
@@ -844,7 +894,6 @@ exports.SelectionRenderer = (function(){
 			}
 			cell = this.getCellElement(++i, item, tableRow);
 		}
-		
 	};
 
 	/**

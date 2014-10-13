@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*jslint browser:true devel:true*/
-/*global define window*/
-
+/*eslint-env browser, amd*/
 define(['orion/browserCompatibility', 'orion/bootstrap', 'domReady!'], function(mBrowserCompatibility, mBootstrap) {
 	mBootstrap.startup().then(function(core) {
 		window.location = "edit/edit.html";

@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation 
  ******************************************************************************/
 
-/*jslint */
-/*global define */
-
+/*eslint-env browser, amd*/
 define("orion/editor/htmlGrammar", [], function() {
 
 	/**

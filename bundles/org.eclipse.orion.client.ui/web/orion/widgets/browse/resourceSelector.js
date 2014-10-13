@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global console define URL*/
-/*jslint browser:true sub:true*/
+/*eslint-env browser, amd*/
 define([
 	'orion/objects',
 	'orion/webui/littlelib',
@@ -116,11 +115,15 @@ define([
 		 */
 		_resourceLabel: function() {
 			var fragment = document.createDocumentFragment();
-			fragment.textContent = "${0} " + this.getActiveResource(this.activeResourceLocation).Name; //$NON-NLS-0$
-			var nameLabel = document.createElement("span"); //$NON-NLS-0$
-			nameLabel.appendChild(document.createTextNode(this.labelHeader + ":")); //$NON-NLS-0$
-			nameLabel.classList.add("browserResourceSelectorNameLabel");
-			lib.processDOMNodes(fragment, [nameLabel]);
+			if(this.labelHeader) {
+				fragment.textContent = "${0} " + this.getActiveResource(this.activeResourceLocation).Name; //$NON-NLS-0$
+				var nameLabel = document.createElement("span"); //$NON-NLS-0$
+				nameLabel.appendChild(document.createTextNode(this.labelHeader + ":")); //$NON-NLS-0$
+				nameLabel.classList.add("browserResourceSelectorNameLabel");
+				lib.processDOMNodes(fragment, [nameLabel]);
+			} else {
+				fragment.textContent = this.getActiveResource(this.activeResourceLocation).Name; //$NON-NLS-0$
+			}
 			return fragment;
 		},
 		refresh: function() {

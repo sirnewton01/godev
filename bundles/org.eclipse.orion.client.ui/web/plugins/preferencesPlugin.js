@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define eclipse document*/
-
+/*eslint-env browser, amd*/
 define(["orion/xhr", "orion/plugin", "domReady!"], function(xhr, PluginProvider) {
 	function PreferencesProvider(location) {
 		this.location = location;

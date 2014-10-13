@@ -10,7 +10,7 @@
 <!-- Note if running this standalone you will need to copy requirejs from bundles/org.eclipse.orion.client.core/web/ -->
 <script src="../../requirejs/require.js"></script>
 <script type="text/javascript">
-	/*globals require*/
+	/*eslint-env browser, amd*/
 	require({
 	  baseUrl: '../..',
 	  paths: {
@@ -134,6 +134,10 @@
 					<option value="80">80 chars</option>
 				</select>
 				<label for="marginOffset">Show Margin</label>
+			</div>
+			<div>
+				<input type="checkbox" checked="checked" id="zoomRuler">
+				<label for="zoomRuler">Show Zoom Ruler</label>
 			</div>
 			<div>
 				<input type="checkbox" id="marginRuler">

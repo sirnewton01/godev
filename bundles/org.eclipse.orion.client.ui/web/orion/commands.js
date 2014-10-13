@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*jslint sub:true*/
- /*global define document window Image */
+/*eslint-env browser, amd*/
  
 define([
 	'orion/util',
@@ -17,10 +16,9 @@ define([
 	'orion/webui/dropdown',
 	'text!orion/webui/dropdowntriggerbutton.html',
 	'text!orion/webui/dropdowntriggerbuttonwitharrow.html',
-	'text!orion/webui/submenutriggerbutton.html',
 	'text!orion/webui/checkedmenuitem.html',
 	'orion/webui/tooltip'
-], function(util, lib, Dropdown, DropdownButtonFragment, DropdownButtonWithArrowFragment, SubMenuButtonFragment, CheckedMenuItemFragment, Tooltip) {
+], function(util, lib, Dropdown, DropdownButtonFragment, DropdownButtonWithArrowFragment, CheckedMenuItemFragment, Tooltip) {
 		/**
 		 * @name orion.commands.NO_IMAGE
 		 * @description Image data for 16x16 transparent png.
@@ -150,7 +148,7 @@ define([
 				} else {
 					// CTRL or ALT combinations are not characters, however both of them together (CTRL+ALT)
 					// are the Alt Gr key on some keyboards.  See Eclipse bug 20953. If together, they might
-					// be a character.
+					// be a character. However there aren't usually any commands associated with Alt Gr keys.
 					if (e.ctrlKey && !e.altKey) {
 						// special case for select all, cut, copy, paste, and undo.  
 						if (!e.shiftKey && (e.keyCode === 65 || e.keyCode === 67 || e.keyCode === 86 || e.keyCode === 88 || e.keyCode === 90)) {
@@ -159,6 +157,9 @@ define([
 						return false;
 					}
 					if (e.altKey && !e.ctrlKey) {
+						return false;
+					}
+					if (e.ctrlKey && e.altKey){
 						return false;
 					}
 				}
@@ -284,7 +285,8 @@ define([
 		return node;
 	}
 
-	function createDropdownMenu(parent, name, populateFunction, buttonClass, buttonIconClass, showName, selectionClass, positioningNode, displayDropdownArrow) {
+	function createDropdownMenu(parent, name, populateFunction, buttonClass, buttonIconClass, showName, selectionClass, positioningNode, displayDropdownArrow, extraClasses) {
+		
 		parent = lib.node(parent);
 		if (!parent) {
 			throw "no parent node was specified"; //$NON-NLS-0$
@@ -310,6 +312,10 @@ define([
 			menuButton.classList.add("orionButton"); //$NON-NLS-0$
 			menuButton.classList.add("commandButton"); //$NON-NLS-0$
 		}
+		if (extraClasses) {
+			extraClasses.split(" ").forEach(menuButton.classList.add.bind(menuButton.classList));
+		}
+		
 		if (buttonIconClass) {
 			if(!showName) {
 				menuButton.textContent = ""; //$NON-NLS-0$
@@ -349,9 +355,31 @@ define([
 
 	function createCommandItem(parent, command, commandInvocation, id, keyBinding, useImage, callback) {
 		var element;
+		var clickTarget;
 		useImage = useImage || (!command.name && command.hasImage());
+		
+		var renderButton = function() {
+				if (useImage) {
+					if (command.hasImage()) {
+						_addImageToElement(command, element, id);
+						// ensure there is accessible text describing this image
+						if (command.name) {
+							element.setAttribute("aria-label", command.name); //$NON-NLS-0$
+						}
+					} else {
+						element.classList.add("commandButton"); //$NON-NLS-0$
+						element.classList.add("commandMissingImageButton"); //$NON-NLS-0$
+						element.appendChild(document.createTextNode(command.name));
+					}
+				} else {
+					element.classList.add("commandButton"); //$NON-NLS-0$
+					var text = document.createTextNode(command.name);
+					element.appendChild(text);
+				}
+		};
+		
 		if (command.hrefCallback) {
-			element = document.createElement("a"); //$NON-NLS-0$
+			element = clickTarget = document.createElement("a"); //$NON-NLS-0$
 			element.id = id;
 			if (useImage && command.hasImage()) {
 				_addImageToElement(command, element, id);
@@ -370,30 +398,99 @@ define([
 				element.href = "#"; //$NON-NLS-0$
 			}
 		} else {
-			element = document.createElement("button"); //$NON-NLS-0$
-			element.className = "orionButton"; //$NON-NLS-0$
-			if (useImage) {
-				if (command.hasImage()) {
-					_addImageToElement(command, element, id);
-					// ensure there is accessible text describing this image
-					if (command.name) {
-						element.setAttribute("aria-label", command.name); //$NON-NLS-0$
-					}
-				} else {
-					element.classList.add("commandButton"); //$NON-NLS-0$
-					element.classList.add("commandMissingImageButton"); //$NON-NLS-0$
-					element.appendChild(document.createTextNode(command.name));
+			if (command.type === "switch") { //$NON-NLS-0$
+				element = document.createElement("div"); //$NON-NLS-0$
+				element.tabIndex = 0;
+				element.className = "orionSwitch"; //$NON-NLS-0$
+				var input = clickTarget = document.createElement("input"); //$NON-NLS-0$
+				input.type = "checkbox"; //$NON-NLS-0$
+				input.className = "orionSwitchCheck"; //$NON-NLS-0$
+				input.id = "orionSwitchCheck" + command.id; //$NON-NLS-0$
+				if(parent.id) {
+					input.id = input.id + parent.id;
 				}
+				element.appendChild(input);
+				var label = document.createElement("label"); //$NON-NLS-0$
+				label.className = "orionSwitchLabel"; //$NON-NLS-0$
+				label.setAttribute("for", input.id); //$NON-NLS-0$  
+				var span1 = document.createElement("span"); //$NON-NLS-0$
+				span1.className = "orionSwitchInner"; //$NON-NLS-0$
+				var span2 = document.createElement("span"); //$NON-NLS-0$
+				span2.className = "orionSwitchSwitch"; //$NON-NLS-0$
+				label.appendChild(span1);
+				label.appendChild(span2);
+				element.appendChild(label);
+				element.addEventListener("keydown", function(e) { //$NON-NLS-0$
+					if (e.keyCode === lib.KEY.ENTER || e.keyCode === lib.KEY.SPACE) {
+						input.click();
+					}
+				}, false);
+
+				input.checked = command.checked;
+				span1.classList.add(command.imageClass);
+			} else if (command.type === "toggle") {  //$NON-NLS-0$
+				element = clickTarget = document.createElement("button"); //$NON-NLS-0$
+				element.className = "orionButton"; //$NON-NLS-0$
+				element.classList.add(command.checked ? "orionToggleOn" : "orionToggleOff");  //$NON-NLS-1$ //$NON-NLS-0$
+				element.id = "orionToggle" + command.id; //$NON-NLS-0$
+				if(parent.id) {
+					element.id = element.id + parent.id;
+				}
+				renderButton();
 			} else {
-				element.classList.add("commandButton"); //$NON-NLS-0$
-				var text = document.createTextNode(command.name);
-				element.appendChild(text);
+				element = clickTarget = document.createElement("button"); //$NON-NLS-0$
+				element.className = "orionButton"; //$NON-NLS-0$
+				if (command.extraClass) {
+					element.classList.add(command.extraClass);
+				}
+				renderButton();
 			}
 			var onClick = callback || command.callback;
 			if (onClick) {
+				var done = function() {onClick.call(commandInvocation.handler, commandInvocation);};
 				command.onClick = onClick;
-				element.addEventListener("click", function(e) { //$NON-NLS-0$
-					onClick.call(commandInvocation.handler, commandInvocation);
+				clickTarget.addEventListener("click", function(e) { //$NON-NLS-0$
+					var onClickThen;
+					if (command.type === "switch" || command.type === "toggle") { //$NON-NLS-1$ //$NON-NLS-0$
+						onClickThen = function (doIt) {
+							if (command.type === "toggle") { //$NON-NLS-0$
+								if(doIt) {
+									command.checked = !command.checked;
+								}
+								if (command.checked) {
+									element.classList.remove("orionToggleOff"); //$NON-NLS-0$
+									element.classList.add("orionToggleOn"); //$NON-NLS-0$
+									element.classList.add("orionToggleAnimate"); //$NON-NLS-0$
+								} else {
+									element.classList.remove("orionToggleOn"); //$NON-NLS-0$
+									element.classList.add("orionToggleOff"); //$NON-NLS-0$
+									element.classList.add("orionToggleAnimate"); //$NON-NLS-0$
+								}
+							}else {
+								if(doIt) {
+									command.checked = input.checked;
+								} else {
+									input.checked = !input.checked;
+								}
+							}
+							if(doIt) {
+								window.setTimeout(done, 250);
+							}
+						};
+					} else {
+						onClickThen = function (doIt) { if(doIt) {
+								done();
+							}
+						};
+					}
+					if(command.preCallback) {
+						command.preCallback(commandInvocation).then( function(doIt) {
+							onClickThen(doIt);
+						});
+					} else {
+						onClickThen(true);
+					}
+					e.stopPropagation();
 				}, false);
 			}
 		}
@@ -614,6 +711,7 @@ define([
 			this.name = options.name;
 			this.tooltip = options.tooltip;
 			this.callback = options.callback; // optional callback that should be called when command is activated (clicked)
+			this.preCallback = options.preCallback; // optional callback that should be called when command is activated (clicked)
 			this.hrefCallback = options.hrefCallback; // optional callback that returns an href for a command link
 			this.choiceCallback = options.choiceCallback; // optional callback indicating that the command will supply secondary choices.  
 														// A choice is an object with a name, callback, and optional image
@@ -622,11 +720,14 @@ define([
 			this.imageClass = options.imageClass;   // points to the location in a sprite
 			this.addImageClassToElement = options.addImageClassToElement; // optional boolean if true will add the image class to the 
 																		// element's class list
+			this.extraClass = options.extraClass;
 			this.selectionClass = options.selectionClass;
 			this.spriteClass = options.spriteClass || "commandSprite"; // defines the background image containing sprites //$NON-NLS-0$
 			this.visibleWhen = options.visibleWhen;
 			this.parameters = options.parameters;  // only used when a command is used in the command registry. 
 			this.isEditor = options.isEditor;
+			this.type = options.type;
+			this.checked = options.checked;
 		},
 		
 		/**

@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*jslint browser:true devel:true*/
-/*global define window*/
-
+/*eslint-env browser, amd*/
 define(['domReady', 'orion/xhr'], function(domReady, xhr) {
 	domReady(function() {
 		xhr("GET", "/server-status.json", { //$NON-NLS-0$

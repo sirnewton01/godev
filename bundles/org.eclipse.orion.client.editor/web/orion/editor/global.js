@@ -12,8 +12,7 @@
  *		Mihai Sucan (Mozilla Foundation) - fix for Bug#364214
  */
 
-/*global window */
-
+/*eslint-env browser, amd*/
 /**
  * Evaluates the definition function and mixes in the returned module with
  * the module specified by <code>moduleName</code>.

@@ -8,18 +8,13 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-
-/*global define window document localStorage*/
-
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/widgets/nls/messages',
-	'require',
 	'orion/webui/littlelib',
 	'orion/PageLinks',
-	'orion/widgets/userAssistance/UATaskPanel',
-	'orion/webui/dialog',
 	'orion/webui/dropdown'
-], function(messages, require, lib, PageLinks, UATaskPanel, dialog, Dropdown) {
+], function(messages, lib, PageLinks, Dropdown) {
 	
 	function UserMenu(options) {
 		this._displaySignOut = true;
@@ -95,7 +90,7 @@ define([
 								localStorage.removeItem(name);
 							}
 						}
-						authService.getAuthForm(window.location.href).then(function(formURL) {
+						authService.getAuthForm(PageLinks.getOrionHome()).then(function(formURL) {
 							window.location = formURL;
 						});
 					});
@@ -178,15 +173,6 @@ define([
 					getCategory(0).appendChild(keyAssist);
 				}
 
-				// TODO need i18n on this eventually
-				var getStartedServiceRef = serviceRegistry.getServiceReferences("orion.page.getstarted")[0]; //$NON-NLS-0$
-				if (getStartedServiceRef) {
-					var data = getStartedServiceRef.getProperty("data"); //$NON-NLS-0$
-					var startElement = this._makeMenuItem("Getting Started", this.getStartedDialog.bind(this, data));
-					var getStarted = startElement.parentNode;
-					getCategory(0).appendChild(getStarted);
-				}
-
 				// Add categories to _dropdownNode
 				var _self = this;
 				categories.sort(function(a, b) { return a - b; }).forEach(function(category, i) {
@@ -207,10 +193,6 @@ define([
 					}
 				}
 			}.bind(this));
-		},
-		
-		getStartedDialog: function(getStartedData){
-			new UATaskPanel( null, true, getStartedData );
 		},
 		
 		setKeyAssist: function(keyAssistFunction){

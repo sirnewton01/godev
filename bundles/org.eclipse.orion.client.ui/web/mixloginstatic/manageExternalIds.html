@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<link rel="stylesheet" type="text/css" href="css/manageExternalIds.css" />
+		<script src="../requirejs/require.js"></script>
+		<script>
+		/*eslint-env browser, amd*/
+		require({
+		  baseUrl: '..',
+
+		  // set the paths to our library packages
+		  packages: [],
+		  paths: {
+			  text: 'requirejs/text',
+			  i18n: 'requirejs/i18n',
+			  domReady: 'requirejs/domReady'
+		  }
+		});
+
+		require(["mixloginstatic/manageExternalIds"]);
+		</script>
+	</head>
+	<body>
+		<div id="newExternalId">
+		</div>
+		<div id="externalIdList"></div>
+	</body>
+</html>

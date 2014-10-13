@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define module document console URL window*/
+/*eslint-env browser, amd*/
 
 /* -- external page require()'s [someOrionServer]/import/trampoline.js
  * -- trampoline.js injects an iframe for communicating with Orion:
@@ -20,7 +20,7 @@
  * TODO build an optimized version of this file that can be dropped into <script> tag, like plugin.js
  * TODO leverage pluginregistry for crosspage communication
  */
-define(['../orion/URL-shim.js', '../orion/plugin.js', '../orion/EventTarget.js', 'domReady!'], function(_, PluginProvider, EventTarget) {
+define(['../orion/EventTarget.js', '../orion/URL-shim.js', 'domReady!'], function(EventTarget) {
 	var trampoline = {};
 	EventTarget.attach(trampoline);
 

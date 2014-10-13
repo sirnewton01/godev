@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define document window eclipse orion serviceRegistry:true widgets alert console localStorage*/
-/*browser:true*/
+/*eslint-env browser, amd*/
 
 define(['require', 'orion/Deferred', 'orion/serviceregistry', 'orion/preferences', 'orion/pluginregistry', 'orion/config', 'orion/xhr'], function(require, Deferred, mServiceregistry, mPreferences, mPluginRegistry, mConfig, xhr) {
 	var IMPORT_DEFAULTS = require.toUrl("import/orion-override/defaults-import.pref");

@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global window */
-/*jslint browser:true*/
+/*eslint-env browser, amd*/
 window.onload = function() {
 	var request = window.navigator.mozApps.getInstalled();
 	request.onsuccess = function(e) {

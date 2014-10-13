@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define */
-/*jslint browser:true regexp:false*/
+/*eslint-env browser, amd*/
 /**
  * @name orion.regex
  * @class Utilities for dealing with regular expressions.

@@ -1,4 +1,3 @@
-
 @import "../css/layout.css";
 
 @import "../css/controls.css";
@@ -14,6 +13,8 @@
 @import "../font/font.css";
 
 @import "widgetCommon.css";
+
+@import "fileBrowserAnnotation.css";
 
 .localBreadCrumb{
 	border: 1px solid;
@@ -71,8 +72,7 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: calc(100% - 1px - 4px - 35px);
-	max-width: -webkit-calc(100% - 1px - 4px - 35px);
+	max-width: 280px;
 	-moz-user-select: -moz-none;
 	-webkit-user-select: none;
 	-ms-user-select: none;
@@ -89,7 +89,6 @@
 	margin-left: 4px;
 	border: 1px solid;
 	height: 21px; 
-	width: 200px; 
 	margin-top: -2px;
 	background-color: white;
 	display: inline-block;
@@ -113,15 +112,13 @@
 
 .breadCrumbContainer {
 	border-bottom: 1px solid;
-	margin-top: 1px;
-	padding-left: 4px;
-	padding-top: 5px;
-	width: 100%;
 	height: 22px;
 	border-color: #dadada;
 	-webkit-box-sizing: initial !important;
 	box-sizing: initial !important;
 	/*background: none repeat scroll 0 0 #f7f7f7;*/
+	padding: 4px;
+	width: calc(100% - 8px); /* subtract padding */
 }
 
 .commitInfoContainer {
@@ -148,13 +145,14 @@
 }
 
 .commitInfoMessageTextContainer {
-	padding-bottom: 1px;
+	padding-bottom: 2px;
 	text-overflow: ellipsis;
 	overflow: hidden;
 	white-space: nowrap;
 }
 
 .commitInfoAutorContainer {
+	padding-top: 2px;
 	padding-bottom: 4px;
 	text-overflow: ellipsis;
 	overflow: hidden;
@@ -222,7 +220,7 @@
 	vertical-align: top;
 	padding-top:1px;
 	font-weight: bold;
-	font-size: 1.05em;
+	font-size: 1em;
 	color: #444;
 	text-decoration: none;
 	line-height: 10pt;
@@ -236,6 +234,21 @@ a.currentLocation:hover {
 	color: #F58B0F;
  	text-decoration: none;
 	border-bottom: 1px dotted;
+}
+
+div.currentLocation {
+	height: 22px;
+}
+
+.breadcrumbContainer {
+	margin: 0 4px; 
+	justify-content: flex-start;
+	-webkit-justify-content: flex-start;
+}
+
+.breadcrumbContainer > .currentLocation {
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .binaryViewTable {
@@ -263,6 +276,13 @@ a.currentLocation:hover {
 	background-color: #FFF3F3;
 	outline: 1px solid #FFADAD;
 	color: #DD0000 !important;
+}
+
+.warningMessageViewTable {
+	font-weight: bold;
+	color: #c09853 !important;
+	background-color: #fcf8e3 !important;
+	outline: 1px solid #fbeed5 !important;
 }
 
 .emptyViewTable {
@@ -367,7 +387,8 @@ a.currentLocation:hover {
 }
 
 .breadcrumb {
-	font-size: 1.05em;
+	font-size: 1em;
+	font-weight: bold;
 	text-decoration: none;
 	color: #02ADD0;
 	padding-top: 2px;

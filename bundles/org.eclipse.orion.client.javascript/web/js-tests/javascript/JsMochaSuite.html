@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="../../../../mocha/mocha.css" />
   <script src="../../../../requirejs/require.js"></script>
   <script>
-	/*jslint amd:true*/
+	/*eslint-env amd*/
 	require({
 		baseUrl: '../../',
 		paths: {
@@ -16,7 +16,9 @@
 			estraverse: 'estraverse/estraverse',
 			esprima: 'esprima/esprima',
 			escope: 'escope/escope',
-			'eslint/tests': 'eslint/tests'
+			logger: 'javascript/logger',
+			'eslint/tests': 'eslint/tests',
+			doctrine: 'doctrine/doctrine'
 		},
 		packages: [
 			{
@@ -40,7 +42,8 @@
 				'js-tests/javascript/finderTests',
 				'js-tests/javascript/indexFileParsingTests',
 				'js-tests/javascript/occurrencesTests',
-				'js-tests/javascript/outlinerTests'
+				'js-tests/javascript/outlinerTests',
+				'js-tests/javascript/validatorTests'
 				], function(){
 			mocha.run();
 		});
@@ -48,8 +51,8 @@
   </script>
 </head>
 <body>
-	<h2>JavaScript Tools Tests</h2>
 	<div id="mocha">
+		<h1>JavaScript Tools Tests</h1>
 	</div>
 </body>
 </html>

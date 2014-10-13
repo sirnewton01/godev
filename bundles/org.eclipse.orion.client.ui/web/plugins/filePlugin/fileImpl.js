@@ -9,10 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global URL*/
-/*jslint forin:true devel:true amd:true browser:true regexp:false*/
-
-
+/*eslint-env browser, amd*/
 define(["orion/Deferred", "orion/xhr", "orion/URL-shim", "orion/operation", "orion/form"], function(Deferred, xhr, _, operation, form) {
 
 	/**

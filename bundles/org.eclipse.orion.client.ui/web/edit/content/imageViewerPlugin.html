@@ -8,7 +8,7 @@
 		<link rel="stylesheet" type="text/css" href="imageViewerPlugin.css" />
 		<script src="../../requirejs/require.js"></script>
 		<script type="text/javascript">
-			/*global define require*/		
+			/*eslint-env browser, amd*/		
 			require({
 				baseUrl: '../..',
 				paths: {
@@ -21,10 +21,12 @@
 		</script>
     </head>
 	<body>
-		<table><tr><td> 
-		<div id="imagecontent">
-		Loading...
-		</div>
-		</td></tr></table>
+		<div class = "imageContainer" id="imageContainer">
+			<div class="imageTitle" id="imageTitle">
+			Loading...
+			</div>
+			<div class= "imageContent" id="imageContent">
+			</div>
+		<div>
 	</body>
 </html>

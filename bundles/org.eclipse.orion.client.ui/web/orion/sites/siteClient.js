@@ -9,8 +9,8 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define document window*/
-define(['i18n!orion/sites/nls/messages', 'require', 'orion/Deferred', 'orion/fileClient'], function(messages, require, Deferred, mFileClient) {
+/*eslint-env browser, amd*/
+define(['i18n!orion/sites/nls/messages', 'orion/Deferred', 'orion/fileClient'], function(messages, Deferred, mFileClient) {
 	/**
 	 * Performs a service call, handling authentication and retrying after auth.
 	 * @returns {Promise}

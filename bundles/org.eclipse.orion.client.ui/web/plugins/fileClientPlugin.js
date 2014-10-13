@@ -9,8 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global window document parent define console eclipse*/
-
+/*eslint-env browser, amd*/
 define(["orion/Deferred", "orion/plugin", "plugins/filePlugin/fileImpl", "domReady!"], function(Deferred, PluginProvider, FileServiceImpl) {
 	function trace(implementation) {
 		var method;
@@ -72,9 +71,6 @@ define(["orion/Deferred", "orion/plugin", "plugins/filePlugin/fileImpl", "domRea
 	// note global
 	var workspaceBase = makeParentRelative(temp.href);
 
-	temp.href = "..";
-	var patternBase = makeParentRelative(temp.href);
-
 	var service = new FileServiceImpl(fileBase, workspaceBase);
 	//provider.registerService("orion.core.file", trace(service), {Name:'Orion Content', top:fileBase, pattern:patternBase});
 	provider.registerService("orion.core.file", service, {
@@ -82,7 +78,8 @@ define(["orion/Deferred", "orion/plugin", "plugins/filePlugin/fileImpl", "domRea
 		NameKey: 'Orion Content',
 		nls: 'orion/navigate/nls/messages',
 		top: fileBase,
-		pattern: patternBase
+		ranking: -1,
+		pattern: [fileBase, workspaceBase]
 	});
 	provider.connect();
 });

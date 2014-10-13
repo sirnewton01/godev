@@ -10,8 +10,7 @@
  *     Kris De Volder (VMWare) - initial API and implementation
  *******************************************************************************/
 
-/*global define*/
-
+/*eslint-env browser, amd*/
 /**
  * This module stores one 'current' directory node and proactively fetches
  * its child nodes in an attempt to answer them synchronously when requested.
@@ -73,7 +72,7 @@ define(["i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/fileClient", 
 					if (directory.Directory) {
 						result.resolve(directory);
 					} else {
-						result.reject(messages["Cannot create directory, it already exists as a file"]);
+						result.reject(messages["AlreadyExistsInDirErr"]);
 					}
 				} else {
 					parentNode = parentNode || this.getCurrentDirectory();
@@ -87,7 +86,7 @@ define(["i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/fileClient", 
 											/* directory already exists, so nothing to do */
 											result.resolve(children[i]);
 										} else {
-											result.reject(messages["Cannot create directory, it already exists as a file"]);
+											result.reject(messages["AlreadyExistsInDirErr"]);
 										}
 										return;
 									}
@@ -116,7 +115,7 @@ define(["i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/fileClient", 
 					if (!file.Directory) {
 						result.resolve(file);
 					} else {
-						result.reject(messages["Cannot create file, it already exists as a directory"]);
+						result.reject(messages["AlreadyExistsInDirErr"]);
 					}
 				} else {
 					parentNode = parentNode || this.getCurrentDirectory();
@@ -130,7 +129,7 @@ define(["i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/fileClient", 
 											/* file already exists, so nothing to do */
 											result.resolve(children[i]);
 										} else {
-											result.reject(messages["Cannot create file, it already exists as a directory"]);
+											result.reject(messages["AlreadyExistsInDirErr"]);
 										}
 										return;
 									}
@@ -237,7 +236,7 @@ define(["i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/fileClient", 
 				var sourceService = fileClient._getService(node.Location);
 				if (!sourceService.readBlob) {
 					var promise = new Deferred();
-					promise.reject(messages["Source file service does not support binary read"]);
+					promise.reject(messages["SrcNotSupportBinRead"]);
 					return promise;
 				}
 				return sourceService.readBlob(node.Location);
@@ -300,7 +299,7 @@ define(["i18n!orion/shell/nls/messages", "orion/bootstrap", "orion/fileClient", 
 				var targetService = fileClient._getService(node.Location);
 				if (!targetService.writeBlob) {
 					var promise = new Deferred();
-					promise.reject(messages["Target file service does not support binary write"]);
+					promise.reject(messages["TargetNotSupportBinWrite"]);
 					return promise;
 				}
 				return targetService.writeBlob(node.Location, content);

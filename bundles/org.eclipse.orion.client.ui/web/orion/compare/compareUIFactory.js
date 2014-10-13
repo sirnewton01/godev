@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define */
-
+/*eslint-env browser, amd*/
 define(['orion/webui/littlelib', 'orion/webui/splitter', 'text!orion/compare/sideBySideTemplate.html'], 
 function(lib, mSplitter, SideBySideTemplate) {
 
@@ -73,7 +72,7 @@ orion.TwoWayCompareUIFactory = (function() {
 			var leftPane = lib.$(".leftPanelLayout", this._topWidgetDiv); //$NON-NLS-0$
 			var rightPane = lib.$(".rightPanelLayout", this._topWidgetDiv); //$NON-NLS-0$
 			if (splitNode && leftPane && rightPane) {
-				this._splitter = new mSplitter.Splitter({node: splitNode, sidePanel: leftPane, mainPanel: rightPane});
+				this._splitter = new mSplitter.Splitter({node: splitNode, sidePanel: leftPane, mainPanel: rightPane, proportional: true});
 			}
 		},
 				

@@ -9,9 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global window define document*/
-/*browser:true*/
-
+/*eslint-env browser, amd*/
 define(['require', 'orion/bootstrap', 'orion/status', 'orion/progress', 'orion/dialogs',
 	'orion/commandRegistry', 'stringexternalizer/stringexternalizerconfig', 'orion/searchClient',
 	'orion/fileClient', 'orion/operationsClient', 'stringexternalizer/strExternalizerResults', 'orion/globalCommands',

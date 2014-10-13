@@ -9,7 +9,8 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define escape*/
+/*eslint-env browser, amd*/
+/*global escape*/
 define([], function() {
 	function x_www_form_urlencode(value) {
 		return encodeURIComponent(value).replace(/[!'()*]/g, escape).replace('%20', '+'); //$NON-NLS-0$ //$NON-NLS-1$

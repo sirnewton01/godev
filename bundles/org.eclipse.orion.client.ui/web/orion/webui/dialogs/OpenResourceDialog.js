@@ -10,9 +10,7 @@
  *     IBM Corporation - initial API and implementation
  *     Andy Clement (vmware) - bug 344614
  *******************************************************************************/
-/*jslint browser:true*/
-/*global define orion window console*/
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion/contentTypes', 'require', 'orion/webui/littlelib', 'orion/util', 'orion/webui/dialog'], 
 		function(messages, mSearchCrawler, mContentTypes, require, lib, util, dialog) {
 	/**
@@ -34,7 +32,7 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 	OpenResourceDialog.prototype.TEMPLATE = 
 		'<div role="search">' + //$NON-NLS-0$
 			'<div><label id="fileNameMessage" for="fileName">${Type the name of a file to open (? = any character, * = any string):}</label></div>' + //$NON-NLS-0$
-			'<div><input id="fileName" type="text" class="setting-control" style="width:90%;"/></div>' + //$NON-NLS-0$
+			'<div><input id="fileName" type="text" class="openResourceDialogInput" style="min-width: 25em; width:90%;"/></div>' + //$NON-NLS-0$
 			'<div id="progress" style="padding: 2px 0 0; width: 100%;"><img src="'+ require.toUrl("../../../images/progress_running.gif") + '" class="progressPane_running_dialog" id="crawlingProgress"></img></div>' +  //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			'<div id="results" style="max-height:250px; height:auto; overflow-y:auto;" aria-live="off"></div>' + //$NON-NLS-0$
 			'<div id="statusbar"></div>' + //$NON-NLS-0$
@@ -68,7 +66,7 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 		}
 		this._searchRenderer = options.searchRenderer;
 		if (!this._searchRenderer || typeof(this._searchRenderer.makeRenderFunction) !== "function") { //$NON-NLS-0$
-			throw new Error(messages['Missing required argument: searchRenderer']);
+			throw new Error(messages['MissingSearchRenderer']);
 		}
 		this._initialize();
 	};
@@ -226,7 +224,7 @@ define(['i18n!orion/widgets/nls/messages', 'orion/crawler/searchCrawler', 'orion
 			var renderFunction = this._searchRenderer.makeRenderFunction(this._contentTypeService, this.$results, false, this.decorateResult.bind(this));
 			this.currentSearch = renderFunction;
 			var div = document.createElement("div"); //$NON-NLS-0$
-			div.appendChild(document.createTextNode(this._nameSearch ? messages['Searching...'] : util.formatMessage(messages["Searching for occurrences of"], text)));
+			div.appendChild(document.createTextNode(this._nameSearch ? messages['Searching...'] : util.formatMessage(messages["SearchOccurences"], text)));
 			lib.empty(this.$results);
 			this.$results.appendChild(div);
 			this._searcher.search(searchParams, keyword.folderKeyword, function() {

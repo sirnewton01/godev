@@ -8,9 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define orion*/
-/*jslint browser:true sub:true*/
-
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/sites/nls/messages',
 	'i18n!orion/widgets/nls/messages',
@@ -40,7 +38,7 @@ ConvertToSelfHostingDialog.prototype = new Dialog();
 objects.mixin(ConvertToSelfHostingDialog.prototype, {
 	TEMPLATE: ConvertToSelfHostingDialogTemplate,
 	_init: function(options) {
-		this.title = options.title || messages['Convert to Self-Hosting']; //$NON-NLS-1$
+		this.title = options.title || messages['ConvertToSelfHostingTitle']; //$NON-NLS-1$
 		this.buttons = [{ text: messages['OK'], callback: this.okButtonClicked.bind(this) }];
 		this.modal = true;
 		this.folders = this.selfHostingConfig.folders;
@@ -137,7 +135,7 @@ objects.mixin(ConvertToSelfHostingDialog.prototype, {
 	okButtonClicked: function() {
 		if (this.isValid()) {
 			this.hide();
-			if (typeof this.options.func === 'function') { //$NON-NLS-1$
+			if (typeof this.options.func === 'function') { //$NON-NLS-1$ //$NON-NLS-0$
 				this.options.func(this.folders);
 			}
 		}
@@ -223,20 +221,20 @@ objects.mixin(SiteEditor.prototype, {
 		var _self = this;
 		this.name.addEventListener("input", function(event) { //$NON-NLS-0$
 			if (_self.name.checkValidity()) {
-				_self.name.classList.remove("invalid");
-				_self.nameInvalid.classList.remove("visible");
+				_self.name.classList.remove("invalid"); //$NON-NLS-0$
+				_self.nameInvalid.classList.remove("visible"); //$NON-NLS-0$
 			} else {
-				_self.name.classList.add("invalid");
-				_self.nameInvalid.classList.add("visible");
+				_self.name.classList.add("invalid"); //$NON-NLS-0$
+				_self.nameInvalid.classList.add("visible"); //$NON-NLS-0$
 			}
 		});
 		this.hostHint.addEventListener("change", function(event) { //$NON-NLS-0$
 			if (_self.hostHint.checkValidity()) {
-				_self.hostHint.classList.remove("invalid");
-				_self.hostInvalid.classList.remove("visible");
+				_self.hostHint.classList.remove("invalid"); //$NON-NLS-0$
+				_self.hostInvalid.classList.remove("visible"); //$NON-NLS-0$
 			} else {
-				_self.hostHint.classList.add("invalid");
-				_self.hostInvalid.classList.add("visible");
+				_self.hostHint.classList.add("invalid"); //$NON-NLS-0$
+				_self.hostInvalid.classList.add("visible"); //$NON-NLS-0$
 			}
 		});
 
@@ -313,7 +311,7 @@ objects.mixin(SiteEditor.prototype, {
 			choices.push({}); // Separator
 		}
 		choices.push({
-			name: messages["Choose folder..."],
+			name: messages["ChooseFolder"],
 			imageClass: "core-sprite-folder", //$NON-NLS-0$
 			callback: function() {
 				var dialog = new DirPrompter.DirectoryPrompterDialog({
@@ -382,7 +380,7 @@ objects.mixin(SiteEditor.prototype, {
 	 */
 	load: function(location) {
 		var deferred = new Deferred();
-		this._busyWhile(deferred, "Loading..."); //$NON-NLS-0$
+		this._busyWhile(deferred, messages["Loading..."]);
 		this._siteClient.loadSiteConfiguration(location).then(
 			function(siteConfig) {
 				this._setSiteConfiguration(siteConfig);
@@ -430,7 +428,7 @@ objects.mixin(SiteEditor.prototype, {
 	 */
 	setDirty: function(value) {
 		this._isDirty = value;
-		this.dispatchEvent({type: "dirty", value: value});
+		this.dispatchEvent({type: "dirty", value: value}); //$NON-NLS-0$
 	},
 	
 	isDirty: function() {
@@ -474,7 +472,7 @@ objects.mixin(SiteEditor.prototype, {
 			
 			this.mappings = new mSiteMappingsTable.MappingsTable({serviceRegistry: this.serviceRegistry,
 					siteClient: this._siteClient, fileClient: this._fileClient, commandRegistry: this._commandService, selection: null, 
-					parentId: "mappingsNode", siteConfiguration: this._siteConfiguration
+					parentId: "mappingsNode", siteConfiguration: this._siteConfiguration //$NON-NLS-0$
 				});
 		} else {
 			this.mappings._setSiteConfiguration(this._siteConfiguration);
@@ -516,7 +514,7 @@ objects.mixin(SiteEditor.prototype, {
 				var isChanged = oldValue !== value;
 				editor.setDirty(isChanged || editor.isDirty());
 			}
-			widget.addEventListener("input", commitWidgetValue);
+			widget.addEventListener("input", commitWidgetValue); //$NON-NLS-0$
 			editor._modelListeners.push({target: widget, type: "input", listener: commitWidgetValue}); //$NON-NLS-0$
 		}
 		
@@ -526,8 +524,8 @@ objects.mixin(SiteEditor.prototype, {
 		var dirtyListener = function(dirtyEvent) {
 			editor.setDirty(dirtyEvent.value);
 		};
-		this.mappings.addEventListener("dirty", dirtyListener);
-		this._modelListeners.push({target: this.mappings, type: "dirty", listener: dirtyListener});
+		this.mappings.addEventListener("dirty", dirtyListener); //$NON-NLS-0$
+		this._modelListeners.push({target: this.mappings, type: "dirty", listener: dirtyListener}); //$NON-NLS-0$
 	},
 	
 	_detachListeners: function() {
@@ -607,7 +605,7 @@ objects.mixin(SiteEditor.prototype, {
 	 * @param {orion.Promise} deferred The deferred that succeeded.
 	 */
 	onSuccess: function(deferred) {
-		this.dispatchEvent({type: "success", deferred: deferred});
+		this.dispatchEvent({type: "success", deferred: deferred}); //$NON-NLS-0$
 	},
 		
 	/**
@@ -616,7 +614,7 @@ objects.mixin(SiteEditor.prototype, {
 	 * @param {orion.Promise} deferred The deferred that rejected.
 	 */
 	onError: function(deferred) {
-		this.dispatchEvent({type: "error", deferred: deferred});
+		this.dispatchEvent({type: "error", deferred: deferred}); //$NON-NLS-0$
 	}
 });
 	return SiteEditor;

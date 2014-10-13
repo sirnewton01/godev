@@ -42,9 +42,10 @@ var JsDiff = (function() {
     this.ignoreWhitespace = ignoreWhitespace;
   };
   fbDiff.prototype = {
-      diff: function(oldString, newString) {
-        // Handle the identity case (this is due to unrolling editLength == 0
-        if (newString == oldString) {
+      diff: function(oldString, newString, ignoreWhitespace) {
+     	this.ignoreWhitespace = ignoreWhitespace;
+       // Handle the identity case (this is due to unrolling editLength == 0
+        if (newString === oldString) {
           return [{ value: newString }];
         }
         if (!newString) {
@@ -90,11 +91,11 @@ var JsDiff = (function() {
             // and does not pass the bounds of the diff graph
             if (!canAdd || (canRemove && addPath.newPos < removePath.newPos)) {
               basePath = clonePath(removePath);
-              this.pushComponent(basePath.components, oldString[oldPos], undefined, true);
+              this.pushComponent(basePath.components, oldString[oldPos], "", undefined, true);
             } else {
               basePath = clonePath(addPath);
               basePath.newPos++;
-              this.pushComponent(basePath.components, newString[basePath.newPos], true, undefined);
+              this.pushComponent(basePath.components, newString[basePath.newPos], "", true, undefined);
             }
 
             var oldPos = this.extractCommon(basePath, newString, oldString, diagonalPath);
@@ -108,15 +109,15 @@ var JsDiff = (function() {
         }
       },
 
-      pushComponent: function(components, value, added, removed) {
+      pushComponent: function(components, value, helperValue, added, removed) {
         var last = components[components.length-1];
         if (last && last.added === added && last.removed === removed) {
           // We need to clone here as the component clone operation is just
           // as shallow array clone
           components[components.length-1] =
-            {value: this.join(last.value, value), added: added, removed: removed };
+            {value: this.join(last.value, value), helperValue: this.join(last.helperValue, helperValue), added: added, removed: removed };
         } else {
-          components.push({value: value, added: added, removed: removed });
+          components.push({value: value, helperValue: helperValue, added: added, removed: removed });
         }
       },
       extractCommon: function(basePath, newString, oldString, diagonalPath) {
@@ -128,7 +129,7 @@ var JsDiff = (function() {
           newPos++;
           oldPos++;
           
-          this.pushComponent(basePath.components, newString[newPos], undefined, undefined);
+          this.pushComponent(basePath.components, newString[newPos], oldString[oldPos], undefined, undefined);
         }
         basePath.newPos = newPos;
         return oldPos;
@@ -139,7 +140,7 @@ var JsDiff = (function() {
         if (this.ignoreWhitespace && !reWhitespace.test(left) && !reWhitespace.test(right)) {
           return true;
         } else {
-          return left == right;
+          return this._equals(left, right);
         }
       },
       join: function(left, right) {
@@ -151,26 +152,47 @@ var JsDiff = (function() {
   };
   
   var CharDiff = new fbDiff();
+  CharDiff._equals = function(left, right) {
+    return left === right;
+  };
   
   var WordDiff = new fbDiff(false);
   WordDiff.tokenize = function(value) {
     return removeEmpty(value.split(/(\s+|\b)/));
+  };
+  WordDiff._equals = function(left, right) {
+    return left === right;
   };
   
   var CssDiff = new fbDiff(true);
   CssDiff.tokenize = function(value) {
     return removeEmpty(value.split(/([{}:;,]|\s+)/));
   };
+  CssDiff._equals = function(left, right) {
+    return left === right;
+  };
   
   var LineDiff = new fbDiff();
   LineDiff.tokenize = function(value) {
-    return value.split(/^/m);
+    var result = value.split(/^/m);
+    if(result && result.length > 0 && !result[result.length - 1]) {
+    	result.pop();
+    }
+    return result;
+  };
+  LineDiff._equals = function(left, right) {
+  	if(this.ignoreWhitespace) {
+	  	var newLeft = left.replace(/^\s+|\s+$|\s+(?=\s)/g, "");
+	 	var newRight = right.replace(/^\s+|\s+$|\s+(?=\s)/g, "");
+    	return newLeft === newRight;
+    }
+    return left === right;
   };
   
   return {
-    diffChars: function(oldStr, newStr) { return CharDiff.diff(oldStr, newStr); },
-    diffWords: function(oldStr, newStr) { return WordDiff.diff(oldStr, newStr); },
-    diffLines: function(oldStr, newStr) { return LineDiff.diff(oldStr, newStr); },
+    diffChars: function(oldStr, newStr, ignoreWhitespace) { return CharDiff.diff(oldStr, newStr, ignoreWhitespace); },
+    diffWords: function(oldStr, newStr, ignoreWhitespace) { return WordDiff.diff(oldStr, newStr, ignoreWhitespace); },
+    diffLines: function(oldStr, newStr, ignoreWhitespace) { return LineDiff.diff(oldStr, newStr, ignoreWhitespace); },
 
     diffCss: function(oldStr, newStr) { return CssDiff.diff(oldStr, newStr); },
 

@@ -9,18 +9,27 @@ Need some help while coding? Activate content assist for code completions, keywo
 Content assist can be easily extended to understand 3rd party libraries and comes preconfigured for 
 **Browser**, **Node.js**, **MongoDB**, **Redis**, **MySQL** and more!
 
-To activate the libraries in your source simply add a stanza at the top of your source indicating which library to use.
+To activate the libraries in your source simply add a jslint or eslint-env directive at the top of your source indicating which library to use.
 
 For example to use **Node.js** we would add the following:
 ```javascript
-/* node:true */
+/* jslint node:true */
 ```
+or
 
+```javascript
+/* eslint-env node */
+```
 ### Customizable Linting
 
 Backed by the power and speed of [ESLint](https://github.com/eslint/eslint), the linting rules in Orion can be configured on a per-rule basis. 
 
-Don't like being nagged about unused parameters? Simply turn it off in the easy to use preference dialog.
+Don't like being nagged about unused parameters? Simply turn it off in the easy to use preference dialog or add a directive for the rule you want disabled:
+```javascript
+/* eslint no-unused-params:0 */
+```
+
+will disable flagging unused parameters in functions.
 
 ### Mark Occurrences
 

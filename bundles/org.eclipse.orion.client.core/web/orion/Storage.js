@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define console */
-
+/*eslint-env browser, amd*/
 define(["orion/EventTarget"], function(EventTarget) {
 	function StorageEvent(key, oldValue, newValue, storageArea, timeStamp) {
 		return {

@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global esprima*/
-/*jslint amd:true*/
+/*eslint-env browser, amd*/
 define(['orion/plugin', 'orion/editor/stylers/text_x-yaml/syntax'], function(PluginProvider, mYAML) {
 
 	/**

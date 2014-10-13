@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define */
-
+/*eslint-env browser, amd*/
 define("orion/editor/linkedMode", [ //$NON-NLS-0$
 	'i18n!orion/editor/nls/messages', //$NON-NLS-0$
 	'orion/keyBinding', //$NON-NLS-0$
@@ -273,7 +272,7 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 				contentAssist.removeEventListener("Activating", this.linkedModeListener.onActivating); //$NON-NLS-0$
 				contentAssist.offset = undefined;
 				this.editor.reportStatus(messages.linkedModeExited, null, true);
-				if (escapePosition) {
+				if (escapePosition && typeof model.escapePosition === "number") { //$NON-NLS-0$
 					editor.setCaretOffset(model.escapePosition, false);
 				}
 			}
@@ -373,7 +372,7 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 				this._getModelPositions(all, model);
 				// Add escape position for all models
 				while (model) {
-					if (model.escapePosition !== undefined) {
+					if (typeof model.escapePosition === "number") { //$NON-NLS-0$
 						all.push({
 							escape: true,
 							model: model,
@@ -421,6 +420,7 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 				for (var i = 0; i < positions.length; i++) {
 					var position = positions[i];
 					if (position.model !== model) { continue; }
+					if (position.escape) { continue; }
 					var type = mAnnotations.AnnotationType.ANNOTATION_LINKED_GROUP;
 					if (position.group === model.selectedGroupIndex) {
 						if (position.index === 0) {

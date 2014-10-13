@@ -9,7 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define navigator*/
+/*eslint-env browser, amd*/
 define(function() {
 	return {
 		load: function(name, parentRequire, onLoad, config) {

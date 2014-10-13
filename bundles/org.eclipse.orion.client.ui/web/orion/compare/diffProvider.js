@@ -9,8 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define console document*/
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/compare/nls/messages', 'orion/Deferred'], function(messages, Deferred) {
 
 	function _doServiceCall(fileService, funcName, funcArgs) {
@@ -71,14 +70,14 @@ define(['i18n!orion/compare/nls/messages', 'orion/Deferred'], function(messages,
 					return _services[i];
 				}
 			}
-			throw messages["No Matching DiffService for location:"] + location;
+			throw messages["NoDiffServiceLocationMatched"] + location;
 		};
 	}
 
 	DiffProvider.prototype = /** @lends orion.compare.DiffProvider.prototype */
 	{
-		getDiffContent: function(diffURI){
-			return _doServiceCall(this._getService(diffURI), "getDiffContent", arguments); //$NON-NLS-0$
+		getDiffContent: function(diffURI, options){
+			return _doServiceCall(this._getService(diffURI, options), "getDiffContent", arguments); //$NON-NLS-0$
 		},
 		getDiffFileURI: function(diffURI){
 			return _doServiceCall(this._getService(diffURI), "getDiffFileURI", arguments); //$NON-NLS-0$

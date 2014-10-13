@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define setTimeout*/
+/*eslint-env browser, amd*/
 define(['orion/Deferred'], function(Deferred) {
 	/**
 	 * Helper for generating a setup-invoke-teardown test case.

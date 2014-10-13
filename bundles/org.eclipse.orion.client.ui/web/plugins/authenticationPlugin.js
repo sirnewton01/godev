@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define eclipse document*/
-
+/*eslint-env browser, amd*/
 define(["orion/xhr", "orion/plugin", "domReady!"], function(xhr, PluginProvider) {
 	var headers = {
 		name: "Orion User Authentication",
@@ -63,11 +62,11 @@ define(["orion/xhr", "orion/plugin", "domReady!"], function(xhr, PluginProvider)
 			});
 		},
 		getAuthForm: function(notify) {
-			return qualifyURL(notify ? ('../mixloginstatic/LoginWindow.html?redirect=' + encodeURIComponent(notify) + '&key=FORMOpenIdUser') : '../mixloginstatic/LoginWindow.html');
+			return qualifyURL(notify ? ('../mixloginstatic/LoginWindow.html?redirect=' + encodeURIComponent(notify) + '&key=FORMOAuthUser') : '../mixloginstatic/LoginWindow.html');
 		},
 
 		getKey: function() {
-			return "FORMOpenIdUser";
+			return "FORMOAuthUser";
 		},
 
 		getLabel: function() {
@@ -75,7 +74,7 @@ define(["orion/xhr", "orion/plugin", "domReady!"], function(xhr, PluginProvider)
 		}
 	};
 	var serviceProps = {
-		name: "FORM+OpenId"
+		name: "FORM+OAuth"
 	};
 	provider.registerService("orion.core.auth", serviceImpl, serviceProps);
 	provider.connect();

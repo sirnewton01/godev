@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License v1.0
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
@@ -8,12 +8,11 @@
  *
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define document*/
-/*jslint sub:true*/
-define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/Deferred', 'orion/commandRegistry', 'orion/globalCommands',
-		'orion/selection', 'orion/sites/siteUtils', 'orion/sites/siteClient', 'orion/sites/siteCommands', 'orion/webui/treetable',
+/*eslint-env browser, amd*/
+define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/Deferred', 'orion/globalCommands',
+		'orion/sites/siteUtils', 'orion/sites/siteClient', 'orion/webui/treetable',
 		'orion/webui/littlelib'],
-		function(messages, i18nUtil, Deferred, mCommands, mGlobalCommands, mSelection, mSiteUtils, mSiteClient, mSiteCommands, treetable, lib) {
+		function(messages, i18nUtil, Deferred, mGlobalCommands, mSiteUtils, mSiteClient, treetable, lib) {
 	var formatMessage = i18nUtil.formatMessage;
 	var TableTree = treetable.TableTree;
 	var ViewOnSiteTree;
@@ -67,9 +66,11 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/Deferred', 'or
 			this._options = options;
 		}
 		SitesRenderer.prototype = /** @lends orion.sites.SitesRenderer.prototype */{
+		    /* eslint-disable no-unused-params */
 			initTable: function (tableNode, tableTree) {
 				tableNode.classList.add("treetable"); //$NON-NLS-0$
 			},
+			/* eslint-enable no-unused-params */
 			render: function(item, tableRow) {
 				tableRow.className += "treeTableRow addsitesTableRow"; //$NON-NLS-0$
 				
@@ -133,7 +134,12 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/Deferred', 'or
 					node.classList.remove(off);
 				});
 			},
-			labelColumnIndex: 0
+			labelColumnIndex: 0,
+			/* eslint-disable no-unused-params */
+			updateExpandVisuals: function(row, isExpanded) {
+			    //TODO page doesn't have expansion
+			}
+			/* eslint-enable no-unused-params */
 		};
 		return SitesRenderer;
 	}());
@@ -263,7 +269,12 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/Deferred', 'or
 				tableRow.appendChild(actionCol);
 			},
 			rowsChanged: SitesRenderer.prototype.rowsChanged,
-			labelColumnIndex: 0
+			labelColumnIndex: 0,
+			/* eslint-disable no-unused-params */
+			updateExpandVisuals: function(row, isExpanded) {
+			    //TODO page doesn't have expansion
+			}
+			/* eslint-enable no-unused-params */
 		};
 		return ViewOnSiteRenderer;
 	}());

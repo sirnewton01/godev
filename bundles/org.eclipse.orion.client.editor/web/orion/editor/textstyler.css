@@ -1,42 +1,13 @@
-.comment.block.documentation, .comment-block-documentation {
-	color: #00008F;
-}
-
 .comment {
 	color: #3C802C;
-}
-
-.constant.character.entity, .constant-character-entity {
-	font-style: normal;
 }
 
 .constant {
 	color: blue;
 }
 
-.entity.name.function, .entity.name.type, .entity-name-function, .entity-name-type {
-	font-weight: bold;
-}
-
-.entity.name, .entity-name-tag {
-	color: #CC4C07;
-}
-
-.entity.other.attribute.name, .entity-other-attribute-name {
-	color: #3C802C;
-}
-
 .entity {
 	color: #3f7f7f;
-}
-
-.invalid.illegal, .invalid-illegal {
-	color: white;
-	background-color: red;
-}
-
-.invalid.deprecated, .invalid-deprecated {
-	text-decoration: line-through;
 }
 
 .invalid {
@@ -44,77 +15,25 @@
 	font-weight: bold;
 }
 
-.keyword.other.documentation.markup {
-	color: #7F7F9F;
-}
-
-.keyword.other.documentation {
-	color: #7F9FBF;
-}
-
-.keyword.operator, .keyword-operator {
-	color: #ddd;
-}
-
 .keyword {
-	color: #CC4C07;
+	color: #9F4177;
 	font-weight: bold;
 }
 
-.markup.bold {
-	font-weight: bold;
+.storage {
+	color: #7F0055;
 }
 
-.markup.heading, .markup-heading {
-	color: blue;
-}
-
-.markup.italic {
-	font-style: italic;
-}
-
-.markup.list {
-	color: #CC4C07;
-}
-
-.markup.other.separator {
-	color: #00008F;
-}
-
-.markup.other.strikethrough {
-	text-decoration: line-through;
-}
-
-.markup.other.table {
-	color: #3C802C;
-}
-
-.markup.quote, .markup-quote {
+.string {
 	color: #446fbd;
 }
 
-.markup.raw {
-	font-family: monospace
+.support {
+	color: #21439c;
 }
 
-.markup.underline.link {
-	text-decoration: underline;
-}
-
-.meta.annotation.currentLine {
-	background-color: #EAF2FE;
-}
-
-.meta.tag {
-	color: #3f7f7f;
-}
-
-.punctuation.definition.comment, .punctuation-definition-comment {
-	color: #3f5fbf;
-}
-
-.punctuation.definition.string, .punctuation-definition-string {
-	color: blue;
+.variable {
+	color: #0000c0;
 }
 
 .punctuation.separator.space {
@@ -131,29 +50,66 @@
 	background-position: left center;
 }
 
-.storage {
-	color: #7F0055;
+/* styles for deprecated TextMate adapter */
+
+.comment-block-documentation {
+	color: #00008F;
 }
 
-.string {
-	color: #446fbd;
+.constant-character-entity {
+	font-style: normal;
 }
 
-.support {
-	color: #21439c;
+.entity-name-function, .entity-name-type {
+	font-weight: bold;
+	color: #67BBB8;
 }
 
-.variable.parameter, .variable-parameter {
-	color: black;
+.entity-name-tag {
+	color: #98937B;
 }
 
-.variable.language, .variable-language {
-	color: #7F0055;
+.entity-other-attribute-name {
+	color: #3C802C;
+}
+
+.invalid-illegal {
+	color: white;
+	background-color: red;
+}
+
+.invalid-deprecated {
+	text-decoration: line-through;
+}
+
+.keyword-operator {
+	color: #CC4C07;
 	font-weight: bold;
 }
 
-.variable {
-	color: #0000c0;
+.meta.annotation.currentLine {
+	background-color: #EAF2FE;
+}
+
+.meta.tag {
+	color: #3f7f7f;
+}
+
+.punctuation-definition-comment {
+	color: #3f5fbf;
+}
+
+.punctuation-definition-string {
+	color: blue;
+}
+
+.variable-parameter {
+	color: #D1416F;
+}
+
+.variable-language {
+	color: #7F0055;
+	font-weight: bold;
 }
 
 /* CodeMirror styles */

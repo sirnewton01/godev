@@ -9,18 +9,15 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*jslint browser:true */
-/*global define*/
+/*eslint-env browser, amd*/
 
 define([
-	"chai/chai",
 	"orion/editor/eventTarget",
 	"orion/editor/keyModes",
 	"orion/editor/textModel",
 	"orion/editor/annotations",
 	"orion/editor/mirror"
-], function(chai, mEventTarget, mKeyModes, mTextModel) {
-	var assert = chai.assert;
+], function(mEventTarget, mKeyModes, mTextModel) {
 
 	function clone(obj) {
 		/*Note that this code only works because of the limited types used in TextViewOptions */

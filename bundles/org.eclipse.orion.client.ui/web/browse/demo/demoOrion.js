@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global URL define window console eclipse orion*/
-
+/*eslint-env browser, amd*/
 define([
 	'orion/bootstrap', 
 	'orion/fileClient',

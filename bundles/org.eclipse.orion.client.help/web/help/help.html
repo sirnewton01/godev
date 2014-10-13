@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="copyright" content="Copyright (c) IBM Corporation and others 2014." >
+	<meta http-equiv="Content-Language" content="en-us">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link rel="icon" href="../../images/shell.png" type="image/png">
+	<link rel="stylesheet" type="text/css" href="./help.css" />
+	<script src="../requirejs/require.js"></script>
+	<script>
+		/*eslint-env browser, amd*/
+		require({
+			baseUrl: "..",
+			paths: {
+				text: "requirejs/text",
+				i18n: "requirejs/i18n",
+				domReady: "requirejs/domReady"
+			}
+		});
+		require(["help/help"]);
+	</script>
+</head>
+	<body id="orion-helpPage" class="orionPage">
+		<div id="sideMenu" class="sideMenu"></div>
+		<div id="pageContent" class="content-fixedHeight">
+			<div id="sideMenuToggle" class="sideMenuToggle"></div>
+			<div id="pageToolbar" class="mainToolbar toolComposite toolbarLayout"></div>
+			<div id="innerPanels" class="innerPanels">
+				<div id="auxpane" class="auxpane sidePanelLayout hasSplit">
+					<div class="fixedToolbarHolder sidebarWrapper">
+						<div id="sidebar" class="toolbarTarget sidebar navbar"></div>
+					</div>
+				</div>
+				<div class="split splitLayout" style="left: 25%;"></div>
+				<div id="rightPane" class="mainpane mainPanelLayout hasSplit">
+					<div class="fixedToolbarHolder">
+						<div id="output" class="workingTarget"></div>
+					</div>
+				</div>
+			</div>
+			</div>
+		<div class="footer-fixed-bottom footer" id="footer"></div>
+	</body>
+</html>

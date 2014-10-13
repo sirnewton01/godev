@@ -1,64 +1,52 @@
-/* global exports module require define*/
-(function(root, factory) {
-    if(typeof exports === 'object') {
-        module.exports = factory(require, exports, module);
-    }
-    else if(typeof define === 'function' && define.amd) {
-        define(['require', 'exports', 'module'], factory);
-    }
-    else {
-        var req = function(id) {return root[id];},
-            exp = root,
-            mod = {exports: exp};
-        root.util = factory(req, exp, mod);
-    }
-}(this, function(require, exports, module) {
+/* eslint-env amd */
+define([
+'exports', 
+], function(exports) {
 /**
  * @fileoverview Common utilities.
  */
 "use strict";
 
 //------------------------------------------------------------------------------
-// Public Interface
+//Public Interface
 //------------------------------------------------------------------------------
 /**
- * Merges two objects together and assigns the result to the initial object. Can be used for shallow cloning.
- * @param {Object} target of the cloning operation
- * @param {Object} source object
- * @returns {void}
- */
+* Merges two objects together and assigns the result to the initial object. Can be used for shallow cloning.
+* @param {Object} target of the cloning operation
+* @param {Object} source object
+* @returns {void}
+*/
 exports.mixin = function(target, source) {
-    Object.keys(source).forEach(function(key) {
-        target[key] = source[key];
-    });
+ Object.keys(source).forEach(function(key) {
+     target[key] = source[key];
+ });
 };
 
 /**
- * Merges two config objects. This will not only add missing keys, but will also modify values to match.
- * @param {Object} base config object
- * @param {Object} custom config object. Overrides in this config object will take priority over base.
- * @returns {Object} merged config object.
- */
+* Merges two config objects. This will not only add missing keys, but will also modify values to match.
+* @param {Object} base config object
+* @param {Object} custom config object. Overrides in this config object will take priority over base.
+* @returns {Object} merged config object.
+*/
 exports.mergeConfigs = function mergeConfigs(base, custom) {
 
-    Object.keys(custom).forEach(function (key) {
-        var property = custom[key];
+ Object.keys(custom).forEach(function (key) {
+     var property = custom[key];
 
-        if (Array.isArray(base[key]) && !Array.isArray(property) && typeof property === "number") {
-            //assume that we are just overriding first attribute
-            base[key][0] = custom[key];
-            return;
-        }
+     if (Array.isArray(base[key]) && !Array.isArray(property) && typeof property === "number") {
+         //assume that we are just overriding first attribute
+         base[key][0] = custom[key];
+         return;
+     }
 
-        if (typeof property === "object" && !Array.isArray(property)) {
-            // base[key] might not exist, so be careful with recursion here
-            base[key] = mergeConfigs(base[key] || {}, custom[key]);
-        } else {
-            base[key] = custom[key];
-        }
-    });
-
-    return base;
+     if (typeof property === "object" && !Array.isArray(property)) {
+         // base[key] might not exist, so be careful with recursion here
+         base[key] = mergeConfigs(base[key] || {}, custom[key]);
+     } else {
+         base[key] = custom[key];
+     }
+ });
+ return base;
 };
 
 /**
@@ -87,6 +75,23 @@ exports.getDeclaration = function(ref, scope) {
 		}
 		curScope = curScope.upper;
 	}
+};
+
+/**
+ * @description Returns if the node can lead to an unreachable statement
+ * @param {Object} node The AST node
+ * @returns {Boolean} If the node can lead to an unreachable warning
+ * @since 6.0
+ */
+exports.returnableStatement = function(node) {
+    switch (node.type) {
+        case "ReturnStatement":
+        case "ThrowStatement":
+        case "ContinueStatement":
+        case "BreakStatement":
+            return true;
+    }
+    return false;
 };
 
 /**
@@ -137,15 +142,53 @@ exports.createNewBuiltinRule = function(symbol, messageOrFunc, context) {
 				var badSymbol = symbols[index];
 				if (isBuiltin(callee)) {
 					// callee refers to the builtin `badSymbol`, so flag it
-					if (message)
+					if (message) {
 						context.report(callee, message);
-					else
+					}
+					else {
 						reportCallback(context, callee, badSymbol);
+					}
 				}
 			}
 		}
 	};
 };
 
-    return module.exports;
-}));
+function ToObject(val) {
+	if (val == null) {
+		throw new TypeError('Object.assign cannot be called with null or undefined');
+	}
+
+	return Object(val);
+}
+
+exports.assign = Object.assign || function (target, source) {
+	var pendingException;
+	var from;
+	var keys;
+	var to = ToObject(target);
+
+	for (var s = 1; s < arguments.length; s++) {
+		from = arguments[s];
+		keys = Object.keys(Object(from));
+
+		for (var i = 0; i < keys.length; i++) {
+			try {
+				to[keys[i]] = from[keys[i]];
+			} catch (err) {
+				if (pendingException === undefined) {
+					pendingException = err;
+				}
+			}
+		}
+	}
+
+	if (pendingException) {
+		throw pendingException;
+	}
+
+	return to;
+};
+
+    return exports;
+});

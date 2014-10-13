@@ -8,11 +8,10 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define exports module document console URL window*/
-
-define(['require', 'orion/bootstrap', 'orion/fileClient', 'orion/URL-shim', 'orion/EventTarget',
-		'import/Injector', 'import/ImportHandler'],
-		function(require, mBootstrap, mFileClient, _, EventTarget, Injector, ImportHandler) {
+/*eslint-env browser, amd*/
+define(['require', 'orion/bootstrap', 'orion/fileClient', 'orion/EventTarget',
+		'import/Injector', 'import/ImportHandler', 'orion/URL-shim'],
+		function(require, mBootstrap, mFileClient, EventTarget, Injector, ImportHandler) {
 	function debug(msg) { console.log('Orion: ' + msg); }
 
 	function ServiceProxy() {

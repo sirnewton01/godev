@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * Copyright (c) 2010, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*jslint amd:true forin:true devel:true*/
-/*global console document*/
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, lib) {
 
 	/**
@@ -69,6 +67,7 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 			this._renderer = options.renderer;
 			this._showRoot = options.showRoot === undefined ? false : options.showRoot;
 			this._indent = options.indent === undefined ? 16 : options.indent;
+			this._preCollapse = options.preCollapse;
 			this._onCollapse = options.onCollapse;
 			this._labelColumnIndex = options.labelColumnIndex === undefined ? 0 : options.labelColumnIndex;
 			this._id = options.id === undefined ? "treetable" : options.id; //$NON-NLS-0$
@@ -78,7 +77,8 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 			this._tableRowElement = options.tableRowElement || "tr"; //$NON-NLS-0$
 			
 			// Generate the table
-			this._root = this._treeModel.getRoot(function (root) {
+			this._treeModel.getRoot(function (root) {
+				tree._root = root;
 				if (tree._showRoot) {
 					root._depth = 0;
 					tree._generate([root], 0);
@@ -94,6 +94,7 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 		
 		destroy: function() {
 			this.destroyed = true;
+			this._removeAllRows();
 		},
 		
 		_generate: function(children, indentLevel) {
@@ -135,29 +136,35 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 		_generateChildren: function(children, indentLevel, referenceNode) {
 			for (var i=0; i<children.length; i++) {
 				var row = document.createElement(this._tableRowElement); //$NON-NLS-0$
-				row.id = this._treeModel.getId(children[i]);
-				row._depth = indentLevel;
-				// This is a perf problem and potential leak because we're bashing a dom node with
-				// a javascript object.  (Whereas above we are using simple numbers/strings). 
-				// We should consider an item map.
-				row._item = children[i];
-				this._renderer.render(children[i], row);
-				// generate an indent
-				var indent = this._indent * indentLevel;
-				row.childNodes[this._labelColumnIndex].style.paddingLeft = indent +"px";  //$NON-NLS-0$
-				
-				if (this._renderer.rowCallback) {
-					this._renderer.rowCallback(row, children[i]);
+				if(this._renderer && typeof this._renderer.initSelectableRow === "function") { //$NON-NLS-0$
+					this._renderer.initSelectableRow(children[i], row);
 				}
-				
+				this._generateRow(children[i], row, indentLevel, referenceNode);
 				if (referenceNode) {
 					this._bodyElement.insertBefore(row, referenceNode.nextSibling);
-					if (referenceNode) { //$NON-NLS-0$
-						referenceNode = row;
-					}
+					referenceNode = row;
 				} else {
 					this._bodyElement.appendChild(row);
 				}
+			}
+		},
+		
+		_generateRow: function(child, row, indentLevel) {
+			row.id = this._treeModel.getId(child);
+			row._depth = indentLevel;
+			// This is a perf problem and potential leak because we're bashing a dom node with
+			// a javascript object.  (Whereas above we are using simple numbers/strings). 
+			// We should consider an item map.
+			row._item = child;
+			this._renderer.render(child, row);
+			// generate an indent
+			var indent = this._indent * indentLevel;
+			row.childNodes[Math.min(row.childNodes.length - 1, this._labelColumnIndex)].style.paddingLeft = indent +"px";  //$NON-NLS-0$
+			if(this._renderer.updateExpandVisuals) {
+			    this._renderer.updateExpandVisuals(row, row._expanded);
+			}
+			if (this._renderer.rowCallback) {
+				this._renderer.rowCallback(row, child);
 			}
 		},
 		
@@ -172,11 +179,23 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 			return this._renderer.getSelected();
 		},
 		
+		redraw: function(item) {
+			var itemId = this._treeModel.getId(item);
+			var row = lib.node(itemId);
+			if (!row) return;
+			lib.empty(row);
+			this._generateRow(item, row, row._depth);
+		},
+		
 		refresh: function(item, children, /* optional */ forceExpand) {
 			var parentId = this._treeModel.getId(item);
 			var tree;
 			if (parentId === this._id) {  // root of tree
 				this._removeChildRows(parentId);
+				this._generateChildren(children, 0);
+				this._rowsChanged();
+			} else if (parentId === this._treeModel.getId(this._root) && item.removeAll) {
+				this._removeAllRows();
 				this._generateChildren(children, 0);
 				this._rowsChanged();
 			} else {  // node in the tree
@@ -189,15 +208,21 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 						this._removeChildRows(parentId);
 						if(children){
 							row._expanded = true;
-							this._renderer.updateExpandVisuals(row, true);
+							if(this._renderer.updateExpandVisuals) {
+							    this._renderer.updateExpandVisuals(row, true);
+							}
 							this._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
 							this._rowsChanged();
 						} else {
 							tree = this;
-							this._renderer.updateExpandVisuals(row, "progress"); //$NON-NLS-0$
+							if(this._renderer.updateExpandVisuals) {
+							    this._renderer.updateExpandVisuals(row, "progress"); //$NON-NLS-0$
+							}
 							children = this._treeModel.getChildren(row._item, function(children) {
 								if (tree.destroyed) { return; }
-								tree._renderer.updateExpandVisuals(row, true);
+								if(tree._renderer.updateExpandVisuals) {
+								    tree._renderer.updateExpandVisuals(row, true);
+								}
 								if (!row._expanded) {
 									row._expanded = true;
 									tree._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
@@ -206,7 +231,9 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 							});
 						}
 					} else {
-						this._renderer.updateExpandVisuals(row, false);
+					    if(this._renderer.updateExpandVisuals) {
+						     this._renderer.updateExpandVisuals(row, false);
+						}
 					}
 				} else {
 					// the item wasn't found.  We could refresh the root here, but for now
@@ -228,7 +255,7 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 			var row = lib.node(id);
 			if (row) {
 				if (row._expanded) {
-					this.collapse(id);
+					this.collapse(id, true);
 				}
 				else {
 					this.expand(id);
@@ -256,10 +283,14 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 					}
 					return;
 				}
-				this._renderer.updateExpandVisuals(row, "progress"); //$NON-NLS-0$
+				if(this._renderer.updateExpandVisuals) {
+				    this._renderer.updateExpandVisuals(row, "progress"); //$NON-NLS-0$
+				}
 				this._treeModel.getChildren(row._item, function(children) {
 					if (tree.destroyed) { return; }
-					tree._renderer.updateExpandVisuals(row, true);
+					if(tree._renderer.updateExpandVisuals) {
+					   tree._renderer.updateExpandVisuals(row, true);
+					}
 					if (!row._expanded) {
 						row._expanded = true;
 						tree._generateChildren(children, row._depth+1, row); //$NON-NLS-0$
@@ -275,6 +306,7 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 		_removeChildRows: function(parentId) {
 			// true if we are removing directly from table
 			var foundParent = parentId === this._id;
+			var parentRow;
 			var stop = false;
 			var parentDepth = -1;
 			var toRemove = [];
@@ -285,39 +317,71 @@ define(['i18n!orion/nls/messages', 'orion/webui/littlelib'], function(messages, 
 					break;
 				}
 				if (foundParent) {
-					if (row._depth > parentDepth) {
-						toRemove.push(row);
-					}
-					else {
-						stop = true;  // we reached a sibling to our parent
+					if (!parentRow || row.parentNode === parentRow.parentNode) {
+						if (row._depth > parentDepth) {
+							toRemove.push(row);
+						}
+						else {
+							stop = true;  // we reached a sibling to our parent
+						}
 					}
 				} else {
 					if (row.id === parentId) {
 						foundParent = true;
 						parentDepth = row._depth;
+						parentRow = row;
 					}
 				}
 			}
 			for (var j=0; j<toRemove.length; j++) {
 				var child = toRemove[j];
+				if(child &&  child._item && typeof child._item.destroy === "function") { //$NON-NLS-0$
+					child._item.destroy();
+				}
 				child.parentNode.removeChild(child);
 			}
 		},
 		
-		collapse: function(itemOrId) {
+		_removeAllRows: function() {
+			var rows = lib.$$array(".treeTableRow", this._parent); //$NON-NLS-0$
+			for (var j=0; j<rows.length; j++) {
+				if(rows[j] &&  rows[j]._item && typeof rows[j]._item.destroy === "function") { //$NON-NLS-0$
+					rows[j]._item.destroy();
+				}
+				rows[j].parentNode.removeChild(rows[j]);
+			}
+		},
+		
+		_collapse : function(id, row) {
+			row._expanded = false;
+			if(this._renderer.updateExpandVisuals) {
+			    this._renderer.updateExpandVisuals(row, false);
+			}
+			this._removeChildRows(id);
+			this._rowsChanged();
+			if(this._onCollapse){
+				this._onCollapse(row._item);
+			}
+		},
+		
+		collapse: function(itemOrId, byToggle) {
 			var id = typeof(itemOrId) === "string" ? itemOrId : this._treeModel.getId(itemOrId); //$NON-NLS-0$
 			var row = lib.node(id);
 			if (row) {
 				if (!row._expanded) {
 					return;
 				}
-				row._expanded = false;
-				this._renderer.updateExpandVisuals(row, false);
-				this._removeChildRows(id);
-				this._rowsChanged();
-			}
-			if(this._onCollapse){
-				this._onCollapse(row._item);
+				if(byToggle && this._preCollapse){
+					this._preCollapse(row._item).then(function(result) {
+						if(result) {
+							this._collapse(id, row);
+						} else {
+							return;
+						}
+					}.bind(this));
+				} else {
+					this._collapse(id, row);
+				}
 			}
 		},
 		

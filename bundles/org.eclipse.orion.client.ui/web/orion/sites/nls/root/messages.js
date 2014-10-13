@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 //NLS_CHARSET=UTF-8
-
+/*eslint-env browser, amd*/
 define({
 	"OK": "OK",
 	"Name:": "Name:",
@@ -24,7 +24,7 @@ define({
 	"Enable the site configuration to launch an Orion server running your local client code": "Enable the site configuration to launch an Orion server running your local client code",
 	"Save": "Save",
 	"Save the site configuration": "Save the site configuration",
-	"Choose folder...": "Choose folder\u2026",
+	"ChooseFolder": "Choose folder\u2026",
 	"ConvertToSelfHostingTitle": "Locate Required Folders",
 	"SelectRequiredFoldersSingle": "Locate the following required folder in your workspace.",
 	"SelectRequiredFolders": "Locate the following required folders in your workspace.",
@@ -52,8 +52,7 @@ define({
 	"Add the file to this site": "Add the file to this site",
 	"View": "View",
 	"View the file on the site": "View the file on the site",
-	// The url of the site will be inserted as a link
-	"Started" : "Started at ${0}",
+	"Started" : "Started at ${0}", // ${0} is replaced by the URL of the site
 	"Unknown": "Unknown",
 	"Name": "Name",
 	"Actions": "Actions",
@@ -74,6 +73,6 @@ define({
 	"Stopped" : "Stopped",
 	"Sites": "Sites",
 	"Mappings": "Mappings",
-	// The create button will be inserted into the following text
-	"SitesExplorer.NoSitesText" : "You have no sites. Click ${0} to create a site."
+	"SitesExplorer.NoSitesText" : "You have no sites. Click ${0} to create a site.", // ${0} is replaced by create button.
+	"Edit Site": "Edit Site"
 });

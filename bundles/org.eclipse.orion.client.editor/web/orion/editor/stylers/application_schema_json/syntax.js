@@ -9,7 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define*/
+/*eslint-env browser, amd*/
 
 define("orion/editor/stylers/application_schema_json/syntax", ["orion/editor/stylers/application_json/syntax"], function(mJSON) { //$NON-NLS-1$ //$NON-NLS-0$
 	var keywords = [

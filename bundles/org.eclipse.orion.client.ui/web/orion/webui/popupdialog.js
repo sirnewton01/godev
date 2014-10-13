@@ -9,11 +9,9 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint browser:true*/
-/*global define orion window */
-
-define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', 'orion/webui/tooltip'], 
-		function(messages, require, lib, tooltip) {
+/*eslint-env browser, amd*/
+define(['i18n!orion/widgets/nls/messages', 'orion/webui/littlelib', 'orion/webui/tooltip'], 
+		function(messages, lib, tooltip) {
 	/**
 	 * PopupDialog is used to implement a lightweight, automatically dismissed dialog in Orion that is triggered when
 	 * clicking a DOM node.
@@ -62,9 +60,9 @@ define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', '
 			var range = document.createRange();
 			range.selectNode(this.$parent);
 			var contentFragment = range.createContextualFragment(this.TEMPLATE);
-			if (this.messages) {
-				lib.processTextNodes(contentFragment, messages);
-			}
+
+			lib.processTextNodes(contentFragment, this.messages || messages);
+
 			this.$parent.appendChild(contentFragment);
 			var tip = this._tooltip;
 			this.$parent.addEventListener("keydown", function (e) { //$NON-NLS-0$
@@ -121,6 +119,13 @@ define(['i18n!orion/widgets/nls/messages', 'require', 'orion/webui/littlelib', '
 		 */
 		show: function() {
 			this._tooltip.show();
+		},
+		
+		/**
+		 * @return True if this dialog is visible, false otherwise
+		 */
+		isShowing: function() {
+			return this._tooltip.isShowing(); //$NON-NLS-0$
 		}
 	};
 	

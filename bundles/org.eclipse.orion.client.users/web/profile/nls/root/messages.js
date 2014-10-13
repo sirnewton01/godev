@@ -23,6 +23,7 @@ define({
 	"Actions": "Actions",
 	"Name": "Name",
 	"Last Login": "Last Login",
+	"Disk Usage": "Disk Usage",
 	"Delete": "Delete",
 	"Delete user ": "Delete user ",
 	"Do you want to delete user ${0}?": "Do you want to delete user ${0}?",
@@ -36,8 +37,8 @@ define({
 	"Create User": "Create User",
 	"Find User": "Find User",
 	"Delete User": "Delete User",
-	"Are you sure you want to delete these ${0} users?": "Are you sure you want to delete these ${0} users?",
-	"Are you sure you want to delete user ${0}?": "Are you sure you want to delete user ${0}?",
+	"ConfirmDeleteUsers": "Are you sure you want to delete these ${0} users?\n\nWARNING: This will delete the users' workspaces and projects!",
+	"ConfirmDeleteUser": "Are you sure you want to delete user ${0}?\n\nWARNING: This will delete the user's workspaces and projects!",
 	"Change Password": "Change Password",
 	"More": "More",
 	"Passwords do not match!": "Passwords do not match!",
@@ -51,5 +52,6 @@ define({
 	"Email:" : "Email:",
 	"Create" : "Create",
 	"Set Password" : "Set Password",
-	"Permission to view user list denied." : "Permission to view user list denied."
+	"Permission to view user list denied." : "Permission to view user list denied.",
+	"A(lastCalculated B)" : "${0} ( last calculated ${1} )"
 });

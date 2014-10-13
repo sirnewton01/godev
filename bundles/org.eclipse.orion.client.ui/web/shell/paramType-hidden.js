@@ -10,8 +10,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define*/
-
+/*eslint-env browser, amd*/
 define(["orion/shell/Shell"], function(mShell) {
 
 	var orion = {};

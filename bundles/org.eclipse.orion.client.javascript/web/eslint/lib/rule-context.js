@@ -1,18 +1,6 @@
-/* global module require define exports */
-(function(root, factory) {
-    if(typeof exports === 'object') {
-        module.exports = factory(require, exports, module);
-    }
-    else if(typeof define === 'function' && define.amd) {
-        define(['require', 'exports', 'module'], factory);
-    }
-    else {
-        var req = function(id) {return root[id];},
-            exp = root,
-            mod = {exports: exp};
-        root.ruleContext = factory(req, exp, mod);
-    }
-}(this, function(require, exports, module) {
+/* eslint-env amd */
+define([
+], function() {
 /**
  * @fileoverview RuleContext utility for rules
  * @author Nicholas C. Zakas
@@ -26,10 +14,19 @@
 var PASSTHROUGHS = [
         "getSource",
         "getTokens",
+        "getTokensBefore",
+        "getTokenBefore",
+        "getTokensAfter",
+        "getTokenAfter",
+        "getFirstTokens",
+        "getFirstToken",
+        "getLastTokens",
+        "getLastToken",
         "getComments",
         "getAncestors",
         "getScope",
-        "getJSDocComment"
+        "getJSDocComment",
+        "getFilename"
     ];
 
 //------------------------------------------------------------------------------
@@ -41,9 +38,10 @@ var PASSTHROUGHS = [
  * @constructor
  * @param {string} ruleId The ID of the rule using this object.
  * @param {eslint} eslint The eslint object.
+ * @param {number} severity The configured severity level of the rule.
  * @param {array} options the configuration information to be added to the rule
  */
-function RuleContext(ruleId, eslint, options) {
+function RuleContext(ruleId, eslint, severity, options) {
 
     /**
      * The read-only ID of the rule.
@@ -69,14 +67,15 @@ function RuleContext(ruleId, eslint, options) {
     /**
      * Passthrough to eslint.report() that automatically assigns the rule ID.
      * @param {ASTNode} node The AST node related to the message.
+     * @param {Object=} location The location of the error.
      * @param {string} message The message to display to the user.
      * @param {Object} opts Optional template data which produces a formatted message
      *     with symbols being replaced by this object's values.
      * @param {Object} related Optional related token or node.
      * @returns {void}
      */
-    this.report = function(node, message, opts, related) {
-        eslint.report(ruleId, node, message, opts, related);
+    this.report = function(node, location, message, opts, /*ORION*/related) {
+        eslint.report(ruleId, severity, node, location, message, opts, related);
     };
 
 }
@@ -85,7 +84,6 @@ RuleContext.prototype = {
     constructor: RuleContext
 };
 
-module.exports = RuleContext;
+ return RuleContext;
+});
 
-    return module.exports;
-}));

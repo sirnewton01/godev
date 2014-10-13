@@ -9,12 +9,10 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*jslint browser:true devel:true*/
-/*global define*/
-
-define(['i18n!orion/operations/nls/messages', 'require', 'orion/bootstrap', 'orion/commandRegistry', 'orion/selection', 'orion/fileClient', 'orion/searchClient', 'orion/operationsClient', 'orion/status', 'orion/progress', 'orion/globalCommands',
+/*eslint-env browser, amd*/
+define(['i18n!orion/operations/nls/messages', 'orion/bootstrap', 'orion/commandRegistry', 'orion/selection', 'orion/fileClient', 'orion/searchClient', 'orion/operationsClient', 'orion/status', 'orion/progress', 'orion/globalCommands',
         'orion/operationsTable', 'orion/operationsCommands'], 
-		function(messages, require, mBootstrap, mCommandRegistry, mSelection, mFileClient, mSearchClient, mOperationsClient, mStatus, mProgress, mGlobalCommands, mOperationsTable, mOperationsCommands) {
+		function(messages, mBootstrap, mCommandRegistry, mSelection, mFileClient, mSearchClient, mOperationsClient, mStatus, mProgress, mGlobalCommands, mOperationsTable, mOperationsCommands) {
 
 	mBootstrap.startup().then(function(core) {
 		var serviceRegistry = core.serviceRegistry;

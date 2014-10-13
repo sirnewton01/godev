@@ -9,16 +9,24 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define orion window document URL*/
-/*jslint browser:true*/
-
-/*
- * Glue code for content.html
- */
-
-define(['i18n!orion/content/nls/messages', 'require', 'orion/webui/littlelib', 'orion/bootstrap', 'orion/status', 'orion/progress', 'orion/commandRegistry', 'orion/fileClient', 'orion/operationsClient',
-	        'orion/searchClient', 'orion/globalCommands', 'orion/URITemplate', 'orion/PageUtil', 'orion/URL-shim', 'orion/PageLinks'], 
-			function(messages, require, lib, mBootstrap, mStatus, mProgress, mCommandRegistry, mFileClient, mOperationsClient, mSearchClient, 
+/*eslint-env browser, amd*/
+/*global URL*/
+define([
+	'i18n!orion/content/nls/messages',
+	'orion/webui/littlelib',
+	'orion/bootstrap',
+	'orion/status',
+	'orion/progress',
+	'orion/commandRegistry',
+	'orion/fileClient',
+	'orion/operationsClient',
+	'orion/searchClient',
+	'orion/globalCommands',
+	'orion/URITemplate',
+	'orion/PageUtil',
+	'orion/PageLinks',
+	'orion/URL-shim', // no exports
+], function(messages, lib, mBootstrap, mStatus, mProgress, mCommandRegistry, mFileClient, mOperationsClient, mSearchClient, 
 			mGlobalCommands, URITemplate, PageUtil, PageLinks) {
 
 	mBootstrap.startup().then(function(core) {
@@ -53,7 +61,7 @@ define(['i18n!orion/content/nls/messages', 'require', 'orion/webui/littlelib', '
 					// expected error - HTTP 412 Precondition Failed 
 					// occurs when file is out of sync with the server
 					if (error.status === 412) {
-						var forceSave = window.confirm(messages["Resource is out of sync with the server. Do you want to save it anyway?"]);
+						var forceSave = window.confirm(messages["ResrcOutOfSync"]);
 						if (forceSave) {
 							// repeat save operation, but without ETag 
 							progressService.progress(fileClient.write(targetMetadata.Location, contents), "Saving file " + targetMetadata.Location).then(
@@ -158,7 +166,7 @@ define(['i18n!orion/content/nls/messages', 'require', 'orion/webui/littlelib', '
 				var parent = lib.node("delegatedContent"); //$NON-NLS-0$
 				lib.empty(parent);
 				var message = document.createElement("div"); //$NON-NLS-0$
-				message.appendChild(document.createTextNode(messages["Plugin content could not be found"]));
+				message.appendChild(document.createTextNode(messages["PluginContentNotFound"]));
 				parent.appendChild(message);
 			}
 		}
@@ -174,7 +182,7 @@ define(['i18n!orion/content/nls/messages', 'require', 'orion/webui/littlelib', '
 					if (data.shellService) {
 						if (data.sourceLocation) {
 							saveFileContents(fileClient, fileMetadata, {sourceLocation: data.sourceLocation}, function() {
-								if (window.confirm(messages["Content has been saved.  Click OK to go to the navigator, Cancel to keep editing."])) {
+								if (window.confirm(messages["ContentSavedMsg"])) {
 									// go to the navigator
 									window.location.href = orionHome + "/edit/edit.html#" + fileMetadata.Parents[0].ChildrenLocation; //$NON-NLS-0$
 								} else {

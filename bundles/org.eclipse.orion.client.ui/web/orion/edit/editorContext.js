@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation 
  ******************************************************************************/
-/*jslint amd:true*/
+/*eslint-env browser, amd*/
 define([
 ], function() {
 

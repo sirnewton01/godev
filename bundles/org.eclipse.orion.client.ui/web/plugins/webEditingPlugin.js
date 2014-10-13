@@ -9,11 +9,10 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define*/
+/*eslint-env browser, amd*/
 define([
-	'orion/plugin',
-	'orion/editor/templates'
-], function(PluginProvider, templates) {
+	'orion/plugin'
+], function(PluginProvider) {
 	var headers = {
 		name: "Orion Web Editing Plugin",
 		version: "1.0",
@@ -34,7 +33,7 @@ define([
 				"extends": "text/plain",
 				name: "XML",
 				extension: ["xml"],
-				imageClass: "file-sprite-xml"
+				imageClass: "file-sprite-xml modelDecorationSprite"
 			},
 			{	id: "text/x-markdown",
 				"extends": "text/plain",
@@ -50,6 +49,21 @@ define([
 				"extends": "text/plain",
 				name: "sh",
 				extension: ["sh"]
+			},
+			{	id: "application/pdf",
+				"extends": "application/browser-renderable",
+				name: "PDF",
+				extension: ["pdf"]
+			},
+			// binary files
+			{	id: "application/octet-stream",
+				name: "octet-stream",
+				extension: ["exe", "bin", "doc", "ppt"]
+			},
+			{	id: "application/zip",
+				"extends": "application/octet-stream",
+				name: "ZIP",
+				extension: ["war", "jar", "zip", "rar"]
 			},
 			// Image types
 			{	id: "image/gif",

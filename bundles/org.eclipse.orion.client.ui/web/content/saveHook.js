@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define orion window */
-/*jslint browser:true*/
+/*eslint-env browser, amd*/
 
 /*
  * Save hook for verifying that the user wants to save the content from a visual plugin.
@@ -63,7 +62,7 @@ define(['i18n!orion/content/nls/messages', 'require', 'orion/webui/littlelib', '
 									if (contentURL && contentURL.length > 0) {
 										var parent = lib.node("orion.saveRequest"); //$NON-NLS-0$
 										var p = document.createElement("p"); //$NON-NLS-0$
-										p.appendChild(document.createTextNode(i18nUtil.formatMessage(messages["Content plugin ${0} has saved data."], info.name))); //$NON-NLS-0$
+										p.appendChild(document.createTextNode(i18nUtil.formatMessage(messages["ContentSavedData"], info.name))); //$NON-NLS-0$
 										p.appendChild(document.createElement("br")); //$NON-NLS-0$
 										var a = document.createElement("a"); //$NON-NLS-0$
 										a.href = contentURL;
@@ -71,7 +70,7 @@ define(['i18n!orion/content/nls/messages', 'require', 'orion/webui/littlelib', '
 										p.appendChild(a);
 										parent.appendChild(p);
 										p = document.createElement("p"); //$NON-NLS-0$
-										p.appendChild(document.createTextNode(i18nUtil.formatMessage(messages["Click ${0} to store this file into Orion."], messages["Save"]))); //$NON-NLS-0$
+										p.appendChild(document.createTextNode(i18nUtil.formatMessage(messages["StoreFileMsg"], messages["Save"]))); //$NON-NLS-0$
 										parent.appendChild(p);
 										var button = document.createElement("button");	 //$NON-NLS-0$
 										button.appendChild(document.createTextNode(messages['Save']));

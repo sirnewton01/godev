@@ -10,8 +10,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
  
-/*global define window */
-
+/*eslint-env browser, amd*/
 define("orion/editor/emacs", [ //$NON-NLS-0$
 	'i18n!orion/editor/nls/messages', //$NON-NLS-0$
 	"orion/editor/keyModes", //$NON-NLS-0$

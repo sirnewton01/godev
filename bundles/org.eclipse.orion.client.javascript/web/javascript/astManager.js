@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define*/
+/*eslint-env amd*/
 define([
 	'orion/Deferred',
 	'orion/objects',
@@ -69,8 +69,8 @@ define([
 			try {
 				var ast = this.parser.parse(text, {
 					range: true,
+					loc: true,
 					tolerant: true,
-					comment: true,
 					tokens: true,
 					attachComment: true
 				});

@@ -10,7 +10,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define */
+/*eslint-env browser,amd*/
 
 define('examples/editor/snippets/contentAssistSnippet', [ //$NON-NLS-0$
  'orion/editor/templates' //$NON-NLS-0$

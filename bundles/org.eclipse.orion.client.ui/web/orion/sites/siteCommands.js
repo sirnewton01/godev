@@ -9,11 +9,10 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global console define document window*/
-/*jslint sub:true laxbreak:true*/
-define(['i18n!orion/sites/nls/messages', 'require', 'orion/commandRegistry', 'orion/commands', 'orion/sites/siteUtils', 'orion/sites/siteClient', 
+/*eslint-env browser, amd*/
+define(['i18n!orion/sites/nls/messages', 'orion/commandRegistry', 'orion/commands', 'orion/sites/siteUtils', 'orion/sites/siteClient', 
 			'orion/Deferred', 'orion/i18nUtil'],
-		function(messages, require, mCommandRegistry, mCommands, mSiteUtils, mSiteClient, Deferred, i18nUtil) {
+		function(messages, mCommandRegistry, mCommands, mSiteUtils, mSiteClient, Deferred, i18nUtil) {
 	var Command = mCommands.Command;
 	var formatMessage = i18nUtil.formatMessage;
 	/**

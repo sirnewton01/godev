@@ -8,8 +8,7 @@
  * 
  * Contributors: Anton McConville - IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global window console define localStorage*/
-/*jslint browser:true sub:true*/
+/*eslint-env browser, amd*/
 
 /* This SettingsContainer widget manages a left and right side. The left is for choosing a 
    category, the right shows the resulting HTML for that category. */
@@ -90,14 +89,6 @@ define([
 					});
 				}
 				
-				if (categories.showThemeSettings === undefined || categories.showThemeSettings) {
-					_self.settingsCategories.push({
-						id: "themeBuilder", //$NON-NLS-0$
-						textContent: messages["UI Theme"],
-						show: _self.showThemeBuilder
-					});
-				}
-
 				if (categories.showPluginSettings === undefined || categories.showPluginSettings) {
 					_self.settingsCategories.push({
 						id: "plugins", //$NON-NLS-0$
@@ -112,39 +103,33 @@ define([
 
 				// Add plugin-contributed extension categories
 				var settingsRegistry = _self.settingsRegistry;
-				settingsRegistry.getCategories().map(function(category, i) {
+				var pluginCategories = settingsRegistry.getCategories().map(function(category) {
 					return {
-						category: category,
-						label: settingsRegistry.getCategoryLabel(category) || messages[category] || category
-					};
-				}).sort(function byLabel(a, b) {
-					return a.label.localeCompare(b.label);
-				}).forEach(function(currData) {
-					var category = currData.category;
-					_self.settingsCategories.push({
 						id: category,
-						textContent: currData.label,
+						textContent: settingsRegistry.getCategoryLabel(category) || messages[category] || category,
 						show: _self.showPluginSettings.bind(_self, category)
-					});
+					};
+				});
+				_self.settingsCategories = _self.settingsCategories.concat(pluginCategories);
+				
+				// Sort all categories alphabetically by their title
+				_self.settingsCategories.sort(function(a, b) {
+					return a.textContent.localeCompare(b.textContent);
 				});
 
 				_self.itemToIndexMap = {};
 				_self.toolbar = lib.node( _self.pageActions );
-	
-				_self.manageDefaultData(prefs);
 				
 				_self.drawUserInterface();
 	
 				window.addEventListener("hashchange", _self.processHash.bind(_self)); //$NON-NLS-0$
 	
-				mGlobalCommands.setPageTarget({task: 'Settings', serviceRegistry: _self.registry, commandService: _self.commandService});
+				mGlobalCommands.setPageTarget({task: messages['Settings'], serviceRegistry: _self.registry, commandService: _self.commandService});
 			});
 		},
 		
 		processHash: function() {
 			var pageParams = PageUtil.matchResourceParameters();
-			
-			var container = this;
 			
 			this.preferences.getPreferences('/settingsContainer').then(function(prefs){
 
@@ -152,41 +137,23 @@ define([
 
 				var category = pageParams.category || selection; //$NON-NLS-0$
 
-				if(container.selectedCategory){
-					if( container.selectedCategory.id === category){
+				if(this.selectedCategory){
+					if( this.selectedCategory.id === category){
 						//No need to reselect the category
 						return;
 					}
 				}
-
-				container.showByCategory(category);
 				
-			} );
+				if (!category) {
+					// no selection exists, select the first one
+					category = this.settingsCategories[0].id;
+				}
+
+				this.showByCategory(category);
+				
+			}.bind(this) );
 			
 			window.setTimeout(function() {this.commandService.processURL(window.location.href);}.bind(this), 0);
-		},
-		
-		showThemeBuilder: function(id){
-		
-			this.selectCategory(id);
-			
-			this.updateToolbar(id);
-		
-			if(this.themeWidget) {
-				this.themeWidget.destroy();
-			}
-			
-			var containerTheme = new containerThemeData.ThemeData();
-			var themePreferences = new mThemePreferences.ThemePreferences(this.preferences, containerTheme);
-		
-			this.themeWidget = new ThemeBuilder({ commandService: this.commandService, preferences: themePreferences, themeData: containerTheme });
-			
-			lib.empty(this.table);
-
-			var themeNode = document.createElement('div'); //$NON-NLS-0$
-			this.table.appendChild(themeNode);
-
-			this.themeWidget.renderData( themeNode, 'INITIALIZE' );
 		},
 		
 		showEditor: function(id){
@@ -208,7 +175,7 @@ define([
 			var editorTheme = new editorThemeData.ThemeData();
 			var themePreferences = new mThemePreferences.ThemePreferences(this.preferences, editorTheme);
 			
-			var editorThemeWidget = new ThemeBuilder({ commandService: this.commandService, preferences: themePreferences, themeData: editorTheme, toolbarId: 'editorThemeSettingsToolActionsArea'}); //$NON-NLS-0$
+			var editorThemeWidget = new ThemeBuilder({ commandService: this.commandService, preferences: themePreferences, themeData: editorTheme, toolbarId: 'editorThemeSettingsToolActionsArea', serviceRegistry: this.registry}); //$NON-NLS-0$
 				
 			var command = { name:messages.Import, tip:messages['Import a theme'], id:0, callback: editorTheme.importTheme.bind(editorTheme) };
 			editorThemeWidget.addAdditionalCommand( command );
@@ -324,11 +291,12 @@ define([
 			}
 
 			var settingsInCategory = this.settingsRegistry.getSettings(category).sort(settingsCompare);
+			var title = this.settingsRegistry.getCategoryLabel(category) || messages[category] || category;
 			this.pluginSettingsWidget = new SettingsList({
 				parent: this.table,
 				serviceRegistry: this.registry,
 				settings: settingsInCategory,
-				title: messages[category] || category
+				title: title
 			});
 		},
 
@@ -418,13 +386,6 @@ define([
 		
 		handleError: function( error ){
 			console.log( error );
-		},
-
-		manageDefaultData: function(prefs) {
-			var selection = prefs.get( 'selection' );
-			if (!selection) {
-				prefs.put( 'selection', 'userSettings' );
-			}
 		}
 	});
 	return SettingsContainer;

@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global console define setTimeout XMLHttpRequest*/
-
+/*eslint-env browser, amd*/
 /**
  * @name orion.operation
  * @namespace Provides an API for handling long running operations as promises.
@@ -48,8 +47,8 @@ define(["orion/xhr", "orion/Deferred"], function(xhr, Deferred) {
 		});
 	}
 
-	function _getOperation(operationLocation, deferred, onResolve, onReject) {
-		xhr("GET", operationLocation, {
+	function _getOperation(operation, deferred, onResolve, onReject) {
+		xhr("GET", operation.location, {
 			headers: {
 				"Orion-Version": "1"
 			},
@@ -59,8 +58,9 @@ define(["orion/xhr", "orion/Deferred"], function(xhr, Deferred) {
 			deferred.progress(operationJson);
 			if (_isRunning(operationJson.type)) {
 				setTimeout(function() {
-					_getOperation(operationLocation, deferred, onResolve, onReject);
-				}, 2000);
+					_getOperation(operation	, deferred, onResolve, onReject);
+				}, operation.timeout);
+				operation.timeout = Math.min(operation.timeout * 2, 2000);
 				return;
 			}
 			if (operationJson.type === "error" || operationJson.type === "abort") {
@@ -69,7 +69,7 @@ define(["orion/xhr", "orion/Deferred"], function(xhr, Deferred) {
 				deferred.resolve(onResolve ? onResolve(operationJson) : operationJson.Result.JsonData);
 			}
 			if (!operationJson.Location) {
-				_deleteTempOperation(operationLocation); //This operation should not be kept 
+				_deleteTempOperation(operation.location); //This operation should not be kept 
 			}
 		}, function(error) {
 			var errorMessage = error;
@@ -117,7 +117,7 @@ define(["orion/xhr", "orion/Deferred"], function(xhr, Deferred) {
 	function handle(operationLocation, onSuccess, onError) {
 		var def = new Deferred();
 		_trackCancel(operationLocation, def);
-		_getOperation(operationLocation, def, onSuccess, onError);
+		_getOperation({location: operationLocation, timeout: 100}, def, onSuccess, onError);
 		return def;
 	}
 

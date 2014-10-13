@@ -11,8 +11,7 @@
  *		Silenio Quarti (IBM Corporation) - initial API and implementation
  ******************************************************************************/
 
-/*global define */
-
+/*eslint-env browser, amd*/
 define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/editor/eventTarget'], function(mTextModel, mEventTarget) { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 
 	/**
@@ -190,6 +189,9 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 		 * @see orion.editor.ProjectionTextModel#addProjection
 		 */
 		removeProjection: function(projection) {
+			this._removeProjection(projection);
+		},
+		_removeProjection: function(projection, noEvents) {
 			var i, delta = 0;
 			for (i = 0; i < this._projections.length; i++) {
 				var p = this._projections[i];
@@ -206,26 +208,30 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 				var addedLineCount = projection._lineCount;
 				var removedCharCount = projection._model.getCharCount();
 				var removedLineCount = projection._model.getLineCount() - 1;
-				var modelChangingEvent = {
-					type: "Changing", //$NON-NLS-0$
-					text: model.getText(projection.start, projection.end),
-					start: eventStart,
-					removedCharCount: removedCharCount,
-					addedCharCount: addedCharCount,
-					removedLineCount: removedLineCount,
-					addedLineCount: addedLineCount
-				};
-				this.onChanging(modelChangingEvent);
+				if (!noEvents) {
+					var modelChangingEvent = {
+						type: "Changing", //$NON-NLS-0$
+						text: model.getText(projection.start, projection.end),
+						start: eventStart,
+						removedCharCount: removedCharCount,
+						addedCharCount: addedCharCount,
+						removedLineCount: removedLineCount,
+						addedLineCount: addedLineCount
+					};
+					this.onChanging(modelChangingEvent);
+				}
 				this._projections.splice(i, 1);
-				var modelChangedEvent = {
-					type: "Changed", //$NON-NLS-0$
-					start: eventStart,
-					removedCharCount: removedCharCount,
-					addedCharCount: addedCharCount,
-					removedLineCount: removedLineCount,
-					addedLineCount: addedLineCount
-				};
-				this.onChanged(modelChangedEvent);
+				if (!noEvents) {
+					var modelChangedEvent = {
+						type: "Changed", //$NON-NLS-0$
+						start: eventStart,
+						removedCharCount: removedCharCount,
+						addedCharCount: addedCharCount,
+						removedLineCount: removedLineCount,
+						addedLineCount: addedLineCount
+					};
+					this.onChanged(modelChangedEvent);
+				}
 			}
 		},
 		/** @ignore */

@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation 
  ******************************************************************************/
 
-/*jslint regexp:false laxbreak:true*/
-/*global define */
-
+/*eslint-env browser, amd*/
 define("orion/editor/textMateStyler", ['orion/regex' ], function(mRegex) {
 
 var RegexUtil = {

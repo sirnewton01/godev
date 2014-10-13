@@ -10,8 +10,7 @@
  * Contributors: 
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global window define*/
-/*jslint browser:true devel:true*/
+/*eslint-env browser,amd*/
 
 define([
 	"orion/editor/edit",

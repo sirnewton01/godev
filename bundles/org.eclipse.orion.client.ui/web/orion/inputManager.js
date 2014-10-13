@@ -10,8 +10,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define window */
-/*jslint browser:true*/
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/edit/nls/messages',
 	'orion/explorers/navigatorRenderer',
@@ -65,7 +64,10 @@ define([
 			Severity: "Error", //$NON-NLS-0$
 			Message: messages.noResponse
 		};
-		if (error.status === 0) {
+		if(error.name === "Cancel") {
+			return {Severity: "Warning", Message: error.name, Cancel: true};
+		} else if (error.status === 0) {
+			newError.Cancel = true;
 			return newError; // might do better here
 		} else if (error.responseText) {
 			var responseText = error.responseText;
@@ -172,16 +174,6 @@ define([
 					}.bind(this));
 				}
 			} else {
-				//TODO this URL parsing to retrieve the should be done in the server side.
-				//TODO /gitapi/commit URLs are not supported be the orion file client.
-				var metadataURI = resource;
-				if (metadataURI.indexOf("/gitapi/commit/") === 0) { //$NON-NLS-0$
-					var start = metadataURI.indexOf("/file"); //$NON-NLS-0$
-					var end = metadataURI.indexOf("?", start); //$NON-NLS-0$
-					if (end === -1) { end = metadataURI.length; }
-					metadataURI = metadataURI.substring(start, end);
-					this._readonly = true;
-				}
 				var progressTimeout = window.setTimeout(function() {
 					progressTimeout = null;
 					this.reportStatus(i18nUtil.formatMessage(messages.Fetching, fileURI));
@@ -205,9 +197,9 @@ define([
 				}.bind(this);
 				this._acceptPatch = null;
 				// Read metadata
-				progress(this._read(metadataURI, true), messages.ReadingMetadata, metadataURI).then(function(metadata) {
+				progress(this._read(resource, true), messages.ReadingMetadata, resource).then(function(metadata) {
 					if(!metadata) {
-						errorHandler({responseText: i18nUtil.formatMessage(messages.ReadingMetadataError, metadataURI)});
+						errorHandler({responseText: i18nUtil.formatMessage(messages.ReadingMetadataError, resource)});
 					} else if (metadata.Directory) {
 						// Fetch children
 						Deferred.when(metadata.Children || progress(fileClient.fetchChildren(metadata.ChildrenLocation), messages.Reading, fileURI), function(contents) {
@@ -315,7 +307,7 @@ define([
 				this.editor.reportStatus(msg);
 			}
 		},
-		save: function() {
+		save: function(closing) {
 			if (this._saving) { return; }
 			var editor = this.getEditor();
 			if (!editor || !editor.isDirty() || this.getReadOnly()) { return; }
@@ -366,10 +358,11 @@ define([
 				if (failedSaving && statusService) {
 					statusService.setProgressResult({Message:messages.Saved, Severity:"Normal"}); //$NON-NLS-0$
 				}
-				if (self.afterSave) {
-					self.afterSave();
+				if (self.postSave) {
+					self.postSave(closing);
 				}
 				self._saving = false;
+				return new Deferred().resolve(result);
 			}
 			function errorHandler(error) {
 				self.reportStatus("");
@@ -377,7 +370,7 @@ define([
 				self._saving = false;
 				self._errorSaving = true;
 			}
-			def.then(successHandler, function(error) {
+			return def.then(successHandler, function(error) {
 				// expected error - HTTP 412 Precondition Failed
 				// occurs when file is out of sync with the server
 				if (error.status === 412) {
@@ -388,7 +381,7 @@ define([
 						if (progress) {
 							def = progress.progress(def, i18nUtil.formatMessage(messages.savingFile, input));
 						}
-						def.then(successHandler, errorHandler);
+						return def.then(successHandler, errorHandler);
 					} else {
 						self._saving = false;
 					}

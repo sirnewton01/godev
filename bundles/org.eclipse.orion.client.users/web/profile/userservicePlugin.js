@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define confirm document*/
+/*eslint-env browser, amd*/
 define(["orion/plugin", "profile/UsersService", "domReady!"], function(PluginProvider, UsersService) {
 	var usersService = new UsersService();
 		var temp = document.createElement('a');
@@ -50,19 +50,21 @@ define(["orion/plugin", "profile/UsersService", "domReady!"], function(PluginPro
 			}],
 			"sections" : [
                             {"id": "personalInformation", "name" : "Personal Information", "data" :[
-                                                                                                    {"type": "TextBox", "props": {"id": "pi_login", "readOnly" : false, "name" : "login"}, "label": "Login"},
-                                                                                                    {"type": "TextBox", "props": {"id": "pi_name", "readOnly" : false,  "name" : "Name"}, "label" : "Name"},
-                                                                                                  	 {"type": "TextBox", "props": {"id": "pi_email", "readOnly" : false, "name" : "email"}, "label" : "Email"},
-                                                                                                  	 {"type": "CheckBox", "props": {"id": "pi_emailConfirmed", "readOnly" : true, "name" : "emailConfirmed"}, "label" : "Email confirmed"},
-                                                                                                    {"type": "DateLong", "props": {"id": "pi_lastLogin", "name" : "LastLogInTimestamp"}, "label" : "Last login"}
+                                                                                                    {"type": "TextBox", "props": {"id": "pi_login", "readOnly" : false, "name" : "login"}, "label": "Login:"},
+                                                                                                    {"type": "TextBox", "props": {"id": "pi_name", "readOnly" : false,  "name" : "FullName"}, "label" : "Name:"},
+                                                                                                  	 {"type": "TextBox", "props": {"id": "pi_email", "readOnly" : false, "name" : "Email"}, "label" : "Email:"},
+                                                                                                  	 {"type": "CheckBox", "props": {"id": "pi_emailConfirmed", "readOnly" : true, "name" : "emailConfirmed"}, "label" : "Email confirmed:"},
+                                                                                                    {"type": "DateLong", "props": {"id": "pi_lastLogin", "name" : "LastLogInTimestamp"}, "label" : "Last login:	"},
+                                                                                                  	 {"type": "Text", "props": {"id": "pi_diskUsage", "name" : "diskUsage"}, "label" : "Disk Usage:	"},
+                                                                                                     {"type": "DateLong", "props": {"id": "pi_diskUsageTimestamp", "name" : "diskUsageTimestamp"}, "label" : "Disk Usage Last Calculated:	"}
                                                                                                     ]
                             },
                             {"id": "gitInformation", "name" : "Git (Defaults used to configure clones)", "data" : [
-   				  	                                                                                            {"type": "TextBox", "props": {"id": "git_mail", "readOnly" : false, "name" : "GitMail"}, "label" : "Git Mail"},
-   				  	                                                                                            {"type": "TextBox", "props": {"id": "git_name", "readOnly" : false, "name" : "GitName"}, "label" : "Git Name"}
+   				  	                                                                                            {"type": "TextBox", "props": {"id": "git_mail", "readOnly" : false, "name" : "GitMail"}, "label" : "Git Mail:"},
+   				  	                                                                                            {"type": "TextBox", "props": {"id": "git_name", "readOnly" : false, "name" : "GitName"}, "label" : "Git Name:"}
    				  	                                                                                            ]
    				  	        },
-                          {"id": "openids", "name": "Manage External Accounts", "type": "iframe", "data" : {"src": "../mixloginstatic/manageOpenids.html"}}
+                          {"id": "oauthids", "name": "Manage External Accounts", "type": "iframe", "data" : {"src": "../mixloginstatic/manageExternalIds.html"}}
                             ]
 		};
 

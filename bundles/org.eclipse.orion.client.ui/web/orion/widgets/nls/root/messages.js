@@ -9,10 +9,8 @@
  ******************************************************************************/
 
 //NLS_CHARSET=UTF-8
-
+/*eslint-env browser, amd*/
 define({
-	"no input": "no input",
-	"no output": "no output",
 	"Choose a Folder": "Choose a Folder",
 	"OK": "OK",
 	"Profile": "Profile",
@@ -23,9 +21,7 @@ define({
 	"Authentication required!": "Authentication required!",
 	"Name:": "Name:",
 	"Plug-ins": "Plug-ins",
-	" <No available services or timed out, check URL and try reloading>": " <No available services or timed out, check URL and try reloading>",
 	"Properties": "Properties",
-	" (Service Id: ": " (Service Id: ",
 	"Services": "Services",
 	"SFTP Transfer": "SFTP Transfer",
 	"Remote host:": "Remote host:",
@@ -42,22 +38,16 @@ define({
 	"Upload" : "Upload",
 	"Browse...": "Browse...",
 	"Import a file or zip": "Import a file or zip",
-	"Missing required argument: searchRenderer": "Missing required argument: searchRenderer",
-	"Missing required argument: favService": "Missing required argument: favService",
+	"MissingSearchRenderer": "Missing required argument: searchRenderer",
 	"Find File Named": "Find File Named",
-	"Type the name of a file to open (? = any character, * = any string):": "Type the name of a file to open (? = any character, * = any string):",
 	"Search": "Search",
 	"FileName FolderName": "FileName FolderName(Optional)",
 	"Searching...": "Searching...",
-	"Searching for occurrences of": "Searching for occurrences of: \"${0}\"",
+	"SearchOccurences": "Searching for occurrences of: \"${0}\"",
 	"name": "name",
-	"orion.widgets.UserMenu": "orion.widgets.UserMenu",
 	"test": "test",
+	"Type the name of a file to open (? = any character, * = any string):": "Type the name of a file to open (? = any character, * = any string):",
 	"Sign Out": "Sign Out",
-	"Sign Out ": "Sign Out ",
-	"</a>": "</a>",
-	">": ">",
-	"Sign In To ": "Sign In To ",
 	"Sign In": "Sign In",
 	"Help": "Help",
 	"Report a Bug": "Report a Bug",
@@ -75,9 +65,10 @@ define({
 	"Building file skeleton..." : "Building file skeleton...",
 	"Add" : "Add",
 	"Upload..." : "Upload...",
-	"For a list of available commands type '${0}'.": "For a list of available commands type '${0}'.",
+	"AvailableCmdsType": "For a list of available commands type '${0}'.",
 	"Main Pages": "Main Pages",
 	"Related Links": "Related Links",
 	"Yes": "Yes",
-	"No": "No"
+	"No": "No",
+	"DeleteSearchTrmMsg": "Click or use delete key to delete the search term"
 });

@@ -8,9 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define localStorage*/
-/** @namespace The global container for eclipse APIs. */
-
+/*eslint-env browser, amd*/
 define(['orion/Deferred', 'orion/xhr'], function(Deferred, xhr){
 
 	var eclipse = eclipse || {};

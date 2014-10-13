@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define*/
+/*eslint-env amd*/
 define([
 'estraverse',
 'orion/objects'
@@ -23,13 +23,17 @@ define([
 	 * @since 5.0
 	 */
 	function Visitor() {
+	    //constructor
 	}
 	
 	Objects.mixin(Visitor.prototype, /** @lends javascript.Visitor.prototype */ {
 		occurrences: [],
+		globals: [],
 		scopes: [],
 		context: null,
 		thisCheck: false,
+		objectPropCheck: false,
+		labeledStatementCheck: false,
 		
 		/**
 		 * @name enter
@@ -45,14 +49,19 @@ define([
 			switch(node.type) {
 				case Estraverse.Syntax.Program:
 					this.occurrences = [];
-					this.scopes = [{range: node.range, occurrences: [], kind:'p'}];
-					this.defnode = null;
+					this.globals = [];
+					this.scopes = [{range: node.range, occurrences: [], kind:'p'}];   //$NON-NLS-0$
 					this.defscope = null;
+					this.skipScope = null;
 					break;
 				case Estraverse.Syntax.FunctionDeclaration:
 					this.checkId(node.id, true);
-					//we want the parent scope for a declaration, otherwise we leave it right away
 					this._enterScope(node);
+					if (this.skipScope){
+						// If the function decl was a redefine, checkId may set skipScope and we can skip processing the contents
+						return Estraverse.VisitorOption.Skip;
+					}
+					
 					if (node.params) {
 						len = node.params.length;
 						for (idx = 0; idx < len; idx++) {
@@ -63,6 +72,7 @@ define([
 					}
 					break;
 				case Estraverse.Syntax.FunctionExpression:
+					this.checkId(node.id, true); // Function expressions can be named expressions
 					if (node.params) {
 						if(this._enterScope(node)) {
 							return Estraverse.VisitorOption.Skip;
@@ -91,6 +101,8 @@ define([
 					this.checkId(node.object);
 					if (node.computed) { //computed = true for [], false for . notation
 						this.checkId(node.property);
+					} else if (node.object.type === Estraverse.Syntax.ThisExpression){
+						this.checkId(node.property, false, true);
 					}
 					break;
 				case Estraverse.Syntax.BinaryExpression:
@@ -99,9 +111,6 @@ define([
 					break;
 				case Estraverse.Syntax.UnaryExpression:
 					this.checkId(node.argument);
-					break;
-				case Estraverse.Syntax.IfStatement:
-					this.checkId(node.test);
 					break;
 				case Estraverse.Syntax.SwitchStatement:
 					this.checkId(node.discriminant);
@@ -134,10 +143,15 @@ define([
 						len = node.properties.length;
 						for (idx = 0; idx < len; idx++) {
 							var prop = node.properties[idx];
-							if(this.thisCheck && prop.value && prop.value.type === Estraverse.Syntax.FunctionExpression) {
-								//tag it 
-								prop.value.isprop = true;
+							if (prop.value && prop.value.type === Estraverse.Syntax.FunctionExpression){
+								if(this.thisCheck) {
+									//tag it 
+									prop.value.isprop = true;
+								} else {
+									this.checkId(prop.value.id, false, true);
+								}
 							}
+							this.checkId(prop.key, true, true);
 							this.checkId(prop.value);
 						}
 					}
@@ -172,12 +186,34 @@ define([
 						}
 					}
 					break;
+				case Estraverse.Syntax.IfStatement:
 				case Estraverse.Syntax.DoWhileStatement:
+				case Estraverse.Syntax.WhileStatement:
 					this.checkId(node.test);
 					break;
 				case Estraverse.Syntax.ForStatement:
 					this.checkId(node.init);
 					break;
+				case Estraverse.Syntax.ForInStatement:
+                    this.checkId(node.left);
+                    this.checkId(node.right);
+                    break;
+				case Estraverse.Syntax.WithStatement:
+                    this.checkId(node.object);
+                    break;
+                case Estraverse.Syntax.ThrowStatement:
+                    this.checkId(node.argument);
+                    break;
+                case Estraverse.Syntax.LabeledStatement:
+               		this._enterScope(node);
+                    this.checkId(node.label, true, false, true);
+                    break;
+                case Estraverse.Syntax.ContinueStatement :
+                    this.checkId(node.label, false, false, true);
+                    break;
+                case Estraverse.Syntax.BreakStatement:
+                    this.checkId(node.label, false, false, true);
+                    break;
 			}
 		},
 		
@@ -192,14 +228,14 @@ define([
 			if(this.thisCheck) {
 				switch(node.type) {
 					case Estraverse.Syntax.ObjectExpression:
-						this.scopes.push({range: node.range, occurrences: [], kind:'o'});
+						this.scopes.push({range: node.range, occurrences: [], kind:'o'});  //$NON-NLS-0$
 						if (this.defscope){
 							return true;
 						}
 						break;
 					case Estraverse.Syntax.FunctionExpression:
 						if (!node.isprop){
-							this.scopes.push({range: node.range, occurrences: [], kind:'fe'});
+							this.scopes.push({range: node.body.range, occurrences: [], kind:'fe'});  //$NON-NLS-0$
 							// If the outer scope has the selected 'this' we can skip the inner scope
 							if (this.defscope){
 								return true;
@@ -207,16 +243,44 @@ define([
 						}
 						break;
 				}
-			}
-			else {
-				var kind = 'fe';
+			} else if (this.objectPropCheck){
+				switch(node.type) {
+					case Estraverse.Syntax.ObjectExpression:
+						this.scopes.push({range: node.range, occurrences: [], kind:'o'});  //$NON-NLS-0$
+						// Skip object expressions that don't contain the selection
+						if(node.range[0] > this.context.start || node.range[1] < this.context.end) {
+							return true;
+						}						
+				}
+			} else if (this.labeledStatementCheck){
+				switch(node.type) {
+					case Estraverse.Syntax.LabeledStatement:
+						this.scopes.push({range: node.range, occurrences: [], kind:'ls'});  //$NON-NLS-0$
+						// Skip labelled loops that don't contain the selection
+						if(node.range[0] > this.context.start || node.range[1] < this.context.end) {
+							return true;
+						}						
+				}
+			} else {
+				var kind;
 				switch(node.type) {
 					case Estraverse.Syntax.FunctionDeclaration:
-						kind = 'fd';
-						//$FALL-THROUGH$
-					case Estraverse.Syntax.FunctionExpression:
-						this.scopes.push({range: node.range, occurrences: [], kind:kind});	
+						kind = 'fd';  //$NON-NLS-0$
 						break;
+					case Estraverse.Syntax.FunctionExpression:
+						kind = 'fe';  //$NON-NLS-0$
+						break;
+				}
+				if (kind){
+					// Include the params and body in the scope, but not the identifier
+					var rng = node.range[0];
+					if (node.body){
+						rng = node.body.range[0];
+					}
+					if (node.params && (node.params.length > 0)){
+						rng = node.params[0].range[0];
+					}
+					this.scopes.push({range: [rng,node.range[1]], occurrences: [], kind:kind});	
 				}
 			}
 			return false;
@@ -239,7 +303,7 @@ define([
 							delete node.isprop; //remove the tag
 							break;
 						}
-						//FALL-THROUGH
+					//$FALLTHROUGH$
 					case Estraverse.Syntax.ObjectExpression:
 					case Estraverse.Syntax.Program:
 						if(this._popScope()) {
@@ -248,16 +312,47 @@ define([
 						}
 						break;
 				}
-			}
-			else {
-				switch(node.type) {
-					case Estraverse.Syntax.FunctionExpression:
-					case Estraverse.Syntax.FunctionDeclaration:
+			} else if (this.objectPropCheck) {
+				switch(node.type){
+					case Estraverse.Syntax.ObjectExpression:
 					case Estraverse.Syntax.Program:
 						if(this._popScope()) {
 							return Estraverse.VisitorOption.Break;
 						}
 						break;
+				}
+			} else if (this.labeledStatementCheck) {
+				switch(node.type){
+					case Estraverse.Syntax.LabeledStatement:
+						if(this._popScope()) {
+							return Estraverse.VisitorOption.Break;
+						}
+						break;
+				}
+			} else {
+				switch(node.type) {
+					case Estraverse.Syntax.FunctionExpression:
+					case Estraverse.Syntax.FunctionDeclaration: {
+					    if(this._popScope()) {
+							return Estraverse.VisitorOption.Break;
+						}
+						break;
+					}
+					case Estraverse.Syntax.Program: {
+					    this._popScope(); // pop the last scope
+					    //we are leaving the AST, add the occurrences if we never found a defining scope
+					   if(!this.defscope && this.globals) {
+					       this.occurrences = [];
+					       var that = this;
+						   this.globals.forEach(function(scope) {
+						       var occ = scope.occurrences;
+                               for(var i = 0; i < occ.length; i++) {
+                                  that.occurrences.push(occ[i]); 
+                               }						        
+						   });
+						}
+						break;
+					}
 				}
 			}
 		},
@@ -271,6 +366,14 @@ define([
 		 */
 		_popScope: function() {
 			var scope = this.scopes.pop();
+			
+			if (this.skipScope){
+				if (this.skipScope === scope){
+					this.skipScope = null;
+				}
+				return false;
+			}
+			
 			var len = scope.occurrences.length;
 			var i;
 			if(this.defscope) {
@@ -282,6 +385,8 @@ define([
 					//we just popped out of the scope the node was defined in, we can quit
 					return true;
 				}
+			} else {
+			    this.globals.push(scope);
 			}
 			return false;
 		},
@@ -294,25 +399,47 @@ define([
 		 * @memberof javascript.JavaScriptOccurrences.prototype
 		 * @param {Object} node The AST node we are inspecting
 		 * @param {Boolean} candefine If the given node can define the word we are looking for
+		 * @param {Boolean} isObjectProp Whether the given node is only an occurrence if we are searching for object property occurrences
+		 * @param {Boolean} isLabeledStatement Whether the given node is only an occurrence if we are searching for labeled statements
 		 * @returns {Boolean} <code>true</code> if we should skip the next nodes, <code>false</code> otherwise
 		 */
-		checkId: function(node, candefine) {
-			if (!this.thisCheck && node && node.type === Estraverse.Syntax.Identifier) {
+		checkId: function(node, candefine, isObjectProp, isLabeledStatement) {
+			if (this.skipScope){
+				return true;
+			}
+			if (this.thisCheck){
+				return false;
+			}
+			if ((isObjectProp && !this.objectPropCheck) || (!isObjectProp && this.objectPropCheck)){
+				return false;
+			}
+			if ((isLabeledStatement && !this.labeledStatementCheck) || (!isLabeledStatement && this.labeledStatementCheck)){
+				return false;
+			}			
+			if (node && node.type === Estraverse.Syntax.Identifier) {
 				if (node.name === this.context.word) {
 					var scope = this.scopes[this.scopes.length-1]; // Always will have at least the program scope
 					if(candefine) {
+						// Check if we are redefining
 						if(this.defscope) {
-							// Re-defining, we want the last defining node previous to the selection, skip any future re-defines
-							if(node.range[0] > this.context.start) {
-								return true;
+							if((scope.range[0] <= this.context.start) && (scope.range[1] >= this.context.end)) {
+								// Selection inside this scope, use this scope as the defining scope
+								this.occurrences = []; // Clear any occurrences in sibling scopes
+								this.defscope = scope;
+								scope.occurrences.push({
+									start: node.range[0],
+									end: node.range[1]
+								});
+								return false;
 							} else {
-								// Occurrences collected for the previous define are now invalid, fall through to mark this occurrence
-								this.occurrences = [];
-								scope.occurrences = [];
+								// Selection belongs to an outside scope so use the outside definition
+								scope.occurrences = []; // Clear any occurrences we have found in this scope
+								this.skipScope = scope;  // Skip this scope and all inner scopes
+								return true;  // Where possible we short circuit checking this scope
 							}
 						}
 						//does the scope enclose it?
-						if(scope && (scope.range[0] <= this.context.start) && (scope.range[1] >= this.context.end)) {
+						if((scope.range[0] <= this.context.start) && (scope.range[1] >= this.context.end)) {
 							this.defscope = scope;
 						}
 					}
@@ -389,6 +516,7 @@ define([
 		findNode: function(offset, ast, options) {
 			var found = null;
 			var parents = options && options.parents ? [] : null;
+			var next = options && options.next ? options.next : false;
 			if(offset != null && offset > -1 && ast) {
 				Estraverse.traverse(ast, {
 					/**
@@ -403,14 +531,18 @@ define([
 									parents.push(node);
 								}
 							} else {
-								if(parents && parents.length > 0) {
-									var p = parents[parents.length-1];
-									if(p.range[0] === found.range[0] && p.range[1] === found.range[1]) {
-										//a node can't be its own parent
-										parents.pop();
-									}
+							    if(next) {
+							        found = node;
+							        if(parents) {
+    									parents.push(node);
+    								}
+							    }
+							    if(found.type !== Estraverse.Syntax.Program) {
+							        //we don't want to find the next node as the program root
+							        //if program has no children it will be returned on the next pass
+							        //https://bugs.eclipse.org/bugs/show_bug.cgi?id=442411
+								    return Estraverse.VisitorOption.Break;
 								}
-								return Estraverse.VisitorOption.Break;
 							}
 						}
 					},
@@ -422,7 +554,12 @@ define([
 					}
 				});
 			}
-			if(found && parents) {
+			if(found && parents && parents.length > 0) {
+				var p = parents[parents.length-1];
+				if(p.type !== 'Program' && p.range[0] === found.range[0] && p.range[1] === found.range[1]) {  //$NON-NLS-0$
+					//a node can't be its own parent
+					parents.pop();
+				}
 				found.parents = parents;
 			}
 			return found;
@@ -506,8 +643,12 @@ define([
 				var len = comments.length;
 				for(var i = 0; i < len; i++) {
 					var comment = comments[i];
-					if(comment.range[0] <= offset && comment.range[1] > offset) {
+					if(comment.range[0] < offset && comment.range[1] >= offset) {
 						return comment;
+					} else if(offset === ast.range[1] && offset === comment.range[1]) {
+					   return comment;
+					} else if(offset > ast.range[1] && offset <= comment.range[1]) {
+					    return comment;
 					} else if(comment.range[0] > offset) {
 						//we've passed the node
 						return null;
@@ -528,14 +669,24 @@ define([
 		 */
 		findScriptBlocks: function(buffer, offset) {
 			var blocks = [];
-			var val = null, regex = /<\s*script(?:[^>]|\n)*>((?:.|\r?\n)*?)<\s*\/script(?:[^>]|\n)*>/ig;
+			var val = null, regex = /<\s*script(?:(type|language)(?:\s*)=(?:\s*)"([^"]*)"|[^>]|\n)*>((?:.|\r?\n)*?)<\s*\/script(?:[^>]|\n)*>/ig;
 			var comments = this.findHtmlCommentBlocks(buffer, offset);
 			loop: while((val = regex.exec(buffer)) != null) {
-				var text = val[1];
+				var attribute = val[1];
+			    var type = val[2];
+			    if(attribute && type){
+			    	if (attribute === "language"){  //$NON-NLS-0$
+			    		type = "text/" + type;  //$NON-NLS-0$
+			    	}
+			    	if (!/^(application|text)\/(ecmascript|javascript(\d.\d)?|livescript|jscript|x\-ecmascript|x\-javascript)$/ig.test(type)) {
+			        	continue;
+			        }
+			    }
+				var text = val[3];
 				if(text.length < 1) {
 					continue;
 				}
-				var index = val.index+val[0].indexOf('>')+1;
+				var index = val.index+val[0].indexOf('>')+1;  //$NON-NLS-0$
 				if((offset == null || (index <= offset && index+text.length >= offset))) {
 					for(var i = 0; i < comments.length; i++) {
 						if(comments[i].start <= index && comments[i].end >= index) {
@@ -549,6 +700,139 @@ define([
 				}
 			}
 			return blocks;
+		},
+		
+		/**
+		 * Object of search kinds
+		 */
+		SearchOptions: {
+		    FUNCTION_DECLARATION: 0,
+		    IDENTIFIER: 1
+		},
+		
+		/**
+		 * @name findDeclaration
+		 * @description Will attempt to find the declaration of the node at the given
+		 * offset. If it cannot be computed <code>null</code> is returned.
+		 * @function
+		 * @param {Number} offset The offset into the source file
+		 * @param {Object} ast The AST to search
+		 * @param {Object} options The options to search with
+		 * @returns {Object|null} Return the found declaration AST node or <code>null</code>
+		 * @since 7.0
+		 */
+		findDeclaration: function findDeclaration(offset, ast, options) {
+		    //TODO for now do a lookup from the AST, this function will ultimately delegate
+		    //to whatever ENV we use 
+		    var id = options.id;
+		    if(!id) {
+		        return null;
+		    }
+		    var kind = options.kind;
+		    if(typeof(kind) === 'undefined') {
+		        return null;
+		    }
+		    this._declFinder.offset = offset;
+		    this._declFinder.id = id;
+		    this._declFinder.kind = kind;
+		    this._declFinder.enter = this._declFinder.enter.bind(this._declFinder);
+		    this._declFinder.leave = this._declFinder.leave.bind(this._declFinder);
+		    Estraverse.traverse(ast, this._declFinder);
+		    var scope = this._declFinder.scopes.pop();
+		    while(scope) {
+		        var decl = scope.decls.pop();
+		        if(decl) {
+		            return decl;
+		        }
+		        scope = this._declFinder.scopes.pop();
+		    }
+		    return null;
+		},
+		
+		/**
+		 * An AST visitor to find a declaration of a certain type
+		 * @since 7.0
+		 */
+		_declFinder: {
+		    enter: function(node) {
+		         switch(node.type) {
+		             case 'Program': {
+		                 this.scopes = [];
+		                 this.decl = null;
+		                 this.offsetscope = null;
+		                 this.scopes.push({type: node.type, range: node.range, decls: []});
+		                 break;
+		             }
+		             case 'FunctionDeclaration': {
+		                 if(this.offsetscope) {
+		                     return Estraverse.VisitorOption.Skip;
+		                 }
+		                 if(this._checkScope(node)) {
+		                     return Estraverse.VisitorOption.Break;
+		                 }
+		                 if(this.kind === Finder.SearchOptions.FUNCTION_DECLARATION && 
+		                          node.id && node.id.name === this.id) {
+		                      this._pushDecl(node);
+		                 }
+		                 this.scopes.push({type: node.type, range: node.range, decls: []});
+		                 break;
+		             }
+		             case 'FunctionExpression': {
+		                 if(this.offsetscope) {
+		                     return Estraverse.VisitorOption.Skip;
+		                 }
+		                 if(this._checkScope(node)) {
+		                     return Estraverse.VisitorOption.Break;
+		                 }
+		                 this.scopes.push({type: node.type, range: node.range, decls: []});
+		                 break;
+		             }
+		             case 'VariableDeclarator': {
+		                 if(this.kind === Finder.SearchOptions.IDENTIFIER && 
+		                          node.id && node.id.name === this.id) {
+		                    this._pushDecl(node);
+                	            if(this.offsetscope) {
+                	                return Estraverse.VisitorOption.Break;
+                	            }
+		                 }
+		                 break;
+		             }
+		             default: {
+		                 if(this._checkScope(node)) {
+		                     return Estraverse.VisitorOption.Break;
+		                 }
+		             }
+		         }
+		         
+	        },
+	        leave: function(node) {
+	            switch(node.type) {
+	                case 'FunctionDeclaration': 
+	                case 'FunctionExpression': {
+	                    if(this.offsetscope && this.offsetscope.decls.length > 0) {
+	                        return Estraverse.VisitorOption.Break;
+	                    }
+	                    if(node.range[1] <= this.offset) {
+	                       this.scopes.pop();
+	                    }
+	                    break;
+	                }
+	            }
+	        },
+	        _checkScope: function(node) {
+	            if(!this.offsetscope && node.range[0] > this.offset) {
+		             //we found the node, if there are decls stop
+		             this.offsetscope = this.scopes[this.scopes.length-1];
+		             if(this.offsetscope.decls.length > 0) {
+		                 return true;
+		             }
+                 }
+                 return false;
+	        },
+	        _pushDecl: function _checkDecl(node) {
+	            var scope = this.scopes[this.scopes.length-1];
+	            scope.decls.push(node);
+	        }
 		},
 		
 		/**
@@ -591,16 +875,23 @@ define([
 		findOccurrences: function(ast, ctxt) {
 			if(ast && ctxt) {
 				var token = this._getToken(ctxt.selection.start, ast);
-				if(!this._skip(token)) {
-					var context = {
-						start: ctxt.selection.start,
-						end: ctxt.selection.end,
-						word: this._nameFromNode(token),
-						token: token,
-					};
-					var visitor = this._getVisitor(context);
-					Estraverse.traverse(ast, visitor);
-					return visitor.occurrences;
+				if (token) {
+					// The token ignores punctuators, but the node is required for context
+					// TODO Look for a more efficient way to move between node/token, see Bug 436191
+					var node = this.findNode(ctxt.selection.start, ast, {parents: true});
+					if (token.range[0] >= node.range[0] && token.range[1] <= node.range[1]){
+						if(!this._skip(node)) {
+							var context = {
+								start: ctxt.selection.start,
+								end: ctxt.selection.end,
+								word: this._nameFromNode(node),
+								token: node,
+							};
+							var visitor = this._getVisitor(context);
+							Estraverse.traverse(ast, visitor);
+							return visitor.occurrences;
+						}
+					}
 				}
 			}
 			return [];
@@ -610,18 +901,18 @@ define([
 		 * @description If we should skip marking occurrences
 		 * @function
 		 * @private
-		 * @param {Object} token The AST token
+		 * @param {Object} node The AST node
 		 * @returns {Boolean} True if we shoud skip computing occurrences
 		 * @since 6.0
 		 */
-		_skip: function(token) {
-			if(!token) {
+		_skip: function(node) {
+			if(!node) {
 				return true;
 			}
-			if(token.type === 'Keyword') {  //$NON-NLS-0$
-				return token.value !== 'this';  //$NON-NLS-0$
+			if(node.type === Estraverse.Syntax.ThisExpression) {
+				return false;
 			}
-			return token.type !== Estraverse.Syntax.Identifier;
+			return node.type !== Estraverse.Syntax.Identifier;
 		},
 		
 		/**
@@ -663,14 +954,14 @@ define([
 		 * @description Computes the node name to use while searching
 		 * @function
 		 * @private
-		 * @param {Object} token The AST token
+		 * @param {Object} node The AST token
 		 * @returns {String} The node name to use while seraching
 		 * @since 6.0
 		 */
-		_nameFromNode: function(token) {
-			switch(token.type) {
-				case Estraverse.Syntax.Identifier: return token.value;
-				case 'Keyword': return 'this'; //$NON-NLS-0$  //$NON-NLS-1$
+		_nameFromNode: function(node) {
+			switch(node.type) {
+				case Estraverse.Syntax.Identifier: return node.name;
+				case Estraverse.Syntax.ThisExpression: return 'this'; //$NON-NLS-0$
 			}
 		},
 		
@@ -690,7 +981,25 @@ define([
 				this.visitor.enter = this.visitor.enter.bind(this.visitor);
 				this.visitor.leave = this.visitor.leave.bind(this.visitor);
 			}
-			this.visitor.thisCheck = context.token && context.token.type === 'Keyword' && context.token.value === 'this';  //$NON-NLS-0$  //$NON-NLS-1$
+			
+			if (context.token){
+				var parent = context.token.parent ? context.token.parent : (context.token.parents && context.token.parents.length > 0 ? context.token.parents[context.token.parents.length-1] : null);
+				
+				// See if a 'this' keyword was selected
+				this.visitor.thisCheck = context.token.type === Estraverse.Syntax.ThisExpression;
+				
+				// See if an object property key is selected (or a usage of an object property such as this.prop())
+				this.visitor.objectPropCheck = false;
+				if (parent && parent.type === Estraverse.Syntax.Property){
+					this.visitor.objectPropCheck = context.token === parent.key;
+				} else if (parent && (parent.type === Estraverse.Syntax.MemberExpression && parent.object && parent.object.type === Estraverse.Syntax.ThisExpression)){
+					this.visitor.objectPropCheck = true;
+				}
+				
+				// See if a labeled statement is selected
+				this.visitor.labeledStatementCheck = parent && (parent.type === Estraverse.Syntax.LabeledStatement || parent.type === Estraverse.Syntax.ContinueStatement || parent.type === Estraverse.Syntax.BreakStatement);
+			}
+				
 			this.visitor.context = context;
 			return this.visitor;			
 		}
@@ -699,4 +1008,3 @@ define([
 
 	return Finder;
 });
-		

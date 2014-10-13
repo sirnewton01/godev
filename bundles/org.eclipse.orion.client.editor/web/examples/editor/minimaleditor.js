@@ -9,13 +9,12 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global window define*/
-/*jslint browser:true devel:true*/
+/*eslint-env browser,amd*/
 
 
-define(["require", "orion/editor/textView", "orion/keyBinding", "orion/editor/editor", "orion/editor/editorFeatures"],
+define(["orion/editor/textView", "orion/keyBinding", "orion/editor/editor", "orion/editor/editorFeatures"],
 
-function(require, mTextView, mKeyBinding, mEditor, mEditorFeatures){
+function(mTextView, mKeyBinding, mEditor, mEditorFeatures){
 	
 	var editorDomNode = document.getElementById("editor");
 	

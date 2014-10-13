@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 //NLS_CHARSET=UTF-8
-
+/*eslint-env browser, amd*/
 define({
 	"Find:": "Find:",
 	"Find With": "Find With",
@@ -29,26 +29,26 @@ define({
 	"Replace": "Replace",
 	"Replace...": "Replace...",
 	"Replace All": "Replace All",
-	"Show Replace": "Show Replace",
-	"Hide Replace": "Hide Replace",
+	"Show Replace": "Switch to Replace Mode",
+	"Hide Replace": "Switch to Search Mode",
 	"Search ${0}": "Search ${0}",
-	"Type a keyword or wild card to search in ": "Type a keyword or wild card to search in ",
+	"TypeKeyOrWildCard": "Type a keyword or wild card to search in ",
 	"Search failed.": "Search failed.",
-	"No matches found for ${0}": "No matches found for ${0}",
+	"NoMatchFound": "No matches found for ${0}",
 	"Searching...": "Searching...",
-	"Resource has been changed by others.": "Resource has been changed by others.",
+	"ResourceChanged.": "Resource has been changed by others.",
 	"Failed to write file.": "Failed to write file.",
 	"Results": "Results",
-	"Files ${0} of ${1} matching ${2}": "Files ${0} of ${1} matching ${2}",
-	"Replace ${0} with ${1} for files ${2} of ${3}": "Replace ${0} with ${1} for files ${2} of ${3}",
+	"FilesAofBmatchingC": "Files ${0} of ${1} matching \"${2}\"",
+	"ReplaceAwithBforCofD": "Replace \"${0}\" with \"${1}\" for files ${2} of ${3}",
 	"Location": "Location",
 	"Click to compare": "Click to compare",
 	"Search again in this folder with \"${0}\"": "Search again in this folder with \"${0}\"",
 	"Files replaced": "Files replaced",
 	"Status": "Status",
-	"${0} out of ${1}  matches replaced.": "${0} out of ${1}  matches replaced.",
+	"matchesReplacedMsg": "${0} out of ${1}  matches replaced.",
 	"Replace all matches with...": "Replace all matches with...",
-	"Apply Changes": "Apply Changes",
+	"Apply Changes": "Replace Selected",
 	"Replace all selected matches": "Replace all selected matches",
 	"Hide Compare": "Hide Compare",
 	"Hide compare view of changes": "Hide compare view of changes",
@@ -74,7 +74,6 @@ define({
 	"Replace All Matches": "Replace All Matches",
 	"No matches": "No matches",
 	"Rename": "Rename",
-	"Save frequently used searches by clicking on the ${0} button above.": "Save frequently used searches by clicking on the ${0} button above.",
 	"Search": "Search",
 	"All types": "All types",
 	"File type": "File type",
@@ -90,16 +89,20 @@ define({
 	"Scope Search": "Scoped Search",
 	"Open in Search page for this directory": "Open the Search page for this folder.",
 	"${0}. Try your search again.": "${0}. Try your search again.",
-	"Click or use delete key to delete the search term": "Click or use delete key to delete the search term",
+	"DeleteSearchTrmMsg": "Click or use delete key to delete the search term",
 	"${0} matches": "${0} matches",
-	"Regular expression is off. You can click here or use options to turn it on for replacement - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>." : 
-	"Regular expression is off. You can click here or use options to turn it on for replacement - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>.",
-	"Regular expression is on. You can click here or use options to turn it off - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>." : 
-	"Regular expression is on. You can click here or use options to turn it off - e.g. when the option is on you can replace <td([\\s\\S]*?)</td> with <span$1</span>.",
+	"regexOptionOff" : "Regular expressions are off. Click here or use the options to turn them on for replacement",
+	"regexOptionOn" : "Regular expressions are on. Click here or use the options to turn them off",
 	"Scope": "Scope",
 	"Show previous search terms": "Show previous search terms",
+	"Show previous replace terms": "Show previous replace terms",
 	"Show replacement preview": "Show replacement preview",
 	"File name patterns (comma-separated)": "File name patterns (comma-separated)",
 	"(* = any string, ? = any character)": "(* = any string, ? = any character)",
-	"Choose a Folder": "Choose a Folder"
+	"Choose a Folder": "Choose a Folder",
+	"Remove from search results": "Remove from search results",
+	"^ Edit Search": "^ Edit Search",
+	"Preview: " : "Preview: ",
+	"fullPath": "Show Full Path",
+	"switchFullPath": "Show/hide full path"
 });

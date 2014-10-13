@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-
+/*eslint-env browser, amd*/
 var fs = {
 	toURL: function(path) {
 		

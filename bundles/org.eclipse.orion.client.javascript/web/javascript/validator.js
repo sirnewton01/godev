@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define*/
+/*eslint-env amd*/
 define([
 	"eslint",
 	"orion/objects",
@@ -28,6 +28,7 @@ define([
 			"no-dupe-keys" : 2, //$NON-NLS-0$
 			"no-eval" : 0, //$NON-NLS-0$
 			"no-extra-semi": 1, //$NON-NLS-0$
+			'no-jslint' : 1,  //$NON-NLS-0$
 			"no-new-array": 1, //$NON-NLS-0$
 			"no-new-func": 1, //$NON-NLS-0$
 			"no-new-object": 1, //$NON-NLS-0$
@@ -38,7 +39,11 @@ define([
 			"no-unused-vars": 1, //$NON-NLS-0$
 			"no-use-before-define": 1, //$NON-NLS-0$
 			"semi": 1, //$NON-NLS-0$
+			"throw-error": 1, //$NON-NLS-0$
 			"use-isnan" : 2, //$NON-NLS-0$
+			'no-unreachable': 2,  //$NON-NLS-0$
+			'no-fallthrough' : 2,  //$NON-NLS-0$
+			'no-empty-block' : 0  //$NON-NLS-0$
 		},
 		/**
 		 * @description Sets the given rule to the given enabled value
@@ -126,11 +131,24 @@ define([
 			}
 		}
 		var prob = {
+		    descriptionKey: (e.args && e.args.nls ? e.args.nls : e.ruleId),
+		    descriptionArgs: e.args,
 			description: e.message,
 			severity: getSeverity(e),
-			start: start,
-			end: end
 		};
+		if(typeof(start) !== 'undefined') {
+		    prob.start = start;
+		    prob.end = end;
+		} else if(typeof(e.lineNumber) !== 'undefined') {
+		    prob.line = e.lineNumber;
+		    prob.start = e.column;
+		} else {
+		    prob.start = 0;
+		    prob.end = 0;
+		}
+		if(e.opts && e.opts.args) {
+		    prob.problemArgs = e.opts.args;
+		}
 		return prob;
 	}
 
@@ -156,10 +174,6 @@ define([
 					else if(ast.tokens.length > 0) {
 						//error object did not contain the token infos, try to find it
 						token = Finder.findToken(error.index, ast.tokens);	
-					} 
-					if(!token) {
-						//failed to compute it, continue
-						continue;
 					}
 					var msg = error.message;
 					if(errorMap[error.index] === msg) {
@@ -169,14 +183,27 @@ define([
 					if(error.type) {
 						switch(error.type) {
 							case ASTManager.ErrorTypes.Unexpected:
-								error.message = msg = "Syntax error on token '"+token.value+"', delete this token.";
+							    if(token) {
+    								error.args = {0: token.value, nls: "syntaxErrorBadToken"}; //$NON-NLS-0$
+    								error.message = msg = error.args.nls;
+								}
 								break;
 							case ASTManager.ErrorTypes.EndOfInput:
-								error.message = "Syntax error, incomplete statement.";
+								error.args = {nls: "syntaxErrorIncomplete"}; //$NON-NLS-0$
+								error.message = error.args.nls;
 								break;
 						}
+					} else if(!token) {
+					    //an untyped error with no tokens, report the failure
+					    error.args = {0: error.message, nls: 'esprimaParseFailure'};
+					    error.message = error.args.nls;
+					    //use the line number / column
+				       delete error.start;
+				       delete error.end;
 					}
-					error.node = token;
+					if(token) {
+					   error.node = token;
+					}
 					errors.push(error);
 				}
 			}
@@ -193,7 +220,7 @@ define([
 		computeProblems: function(editorContext, context) {
 			var _self = this;
 			switch(context.contentType) {
-				case 'text/html': 
+				case 'text/html': //$NON-NLS-0$
 					return editorContext.getText().then(function(text) {
 						var blocks = Finder.findScriptBlocks(text);
 						var len = blocks.length;
@@ -213,7 +240,7 @@ define([
 						}
 						return {problems: allproblems};
 					});
-				case 'application/javascript': 
+				case 'application/javascript': //$NON-NLS-0$
 					return this.astManager.getAST(editorContext).then(function(ast) {
 						return _self._validateAst(ast);
 					});
@@ -237,7 +264,7 @@ define([
 				if(parseErrors.length < 1) {
 					eslintErrors.push({
 						start: 0,
-						message: "ESLint failed to validate this file because an error occurred: " + e.toString(),
+						args: {0: e.toString(), nls: "eslintValidationFailure" }, //$NON-NLS-0$
 						severity: "error" //$NON-NLS-0$
 					});
 				}
@@ -307,7 +334,12 @@ define([
 			config.setOption("no-unused-vars", properties.validate_no_unused_vars); //$NON-NLS-0$
 			config.setOption("no-use-before-define", properties.validate_use_before_define); //$NON-NLS-0$
 			config.setOption("semi", properties.validate_missing_semi); //$NON-NLS-0$
+			config.setOption("throw-error", properties.validate_throw_error); //$NON-NLS-0$
 			config.setOption("use-isnan", properties.validate_use_isnan); //$NON-NLS-0$
+			config.setOption("no-unreachable", properties.validate_no_unreachable); //$NON-NLS-0$
+			config.setOption("no-fallthrough", properties.validate_no_fallthrough); //$NON-NLS-0$
+			config.setOption("no-jslint", properties.validate_no_jslint); //$NON-NLS-0$
+			config.setOption("no-empty-block", properties.validate_no_empty_block); //$NON-NLS-0$
 		}
 	});
 	return ESLintValidator;

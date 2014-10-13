@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License v1.0
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
@@ -8,11 +8,9 @@
  *
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define document*/
-/*jslint sub:true*/
-define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/explorer', 'orion/Deferred', 'orion/commands', 'orion/keyBinding', 'orion/section', 'orion/globalCommands',
-		'orion/selection', 'orion/sites/siteUtils', 'orion/explorers/navigationUtils', 'orion/sites/siteClient', 'orion/sites/siteCommands', 'orion/webui/treetable', 'orion/webui/littlelib'],
-		function(messages, i18nUtil, mExplorer, Deferred, mCommands, mKeyBinding, mSection, mGlobalCommands, mSelection, mSiteUtils, mNavUtils, mSiteClient, mSiteCommands, treetable, lib) {
+/*eslint-env browser, amd*/
+define(['i18n!orion/sites/nls/messages', 'orion/explorers/explorer', 'orion/Deferred', 'orion/section', 'orion/sites/siteUtils', 'orion/sites/siteClient', 'orion/webui/littlelib'],
+		function(messages, mExplorer, Deferred, mSection, mSiteUtils, mSiteClient, lib) {
 	var SiteServicesExplorer, SitesRenderer, SiteTreeModel;
 
 	/** 
@@ -34,9 +32,9 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 			this.selection = selection;
 			this.commandService = commandRegistry;
 			
-			this.pageActionsWrapperId = "pageActions";
-			this.selectionActionsWrapperId = "selectionTools";
-			this.defaultActionWrapperId = "DefaultActionWrapper";
+			this.pageActionsWrapperId = "pageActions"; //$NON-NLS-0$
+			this.selectionActionsWrapperId = "selectionTools"; //$NON-NLS-0$
+			this.defaultActionWrapperId = "DefaultActionWrapper"; //$NON-NLS-0$
 		}
 		
 		SiteServicesExplorer.prototype = new mExplorer.Explorer();
@@ -90,7 +88,7 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 			var commandService = this.commandService;
 			this._getSiteConfigurations(this.siteClients).then(
 				function(siteConfigurations){
-					that.renderer = new SitesRenderer({registry: that.registry, commandService: that.commandService, actionScopeId: "sdsd", cachePrefix: "SitesExplorer", checkbox: false}, that); //$NON-NLS-0$
+					that.renderer = new SitesRenderer({registry: that.registry, commandService: that.commandService, actionScopeId: "sdsd", cachePrefix: "SitesExplorer", checkbox: false}, that); //$NON-NLS-0$  //$NON-NLS-1$
 
 					commandService.registerCommandContribution(that.pageActionsWrapperId, 'orion.site.create', 100); //$NON-NLS-0$
 					
@@ -122,12 +120,12 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 								contentParent.setAttribute("role", "region"); //$NON-NLS-1$ //$NON-NLS-0$
 								document.getElementById(that.parentId).appendChild(contentParent);
 								var div = document.createElement("div"); //$NON-NLS-0$
-								div.id = siteServiceId + '_Node';
+								div.id = siteServiceId + '_Node'; //$NON-NLS-0$
 								div.classList.add("mainPadding"); //$NON-NLS-0$
 								contentParent.appendChild(div);
 							}
 						
-							that.createTree(siteServiceId + "_Node", new SiteTreeModel(siteConfigurations[i].siteConfigurations), {setFocus: false, noSelection: true});
+							that.createTree(siteServiceId + "_Node", new SiteTreeModel(siteConfigurations[i].siteConfigurations), {setFocus: false, noSelection: true}); //$NON-NLS-0$
 						}
 					}
 					
@@ -158,7 +156,7 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 					var areConfigurations = false;
 					for (var i=0; i<siteConfigurations.length; i++){
 						// Remove deleted sites
-						var siteServiceId = siteConfigurations[i].siteService._id + "_Node";
+						var siteServiceId = siteConfigurations[i].siteService._id + "_Node"; //$NON-NLS-0$
 						lib.empty(lib.node(siteServiceId));
 						
 						// Check if there are any configurations left and create the tree
@@ -189,11 +187,11 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 			// If there are no sites defined, tell the user with a button to create a site
 			var that = this;
 			var noSites = document.createElement("div"); //$NON-NLS-0$
-			noSites.className = "sitesPanel sectionWrapper sectionTitle";
+			noSites.className = "sitesPanel sectionWrapper sectionTitle"; //$NON-NLS-0$
 			
 			// Insert the create action into the no sites text
 			var actions = document.createElement("span"); //$NON-NLS-0$
-			that.commandService.renderCommands(that.pageActionsWrapperId, actions, siteServiceRef, that, "button", that.getRefreshHandler());
+			that.commandService.renderCommands(that.pageActionsWrapperId, actions, siteServiceRef, that, "button", that.getRefreshHandler()); //$NON-NLS-0$
 			noSites.appendChild(actions);
 			
 			var textNode = document.createElement("span");  //$NON-NLS-0$
@@ -280,7 +278,10 @@ define(['i18n!orion/sites/nls/messages', 'orion/i18nUtil', 'orion/explorers/expl
 					startedNode.textContent = messages["Started"];
 					lib.processDOMNodes(startedNode, [link]);
 					statusField.appendChild(startedNode);
+				} else if (status.Status === "stopped"){ //$NON-NLS-0$
+					statusField.appendChild(document.createTextNode(messages["Stopped"]));
 				} else {
+					// Putting the status string in the UI prevents it from being translated
 					var statusString = status.Status.substring(0,1).toUpperCase() + status.Status.substring(1);
 					statusField.appendChild(document.createTextNode(statusString));
 				}

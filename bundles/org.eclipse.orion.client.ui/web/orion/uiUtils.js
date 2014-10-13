@@ -8,20 +8,41 @@
  *
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define window document navigator*/
-
-define(['orion/webui/littlelib'], function(lib) {
-                
+/*eslint-env browser, amd*/
+define([
+	'i18n!orion/nls/messages',
+	'orion/webui/littlelib'
+], function(messages, lib) {
 	/**
 	 * This class contains static utility methods. It is not intended to be instantiated.
 	 * @class This class contains static utility methods.
 	 * @name orion.uiUtils
 	 */
-	
+
+	var isMac = navigator.platform.indexOf("Mac") !== -1; //$NON-NLS-0$
+
+	// Maps keyCode to display symbol
+	var keySymbols = Object.create(null);
+	keySymbols[lib.KEY.DOWN]  = "\u2193"; //$NON-NLS-0$
+	keySymbols[lib.KEY.UP]    = "\u2191"; //$NON-NLS-0$
+	keySymbols[lib.KEY.RIGHT] = "\u2192"; //$NON-NLS-0$
+	keySymbols[lib.KEY.LEFT]  = "\u2190"; //$NON-NLS-0$
+	if (isMac) {
+		keySymbols[lib.KEY.BKSPC]    = "\u232b"; //$NON-NLS-0$
+		keySymbols[lib.KEY.DEL]      = "\u2326"; //$NON-NLS-0$
+		keySymbols[lib.KEY.END]      = "\u21f2"; //$NON-NLS-0$
+		keySymbols[lib.KEY.ENTER]    = "\u23ce"; //$NON-NLS-0$
+		keySymbols[lib.KEY.ESCAPE]   = "\u238b"; //$NON-NLS-0$
+		keySymbols[lib.KEY.HOME]     = "\u21f1"; //$NON-NLS-0$
+		keySymbols[lib.KEY.PAGEDOWN] = "\u21df"; //$NON-NLS-0$
+		keySymbols[lib.KEY.PAGEUP]   = "\u21de"; //$NON-NLS-0$
+		keySymbols[lib.KEY.SPACE]    = "\u2423"; //$NON-NLS-0$
+		keySymbols[lib.KEY.TAB]      = "\u21e5"; //$NON-NLS-0$
+	}
+
 	function getUserKeyStrokeString(binding) {
 		var userString = "";
-		var isMac = navigator.platform.indexOf("Mac") !== -1; //$NON-NLS-0$
-	
+
 		if (isMac) {
 			if (binding.mod4) {
 				userString+= "\u2303"; //Ctrl //$NON-NLS-0$
@@ -36,15 +57,13 @@ define(['orion/webui/littlelib'], function(lib) {
 				userString+= "\u2318"; //Command //$NON-NLS-0$
 			}
 		} else {
-			if (binding.mod1) {
-				userString+= "Ctrl+"; //$NON-NLS-0$
-			}
-			if (binding.mod2) {
-				userString+= "Shift+"; //$NON-NLS-0$
-			}
-			if (binding.mod3) {
-				userString+= "Alt+"; //$NON-NLS-0$
-			}
+			var PLUS = "+"; //$NON-NLS-0$;
+			if (binding.mod1)
+				userString += messages.KeyCTRL + PLUS;
+			if (binding.mod2)
+				userString += messages.KeySHIFT + PLUS;
+			if (binding.mod3)
+				userString += messages.KeyALT + PLUS;
 		}
 		
 		if (binding.alphaKey) {
@@ -53,66 +72,22 @@ define(['orion/webui/littlelib'], function(lib) {
 		if (binding.type === "keypress") {
 			return userString+binding.keyCode; 
 		}
-		for (var keyName in lib.KEY) {
-			if (typeof(lib.KEY[keyName] === "number")) { //$NON-NLS-0$
-				if (lib.KEY[keyName] === binding.keyCode) {
-					if (isMac) {
-						switch (lib.KEY[keyName]) {
-							case lib.KEY.BKSPC:
-								keyName = "\u232b";	//$NON-NLS-0$
-								break;
-							case lib.KEY.TAB:
-								keyName = "\u21e5";	//$NON-NLS-0$
-								break;
-							case lib.KEY.ENTER:
-								keyName = "\u23ce";	//$NON-NLS-0$
-								break;
-							case lib.KEY.ESCAPE:
-								keyName = "\u238b";	//$NON-NLS-0$
-								break;
-							case lib.KEY.SPACE:
-								keyName = "\u2423";	//$NON-NLS-0$
-								break;
-							case lib.KEY.PAGEUP:
-								keyName = "\u21de";	//$NON-NLS-0$
-								break;
-							case lib.KEY.PAGEDOWN:
-								keyName = "\u21df";	//$NON-NLS-0$
-								break;
-							case lib.KEY.END:
-								keyName = "\u21f2";	//$NON-NLS-0$
-								break;
-							case lib.KEY.HOME:
-								keyName = "\u21f1";	//$NON-NLS-0$
-								break;
-							case lib.KEY.DEL:
-								keyName = "\u2326";	//$NON-NLS-0$
-								break;
-							default: //do nothing
-						}
-					}
-					
-					switch (lib.KEY[keyName]) {				
-						case lib.KEY.DOWN:
-							keyName = "\u2193";	//$NON-NLS-0$
-							break;
-						case lib.KEY.UP:
-							keyName = "\u2191"; //$NON-NLS-0$
-							break;
-						case lib.KEY.RIGHT:
-							keyName = "\u2192"; //$NON-NLS-0$
-							break;
-						case lib.KEY.LEFT:
-							keyName = "\u2190"; //$NON-NLS-0$
-							break;
-						
-						default: //do nothing
-					}
-						
-					return userString+keyName;
-				}
-			}
+
+		// Check if it has a special symbol defined
+		var keyCode = binding.keyCode;
+		var symbol = keySymbols[keyCode];
+		if (symbol) {
+			return userString + symbol;
 		}
+
+		// Check if it's a known named key from lib.KEY
+		var keyName = lib.keyName(keyCode);
+		if (keyName) {
+			// Some key names are translated, so check for that.
+			keyName = messages["Key" + keyName] || keyName; //$NON-NLS-0$
+			return userString + keyName;
+		}
+
 		var character;
 		switch (binding.keyCode) {
 			case 59:
@@ -322,12 +297,14 @@ define(['orion/webui/littlelib'], function(lib) {
 	}
 
 	/**
-	 * Returns whether <code>element</code> is an HTML5 form element.
+	 * Returns whether <code>element</code> or its parent is an HTML5 form element.
 	 * @param {Element} element
+	 * @param {Element} parentLimit
 	 * @function
 	 * @returns {Boolean}
 	 */
-	function isFormElement(element) {
+	function isFormElement(element, parentLimit) {
+		if (!element || !element.tagName) return false;
 		switch (element.tagName.toLowerCase()) {
 			case "button": //$NON-NLS-0$
 			case "fieldset": //$NON-NLS-0$
@@ -344,7 +321,8 @@ define(['orion/webui/littlelib'], function(lib) {
 			case "textarea": //$NON-NLS-0$
 				return true;
 		}
-		return false;
+		if (element.parentNode === parentLimit) return false;
+		return element.parentNode && isFormElement(element.parentNode, parentLimit);
 	}
 
 	//return module exports

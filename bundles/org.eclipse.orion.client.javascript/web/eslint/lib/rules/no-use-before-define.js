@@ -9,21 +9,11 @@
  * Contributors:
  *	 IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define module require exports console */
-(function(root, factory) {
-	if(typeof exports === 'object') {  //$NON-NLS-0$
-		module.exports = factory(require, exports, module, require('../util'));
-	}
-	else if(typeof define === 'function' && define.amd) {  //$NON-NLS-0$
-		define(['require', 'exports', 'module', '../util'], factory);
-	}
-	else {
-		var req = function(id) {return root[id];},
-			exp = root,
-			mod = {exports: exp};
-		root.rules.noundef = factory(req, exp, mod, root.util);
-	}
-}(this, function(require, exports, module, util) {
+/*eslint-env amd */
+define([
+'../util', 
+'logger'
+], function(util, Logger) {
 
 	/**
 	 * @name booleanOption
@@ -36,10 +26,7 @@
 		return typeof b === "boolean" ? b : defaultValue;  //$NON-NLS-0$
 	}
 
-	//------------------------------------------------------------------------------
-	// Rule Definition
-	//------------------------------------------------------------------------------
-	module.exports = function(context) {
+	return function(context) {
 		"use strict";  //$NON-NLS-0$
 
 		var options = context.options,
@@ -56,12 +43,12 @@
 						if ((!flag_funcs && defType === "FunctionName") || (!flag_vars && defType === "Variable")) {  //$NON-NLS-0$  //$NON-NLS-1$
 							return;
 						}
-						context.report(identifier, "'{{name}}' was used before it was defined.", {name: name});
+						context.report(identifier, "'${0}' was used before it was defined.", {0:name});
 					}
 				});
 			}
 			catch(ex) {
-				console.log(ex);
+				Logger.log(ex);
 			}
 		}
 
@@ -71,5 +58,4 @@
 			"FunctionDeclaration": check  //$NON-NLS-0$
 		};
 	};
-	return module.exports;
-}));
+});

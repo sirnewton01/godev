@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global console:true describe:true it:true define*/
+/*eslint-env node, mocha, amd*/
 define([
 	'eslint/events',
 	'chai/chai',

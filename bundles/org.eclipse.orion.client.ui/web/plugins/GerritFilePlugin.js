@@ -8,7 +8,8 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global require define console window URL*/
+/*eslint-env browser, amd*/
+/*global URL*/
 define(["orion/plugin", "orion/Deferred", "plugins/filePlugin/GerritFileImpl", "orion/URL-shim"], function(PluginProvider, Deferred, GerritFileImpl) {
 
 	function trace(implementation) {

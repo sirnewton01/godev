@@ -4,6 +4,8 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<script type="text/javascript" src="../orion/plugin.js"></script>
 	<script>
+	/*eslint-env browser, amd*/
+	/*global orion*/
 		window.onload = function() {
 			var provider = new orion.PluginProvider({postInstallUrl:"../plugin/list.html"});
 			provider.registerService("orion.navigate.command", {

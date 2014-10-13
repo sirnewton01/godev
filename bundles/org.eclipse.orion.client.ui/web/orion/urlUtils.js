@@ -8,16 +8,24 @@
  *
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define window document URL*/
-
+/*eslint-env browser, amd*/
+/*global URL*/
 define(['orion/PageUtil', "orion/URL-shim"], function(PageUtil) {
-                
-    /**
-     * Detect if the given text contains URLs encoded by "[]()". Multiple occurences of the pattern "[displayString](url)" and the non-matched part are returned as an array of segments.
-     * @param {String} text The given string to detect.
-	 * @returns {Array} An array containing all the segments of the given string. Each segment has the following properties:
-	 *     segmentStr: String. The display string in the segment.
-	 *     urlStr: String. Only present if the segment is a valid URL.
+	/**
+	 * @name orion.urlUtils.Segment
+	 * @class
+	 * @description Each segment has the following properties:
+	 * segmentStr: String. The display string in the segment.<br>
+	 * urlStr: String. Only present if the segment is a valid URL.
+	 */
+
+	/**
+	 * Detect if the given text contains URLs encoded by "[]()". Multiple occurences of the pattern "[displayString](url)"
+	 * and the non-matched part are returned as an array of segments.
+	 * @name orion.urlUtils.detectValidURL
+	 * @function
+	 * @param {String} text The given string to detect.
+	 * @returns {orion.urlUtils.Segment[]} An array containing all the segments of the given string.
 	 */
 	function detectValidURL(text) {
 		var regex = /\[([^\]]*)\]\(([^\)]+)\)/g;
@@ -39,9 +47,9 @@ define(['orion/PageUtil', "orion/URL-shim"], function(PageUtil) {
 			match = regex.exec(text);
 		}
 		if (lastNonMatchIndex === 0) {
-			return null;
+			return [];
 		}
-		if (lastNonMatchIndex < (text.length - 1)) {
+		if (lastNonMatchIndex < text.length) {
 			matches.push({segmentStr: text.substring(lastNonMatchIndex)});
 		}
 		return matches;
@@ -50,9 +58,7 @@ define(['orion/PageUtil', "orion/URL-shim"], function(PageUtil) {
     /**
      * Render an array of string segments.
      * @param {dom node} parentNode The given parent dom node where the segements will be rendered.
-     * @param {Array} segements The given array containing all the segments. Each segment has the following properties:
-	 *     segmentStr: String. The display string in the segment.
-	 *     urlStr: String. Only present if the segment is a valid URL.
+     * @param {orion.urlUtils.Segment[]} segements The given array containing all the segments.
 	 */
 	function processURLSegments(parentNode, segments) {
 		segments.forEach(function(segment) {

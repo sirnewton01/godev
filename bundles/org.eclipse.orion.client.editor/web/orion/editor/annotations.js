@@ -11,8 +11,7 @@
  *		Silenio Quarti (IBM Corporation) - initial API and implementation
  ******************************************************************************/
 
-/*global define */
-
+/*eslint-env browser, amd*/
 define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/editor/eventTarget'], function(messages, mEventTarget) { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 	
 	/**
@@ -108,7 +107,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 		},
 		_expandImpl: function(checkOverlaping) {
 			if (this._expand()) {
-				this._projectionModel.removeProjection(this._projection);
+				this._projectionModel._removeProjection(this._projection, !this._annotationModel);
 				if (checkOverlaping) {
 					this._forEachOverlaping(function(annotation) {
 						if (annotation._recollapse) {

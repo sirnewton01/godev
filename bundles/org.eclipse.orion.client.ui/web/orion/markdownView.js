@@ -8,7 +8,8 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global define document window URL console Blob*/
+/*eslint-env browser, amd*/
+/*global URL*/
 define([
 	'marked/marked',
 	'orion/editor/editor',
@@ -52,7 +53,9 @@ define([
 								var mimeType = extensionMatch ? "image/" +extensionMatch[1] : "image/png";
 								var objectURL = URL.createObjectURL(new Blob([bytes], {type: mimeType}));
 								document.getElementById(id).src = objectURL;
-								URL.revokeObjectURL(objectURL);
+								document.getElementById(id).onload = function() {
+									URL.revokeObjectURL(objectURL);
+								};
 							});
 							return "<img id='" + id + "' src=''>";							
 						}

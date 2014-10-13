@@ -8,13 +8,13 @@
  * 
  * Contributors: Anton McConville - IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*jslint amd:true*/
+/*eslint-env browser, amd*/
 define([], function() {
 
 	/**
 	 * Version string for theme data. Please update this string whenever you change the style of a themable element.
 	 */
-	var THEMES_VERSION = "6.0";
+	var THEMES_VERSION = "6.48";
 
 	return THEMES_VERSION;
 });

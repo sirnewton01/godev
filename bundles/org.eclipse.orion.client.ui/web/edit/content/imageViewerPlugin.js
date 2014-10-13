@@ -9,7 +9,8 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define document URL */
+/*eslint-env browser, amd*/
+/*global URL*/
 define([
 	'orion/plugin',
 	'orion/Deferred',
@@ -18,7 +19,48 @@ define([
 	'orion/webui/littlelib',
 	'orion/URL-shim'
 ], function(PluginProvider, Deferred, mCommands, mKeyBinding, lib) {
-
+	var TITLE_H = 25;
+	var MIN_MARGIN_X = 20;
+	var MIN_MARGIN_Y = TITLE_H + MIN_MARGIN_X;
+	var MIN_CONTAINER_SIZE = 20;
+	var img = null;
+	var imgW = MIN_CONTAINER_SIZE;
+	var imgH = MIN_CONTAINER_SIZE;
+	
+	function resizeImage() {
+		if(!img) {
+			return;
+		}
+		var width = document.documentElement.clientWidth;
+		var height = document.documentElement.clientHeight;
+		
+		var containerW = width - MIN_MARGIN_X*2;
+		var containerH = height - MIN_MARGIN_Y*2;
+		if(containerW < MIN_CONTAINER_SIZE) {
+			containerW = MIN_CONTAINER_SIZE;
+		}
+		if(containerH < MIN_CONTAINER_SIZE) {
+			containerH = MIN_CONTAINER_SIZE;
+		}
+		var imgRatio = (imgW > 0 && imgH > 0) ? imgW/imgH : 1;
+		var containerRatio = containerW/containerH;
+		//var newImgW, newImgH;
+		if(imgRatio >= containerRatio) {
+			img.width = containerW < imgW ? containerW : imgW;
+			img.height = img.width/imgRatio;
+		} else {
+			img.height = containerH < imgH ? containerH : imgH;
+			img.width = img.height*imgRatio;
+		}
+		var imageContainer = document.getElementById("imageContainer"); //$NON-NLS-0$
+		imageContainer.style.left = (width - img.width)/2 + "px";
+		imageContainer.style.top = (height - img.height)/2 - TITLE_H + "px";
+		
+		var imageTile = document.getElementById("imageTitle"); //$NON-NLS-0$
+		lib.empty(imageTile);
+		imageTile.appendChild(document.createTextNode(imgW + " x " + imgH + " pixels -- " + Math.floor(img.width/imgW*100) + "%"));
+	}
+	window.onresize = resizeImage;
 	var commandsProxy = new mCommands.CommandsProxy();
 	
 	var EDITOR_ID = "orion.viewer.image"; //$NON-NLS-0$
@@ -33,13 +75,16 @@ define([
 
 	provider.registerService("orion.edit.editor", { //$NON-NLS-0$
 		setBlob: function(blob) {	
-			var img = document.createElement("img"); //$NON-NLS-0$
+			img = document.createElement("img"); //$NON-NLS-0$
 			var url = URL.createObjectURL(blob);
 			img.src = url;
 			img.onload = function() {
 				URL.revokeObjectURL(url);
+				imgW = img.width;
+				imgH = img.height;
+				resizeImage();
 			};
-			var imageContent = document.getElementById("imagecontent"); //$NON-NLS-0$
+			var imageContent = document.getElementById("imageContent"); //$NON-NLS-0$
 			lib.empty(imageContent);
 			imageContent.appendChild(img);
 		},

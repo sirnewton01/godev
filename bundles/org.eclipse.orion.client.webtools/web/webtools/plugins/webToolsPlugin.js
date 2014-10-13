@@ -9,42 +9,42 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global esprima*/
-/*jslint amd:true*/
+/*eslint-env browser, amd*/
 define(['orion/plugin', 
 'webtools/htmlContentAssist', 
+'webtools/htmlOutliner',
 'orion/editor/stylers/text_html/syntax', 
 'webtools/cssContentAssist', 
 'webtools/cssValidator',
 'webtools/cssOutliner',
 'orion/editor/stylers/text_css/syntax'
-], function(PluginProvider, htmlContentAssist, mHTML, cssContentAssist, mCssValidator, mCssOutliner, mCSS) {
+], function(PluginProvider, htmlContentAssist, htmlOutliner, mHTML, cssContentAssist, mCssValidator, mCssOutliner, mCSS) {
 	/**
 	 * Plug-in headers
 	 */
 	var headers = {
-		name: "Orion Web Tools Support",
-		version: "1.0",
-		description: "This plug-in provides web language tools support for Orion, including HTML, CSS and Markdown."
+		name: "Orion Web Tools Support", //$NON-NLS-0$
+		version: "1.0", //$NON-NLS-0$
+		description: "This plug-in provides web language tools support for Orion, including HTML and CSS." //$NON-NLS-0$
 	};
 	var provider = new PluginProvider(headers);
 
 	/**
 	 * Register the content types: HTML, CSS
 	 */
-	provider.registerServiceProvider("orion.core.contenttype", {}, {
+	provider.registerServiceProvider("orion.core.contenttype", {}, { //$NON-NLS-0$
 		contentTypes: [
-			{	id: "text/html",
-				"extends": "text/plain",
-				name: "HTML",
-				extension: ["html", "htm"],
-				imageClass: "file-sprite-html modelDecorationSprite"
+			{	id: "text/html", //$NON-NLS-0$
+				"extends": "text/plain", //$NON-NLS-0$ //$NON-NLS-1$
+				name: "HTML", //$NON-NLS-0$
+				extension: ["html", "htm"], //$NON-NLS-0$ //$NON-NLS-1$
+				imageClass: "file-sprite-html modelDecorationSprite" //$NON-NLS-0$
 			},
-			{	id: "text/css",
-				"extends": "text/plain",
-				name: "CSS",
-				extension: ["css"],
-				imageClass: "file-sprite-css modelDecorationSprite"
+			{	id: "text/css", //$NON-NLS-0$
+				"extends": "text/plain", //$NON-NLS-0$ //$NON-NLS-1$
+				name: "CSS", //$NON-NLS-0$
+				extension: ["css"], //$NON-NLS-0$
+				imageClass: "file-sprite-css modelDecorationSprite" //$NON-NLS-0$
 			}
 		] 
 	});
@@ -52,49 +52,64 @@ define(['orion/plugin',
 	/**
 	 * Register content assist providers
 	 */
-	provider.registerService("orion.edit.contentassist",
+	provider.registerService("orion.edit.contentassist", //$NON-NLS-0$
 		new htmlContentAssist.HTMLContentAssistProvider(),
-		{	name: "HTML content assist",
-			contentType: ["text/html"],
-			charTriggers: "<",
-			excludedStyles: "(comment.*|string.*)"
+		{	name: 'htmlContentAssist', //$NON-NLS-0$
+			nls: 'webtools/nls/messages',  //$NON-NLS-0$
+			contentType: ["text/html"], //$NON-NLS-0$
+			charTriggers: "<", //$NON-NLS-0$
+			excludedStyles: "(comment.*|string.*)" //$NON-NLS-0$
 		});
-	provider.registerService("orion.edit.contentassist",
+	provider.registerService("orion.edit.contentassist", //$NON-NLS-0$
 		new cssContentAssist.CssContentAssistProvider(),
-		{	name: "CSS content assist",
-			contentType: ["text/css"]
+		{	name: "cssContentAssist", //$NON-NLS-0$
+			nls: 'webtools/nls/messages',  //$NON-NLS-0$
+			contentType: ["text/css"] //$NON-NLS-0$
 		});
 
-	provider.registerService("orion.edit.validator", new mCssValidator.CssValidator(),
+	/**
+	 * Register validators
+	 */
+	provider.registerService("orion.edit.validator", new mCssValidator.CssValidator(), //$NON-NLS-0$
 		{
-			contentType: ["text/css"]
+			contentType: ["text/css"] //$NON-NLS-0$
+		});
+		
+		
+	/**
+	* Register outliners
+	*/
+	provider.registerService("orion.edit.outliner", new htmlOutliner.HtmlOutliner(), //$NON-NLS-0$
+		{
+			id: "orion.webtools.html.outliner", //$NON-NLS-0$
+			nls: 'webtools/nls/messages',  //$NON-NLS-0$
+			nameKey: 'htmlOutline', //$NON-NLS-0$
+			contentType: ["text/html"] //$NON-NLS-0$
 		});
 	
-	provider.registerService("orion.edit.outliner", new mCssOutliner.CssOutliner(), 
+	provider.registerService("orion.edit.outliner", new mCssOutliner.CssOutliner(),  //$NON-NLS-0$
 		{
-			id: "orion.outline.css.csslint",
-			name: "CSS rule outline",
-			contentType: ["text/css"]
+			id: "orion.outline.css.outliner", //$NON-NLS-0$
+			nls: 'webtools/nls/messages',  //$NON-NLS-0$
+			nameKey: 'cssOutline', //$NON-NLS-0$
+			contentType: ["text/css"] //$NON-NLS-0$
 		});
 		
 	/**
 	 * Register syntax styling
-	 * TODO There should be a better way, see Bug 432540
 	 */
-	for (var i=mCSS.grammars.length-1; i>=0; i--) {
-		if (mCSS.grammars[i].id === "orion.css"){
-			provider.registerServiceProvider("orion.edit.highlighter", {}, mCSS.grammars[i]);
-			break;
-		}
-	}
-	for (var i=mHTML.grammars.length-1; i>=0; i--) {
-		if (mHTML.grammars[i].id === "orion.html"){
-			provider.registerServiceProvider("orion.edit.highlighter", {}, mHTML.grammars[i]);
-			break;
-		}
-	}
-//	provider.registerServiceProvider("orion.edit.highlighter", {}, mCSS.grammars[mCSS.grammars.length - 1]);
-//	provider.registerServiceProvider("orion.edit.highlighter", {}, mHTML.grammars[mHTML.grammars.length - 1]);
+	var newGrammars = {};
+	mCSS.grammars.forEach(function(current){
+		newGrammars[current.id] = current;
+	});
+	mHTML.grammars.forEach(function(current){
+		newGrammars[current.id] = current;
+	});
+	for (var current in newGrammars) {
+	    if (newGrammars.hasOwnProperty(current)) {
+   			provider.registerService("orion.edit.highlighter", {}, newGrammars[current]); //$NON-NLS-0$
+  		}
+    }
 
 	provider.connect();
 });

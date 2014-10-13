@@ -9,9 +9,9 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global window define */
-
-define(['orion/webui/littlelib', 'orion/webui/splitter', 'orion/globalCommands', 'text!orion/globalSearch/search-features.html'], function(lib, splitter, mGlobalCommands, FeatureTemplate) {
+/*eslint-env browser, amd*/
+define(['orion/webui/littlelib', 'orion/webui/splitter', 'orion/globalCommands', 'text!orion/globalSearch/search-features.html']
+	, function(lib, splitter, mGlobalCommands, FeatureTemplate) {
 
 
 var orion = orion || {};

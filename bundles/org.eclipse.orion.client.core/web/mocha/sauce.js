@@ -8,8 +8,10 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*jslint amd:true browser:true */
+/*eslint-env browser,amd*/
+/*eslint no-new-func:0*/
 /*global console:true TextEncoder*/
+
 /**
  * Wrapper for mocha that exposes mocha test results to Sauce Labs.
  * 
@@ -30,8 +32,8 @@ define([
 	"mocha/mocha", // no exports
 	"orion/encoding-shim", // no exports
 ], function(Base64, pako, objects) {
+	// this is done to allow us to get the global even in strict mode
 	var global = new Function("return this")();
-
 	// Try to filter non-xunit log messages, so tests that print junk to the console are less likely to break xunit report.
 	function isXunit(message) {
 		return /^<\/?test(case|suite)/.test(message);

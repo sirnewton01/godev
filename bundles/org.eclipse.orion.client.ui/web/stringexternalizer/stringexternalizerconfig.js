@@ -9,9 +9,7 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global window document define localStorage setTimeout */
-/*jslint forin:true*/
-
+/*eslint-env browser, amd*/
 define(['i18n!orion/stringexternalizer/nls/messages', 'orion/section', 'orion/webui/littlelib', 'orion/commands', 'orion/webui/dialogs/DirectoryPrompterDialog'], function(messages, mSection, lib, mCommands, DirPrompter) {
 	function StringExternalizerConfig(options) {
 		this.parent = lib.node(options.parent);
@@ -26,7 +24,7 @@ define(['i18n!orion/stringexternalizer/nls/messages', 'orion/section', 'orion/we
 		createCommands: function() {
 			var changeMessagesDirectory = new mCommands.Command({
 				name: messages["Change Directory"],
-				tooltip: messages["Change messages directory"],
+				tooltip: messages["ChgMessageDir"],
 				id: "eclipse.changeMessagesDirectory", //$NON-NLS-0$
 				callback: function(data) {
 					var dialog = new DirPrompter.DirectoryPrompterDialog({
@@ -79,7 +77,7 @@ define(['i18n!orion/stringexternalizer/nls/messages', 'orion/section', 'orion/we
 			}
 			var section = new mSection.Section(this.parent, {
 				id: "stringexternalizerConfigSection", //$NON-NLS-0$
-				title: messages["Externalize Strings Configuration"],
+				title: messages["ExternalizeStrConfig"],
 				content: '<div id="stringexternalizerConfigContent"></div>', //$NON-NLS-0$
 				preferenceService: this.serviceRegistry.getService("orion.core.preference"), //$NON-NLS-0$
 				canHide: false,
@@ -151,7 +149,7 @@ define(['i18n!orion/stringexternalizer/nls/messages', 'orion/section', 'orion/we
 			sectionContent.appendChild(p);
 			b = document.createElement("b"); //$NON-NLS-0$
 			p.appendChild(b);
-			b.appendChild(document.createTextNode(messages["Mark not exported as NON-NLS:"]));
+			b.appendChild(document.createTextNode(messages["MarkNotNON-NLS"]));
 			p.appendChild(document.createElement("br")); //$NON-NLS-0$
 			var markNls = document.createElement("input"); //$NON-NLS-0$
 			markNls.type = "checkbox"; //$NON-NLS-0$

@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global window define require document*/
+/*eslint-env browser, amd*/
 define(['orion/EventTarget'], function( EventTarget){
 
 	/**

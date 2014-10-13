@@ -7,7 +7,8 @@
  * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
  * 
  ******************************************************************************/
-/*global define document window URL*/
+/*eslint-env browser, amd*/
+/*global URL*/
 define([
 	"require",
 	"orion/Deferred",
@@ -16,7 +17,7 @@ define([
 	"orion/i18nUtil",
 	"orion/objects",
 	"orion/URL-shim"
-], function(require, Deferred, PageUtil, URITemplate, i18nUtil, objects, _) {
+], function(require, Deferred, PageUtil, URITemplate, i18nUtil, objects) {
 
 	/**
 	 * Returns the value of the <code>{OrionHome}</code> variable.
@@ -119,6 +120,7 @@ define([
 				if (!info.id || (!info.name && !info.nameKey)) {
 					return;
 				}
+				info.service = serviceRegistry.getService(serviceRef);
 				if (info.nls) {
 					categoryInfos.push(_loadTranslatedName(info));
 				} else {

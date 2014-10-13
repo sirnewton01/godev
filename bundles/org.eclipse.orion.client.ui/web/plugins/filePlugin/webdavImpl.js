@@ -9,8 +9,8 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
 
-/*global window eclipse:true XMLSerializer DOMParser XMLHttpRequest orion*/
-/*jslint forin:true devel:true*/
+/*eslint-env browser, amd*/
+/*global orion*/
 
 function serializeChildren(node) {
 	var children = node.childNodes;

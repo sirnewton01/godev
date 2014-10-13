@@ -10,8 +10,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define */
-
+/*eslint-env browser, amd*/
 define([
 	'i18n!orion/edit/nls/messages',
 	'orion/editor/editor',
@@ -20,6 +19,7 @@ define([
 	'orion/editor/textModel',
 	'orion/editor/projectionTextModel',
 	'orion/editor/editorFeatures',
+	'orion/hover',
 	'orion/editor/contentAssist',
 	'orion/editor/emacs',
 	'orion/editor/vi',
@@ -36,17 +36,18 @@ define([
 	'orion/highlight',
 	'orion/markOccurrences',
 	'orion/syntaxchecker',
+	'orion/liveEditSession',
 	'orion/keyBinding',
 	'orion/uiUtils',
 	'orion/util',
 	'orion/objects'
 ], function(
 	messages,
-	mEditor, mEventTarget, mTextView, mTextModel, mProjectionTextModel, mEditorFeatures, mContentAssist,
+	mEditor, mEventTarget, mTextView, mTextModel, mProjectionTextModel, mEditorFeatures, mHoverFactory, mContentAssist,
 	mEmacs, mVI, mEditorPreferences, mThemePreferences, mThemeData, EditorSettings,
 	mSearcher, mEditorCommands, mGlobalCommands,
 	mDispatcher, EditorContext, TypeDefRegistry, Highlight,
-	mMarkOccurrences, mSyntaxchecker,
+	mMarkOccurrences, mSyntaxchecker, LiveEditSession,
 	mKeyBinding, mUIUtils, util, objects
 ) {
 
@@ -186,6 +187,7 @@ define([
 			editor.setLineNumberRulerVisible(prefs.lineNumberRuler);
 			editor.setFoldingRulerVisible(prefs.foldingRuler);
 			editor.setOverviewRulerVisible(prefs.overviewRuler);
+			editor.setZoomRulerVisible(prefs.zoomRuler);
 			if (this.renderToolbars) {
 				this.renderToolbars(inputManager.getFileMetadata());
 			}
@@ -195,18 +197,15 @@ define([
 			}
 
 			this.dispatchEvent({
-				type: "Settings",
+				type: "Settings", //$NON-NLS-0$
 				newSettings: this.settings
 			});
 		},
 		updateStyler: function(prefs) {
 			var styler = this.syntaxHighlighter.getStyler();
 			if (styler) {
-				if (styler.setTabsVisible) {
-					styler.setTabsVisible(prefs.showTabs);
-				}
-				if (styler.setSpacesVisible) {
-					styler.setSpacesVisible(prefs.showSpaces);
+				if (styler.setWhitespacesVisible) {
+					styler.setWhitespacesVisible(prefs.showWhitespaces, true);
 				}
 			}
 		},
@@ -341,6 +340,16 @@ define([
 					return true;
 				});
 				
+				textView.setKeyBinding(new mKeyBinding.KeyStroke('z', true, false, true), "toggleZoomRuler"); //$NON-NLS-1$ //$NON-NLS-0$
+				textView.setAction("toggleZoomRuler", function() { //$NON-NLS-0$
+					if (!self.settings.zoomRulerVisible) return false;
+					self.settings.zoomRuler = !self.settings.zoomRuler;
+					if(editorPreferences) {
+						editorPreferences.setPrefs(self.settings);
+					}
+					return true;
+				}, {name: messages.toggleZoomRuler});
+				
 				self.vi = self.emacs = null;
 				self.updateKeyMode(self.settings, textView);
 
@@ -422,7 +431,9 @@ define([
 				textDNDFactory: new mEditorFeatures.TextDNDFactory(),
 				annotationFactory: new mEditorFeatures.AnnotationFactory(),
 				foldingRulerFactory: new mEditorFeatures.FoldingRulerFactory(),
+				zoomRulerFactory: new mEditorFeatures.ZoomRulerFactory(),
 				lineNumberRulerFactory: new mEditorFeatures.LineNumberRulerFactory(),
+				hoverFactory: new mHoverFactory.HoverFactory(serviceRegistry, inputManager),
 				contentAssistFactory: contentAssistFactory,
 				keyBindingFactory: keyBindingFactory,
 				statusReporter: this.statusReporter,
@@ -439,9 +450,11 @@ define([
 				localSettings = new EditorSettings({local: true, editor: editor, themePreferences: themePreferences, preferences: editorPreferences});
 			}
 
+			var liveEditSession = new LiveEditSession(serviceRegistry, editor);
 			inputManager.addEventListener("InputChanged", function(event) { //$NON-NLS-0$
 				var textView = editor.getTextView();
 				if (textView) {
+					liveEditSession.start(inputManager.getContentType(), event.title);
 					textView.setOptions(this.updateViewOptions(this.settings));
 					this.syntaxHighlighter.setup(event.contentType, editor.getTextView(), editor.getAnnotationModel(), event.title, true).then(function() {
 						this.updateStyler(this.settings);
@@ -450,6 +463,8 @@ define([
 							setContentAssistProviders(editor, editor.getContentAssist());
 						}
 					}.bind(this));
+				} else {
+					liveEditSession.start();					
 				}
 			}.bind(this));
 			inputManager.addEventListener("Saving", function(event) { //$NON-NLS-0$
@@ -473,6 +488,7 @@ define([
 			var markOccurrences = this.markOccurrences = new mMarkOccurrences.MarkOccurrences(serviceRegistry, inputManager, editor);
 			markOccurrences.setOccurrencesVisible(this.settings.occurrencesVisible);
 			markOccurrences.findOccurrences();
+			
 			var syntaxChecker = new mSyntaxchecker.SyntaxChecker(serviceRegistry, editor);
 			editor.addEventListener("InputChanged", function(evt) { //$NON-NLS-0$
 				syntaxChecker.checkSyntax(inputManager.getContentType(), evt.title, evt.message, evt.contents);
@@ -482,22 +498,29 @@ define([
 			});
 
 			var contextImpl = {};
-			[	
+			[
 				"getCaretOffset", "setCaretOffset", //$NON-NLS-1$ //$NON-NLS-0$
 				"getSelection", "setSelection", //$NON-NLS-1$ //$NON-NLS-0$
 				"getText", "setText", //$NON-NLS-1$ //$NON-NLS-0$
 				"getLineAtOffset", //$NON-NLS-0$
-				"getLineStart" //$NON-NLS-0$
+				"getLineStart", //$NON-NLS-0$
+				"isDirty", //$NON-NLS-0$.
+				"markClean", //$NON-NLS-0$.
 			].forEach(function(method) {
 				contextImpl[method] = editor[method].bind(editor);
 			});
+			contextImpl.showMarkers = function(markers) {
+				serviceRegistry.getService("orion.core.marker")._setProblems(markers); //$NON-NLS-0$
+			};
+			// Forward status from plugin to orion.page.message
+			contextImpl.setStatus = mEditorCommands.handleStatusMessage.bind(null, serviceRegistry);
 			serviceRegistry.registerService("orion.edit.context", contextImpl, null); //$NON-NLS-0$
-			if(this.editorPreferences) {
-				this.editorPreferences.getPrefs(this.updateSettings.bind(this));
-			}
 		},
 		create: function() {
 			this.editor.install();
+			if(this.editorPreferences) {
+				this.editorPreferences.getPrefs(this.updateSettings.bind(this));
+			}
 		},
 		destroy: function() {
 			this.editor.uninstall();

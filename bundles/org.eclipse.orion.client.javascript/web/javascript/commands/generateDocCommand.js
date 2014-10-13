@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define*/
+ /*eslint-env amd*/
 define([
 'orion/objects',
 'javascript/finder',
@@ -41,7 +41,7 @@ define([
 				if(node) {
 					var text = results[1];
 					var parent = that._resolveParent(node);
-					if(parent && (!parent.leadingComments || parent.leadingComments.length < 1)) {
+					if(parent) {
 						//don't monkey with existing comments
 						var template;
 						var start = parent.range[0];
@@ -155,6 +155,7 @@ define([
 							return this._resolveParent(n);
 						}
 					}
+					//$FALLTHROUGH$
 				case 'AssignmentExpression':
 					if((node.left && node.left.type === 'MemberExpression') && 
 						(node.right && node.right.type === 'FunctionExpression')) {

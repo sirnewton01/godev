@@ -8,10 +8,9 @@
  *
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*globals define*/
-
-define(['i18n!orion/nls/messages', 'require', 'orion/Deferred', 'orion/webui/littlelib', 'orion/webui/dialogs/OperationsDialog'], 
-function(messages, require, Deferred, lib, mOperationsDialog) {
+/*eslint-env browser, amd*/
+define(['i18n!orion/nls/messages', 'orion/webui/littlelib', 'orion/webui/dialogs/OperationsDialog'], 
+function(messages, lib, mOperationsDialog) {
 	
 	function ProgressMonitorTool(progressPane, commandRegistry){
 		if(this._progressPane){
@@ -27,7 +26,11 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 		});
 		
 		this._progressPane.addEventListener("click", function(evt) {  //$NON-NLS-0$
-			that._operationsDialog.show();
+			if (that._operationsDialog.isShowing()) {
+				that._operationsDialog.hide();
+			} else {
+				that._operationsDialog.show();
+			}
 		});
 		
 		this._operationsDialog.setOperations(null, null); // initialize
@@ -62,8 +65,8 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 				}
 				
 				var status = "";
-				for(var i in operationsToDisplay){
-					var operation = operationsToDisplay[i];
+				for(var j in operationsToDisplay){
+					var operation = operationsToDisplay[j];
 					if(operation.type && (operation.type==="loadstart" || operation.type==="progress")){
 						status = "running"; //$NON-NLS-0$
 						break;
@@ -73,7 +76,7 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 				// TODO fixme this entire block does nothing
 				if(status==="" && this._lastOperation!=null){
 					if(this._lastOperation.type && this._lastOperation.type==="error"){
-						status=="error";
+						status==="error";
 					}
 				}
 				switch(status){
@@ -84,15 +87,15 @@ function(messages, require, Deferred, lib, mOperationsDialog) {
 					this._switchIconTo("running"); //$NON-NLS-0$
 					break;
 				case "warning": //$NON-NLS-0$
-					this._progressPane.title = messages["Some operations finished with warning"];
-					this._progressPane.alt = messages['Some operations finished with warning'];
-					this._progressPane.setAttribute("aria-valuetext", messages['Some operations finished with warning']); //$NON-NLS-0$
+					this._progressPane.title = messages["SomeOpWarning"];
+					this._progressPane.alt = messages['SomeOpWarning'];
+					this._progressPane.setAttribute("aria-valuetext", messages['SomeOpWarning']); //$NON-NLS-0$
 					this._switchIconTo("warning"); //$NON-NLS-0$
 					break;
 				case "error": //$NON-NLS-0$
-					this._progressPane.title = messages["Some operations finished with error"];
-					this._progressPane.alt = messages['Some operations finished with error'];
-					this._progressPane.setAttribute("aria-valuetext", messages['Some operations finished with error']); //$NON-NLS-0$
+					this._progressPane.title = messages["SomeOpErr"];
+					this._progressPane.alt = messages['SomeOpErr'];
+					this._progressPane.setAttribute("aria-valuetext", messages['SomeOpErr']); //$NON-NLS-0$
 					this._switchIconTo("error"); //$NON-NLS-0$
 					break;
 				default:

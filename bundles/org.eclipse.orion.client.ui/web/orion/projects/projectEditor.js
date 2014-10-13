@@ -8,11 +8,22 @@
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
  
-/*global define document setTimeout window*/
-define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/objects',  'orion/projectCommands', 'orion/commandRegistry', 'orion/PageLinks', 'orion/explorers/explorer', 'orion/section'],
-	function(URITemplate, lib, Deferred, objects, mProjectCommands, mCommandRegistry, PageLinks, mExplorer, mSection) {
+/*eslint-env browser, amd*/
+define([
+	'i18n!orion/edit/nls/messages',
+	'orion/i18nUtil',
+	'orion/URITemplate',
+	'orion/webui/littlelib',
+	'orion/Deferred',
+	'orion/objects',
+	'orion/projectCommands',
+	'orion/PageLinks',
+	'orion/explorers/explorer',
+	'orion/section',
+	'orion/webui/tooltip'
+], function(messages, i18nUtil, URITemplate, lib, Deferred, objects, mProjectCommands, PageLinks, mExplorer, mSection, mTooltip) {
 	
-	var editTemplate = new URITemplate("./edit.html#{,resource,params*}"); //$NON-NLS-0$
+	var editTemplate = new URITemplate("./edit.html#{,resource,params*}");
 	
 	function ProjectInfoModel(project){
 		this.root = project;
@@ -28,9 +39,9 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 	ProjectInfoModel.prototype.getChildren = function(parent, onComplete){
 		if(parent === this.root){
 			onComplete([
-				{id: "Name", displayName: "Name", value: parent.Name, no: 1},
-				{id: "Description", displayName: "Description", value: parent.Description, no: 2},
-				{id: "Url", displayName: "Site", value: parent.Url, href: parent.Url, no: 3}
+				{id: "Name", displayName: messages.Name, value: parent.Name, no: 1},
+				{id: "Description", displayName: messages.Description, value: parent.Description, no: 2},
+				{id: "Url", displayName: messages.Site, value: parent.Url, href: parent.Url, no: 3}
 				]);
 		} else {
 			onComplete([]);
@@ -75,7 +86,7 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 				
 				var urlSelector = document.createElement("div");
 				urlSelector.style.marginTop = "-15px";
-				urlSelector.title = "Click to edit";
+				urlSelector.title = messages.ClickEditLabel;
 				urlSelector.className = "discreetInput";
 				urlSelector.tabIndex = item.no;	//this is the same as the urlInput's tab index but they will never be visible at the same time
 				
@@ -257,7 +268,7 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 			} else {
 				var name = item.Dependency.Name;
 				if(item.disconnected){
-					name += " (disconnected)";
+					name = i18nUtil.format(messages.Disconnected, name);
 				}
 				td.appendChild(document.createTextNode(name));
 			}
@@ -319,10 +330,22 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 		this.commandService = options.commandRegistry;
 		this.actionScopeId = options.actionScopeId;
 		this.projectClient = options.projectClient;
+		this.emptyMessage = options.emptyMessage;
 	}
 	
 	LaunchConfigurationRenderer.prototype = new mExplorer.SelectionRenderer();
 	LaunchConfigurationRenderer.prototype.constructor = LaunchConfigurationRenderer;
+	
+	LaunchConfigurationRenderer.prototype.emptyCallback = function(bodyElement) {
+		var tr = document.createElement("tr");
+		var td = document.createElement("td");
+		var emptyMessage = document.createElement("div");
+		emptyMessage.classList.add("noFile");
+		emptyMessage.textContent = this.emptyMessage || "No project deployment information";
+		td.appendChild(emptyMessage);
+		tr.appendChild(td);
+		bodyElement.appendChild(tr);
+	};
 	
 	LaunchConfigurationRenderer.prototype.getCellHeaderElement = function(col_no){
 	};
@@ -339,12 +362,20 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 		}
 		if(col_no===1){
 			var td = document.createElement("td");
+			if(tableRow.urlTooltip){
+				tableRow.urlTooltip.destroy();
+				delete tableRow.urlTooltip;
+			}
 			if(item.Url){
 				var a = document.createElement("a");
 				a.target = "_new";
 				a.href = item.Url.indexOf("://")<0 ? "http://" + item.Url : item.Url;
-				a.title = item.Url;
-				a.appendChild(document.createTextNode(item.UrlTitle || item.Params.Name || "View App"));
+				tableRow.urlTooltip = new mTooltip.Tooltip({
+					node: a,
+					text: item.Url,
+					position: ['right', 'above', 'below', 'left'] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				});
+				a.appendChild(document.createTextNode(item.Url || item.Params.Name || "View App"));
 				td.appendChild(a);
 			}
 			return td;
@@ -390,6 +421,10 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 			if(item.status && item.status.CheckState === true){
 				delete item.status;
 			} else if(item.status){
+				if(tableRow.statusTooltip){
+					tableRow.statusTooltip.destroy();
+					delete tableRow.statusTooltip;
+				}
 				if(item.status.error && item.status.error.Retry){
 					item.parametersRequested = item.status.error.Retry.parameters;
 					item.optionalParameters = item.status.error.Retry.optionalParameters;
@@ -397,37 +432,61 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 				} else if(item.status.error){
 					var span = document.createElement("span");
 					span.appendChild(document.createTextNode("Error"));
-					span.title = item.status.error.Message;
+					tableRow.statusTooltip = new mTooltip.Tooltip({
+						node: span,
+						text: item.status.error.Message,
+						position: ['right', 'above', 'below', 'left'] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					});
 					td.appendChild(span);
 					return td;
 				} else if(item.status.State === "STARTED"){
 					var span = document.createElement("span");
 					span.className = "imageSprite core-sprite-applicationrunning";
-					span.title = item.status.Message || "Started";
+					tableRow.statusTooltip = new mTooltip.Tooltip({
+						node: span,
+						text: item.status.Message || "Started",
+						position: ['right', 'above', 'below', 'left'] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					});
 					td.appendChild(span);
 					return td;
 				} else if(item.status.State==="STOPPED"){
 					var span = document.createElement("span");
 					span.className = "imageSprite core-sprite-applicationstopped";
-					span.title = item.status.Message || "Stopped";
+					tableRow.statusTooltip = new mTooltip.Tooltip({
+						node: span,
+						text: item.status.Message || "Stopped",
+						position: ['right', 'above', 'below', 'left'] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					});
 					td.appendChild(span);
 					return td;
 				} else if(item.status.State==="NOT_DEPLOYED"){
 					var span = document.createElement("span");
 					span.className = "imageSprite core-sprite-applicationnotdeployed";
-					span.title = item.status.Message || "Not deployed";
+					tableRow.statusTooltip = new mTooltip.Tooltip({
+						node: span,
+						text: item.status.Message || "Not deployed",
+						position: ['right', 'above', 'below', 'left'] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					});
 					td.appendChild(span);
 					return td;
 				} else if(item.status.State==="PROGRESS"){
 					var span = document.createElement("span");
 					span.className = "imageSprite core-sprite-progress";
-					span.title = "Checking application state";
+					tableRow.statusTooltip = new mTooltip.Tooltip({
+						node: span,
+						text: "Checking application state",
+						position: ['right', 'above', 'below', 'left'] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					});
 					td.appendChild(span);
 					return td;
 				} else {
 					var span = document.createElement("span");
 					span.appendChild(document.createTextNode("State unknown"));
-					span.title = item.status.Message;
+					tableRow.statusTooltip = new mTooltip.Tooltip({
+						node: span,
+						text: item.status.Message,
+						position: ['right', 'above', 'below', 'left'] //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+					});
 					td.appendChild(span);
 					return td;
 				}
@@ -527,14 +586,14 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 			this.dependenciesDisplatcher = mProjectCommands.getDependencyDispatcher();
 			var _self = this;
 			this.launchConfigurationListener = function(event){_self.launchConfigurationChanged.call(_self, event);};
-			this._launchConfigurationEventTypes = ["create", "delete", "changeState"];
+			this._launchConfigurationEventTypes = ["create", "delete", "changeState", "deleteAll"];
 			this._launchConfigurationEventTypes.forEach(function(eventType) {
 				_self.launchConfigurationDispatcher.addEventListener(eventType, _self.launchConfigurationListener);
 			});
 			
 			this.dependneciesListener = function(event){_self.dependenciesChanged.call(_self, event);};
 			this._dependenciesEventTypes = ["create", "delete"];
-			this._dependenciesEventTypes.forEach(function(eventType) { //$NON-NLS-1$//$NON-NLS-0$
+			this._dependenciesEventTypes.forEach(function(eventType) {
 				_self.dependenciesDisplatcher.addEventListener(eventType, _self.dependneciesListener);
 			});
 
@@ -558,7 +617,7 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 			this.node.className = "orionProject";				
 			this.projectData = projectData;
 			
-			function renderSections(sectionsOrder, sectionNames){
+			function renderSections(sectionsOrder, sectionNames, emptyMessages){
 				sectionNames = sectionNames || {};
 				sectionsOrder.forEach(function(sectionName){
 					var span;
@@ -566,7 +625,7 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 						case "projectInfo":
 							span = document.createElement("span");
 							this.node.appendChild(span);
-							this.renderProjectInfo(span, sectionNames[sectionName]);
+							this.renderProjectInfo(span, sectionNames[sectionName], emptyMessages[sectionName]);
 							break;
 						case "additionalInfo":
 							span = document.createElement("span");
@@ -576,13 +635,13 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 						case "deployment":
 							span = document.createElement("span");
 							this.node.appendChild(span);
-							this.renderLaunchConfigurations(span, null, sectionNames[sectionName]);
+							this.renderLaunchConfigurations(span, null, sectionNames[sectionName], emptyMessages[sectionName]);
 							break;
 						case "dependencies":
 							span = document.createElement("span");
 							span.id = "projectDependenciesNode";
 							this.node.appendChild(span);
-							this.renderDependencies(span, sectionNames[sectionName]);
+							this.renderDependencies(span, sectionNames[sectionName], emptyMessages[sectionName]);
 							break;
 					}
 				}.bind(this));
@@ -592,9 +651,10 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 			this.preferences.getPreferences("/sectionsOrder").then(function(sectionsOrderPrefs){
 				sectionsOrder = sectionsOrderPrefs.get("projectView") || sectionsOrder;
 				var sectionsNames = sectionsOrderPrefs.get("projectViewNames") || [];
-				renderSections.apply(this, [sectionsOrder, sectionsNames]);
+				var emptyMessages = sectionsOrderPrefs.get("emptyMessages") || [];
+				renderSections.apply(this, [sectionsOrder, sectionsNames, emptyMessages]);
 			}.bind(this), function(error){
-				renderSections.apply(this, [sectionsOrder, {}]);
+				renderSections.apply(this, [sectionsOrder, {}, {}]);
 				window.console.error(error);
 			}.bind(this));
 			
@@ -657,7 +717,7 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 			}.bind(this);
 			
 			input.value = this.projectData[property] || "";
-			input.title = "Click to edit";
+			input.title = messages.ClickEditLabel;
 			input.className = "discreetInput";
 			input.tabIndex = String(tabIndex);
 						
@@ -679,7 +739,7 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 		},
 		renderProjectInfo: function(parent, sectionName){
 			
-			var title = sectionName || "Project Information";
+			var title = sectionName || messages.ProjectInfo;
 			var projectInfoSection = new mSection.Section(parent, {id: "projectInfoSection", headerClass: ["sectionTreeTableHeader"], title: title, canHide: true});
 			var explorerParent = document.createElement("div");
 			explorerParent.id = "projectInformationNode";
@@ -747,29 +807,58 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 			dependenciesExplorer.createTree(dependenciesParent, new DependenciesModel(this.projectData, this.projectClient),  {indent: '8px', noSelection: true});
 			
 		},
-		renderLaunchConfigurations: function(parent, configurations, sectionName){
+		renderLaunchConfigurations: function(parent, configurations, sectionName, emptyMessage){
 			this.configurationsParent = parent;
+			this.configurationsEmptyMessage = emptyMessage;
+			
+			if(emptyMessage || (configurations && configurations.length > 0)){
+				lib.empty(this.configurationsParent);
+				this.launchCofunctionSectionsTitle = sectionName || messages.DeployInfo;
+				var launchConfigurationSection = new mSection.Section(parent, {id: "projectLaunchConfigurationSection", headerClass: ["sectionTreeTableHeader"], title: this.launchCofunctionSectionsTitle, canHide: true});
+				var launchConfigurationParent = document.createElement("div");
+				launchConfigurationParent.id = "launchConfigurationsNode";
+			}
+			
 			if(!configurations){
+				var progressMonitor;
+				if(launchConfigurationSection){
+					progressMonitor = launchConfigurationSection.createProgressMonitor();
+					progressMonitor.begin("Loading...");
+				}
 				this.projectClient.getProjectLaunchConfigurations(this.projectData).then(function(configurations){
+					if(progressMonitor){
+						progressMonitor.done();
+					}
 					this.configurations = configurations;
-					if(!configurations || configurations.length === 0){
+					if(!emptyMessage && (!configurations || configurations.length === 0)){
 						return;
 					}
-					this.renderLaunchConfigurations(parent, configurations, sectionName);
+					this.renderLaunchConfigurations(parent, configurations, sectionName, emptyMessage);
 				}.bind(this));
 				return;
 			}
-			lib.empty(this.configurationsParent);
-			this.launchCofunctionSectionsTitle = sectionName || "Deployment Information";
-			var launchConfigurationSection = new mSection.Section(parent, {id: "projectLaunchConfigurationSection", headerClass: ["sectionTreeTableHeader"], title: this.launchCofunctionSectionsTitle, canHide: true});
-			var launchConfigurationParent = document.createElement("div");
-			launchConfigurationParent.id = "launchConfigurationsNode";
+			
+			//Destroy tooptips for app status
+			if(lib.$(".sectionTreeTable", this.configurationsParent) || lib.$(".treetable", this.configurationsParent)) { //$NON-NLS-1$ //$NON-NLS-0$
+				lib.$$array(".treeTableRow", this.configurationsParent).forEach(function(tableRow, i) { //$NON-NLS-0$
+					if(tableRow.statusTooltip){
+						tableRow.statusTooltip.destroy();
+						delete tableRow.statusTooltip;
+					}
+					if(tableRow.urlTooltip){
+						tableRow.urlTooltip.destroy();
+						delete tableRow.urlTooltip;
+					}
+				});
+			}
+			
 			var launchConfigurationRenderer = new LaunchConfigurationRenderer({
 				checkbox: false,
 				treeTableClass: "sectionTreeTable",
 				commandRegistry: this.commandRegistry,
 				actionScopeId:  this.launchConfigurationActions,
-				projectClient: this.projectClient
+				projectClient: this.projectClient,
+				emptyMessage: emptyMessage
 			}, this);
 			var launchConfigurationExplorer = new LaunchConfigurationExplorer(this.serviceRegistry, null, launchConfigurationRenderer, this.commandRegistry, this.launchConfigurationActions);
 			launchConfigurationSection.embedExplorer(launchConfigurationExplorer, launchConfigurationParent);
@@ -784,15 +873,35 @@ define(['orion/URITemplate', 'orion/webui/littlelib', 'orion/Deferred', 'orion/o
 					var configuration = this.configurations[i];
 					if(configuration.Name === event.newValue.Name && configuration.ServiceId === event.newValue.ServiceId){
 						this.configurations[i] = event.newValue;
-						this.renderLaunchConfigurations(this.configurationsParent, this.configurations, this.launchCofunctionSectionsTitle);
+						this.renderLaunchConfigurations(this.configurationsParent, this.configurations, this.launchCofunctionSectionsTitle, this.configurationsEmptyMessage);
 						return;
 					}
 				}
 				if(event.type === "create"){
 					this.configurations.push(event.newValue);
-					this.renderLaunchConfigurations(this.configurationsParent, this.configurations, this.launchCofunctionSectionsTitle);
+					this.renderLaunchConfigurations(this.configurationsParent, this.configurations, this.launchCofunctionSectionsTitle, this.configurationsEmptyMessage);
 					return;
 				}
+			} else if(event.type === "delete"){
+				if(!event.oldValue){
+					return;
+				}
+				for(var i=0; i<this.configurations.length; i++){
+					var configuration = this.configurations[i];
+					if((configuration.Name === event.oldValue.Name && configuration.ServiceId === event.oldValue.ServiceId) || (configuration.File && event.oldValue.File && (configuration.File.Location === event.oldValue.File.Location))){
+						this.configurations.splice(i, 1);
+						this.renderLaunchConfigurations(this.configurationsParent, this.configurations, this.launchCofunctionSectionsTitle, this.configurationsEmptyMessage);
+						return;
+					}
+				}
+			} else if(event.type === "deleteAll"){
+				for(var i=this.configurations.length-1; i>=0; i--){
+					var configuration = this.configurations[i];
+					if(configuration.File){
+						this.configurations.splice(i, 1);
+					}
+				}
+				this.renderLaunchConfigurations(this.configurationsParent, this.configurations, this.launchCofunctionSectionsTitle, this.configurationsEmptyMessage);
 			}
 		},
 		destroy: function(){

@@ -9,9 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global console define */
-/*jslint browser:true */
-
+/*eslint-env browser, amd*/
 define("orion/editor/contentAssist", [ //$NON-NLS-0$
 	'i18n!orion/editor/nls/messages', //$NON-NLS-0$
 	'orion/keyBinding', //$NON-NLS-0$
@@ -168,7 +166,11 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			}
 			
 			if (proposal.overwrite) {
-				start = this.getPrefixStart(model, mapStart);
+			    if(typeof proposal.prefix === 'string') {
+			        start = mapStart-proposal.prefix.length;
+			    } else {
+				    start = this.getPrefixStart(model, mapStart);
+				}
 			}
 
 			var data = {
@@ -365,8 +367,8 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 					model = model.getBaseModel();
 				}
 				var prefixStart = this.getPrefixStart(model, this._initialCaretOffset);
-				var prefixText = this.textView.getText(prefixStart, this._initialCaretOffset);
-				
+				var defaultPrefix = this.textView.getText(prefixStart, this._initialCaretOffset);
+				var prefixText = defaultPrefix;
 				// filter proposals based on prefixes and _filterText
 				var proposals = []; //array of arrays of proposals
 				this._computedProposals.forEach(function(proposalArray) {
@@ -375,7 +377,11 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 							if (!proposal) {
 								return false;
 							}
-							
+							if(typeof proposal.prefix === 'string') {
+							    prefixText = proposal.prefix;
+							} else {
+							    prefixText = defaultPrefix;
+							}
 							if ((STYLES[proposal.style] === STYLES.hr)
 								|| (STYLES[proposal.style] === STYLES.noemphasis_title)) {
 								return true;
@@ -1318,11 +1324,37 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			var document = this.parentNode.ownerDocument;
 			var viewportWidth = document.documentElement.clientWidth,
 			    viewportHeight =  document.documentElement.clientHeight;
-			if (caretLocation.y + this.parentNode.offsetHeight > viewportHeight) {
-				this.parentNode.style.top = (caretLocation.y - this.parentNode.offsetHeight - this.textView.getLineHeight()) + "px"; //$NON-NLS-0$
+			    
+			var spaceBelow = viewportHeight - caretLocation.y;			    
+			if (this.parentNode.offsetHeight > spaceBelow) {
+				// Check if div is too large to fit above
+				var spaceAbove = caretLocation.y - this.textView.getLineHeight();
+				if (this.parentNode.offsetHeight > spaceAbove){
+					// Squeeze the div into the larger area
+					if (spaceBelow > spaceAbove) {
+						this.parentNode.style.maxHeight = spaceBelow + "px"; //$NON-NLS-0$
+					} else {
+						this.parentNode.style.maxHeight = spaceAbove + "px"; //$NON-NLS-0$
+						this.parentNode.style.top = "0"; //$NON-NLS-0$
+					}
+				} else {
+					// Put the div above the line
+					this.parentNode.style.top = (caretLocation.y - this.parentNode.offsetHeight - this.textView.getLineHeight()) + "px"; //$NON-NLS-0$
+					this.parentNode.style.maxHeight = spaceAbove + "px"; //$NON-NLS-0$
+				}
+			} else {
+				this.parentNode.style.maxHeight = spaceBelow + "px"; //$NON-NLS-0$
 			}
+			
 			if (caretLocation.x + this.parentNode.offsetWidth > viewportWidth) {
-				this.parentNode.style.left = (viewportWidth - this.parentNode.offsetWidth) + "px"; //$NON-NLS-0$
+				var leftSide = viewportWidth - this.parentNode.offsetWidth;
+				if (leftSide < 0) {
+					leftSide = 0;
+				}
+				this.parentNode.style.left = leftSide + "px"; //$NON-NLS-0$
+				this.parentNode.style.maxWidth = viewportWidth - leftSide;
+			} else {
+				this.parentNode.style.maxWidth = viewportWidth + caretLocation.x + "px"; //$NON-NLS-0$
 			}
 		},
 		_removeCloneNode: function(){

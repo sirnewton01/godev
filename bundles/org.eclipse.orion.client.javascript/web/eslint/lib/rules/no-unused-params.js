@@ -9,29 +9,11 @@
  * Contributors:
  *	 IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint node:true amd:true*/
-(function(root, factory) {
-	if(typeof exports === 'object') {  //$NON-NLS-0$
-		module.exports = factory(require, exports, module);
-	}
-	else if(typeof define === 'function' && define.amd) {  //$NON-NLS-0$
-		define(['require', 'exports', 'module'], factory);
-	}
-	else {
-		var req = function(id) {return root[id];},
-			exp = root,
-			mod = {exports: exp};
-		root.rules.noundef = factory(req, exp, mod);
-	}
-}(this, function(require, exports, module) {
-	/**
-	 * @name module.exports
-	 * @description Rule exports
-	 * @function
-	 * @param context
-	 * @returns {Object} Rule exports
-	 */
-	module.exports = function(context) {
+/*eslint-env amd */
+define([
+'logger'
+], function(Logger) {
+	return function(context) {
 		"use strict";  //$NON-NLS-0$
 
 		function check(node) {
@@ -45,14 +27,14 @@
 					if (!variable.defs.length || variable.defs[0].type !== "Parameter") { // only care about parameters  //$NON-NLS-0$
 						return;
 					}
-					var node = variable.defs[0].name;
+					var defnode = variable.defs[0].name;
 					if (!variable.references.length) {
-						context.report(node, "Parameter '{{name}}' is never used.", {name: node.name}); //$NON-NLS-0
+						context.report(defnode, "Parameter '${0}' is never used.", {0:defnode.name}); //$NON-NLS-0
 					}
 				});
 			}
 			catch(ex) {
-				console.log(ex);
+				Logger.log(ex);
 			}
 		}
 
@@ -61,5 +43,4 @@
 			"FunctionExpression": check  //$NON-NLS-0$
 		};
 	};
-	return module.exports;
-}));
+});

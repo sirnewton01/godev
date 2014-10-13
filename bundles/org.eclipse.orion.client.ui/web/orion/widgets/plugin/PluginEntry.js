@@ -8,9 +8,7 @@
  * 
  * Contributors: Anton McConville - IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global window console define*/
-/*jslint browser:true*/
-
+/*eslint-env browser, amd*/
 /* This PluginEntry widget supplies the HTML and related interactivity to display
    detailed information about a single plugin. It is designed to work with the
    PluginList widget, but each plugin entry element should fit into any HTML list
@@ -46,6 +44,8 @@ define(['i18n!orion/settings/nls/messages', 'orion/PageUtil', 'orion/objects', '
 	
 		if (last === '') {
 			last = location;
+		} else {
+			last = last + ' - ' + location;  //$NON-NLS-0$
 		}
 		return last;
 	}
@@ -54,8 +54,8 @@ define(['i18n!orion/settings/nls/messages', 'orion/PageUtil', 'orion/objects', '
 		var serviceDescriptions = [];
 		plugin.getServiceReferences().forEach(function(reference) {
 			var serviceName = "";
-			if (reference.getProperty("objectClass")){
-				serviceName = reference.getProperty("objectClass").join(" ");
+			if (reference.getProperty("objectClass")){   //$NON-NLS-0$ 
+				serviceName = reference.getProperty("objectClass").join(" ");   //$NON-NLS-0$   //$NON-NLS-1$ 
 			}
 			
 			var serviceDescription = {
@@ -89,6 +89,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/PageUtil', 'orion/objects', '
 									'<span class="plugin-commands"></span>' + //$NON-NLS-0$
 									'<div class="stretch">' + //$NON-NLS-0$
 										'<span class="plugin-title"></span>' + //$NON-NLS-0$
+										'<div class="plugin-status"></div>' + //$NON-NLS-0$
 										'<div></div>' + //$NON-NLS-0$
 										'<span class="plugin-description"></span>' + //$NON-NLS-0$
 										'<div class="plugin-links" style="font-size:11px"></div>' + //$NON-NLS-0$ 
@@ -101,11 +102,12 @@ define(['i18n!orion/settings/nls/messages', 'orion/PageUtil', 'orion/objects', '
 
 		createElements: function() {
 			this.node.innerHTML = this.templateString;
-			this.pluginTitle = lib.$(".plugin-title", this.node);
-			this.pluginDescription = lib.$(".plugin-description", this.node);
-			this.pluginLinks = lib.$(".plugin-links", this.node);
-			this.commandSpan = lib.$(".plugin-commands", this.node);
-			this.serviceContainer = lib.$(".plugin-service-item", this.node);
+			this.pluginTitle = lib.$(".plugin-title", this.node);  //$NON-NLS-0$ 
+			this.pluginStatus = lib.$(".plugin-status", this.node);  //$NON-NLS-0$ 
+			this.pluginDescription = lib.$(".plugin-description", this.node);  //$NON-NLS-0$ 
+			this.pluginLinks = lib.$(".plugin-links", this.node);  //$NON-NLS-0$ 
+			this.commandSpan = lib.$(".plugin-commands", this.node);  //$NON-NLS-0$ 
+			this.serviceContainer = lib.$(".plugin-service-item", this.node);  //$NON-NLS-0$ 
 			this.postCreate();
 		},
 		destroy: function() {
@@ -118,7 +120,7 @@ define(['i18n!orion/settings/nls/messages', 'orion/PageUtil', 'orion/objects', '
 		},
 		addPluginLink: function(name, url)  {
 			if (!PageUtil.validateURLScheme(url)) {
-				console.log("Illegal "+ name +" URL: " + url);
+				console.log("Illegal "+ name +" URL: " + url);  //$NON-NLS-0$  //$NON-NLS-1$
 				return;
 			}
 			var link = document.createElement("a"); //$NON-NLS-0$
@@ -131,19 +133,55 @@ define(['i18n!orion/settings/nls/messages', 'orion/PageUtil', 'orion/objects', '
 		postCreate: function(){	
 			var headers = this.plugin.getHeaders();
 			var location = this.plugin.getLocation();
-			this.pluginTitle.textContent = headers.name || formatLocationAsPluginName(location);
-			this.pluginDescription.textContent = headers.description || messages['A plugin for Eclipse Orion'];
+			var state = this.plugin.getState();
+			if (this.plugin.getProblemLoading()){
+				state = "broken"; //$NON-NLS-0$
+			}
+			
+			if (PageUtil.validateURLScheme(location)){
+				var link = document.createElement("a"); //$NON-NLS-0$
+				link.href = location;
+				link.title = headers.name || formatLocationAsPluginName(location);
+				link.textContent = headers.name || formatLocationAsPluginName(location);
+				this.pluginTitle.appendChild(link);
+			} else {
+				this.pluginTitle.textContent = headers.name || formatLocationAsPluginName(location);
+			}			
+			
+			if (state){
+				switch (state){
+					// Ignore active, starting and stopping states
+					case "uninstalled":  //$NON-NLS-0$
+						this.pluginStatus.textContent = messages['pluginStatusNotLoaded'];  // Not installed
+						break;
+					case "installed": //$NON-NLS-0$
+						this.pluginStatus.textContent = messages['pluginStatusNotLoaded']; // Dependencies not satisfied
+						break;
+					case "resolved": //$NON-NLS-0$
+						this.pluginStatus.textContent = messages['pluginStatusNotRunning']; // User disabled
+						break;
+					case "broken": //$NON-NLS-0$
+						var icon = document.createElement("span"); //$NON-NLS-0$
+						icon.className = "core-sprite-error modelDecorationSprite"; //$NON-NLS-0$
+						var content = document.createElement("span"); //$NON-NLS-0$
+						content.textContent = messages['pluginStatusBroken']; // Problem during update/starting
+						this.pluginStatus.appendChild(icon);
+						this.pluginStatus.appendChild(content);
+						break;
+				}
+			}
+			
+			this.pluginDescription.textContent = headers.description || messages['OrionPlugin'];
 
-			// Plugin Links
-			this.addPluginLink("Plugin", location);
+			// Additional Links
 			if (headers.website) {
-				this.addPluginLink("Website", headers.website);
+				this.addPluginLink(messages["Website"], headers.website);
 			}
 			if (headers.license) {
-				this.addPluginLink("License", headers.license);
+				this.addPluginLink(messages["License"], headers.license);
 			}
 			if (headers.login) {
-				this.addPluginLink("Login", headers.login);
+				this.addPluginLink(messages["Login"], headers.login);
 			}
 			
 			this.commandSpan.id = location;

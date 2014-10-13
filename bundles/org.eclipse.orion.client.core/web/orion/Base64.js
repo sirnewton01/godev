@@ -8,8 +8,7 @@
  *
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
-
-/*global define atob btoa*/
+/*eslint-env browser, amd*/
 define(function() {
 
 	var handlesWhitespace = (function(){

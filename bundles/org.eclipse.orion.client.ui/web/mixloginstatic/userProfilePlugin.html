@@ -9,12 +9,12 @@
 			provider.registerService("profilePlugin", {
 				info : function() {
 					return {
-						name : "Manage OpenIds",
+						name : "Manage OAuthIds",
 					};
 				},
 				getDivContent: function() {
 				  	var content = {"sections" : [
-				  	                             {"id": "openids", "name": "Manage External Accounts", "type": "iframe", "data" : {"src": "../mixlogin/manageopenids", "style" : "border: 0px; width: 500px"}}
+				  	                             {"id": "oauthids", "name": "Manage External Accounts", "type": "iframe", "data" : {"src": "../mixlogin/manageExternalIds", "style" : "border: 0px; width: 500px"}}
 				  	                             ]
 				  	};
 				  	return content;

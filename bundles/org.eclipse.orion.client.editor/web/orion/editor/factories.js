@@ -9,16 +9,16 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define */
-
+/*eslint-env browser, amd*/
 define("orion/editor/factories", [ //$NON-NLS-0$
 	'orion/editor/actions', //$NON-NLS-0$
 	'orion/editor/undoStack', //$NON-NLS-0$
 	'orion/editor/rulers', //$NON-NLS-0$
 	'orion/editor/annotations', //$NON-NLS-0$
 	'orion/editor/textDND', //$NON-NLS-0$
-	'orion/editor/linkedMode' //$NON-NLS-0$
-], function(mActions, mUndoStack, mRulers, mAnnotations, mTextDND, mLinkedMode) {
+	'orion/editor/linkedMode', //$NON-NLS-0$
+	'orion/util' //$NON-NLS-0$
+], function(mActions, mUndoStack, mRulers, mAnnotations, mTextDND, mLinkedMode, util) {
 
 	var exports = {};
 	
@@ -69,6 +69,15 @@ define("orion/editor/factories", [ //$NON-NLS-0$
 		}
 	};
 	exports.FoldingRulerFactory = FoldingRulerFactory;
+	
+	function ZoomRulerFactory() {
+	}
+	ZoomRulerFactory.prototype = {
+		createZoomRuler: function(annotationModel) {
+			return new mRulers.ZoomRuler(util.isIOS || util.isAndroid ? "right" : "innerRight", {styleClass: "ruler zoom"}); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		}
+	};
+	exports.ZoomRulerFactory = ZoomRulerFactory;
 	
 	function AnnotationFactory() {
 	}

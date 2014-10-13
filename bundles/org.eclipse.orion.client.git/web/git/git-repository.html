@@ -6,10 +6,10 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<title>Git</title>
 		<link rel="stylesheet" type="text/css" href="git-repository.css" />
-		<link rel="icon" href="/images/repository.png" type="image/png">
+		<link rel="icon" href="images/git.png" type="image/png">
 		<script src="../requirejs/require.js"></script>
 		<script>
-		/*globals require*/
+		/*eslint-env browser, amd*/
 		require({
 		  baseUrl: '..',
 		
@@ -30,10 +30,17 @@
 		<div id="sideMenu" class="sideMenu"></div>
 		<div id="pageContent" class="content-fixedHeight">
 			<div id="sideMenuToggle" class="sideMenuToggle"></div>
-			<div class="fixedToolbarHolder mainpane mainPanelLayout">
-				<div class="mainToolbar toolComposite" id="pageToolbar"></div>
-				<div id="mainNode" class="toolbarTarget pageLayoutTarget">
-					<div id="table" class="gitPanel displayTable" style="padding-bottom: 20px;">
+			<div id="pageToolbar" class="mainToolbar toolComposite toolbarLayout"></div>
+			<div id="innerPanels" class="innerPanels">
+				<div id="leftPane" class="auxpane sidePanelLayout hasSplit">
+					<div class="fixedToolbarHolder sidebarWrapper">
+						<div id="sidebar" class="dropdownTrigger toolbarTarget sidebar"></div>
+					</div>
+				</div>
+				<div class="split splitLayout"></div>
+				<div id="rightPane" class="mainpane mainPanelLayout hasSplit">
+					<div class="fixedToolbarHolder">
+						<div id="table" class="workingTarget"></div>
 					</div>
 				</div>
 			</div>

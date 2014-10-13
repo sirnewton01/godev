@@ -10,7 +10,8 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
  
-/*globals define XMLHttpRequest window */
+/*eslint-env browser, amd*/
+/*global bCompareType contentOnLeft123 contentOnRightURL contentOnLeftURL contentTypeNew: true bLoadSample*/
 
 define(['orion/compare/builder/compare'],   
  

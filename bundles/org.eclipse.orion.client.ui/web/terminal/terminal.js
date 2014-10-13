@@ -10,14 +10,13 @@
  * 	IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define window document*/
-
-define(["require", "orion/browserCompatibility", "orion/bootstrap", "orion/xhr", "orion/Deferred",
+/*eslint-env browser, amd*/
+define(["orion/browserCompatibility", "orion/bootstrap", "orion/xhr",
 	"orion/commandRegistry", "orion/fileClient", "orion/searchClient", "orion/globalCommands",
 	"orion/status", "orion/progress", "orion/operationsClient", "terminal/term"],
 
-function(require, mBrowserCompatibility, mBootstrap, xhr, Deferred, mCommandRegistry, mFileClient,
-mSearchClient, mGlobalCommands, mStatus, mProgress, mOperationsClient, terminal) {
+function(mBrowserCompatibility, mBootstrap, xhr, mCommandRegistry, mFileClient,
+mSearchClient, mGlobalCommands, mStatus, mProgress, mOperationsClient) {
 
 	var orionTerminal = {
 		connect: function() {

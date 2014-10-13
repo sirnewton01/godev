@@ -10,8 +10,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
  
-/*globals define Node */
-
+/*eslint-env browser, amd*/
 define('orion/editor/edit', [ //$NON-NLS-0$
 	"require", //$NON-NLS-0$
 
@@ -180,6 +179,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	 * @property {Boolean} [showAnnotationRuler=true] whether or not the annotation ruler is shown.
 	 * @property {Boolean} [showOverviewRuler=true] whether or not the overview ruler is shown.
 	 * @property {Boolean} [showFoldingRuler=true] whether or not the folding ruler is shown.
+	 * @property {Boolean} [showZoomRuler=false] whether or not the zoom ruler is shown.
 	 * @property {Boolean} [noFocus=false] whether or not to focus the editor on creation.
 	 * @property {Number} [firstLineIndex=1] the line index displayed for the first line of text.
 	 */
@@ -282,10 +282,19 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 				var annotationModel = editor.getAnnotationModel();
 				if (contentType) {
 					contentType = contentType.replace(/[*|:/".<>?+]/g, '_');
-					require(["./stylers/" + contentType + "/syntax"], function(grammar) { //$NON-NLS-1$ //$NON-NLS-0$
-						var stylerAdapter = new mTextStyler.createPatternBasedAdapter(grammar.grammars, grammar.id);
-						this.styler = new mTextStyler.TextStyler(textView, annotationModel, stylerAdapter);
-					});
+					require(["./stylers/" + contentType + "/syntax"], //$NON-NLS-1$ //$NON-NLS-0$
+						function(grammar) {
+							var stylerAdapter = new mTextStyler.createPatternBasedAdapter(grammar.grammars, grammar.id);
+							this.styler = new mTextStyler.TextStyler(textView, annotationModel, stylerAdapter);
+						},
+						function(error) {
+							/*
+							 * A grammar file was not found for the specified contentType, so syntax styling will
+							 * not be shown (the editor will still work fine otherwise).  requireJS has already
+							 * written an error message to the console regarding the missing grammar file.
+							 */
+						}
+					);
 				}
 				if (contentType === "text/css") { //$NON-NLS-0$
 					editor.setFoldingRulerVisible(options.showFoldingRuler === undefined || options.showFoldingRuler);
@@ -332,6 +341,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		editor.setLineNumberRulerVisible(options.showLinesRuler === undefined || options.showLinesRuler);
 		editor.setAnnotationRulerVisible(options.showAnnotationRuler === undefined || options.showFoldingRuler);
 		editor.setOverviewRulerVisible(options.showOverviewRuler === undefined || options.showOverviewRuler);
+		editor.setZoomRulerVisible(options.showZoomRuler === undefined || options.showZoomRuler);
 		editor.setFoldingRulerVisible(options.showFoldingRuler === undefined || options.showFoldingRuler);
 		editor.setInput(options.title, null, contents, false, options.noFocus);
 		

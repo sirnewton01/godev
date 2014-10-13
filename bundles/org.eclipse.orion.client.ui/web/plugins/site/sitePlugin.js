@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define document eclipse parent window*/
+/*eslint-env browser, amd*/
 define([
 	'orion/plugin',
 	'plugins/site/siteServiceImpl',
@@ -74,8 +74,7 @@ define([
 		id: "orion.sites",
 		nls: "orion/nls/messages",
 		category: "sites",
-		"default": true,
-		order: 10, // Make this the first since it's the most useful one
+		order: 1000, // low priority
 		uriTemplate: "{+OrionHome}/sites/sites.html"
 	});
 

@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*jslint amd:true*/
+/*eslint-env browser, amd*/
 define([], function() {
 	var SERVICE_ID = "orion.core.contentTypeRegistry"; //$NON-NLS-0$
 	var EXTENSION_ID = "orion.core.contenttype"; //$NON-NLS-0$
@@ -29,29 +29,78 @@ define([], function() {
 		return array.indexOf(item) !== -1;
 	}
 
-	function getFilenameContentType(/**String*/ filename, contentTypes) {
-		function winner(best, other, filename, extension) {
-			var nameMatch = other.filename.indexOf(filename) >= 0;
-			var extMatch = contains(other.extension, extension.toLowerCase());
-			if (nameMatch || extMatch) {
-				if (!best || (nameMatch && contains(best.extension, extension.toLowerCase()))) {
-					return other;
-				}
-			}
-			return best;
+	function isImage(contentType) {
+		switch (contentType && contentType.id) {
+			case "image/jpeg": //$NON-NLS-0$
+			case "image/png": //$NON-NLS-0$
+			case "image/gif": //$NON-NLS-0$
+			case "image/ico": //$NON-NLS-0$
+			case "image/tiff": //$NON-NLS-0$
+			case "image/svg": //$NON-NLS-0$
+				return true;
 		}
+		return false;
+	}
+	
+	function isBinary(cType) {
+		if(!cType) {
+			return false;
+		}
+		return (cType.id === "application/octet-stream" || cType['extends'] === "application/octet-stream"); //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$
+	}
+	
+	/**
+	 * @name getFilenameContentType
+	 * @description Return the best contentType match to the given filename or null if no match. Filename pattern checked first, then extension
+	 * @param filename the filename to compare against contentTypes
+	 * @param contentTypes the array of possible contentTypes to check
+	 * @returns returns ContentType that is the best match or null
+	 */
+	function getFilenameContentType(/**String*/ filename, contentTypes) {
 		if (typeof filename !== "string") { //$NON-NLS-0$
 			return null;
 		}
-		var extension = filename && filename.split(".").pop(); //$NON-NLS-0$
+		
 		var best = null;
+		var current;
+		
+		var extStart = filename.indexOf('.'); //$NON-NLS-0$
+		extStart++; // leading period not included in extension
+		var extension = filename.substring(extStart).toLowerCase();
+		
+		// Check the most common cases, exact filename match or full extension match
 		for (var i=0; i < contentTypes.length; i++) {
-			var type = contentTypes[i];
-			if (winner(best, type, filename, extension) === type) {
-				best = type;
+			current = contentTypes[i];
+			if (current.filename.indexOf(filename) >= 0){
+				best = current;
+				break;
+			}
+			
+			if (contains(current.extension, extension)){
+				// A filename match is considered better than a perfect extension match
+				best = current;
+				continue;
 			}
 		}
-		return best;
+		
+		// Check the less common case where the filename contains periods (foo.bar.a.b check 'bar.a.b' then 'a.b' then 'b')
+		if (!best){
+			extStart = extension.indexOf('.'); //$NON-NLS-0$
+			while (!best && extStart >= 0){
+				extStart++; // leading period not included in extension
+				extension = extension.substring(extStart);
+				for (i=0; i < contentTypes.length; i++) {
+					current = contentTypes[i];
+					if (contains(current.extension, extension)){
+						best = current;
+						break;
+					}
+				}
+				extStart = extension.indexOf('.'); //$NON-NLS-0$
+			}
+		}
+		
+		return best;		
 	}
 
 	function array(obj) {
@@ -211,6 +260,8 @@ define([], function() {
 	};
 	return {
 		ContentTypeRegistry: ContentTypeRegistry,
+		isImage: isImage,
+		isBinary: isBinary,
 		getFilenameContentType: getFilenameContentType
 	};
 });

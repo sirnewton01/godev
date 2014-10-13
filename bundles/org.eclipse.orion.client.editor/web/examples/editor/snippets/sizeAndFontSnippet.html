@@ -31,7 +31,7 @@ textarea {
 </style>
 
 <script>
-	/*globals require*/
+	/*eslint-env browser,amd*/
 	require(["orion/editor/edit"], function(edit) {
 		var editor = edit({lang: "js", parent: "myEditor"});
 		editor.setSelection(33, 43);

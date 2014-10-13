@@ -9,25 +9,28 @@
  ******************************************************************************/
 
 //NLS_CHARSET=UTF-8
-
+/*eslint-env browser, amd*/
 define({
 	"More": "More",
-	"No Matching OperationService for location:": "No Matching OperationService for location:",
-	"No operations services registered.": "No operations services registered.",
+	"NoMatchingOpSrvLocation": "No Matching OperationService for location:",
 	"could not find toolbar ": "could not find toolbar ",
 	"Remove Completed": "Remove Completed",
-	"Remove all completed operations": "Remove all completed operations",
+	"rmCompleted": "Remove all completed operations",
 	"Remove": "Remove",
-	"Remove operations from the operations list.": "Remove operations from the operations list.",
+	"rmFromOpList": "Remove operations from the operations list.",
 	"Cancel": "Cancel",
-	"Cancel operations from the operations list.": "Cancel operations from the operations list.",
-	"Operation resulted in a warning.": "Operation resulted in a warning.",
-	"Operation resulted in an error.": "Operation resulted in an error.",
-	"Operation is running.": "Operation is running.",
-	"Operation is canceled.": "Operation is canceled.",
+	"CancelOp": "Cancel operations from the operations list.",
+	"OpWarning": "Operation resulted in a warning.",
+	"OpErr": "Operation resulted in an error.",
+	"OpRunning": "Operation is running.",
+	"OpCancelled": "Operation is canceled.",
 	"Operation failed.": "Operation failed.",
 	"Name": "Name",
 	"Actions": "Actions",
 	"Status": "Status",
-	"Scheduled": "Scheduled"
+	"Scheduled": "Scheduled",
+	"Recent operations": "Recent operations",
+	"All Operations": "All Operations",
+	"NoPageOps": "No operations running on this page.",
+	"NoOperations": "No operations running."
 });

@@ -8,8 +8,7 @@
  *
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define window document navigator*/
-
+/*eslint-env browser, amd*/
 define([], function() {
 	var userAgent = navigator.userAgent;
 	var isPad = userAgent.indexOf("iPad") !== -1; //$NON-NLS-0$
@@ -31,7 +30,6 @@ define([], function() {
 			return;
 		}
 		domNodeWrapperList.push({domNode: domNode});
-		domNode.tabIndex = -1;
 		domNode.style.outline = "none"; //$NON-NLS-0$
 	}
                 

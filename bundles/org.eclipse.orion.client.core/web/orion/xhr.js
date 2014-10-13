@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global console define setTimeout clearTimeout XMLHttpRequest*/
+/*eslint-env browser, amd*/
 
 /**
  * @name orion.xhr

@@ -9,13 +9,9 @@
  ******************************************************************************/
 
 //NLS_CHARSET=UTF-8
-
+/*eslint-env browser, amd*/
 define({
-	"Searching file:": "Searching file:",
-	"is not supported in this file system": "is not supported in this file system",
-	"${0} files found out of ${1}": "${0} files found out of ${1}",
-	"The search term on this location will not use indexed files." : "The search term on this location will not use indexed files.",
-	"It will take longer time. Do you want to proceed?" : "It will take longer time. Do you want to proceed?",
-	"Search cancelled by user": "Search cancelled by user",
+	"filesFound": "${0} files found out of ${1}",
+	"searchCancelled": "Search cancelled by user",
 	"Cancel": "Cancel"
 });

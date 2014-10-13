@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define document window parent */
-
+/*eslint-env browser, amd*/
 define(["require", "orion/xhr", "orion/plugin", "orion/Deferred", 'orion/operation'], function(require, xhr, PluginProvider, Deferred, operation) {
 	var headers = {
 		name: "Git Blame Plugin",
@@ -149,7 +148,7 @@ define(["require", "orion/xhr", "orion/plugin", "orion/Deferred", 'orion/operati
 						range.Name = c.Name;
 						range.Time = new Date(c.Time).toLocaleString();
 						range.Shade = (1 / (commits.length + 1)) * (commits.length - i + 1);
-						range.CommitLink = "{+OrionHome}/git/git-commit.html#" + c.CommitLocation + "?page=1&pageSize=1"; //$NON-NLS-1$ //$NON-NLS-0$
+						range.CommitLink = "{+OrionHome}/git/git-repository.html#" + c.CommitLocation + "?page=1"; //$NON-NLS-1$ //$NON-NLS-0$
 						annotations.push(range);
 					}
 				}

@@ -7,6 +7,7 @@
  * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
  * 
  ******************************************************************************/
+/*eslint-env browser, amd*/
 define(['orion/i18n!orion/search/nls/messages', 'orion/search/nls/root/messages'], function(bundle, root) {
 	var result = {
 			root:root

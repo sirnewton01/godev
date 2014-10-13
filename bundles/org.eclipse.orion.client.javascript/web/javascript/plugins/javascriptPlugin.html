@@ -5,14 +5,17 @@
 	<title>Orion JavaScript Support</title>
 	<script src="../../requirejs/require.js"></script>
 	<script type="text/javascript">
-		/*jslint amd:true*/
+		/*eslint-env amd*/
 		require({
 			baseUrl: "../../",
 			paths: {
 				text: "requirejs/text",
+				i18n: 'requirejs/i18n',
 				esprima: "esprima/esprima",
 				estraverse: "estraverse/estraverse",
-				escope: "escope/escope"
+				escope: "escope/escope",
+				logger: "javascript/logger",
+				doctrine: 'doctrine/doctrine'
 			},
 			packages: [
 				{
@@ -29,8 +32,8 @@
 		require(["javascript/plugins/javascriptPluginLoader"]);
 	</script>
 
-	<script>
-		/*jslint browser:true*/
+	<script type="text/javascript">
+		/*eslint-env browser*/
 		document.addEventListener("DOMContentLoaded", function(e) {
 			var checkbox = document.getElementById("useworker");
 			var key = "jstools.worker", value = localStorage.getItem(key), defaultState = false;
@@ -46,6 +49,18 @@
 			};
 		});
 	</script>
+	<style>
+	    table {
+	        width:40%;
+	        border-collapse: collapse;
+	    }
+	    tr {
+	        border: 1px solid;
+	    }
+	    td {
+	        padding: 3px 7px 2px 7px;
+	    }
+	</style>
 </head>
 <body>
 	<h1>JavaScript Tools Support</h1>
@@ -61,6 +76,36 @@
 	<form>
 		<label><input type="checkbox" id="useworker" /> Use a web worker (improves responsiveness when editing large files)</label>
 	</form>
+	<div style="width:50%">
+        <h3>Third Party Libraries</h3>
+        <table>
+            <tr>
+                <td>Doctrine 0.5.1</td>
+                <td><a href="https://github.com/Constellation/doctrine/blob/0.5.1/README.md">Readme</a></td>
+                <td><a href="https://github.com/Constellation/doctrine/blob/0.5.1/LICENSE.BSD">License</a></td>
+            </tr>
+            <tr>
+                <td>ESLint 0.7.2</td>
+                <td><a href="https://github.com/eslint/eslint/blob/v0.7.2/README.md">Readme</a></td>
+                <td><a href="https://github.com/eslint/eslint/blob/v0.7.2/LICENSE">License</a></td>
+            </tr>
+            <tr>
+                <td>Eprima 1.1.0</td>
+                <td><a href="https://github.com/ariya/esprima/blob/1.1/README.md">Readme</a></td>
+                <td><a href="https://github.com/ariya/esprima/blob/1.1/LICENSE.BSD">License</a></td>
+            </tr>
+            <tr>
+                <td>EScope 1.0.0</td>
+                <td><a href="https://github.com/Constellation/escope/blob/1.0.0/README.md">Readme</a></td>
+                <td><a href="https://github.com/Constellation/escope/blob/1.0.0/LICENSE.BSD">License</a></td>
+            </tr>
+            <tr>
+                <td>ESTraverse 1.5.1</td>
+                <td><a href="https://github.com/Constellation/estraverse/blob/1.5.1/README.md">Readme</a></td>
+                <td><a href="https://github.com/Constellation/estraverse/blob/1.5.1/LICENSE.BSD">License</a></td>
+            </tr>
+        </table>
+	</div>
 	<div style="width:50%">
 		<h3>License</h3>
 		<p>

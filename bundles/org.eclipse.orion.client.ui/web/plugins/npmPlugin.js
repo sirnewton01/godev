@@ -8,9 +8,8 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define*/
-	
-define(["orion/xhr", "orion/Deferred", "orion/plugin"/*, "domReady!"*/], function(xhr, Deferred, PluginProvider) {
+/*eslint-env browser, amd*/
+define(["orion/xhr", "orion/plugin"/*, "domReady!"*/], function(xhr, PluginProvider) {
 
 	var headers = {
 			name : "Orion NPM",

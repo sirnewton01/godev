@@ -10,18 +10,27 @@
 
 @import "../css/theme.css";
 
+.outlinerWrapper {
+	height: 100%;
+}
+
+.outlineNodeWrapper {
+	height: calc(100% - 22px);
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
 .outlineExplorer {
 	overflow-y: hidden;
 	white-space:nowrap;
+	width: 100%
 }
 
 .outlineFilter {
 	border: 1px solid lightgrey;
-	margin: 4px;
-	float: left;
+	margin: 3px 6px;
 	width: 95%; /* for older browsers */
-	width: -webkit-calc(100% - 8px);
-	width: calc(100% - 8px);
+	width: calc(100% - 38px);
 }
 
 .outlineRowMatchesFilter {

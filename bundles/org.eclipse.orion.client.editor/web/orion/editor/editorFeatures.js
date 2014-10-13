@@ -9,8 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define */
-
+/*eslint-env browser, amd*/
 define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 	'orion/editor/factories', //$NON-NLS-0$
 	'orion/editor/actions', //$NON-NLS-0$

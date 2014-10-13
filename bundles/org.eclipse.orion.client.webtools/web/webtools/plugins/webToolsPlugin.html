@@ -6,13 +6,14 @@
     <title>Orion Web Tools Support</title>
 	<script src="../../requirejs/require.js"></script>
 	<script type="text/javascript">
-		/*global require*/
+		/*eslint-env browser, amd*/
 		require({
 			baseUrl: '../../',
 			paths: {
 				text: 'requirejs/text',
 				i18n: 'requirejs/i18n',
-				domReady: 'requirejs/domReady'
+				domReady: 'requirejs/domReady',
+				csslint: 'csslint/csslint'
 			},
 			packages: [
 			]

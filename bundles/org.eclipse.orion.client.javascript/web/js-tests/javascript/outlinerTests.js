@@ -8,7 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global console:true window:true describe:true it:true define*/
+/*eslint-env amd, node, mocha*/
 define([
 	'chai/chai',
 	'esprima',
@@ -65,9 +65,16 @@ define([
 				assert.fail("The outlined element must have a start range");
 			}
 			if(!element.end) {
-				assert.fail("The outlied element must have an end range");
+				assert.fail("The outlined element must have an end range");
 			}
-			assert.equal(element.label, label, "The label is not the same");
+			var fullLabel = element.label;
+			if (element.labelPre){
+				fullLabel = element.labelPre + fullLabel;
+			}
+			if (element.labelPost){
+				fullLabel += element.labelPost;
+			}
+			assert.equal(fullLabel, label, "The label is not the same");
 			assert.equal(element.start, start, "The start range is not the same");
 			assert.equal(element.end, end, "The end range is not the same");
 		}
@@ -115,6 +122,114 @@ define([
 						assert.fail("There should be one outline element");
 					}
 					assertElement(outline[0], "var object = {...}", 4, 10);
+				}
+				finally {
+					tearDown();
+				}
+			});
+		});
+		
+		it('testObjectExpression2', function() {
+			context.text = "var object = {a: \"\", b: \"\", c: \"\"};";
+			return outliner.computeOutline(context).then(function(outline) {
+				try {
+					if(!outline || outline.length < 1) {
+						assert.fail("There should be one outline element");
+					}
+					assertElement(outline[0], "var object = {a, b, c}", 4, 10);
+				}
+				finally {
+					tearDown();
+				}
+			});
+		});
+		
+		it('testObjectExpression3', function() {
+			context.text = "var object = {\"a\": \"\", \"b\": \"\", \"c\": \"\"};";
+			return outliner.computeOutline(context).then(function(outline) {
+				try {
+					if(!outline || outline.length < 1) {
+						assert.fail("There should be one outline element");
+					}
+					assertElement(outline[0], "var object = {Object, Object, Object}", 4, 10);
+				}
+				finally {
+					tearDown();
+				}
+			});
+		});
+		
+		it('testObjectExpression3', function() {
+			// Max length for properties is 50 characters
+			context.text = "var object = {A123456789B123456789C123456789D123456789E123456789: \"\"};";
+			return outliner.computeOutline(context).then(function(outline) {
+				try {
+					if(!outline || outline.length < 1) {
+						assert.fail("There should be one outline element");
+					}
+					assertElement(outline[0], "var object = {A123456789B123456789C123456789D123456789E123456789}", 4, 10);
+				}
+				finally {
+					tearDown();
+				}
+			});
+		});
+		
+		it('testObjectExpression4', function() {
+			// Max length for properties is 50 characters
+			context.text = "var object = {A123456789B123456789C123456789D123456789E123456789F: \"\"};";
+			return outliner.computeOutline(context).then(function(outline) {
+				try {
+					if(!outline || outline.length < 1) {
+						assert.fail("There should be one outline element");
+					}
+					assertElement(outline[0], "var object = {...}", 4, 10);
+				}
+				finally {
+					tearDown();
+				}
+			});
+		});
+		
+		it('testObjectExpression5', function() {
+			// Max length for properties is 50 characters
+			context.text = "var object = {a: \"\", b: \"\", A123456789B123456789C123456789D123456789E123456789F: \"\"};";
+			return outliner.computeOutline(context).then(function(outline) {
+				try {
+					if(!outline || outline.length < 1) {
+						assert.fail("There should be one outline element");
+					}
+					assertElement(outline[0], "var object = {a, b, ...}", 4, 10);
+				}
+				finally {
+					tearDown();
+				}
+			});
+		});
+		
+		it('testClosure1', function() {
+			context.text = "foo.bar({});";
+			return outliner.computeOutline(context).then(function(outline) {
+				try {
+					if(!outline || outline.length < 1) {
+						assert.fail("There should be one outline element");
+					}
+					assertElement(outline[0], "closure {...}", 8, 10);
+				}
+				finally {
+					tearDown();
+				}
+			});
+		});
+		
+		it('testClosure1', function() {
+			context.text = "foo.bar({a: \"\", b: \"\"});";
+			return outliner.computeOutline(context).then(function(outline) {
+				try {
+					if(!outline || outline.length < 1) {
+						assert.fail("There should be one outline element");
+					}
+					assertElement(outline[0], "closure {a, b}", 8, 22);
 				}
 				finally {
 					tearDown();
@@ -353,5 +468,30 @@ define([
 				}
 			});
 		});
+		
+		/**
+		 * Tests a return statement that is an object expression
+		 * @see https://bugs.eclipse.org/bugs/show_bug.cgi?id=424202
+		 */
+		it('testReturnObject5', function() {
+			context.text = "function f1() {\n"+
+				"\t return {a: \"\", b: \"\"};\n"+
+				"};";
+			return outliner.computeOutline(context).then(function(outline) {
+				try {
+					if(!outline || outline.length < 1) {
+						assert.fail("There should be one outline element");
+					}
+					if(!outline[0].children || outline[0].children.length < 1) {
+						assert.fail("There should be one child outline element");
+					}
+					assertElement(outline[0].children[0], "return {a, b}", 18, 24);
+				}
+				finally {
+					tearDown();
+				}
+			});
+		});
+		
 	});	
 });

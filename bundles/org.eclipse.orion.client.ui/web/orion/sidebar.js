@@ -1,12 +1,24 @@
-/*global console define*/
-/*jslint browser:true sub:true*/
-define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', 'orion/webui/littlelib',
-		'orion/PageUtil',
+/*******************************************************************************
+ * @license
+ * Copyright (c) 2011, 2014 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ *
+ * Contributors: IBM Corporation - initial API and implementation
+ *******************************************************************************/
+
+/*eslint-env browser, amd*/
+define(['orion/objects', 'orion/commands', 'orion/outliner', 'orion/webui/littlelib',
 		'orion/widgets/nav/mini-nav',
 		'orion/widgets/nav/project-nav',
 		'orion/globalCommands',
-		'i18n!orion/edit/nls/messages'],
-		function(Deferred, objects, mCommands, mOutliner, lib, PageUtil, MiniNavViewMode, ProjectNavViewMode, mGlobalCommands, messages) {
+		'i18n!orion/edit/nls/messages',
+		'orion/search/InlineSearchPane',
+		'orion/keyBinding',
+		'orion/webui/Slideout'],
+		function(objects, mCommands, mOutliner, lib, MiniNavViewMode, ProjectNavViewMode, mGlobalCommands, messages, InlineSearchPane, mKeyBinding, mSlideout) {
 
 	/**
 	 * @name orion.sidebar.Sidebar
@@ -86,7 +98,7 @@ define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', '
 			});
 			commandRegistry.addCommand(changeViewModeCommand);
 			commandRegistry.registerCommandContribution(switcherNode.id, "orion.sidebar.viewmode", 2, "orion.menuBarViewGroup"); //$NON-NLS-1$ //$NON-NLS-0$
-
+			
 			this.addViewMode("nav", new MiniNavViewMode({ //$NON-NLS-0$
 				commandRegistry: commandRegistry,
 				contentTypeRegistry: contentTypeRegistry,
@@ -112,10 +124,24 @@ define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', '
 				toolbarNode: toolbarNode,
 				sidebar: this
 			});
-
+			
+			this._slideout = new mSlideout.Slideout(this.toolbarNode.parentNode);
+			
+			// add Slideout menu group to View menu
+			commandRegistry.addCommandGroup(switcherNode.id, 
+				"orion.slideoutMenuGroup", //$NON-NLS-0$
+				3, 
+				messages["Slideout"], //$NON-NLS-0$
+				"orion.menuBarViewGroup", //$NON-NLS-0$
+				null, 
+				null, 
+				null, 
+				"dropdownSelection"); //$NON-NLS-0$
+			
+			
 			// Outliner is responsible for adding its view mode(s) to this sidebar
-			this.outliner = new mOutliner.Outliner({
-				parent: parentNode,
+			this.outliner = new mOutliner.Outliner(this._slideout,
+			{
 				toolbar: toolbarNode,
 				serviceRegistry: serviceRegistry,
 				contentTypeRegistry: contentTypeRegistry,
@@ -125,9 +151,12 @@ define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', '
 				selectionService: selection,
 				inputManager: editorInputManager,
 				progressService: progressService,
-				sidebar: this
+				sidebar: this,
+				switcherNode: switcherNode
 			});
 			this.setViewMode(this.defaultViewMode);
+			
+			this._createInlineSearchPane();
 		},
 		showToolbar: function() {
 			this.toolbarNode.style.display = "block"; //$NON-NLS-0$
@@ -210,7 +239,82 @@ define(['orion/Deferred', 'orion/objects', 'orion/commands', 'orion/outliner', '
 			var switcher = this.switcherNode;
 			this.commandRegistry.destroy(switcher);
 			this.commandRegistry.renderCommands(switcher.id, switcher, null, this, "button"); //$NON-NLS-0$
-		}
+		},
+		_createInlineSearchPane: function() {
+			this._inlineSearchPane = new InlineSearchPane(this._slideout,
+			{
+				serviceRegistry: this.serviceRegistry,
+				commandRegistry: this.commandRegistry,
+				fileClient: this.fileClient,
+				preferences: this.preferences
+			});
+			
+			this._lastSearchRoot = null;
+			// set the scope to the explorer's root
+			this.sidebarNavInputManager.addEventListener("rootChanged", function(event){ //$NON-NLS-0$
+				this._lastSearchRoot = event.root;
+			}.bind(this));
+			
+			this.toolbarNode.parentNode.addEventListener("scroll", function(){ //$NON-NLS-0$
+				if (this._inlineSearchPane.isVisible()) {
+					this.toolbarNode.parentNode.scrollTop = 0;
+				}
+			}.bind(this));
+			
+			var searchInFolderCommand = new mCommands.Command({
+				name: messages["searchInFolder"], //$NON-NLS-0$
+				id: "orion.searchInFolder", //$NON-NLS-0$
+				visibleWhen: function(item) {
+					if (Array.isArray(item)) {
+						if(item.length === 1 && item[0].Directory){
+							return true;
+						}
+					}
+					return false;
+				},
+				callback: function (data) {
+					var item = data.items[0];
+					this._inlineSearchPane.setSearchScope(item);
+					this._inlineSearchPane.show();
+					this._inlineSearchPane.showSearchOptions();	
+				}.bind(this)
+			});
+			
+			var openSearchCommand = new mCommands.Command({
+				name: messages["Global Search"], //$NON-NLS-0$
+				id: "orion.openInlineSearchPane", //$NON-NLS-0$
+				visibleWhen: function() {
+					return true;
+				},
+				callback: function (data) {
+					if (this._inlineSearchPane.isVisible()) {
+						this._inlineSearchPane.hide();
+					} else {
+						var mainSplitter = mGlobalCommands.getMainSplitter();
+						if (mainSplitter.splitter.isClosed()) {
+							mainSplitter.splitter.toggleSidePanel();
+						}
+						this._inlineSearchPane.setSearchScope(this._lastSearchRoot); //reset search scope
+						this._inlineSearchPane.show();
+						this._inlineSearchPane.showSearchOptions();	
+					}
+				}.bind(this)
+			});
+			
+			var activeViewModeId = this.getActiveViewModeId();
+			var explorer = this.getViewMode(activeViewModeId).explorer;
+			var editActionsScope = explorer.getEditActionsScope();
+	
+			this.commandRegistry.addCommand(searchInFolderCommand);
+			this.commandRegistry.addCommand(openSearchCommand);
+			
+			this.commandRegistry.registerCommandContribution(editActionsScope, "orion.searchInFolder", 99, "orion.menuBarEditGroup/orion.findGroup");  //$NON-NLS-1$ //$NON-NLS-0$
+			this.commandRegistry.registerCommandContribution(editActionsScope, "orion.openInlineSearchPane", 100, "orion.menuBarEditGroup/orion.findGroup", false, new mKeyBinding.KeyBinding('h', true, true)); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			
+ 		},
+ 		getInlineSearchPane: function() {
+ 			return this._inlineSearchPane;
+ 		}
 	});
 
 	/**

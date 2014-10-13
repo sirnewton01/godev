@@ -8,29 +8,29 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global define alert console */
-/*jslint browser:true */
+/*eslint-env browser, amd*/
+/*global alert*/
 define(['i18n!profile/nls/messages', 'orion/webui/dialog'], function(messages, dialog) {
 
 	function NewUserDialog(options) {
 		this._init(options);
 	}
-	
+
 	NewUserDialog.prototype = new dialog.Dialog();
 
 
 	NewUserDialog.prototype.TEMPLATE =
 		'<table>' +  //$NON-NLS-0$
-			'<tr><td><label for="userName">${Login:}</label></td>' + //$NON-NLS-0$
-			'<td><input id="userName" /></td></tr>' + //$NON-NLS-0$
-			'<tr><td><label for="password">${Password:}</label></td>' + //$NON-NLS-0$
-			'<td><input id="password" type="password" /></td></tr>' + //$NON-NLS-0$
-			'<tr><td><label for="retypePassword">${Retype password:}</label></td>' + //$NON-NLS-0$
-			'<td><input id="retypePassword" type="password" /></td></tr>' + //$NON-NLS-0$
-			'<tr><td><label for="email">${Email:}</label></td>' + //$NON-NLS-0$
-			'<td><input id="email" /></td></tr>' + //$NON-NLS-0$
+		'<tr><td><label for="userName">${Login:}</label></td>' + //$NON-NLS-0$
+		'<td><input id="userName" /></td></tr>' + //$NON-NLS-0$
+		'<tr><td><label for="password">${Password:}</label></td>' + //$NON-NLS-0$
+		'<td><input id="password" type="password" /></td></tr>' + //$NON-NLS-0$
+		'<tr><td><label for="retypePassword">${Retype password:}</label></td>' + //$NON-NLS-0$
+		'<td><input id="retypePassword" type="password" /></td></tr>' + //$NON-NLS-0$
+		'<tr><td><label for="email">${Email:}</label></td>' + //$NON-NLS-0$
+		'<td><input id="email" /></td></tr>' + //$NON-NLS-0$
 		'</table>'; //$NON-NLS-0$
-	
+
 	NewUserDialog.prototype._init = function(options) {
 		this.title = messages['Create New User'];
 		this.messages = messages;
@@ -39,7 +39,7 @@ define(['i18n!profile/nls/messages', 'orion/webui/dialog'], function(messages, d
 		this.buttons = [{text: messages['Create'], isDefault: true, callback: this.done.bind(this)}]; 
 		this._initialize();
 	};
-	
+
 	NewUserDialog.prototype.done = function() {
 		if (this.$userName.value === "") {
 			alert(messages["Provide user login!"]);
@@ -50,24 +50,24 @@ define(['i18n!profile/nls/messages', 'orion/webui/dialog'], function(messages, d
 			alert(messages["Passwords don't match!"]);
 			return;
 		}
-		
+
 		var dialog = this;
-		
+
 		this.registry.getService("orion.core.user").createUser({
 			login: dialog.$userName.value,
 			password: dialog.$password.value,
-			email: dialog.$email.value
+			Email: dialog.$email.value
 		}).then(dialog.func, function(response) { //$NON-NLS-0$
 			console.info(response);
-		  var message = response.message;
-		  try{
-			  if(response.responseText){
-				  message = JSON.parse(response.responseText).Message;
-			  }
-		  }catch(Exception){
-			  //leave standard message
-		  }
-	  
+			var message = response.Message;
+			try{
+				if(response.responseText){
+					message = JSON.parse(response.responseText).Message;
+				}
+			}catch(Exception){
+				//leave standard message
+			}
+
 			if (message) {
 				alert(message);
 			} else {
@@ -78,7 +78,7 @@ define(['i18n!profile/nls/messages', 'orion/webui/dialog'], function(messages, d
 		});
 		this.hide();
 	};
-	
+
 	NewUserDialog.prototype.constructor = NewUserDialog;
 	//return the module exports
 	return {NewUserDialog: NewUserDialog};

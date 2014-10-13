@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation 
  ******************************************************************************/
-/*jslint browser:true regexp:true*/
-/*global console define*/
+/*eslint-env browser, amd*/
 define("orion/editor/AsyncStyler", ['i18n!orion/editor/nls/messages', 'orion/editor/annotations'], function(messages, mAnnotations) {
 	var SERVICE_NAME = "orion.edit.highlighter";
 	var HIGHLIGHT_ERROR_ANNOTATION = "orion.annotation.highlightError";

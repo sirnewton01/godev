@@ -8,8 +8,7 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*jslint amd:true sub:true*/
-/*global console document window  */
+/*eslint-env browser, amd*/
  
 define([
 	'orion/commands',
@@ -19,10 +18,8 @@ define([
 	'orion/webui/littlelib',
 	'orion/webui/dropdown',
 	'orion/webui/tooltip',
-	'text!orion/webui/checkedmenuitem.html',
-	'text!orion/webui/dropdowntriggerbutton.html',
 	'text!orion/webui/submenutriggerbutton.html'
-], function(Commands, mNavUtils, PageUtil, UIUtil, lib, mDropdown, mTooltip, CheckedMenuItemFragment, DropdownButtonFragment, SubMenuButtonFragment) {
+], function(Commands, mNavUtils, PageUtil, UIUtil, lib, mDropdown, mTooltip, SubMenuButtonFragment) {
 
 	/**
 	 * Constructs a new command registry with the given options.
@@ -90,25 +87,29 @@ define([
 		 * @param {String} commandId the id of the command to run.
 		 * @param {Object} item the item on which the command should run.
 		 * @param {Object} handler the handler for the command.
-		 * @param {orion.commands.ParametersDescription} parameters used on this invocation.  Optional.
+		 * @param {orion.commands.ParametersDescription} parameters used on this invocation. Optional.
+		 * @param {Object} [userData] Optional user data that should be attached to generated command callbacks.
+		 * @param {DOMElement} [parent] Optional parent for the parameter collector.
 		 *
 		 * Note:  The current implementation will only run the command if a URL binding has been
 		 * specified, or if an item to run the command against has been specified.  
 		 */
-		runCommand: function(commandId, item, handler, parameters) {
+		runCommand: function(commandId, item, handler, parameters, userData, parent) {
 			var self = this;
 			if (item) {
 				var command = this._commandList[commandId];
 				var enabled = command && (command.visibleWhen ? command.visibleWhen(item) : true);
 				if (enabled && command.callback) {
-					self._invoke(new Commands.CommandInvocation(handler, item, null, command, self), parameters);
+					var commandInvocation = new Commands.CommandInvocation(handler, item, userData, command, self);
+					commandInvocation.domParent = parent;
+					return self._invoke(commandInvocation, parameters);
 				}
 			} else {
 				//TODO should we be keeping invocation context for commands without bindings? 
 				var binding = this._urlBindings[commandId];
 				if (binding && binding.command) {
 					if (binding.command.callback) {
-						self._invoke(binding.invocation, parameters);
+						return self._invoke(binding.invocation, parameters);
 					}
 				}
 			}
@@ -320,11 +321,11 @@ define([
 					}
 					if (!collecting) {
 						// Just call the callback with the information we had.
-						commandInvocation.command.callback.call(commandInvocation.handler || window, commandInvocation);
+						return commandInvocation.command.callback.call(commandInvocation.handler || window, commandInvocation);
 					}
 				} else {
 					// We should not be trying to collect parameters, just call the callback.
-					commandInvocation.command.callback.call(commandInvocation.handler || window, commandInvocation);
+					return commandInvocation.command.callback.call(commandInvocation.handler || window, commandInvocation);
 				}
 			} else {
 				window.console.log("Client attempted to invoke command without an available (rendered) command invocation"); //$NON-NLS-0$
@@ -437,15 +438,17 @@ define([
 		 * arrow to the grup that will open the dropdown. Optionally this can be set to <code>true</code> instead of adding a particular action.
 		 * If set to <code>true</code> the group will be renderer as if there was a default action, but instead of invoking the default action it will
 		 * open the dropdown. Optional.
+		 * @param {String} [extraClasses] A string containing space separated css classes that will be applied to group button
 		 */	
-		addCommandGroup: function(scopeId, groupId, position, title, parentPath, emptyGroupMessage, imageClass, tooltip, selectionClass, defaultActionId) {
+		addCommandGroup: function(scopeId, groupId, position, title, parentPath, emptyGroupMessage, imageClass, tooltip, selectionClass, defaultActionId, extraClasses) {
 			if (!this._contributionsByScopeId[scopeId]) {
 				this._contributionsByScopeId[scopeId] = {};
 			}
 			var parentTable = this._contributionsByScopeId[scopeId];
 			if (parentPath) {
 				parentTable = this._createEntryForPath(parentTable, parentPath);		
-			} 
+			}
+			
 			if (parentTable[groupId]) {
 				// update existing group definition if info has been supplied
 				if (title) {
@@ -462,6 +465,10 @@ define([
 				}
 				if (selectionClass) {
 					parentTable[groupId].selectionClass = selectionClass;
+				}
+				
+				if (extraClasses) {
+					parentTable[groupId].extraClass = extraClasses;
 				}
 				
 				if(defaultActionId === true){
@@ -482,7 +489,8 @@ define([
 										selectionClass: selectionClass,
 										defaultActionId: defaultActionId === true ? null : defaultActionId,
 										pretendDefaultActionId: defaultActionId === true,
-										children: {}};
+										children: {},
+										extraClasses: extraClasses};
 				parentTable.sortedContributions = null;
 			}
 		},
@@ -721,7 +729,7 @@ define([
 			}
 		},
 		
-		_render: function(contributions, parent, items, handler, renderType, userData, domNodeWrapperList) {
+		_render: function(contributions, parent, items, handler, renderType, userData, domNodeWrapperList, extraClasses) {
 			// sort the items
 			var sortedByPosition = contributions.sortedContributions;
 			
@@ -770,6 +778,7 @@ define([
 							// need it after all, which could cause layout to change.
 							var defaultInvocation;
 							if(contribution.defaultActionId){
+								contribution.pretendDefaultActionId = contribution.defaultActionId === true;
 								var defaultChild = self._commandList[contribution.defaultActionId];
 								if(defaultChild && (defaultChild.visibleWhen ? defaultChild.visibleWhen(items) : true)){
 									defaultInvocation = new Commands.CommandInvocation(handler, items, userData, defaultChild, self);
@@ -779,7 +788,7 @@ define([
 								}
 							}
 						
-							created = self._createDropdownMenu(parent, contribution.title, null /*nested*/, null /*populateFunc*/, contribution.imageClass, contribution.tooltip, contribution.selectionClass, null, defaultInvocation, contribution.pretendDefaultActionId);
+							created = self._createDropdownMenu(parent, contribution.title, null /*nested*/, null /*populateFunc*/, contribution.imageClass, contribution.tooltip, contribution.selectionClass, null, defaultInvocation, contribution.pretendDefaultActionId, contribution.extraClasses);
 							if(domNodeWrapperList){
 								mNavUtils.generateNavGrid(domNodeWrapperList, created.menuButton);
 							}
@@ -960,7 +969,7 @@ define([
 		/*
 		 * private.  Parent must exist in the DOM.
 		 */
-		_createDropdownMenu: function(parent, name, nested, populateFunction, icon, tooltip, selectionClass, positioningNode, defaultInvocation, pretendDefaultActionId) {
+		_createDropdownMenu: function(parent, name, nested, populateFunction, icon, tooltip, selectionClass, positioningNode, defaultInvocation, pretendDefaultActionId, extraClasses) {
 			parent = lib.node(parent);
 			// We create dropdowns asynchronously so it's possible that the parent has been removed from the document 
 			// by the time we are called.  If so, don't bother building a submenu for an orphaned menu.
@@ -993,7 +1002,7 @@ define([
 					tooltip = tooltip || name; // No text and no tooltip => fallback to name
 				}
 				tooltip = icon ? (tooltip || name) : tooltip;
-				var created = Commands.createDropdownMenu(menuParent, name, populateFunction, buttonCss, icon, false, selectionClass, positioningNode, defaultInvocation || pretendDefaultActionId);
+				var created = Commands.createDropdownMenu(menuParent, name, populateFunction, buttonCss, icon, false, selectionClass, positioningNode, defaultInvocation || pretendDefaultActionId, extraClasses);
 				dropdownArrow = created.dropdownArrow;
 				menuButton = created.menuButton;
 				if (dropdownArrow) {
@@ -1003,7 +1012,7 @@ define([
 					var self = this;
 					menuButton.onclick = function(evt){
 						var bounds = lib.bounds(dropdownArrow);
-						if (evt.clientX >= bounds.left && created.dropdown) {
+						if ((evt.clientX >= bounds.left || pretendDefaultActionId === true) && created.dropdown) {
 							created.dropdown.toggle(evt);
 						} else {
 							self._invoke(defaultInvocation);
@@ -1172,6 +1181,9 @@ define([
 	 * @param {Boolean} options.clientCollect specifies whether the client will collect the parameters in its
 	 *			callback.  Default is false, which means the callback will not be called until an attempt has
 	 *			been made to collect parameters.
+	 * @param {Function} options.getParameterElement a function used to look up the DOM element for a given parameter.
+	 * @param {Function} options.getSubmitName a function used to return a name to use for the Submit button.
+	 *
 	 * @param {Function} [getParameters] a function used to define the parameters just before the command is invoked.  This is used
 	 *			when a particular invocation of the command will change the parameters. The function will be passed
 	 *          the CommandInvocation as a parameter. Any stored parameters will be ignored, and
@@ -1188,7 +1200,10 @@ define([
 		this.optionsRequested = false;
 		this.getParameters = getParameters;
 		this.clientCollect = options && options.clientCollect;
-
+		this.getParameterElement = options && options.getParameterElement;
+		this.getSubmitName = options && options.getSubmitName;
+		this.getCancelName = options && options.getCancelName;
+		this.message = options && options.message;
 	}
 	ParametersDescription.prototype = /** @lends orion.commands.ParametersDescription.prototype */ {	
 	
@@ -1298,6 +1313,7 @@ define([
 			var copy = new ParametersDescription(parameters, this._options, this.getParameters);
 			// this value may have changed since the options
 			copy.clientCollect = this.clientCollect;
+			copy.message = this.message;
 			return copy;
 			
 		 },

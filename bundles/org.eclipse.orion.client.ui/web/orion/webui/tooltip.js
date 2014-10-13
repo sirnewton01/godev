@@ -8,9 +8,8 @@
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global window define document */
-
-define(['require', 'orion/webui/littlelib'], function(require, lib) {
+/*eslint-env browser, amd*/
+define(['orion/webui/littlelib'], function(lib) {
 
 	/**
 	 * Attaches tooltip behavior to a given node.  The tooltip will be assigned class "tooltip" which can be
@@ -25,7 +24,7 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 	 * @param options.text The text in the tooltip.  Optional.  If not specified, the client is expected to add content
 	 * to the tooltip prior to triggering it.
 	 * @param options.trigger The event that triggers the tooltip.  Optional.  Defaults to "mouseover".  Can be one of "mouseover",
-	 * "click", or "none".  If "none" then the creator will be responsible for showing, hiding, and destroying the tooltip.
+	 * "click", "focus", or "none".  If "none" then the creator will be responsible for showing, hiding, and destroying the tooltip.
 	 * If "mouseover" then the aria attributes for tooltips will be set up.
 	 * @param options.position An array specifying the preferred positions to try positioning the tooltip.  Positions can be "left", "right", 
 	 * "above", or "below".  If no position will fit on the screen, the first position specified is used.  Optional.  Defaults to 
@@ -83,6 +82,22 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 				for (var i=0; i<leave.length; i++) {
 					this._node.addEventListener(leave[i], this._leaveHandler, false);
 				}
+			} else if (this._trigger === "focus") { //$NON-NLS-0$
+				this._showDelay = options.showDelay === undefined ? 0 : options.showDelay;
+				this._hideDelay = options.hideDelay === undefined ? 0 : options.hideDelay;
+				this._node.addEventListener("focus", this._focusHandler = function(event) { //$NON-NLS-0$
+					if (lib.contains(self._node, event.target)) {
+						self.show();
+					}
+				}, false);
+				
+				this._blurHandler = function(event) { //$NON-NLS-0$
+					if (lib.contains(self._node, event.target)) {
+						self.hide();
+					}
+				};
+				
+				this._node.addEventListener("blur", this._blurHandler, false); //$NON-NLS-0$
 			}						
 		},
 		
@@ -224,10 +239,17 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 		},
 		
 		/**
+		 * @return True if this tooltip is visible, false otherwise
+		 */
+		isShowing: function() {
+			return this._tip && this._tip.classList.contains("tooltipShowing"); //$NON-NLS-0$
+		},
+		
+		/**
 		 * Show the tooltip.
 		 */			
 		show: function() {
-			if (this._tip && this._tip.classList.contains("tooltipShowing")) { //$NON-NLS-0$
+			if (this.isShowing()) { //$NON-NLS-0$
 				return;
 			}
 			if (this._timeout) {
@@ -265,7 +287,7 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 				window.clearTimeout(this._timeout);
 				this._timeout = null;
 			}
-			if (!this._tip || !this._tip.classList.contains("tooltipShowing")) { //$NON-NLS-0$
+			if (!this.isShowing()) { //$NON-NLS-0$
 				return;
 			}
 			if (hideDelay === undefined) {
@@ -296,6 +318,8 @@ define(['require', 'orion/webui/littlelib'], function(require, lib) {
 			if (this._node) {
 				this._node.removeEventListener("click", this._clickHandler, false); //$NON-NLS-0$
 				this._node.removeEventListener("mouseover", this._mouseoverHandler, false); //$NON-NLS-0$
+				this._node.removeEventListener("focus", this._focusHandler, false); //$NON-NLS-0$
+				this._node.removeEventListener("blur", this._blurHandler, false); //$NON-NLS-0$
 				var leave = ["mouseout", "click"];  //$NON-NLS-1$ //$NON-NLS-0$
 				for (var i=0; i<leave.length; i++) {
 					this._node.removeEventListener(leave[i], this._leaveHandler, false);

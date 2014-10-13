@@ -21,7 +21,7 @@ textarea {
 <script src="http://eclipse.org/orion/editor/releases/latest/built-editor.js"></script>
 
 <script>
-	/*globals require*/
+	/*eslint-env browser, amd*/
 	require(["orion/editor/edit"], function(edit) {
 		var editor = edit({lang: "js", parent: "myEditor"});
 		editor.setSelection(33, 43);
