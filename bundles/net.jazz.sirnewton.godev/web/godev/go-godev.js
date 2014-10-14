@@ -196,7 +196,8 @@ define(['orion/xhr', 'orion/plugin', 'orion/form'], function (xhr, PluginProvide
             }
         }, {
             name: "Go content assist",
-            contentType: ["text/x-go"]
+            contentType: ["text/x-go"],
+            charTriggers: "[.]"
         });
 
     provider.registerServiceProvider("orion.edit.outliner", {
