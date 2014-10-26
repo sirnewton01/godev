@@ -24,7 +24,7 @@ define(['orion/bootstrap', 'orion/status', 'orion/progress', 'orion/commandRegis
 		// Clean up the alignment of the banner
 		// TODO Figure out why this is necessary
 		var primaryNav = document.getElementById("primaryNav");
-		primaryNav.setAttribute("style", "display:inline-block;");
+		//primaryNav.setAttribute("style", "display:inline-block;");
 		var location = document.getElementById("location");
 		location.parentNode.setAttribute("style", "display:inline-block;text-align:center;");
 		var userMenu = document.getElementById("userMenu");

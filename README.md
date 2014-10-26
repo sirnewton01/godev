@@ -48,25 +48,36 @@ New areas to explore:
 
 # Screenshots
 
-![Screenshot1](https://hub.jazz.net/ccm01/service/com.ibm.team.workitem.service.internal.rest.IAttachmentRestService/repo/csid/Attachment/godev-screenshot1.png?itemId=_MwuvANtwEeKv4ph699mytQ)
-Save the go file to see markers for compile errors
+![Markers](screenshots/markers.png)
+Save your Go file to see markers for compile errors and warnings.
 
-![Screenshot2](https://hub.jazz.net/ccm01/service/com.ibm.team.workitem.service.internal.rest.IAttachmentRestService/repo/csid/Attachment/godev-screenshot2.png?itemId=_Mx07MNtwEeKv4ph699mytQ)
-Run and Debug programs from the Debug page
+![Content Assistance](screenshots/contentAssist.png)
+Content assistance when you type '.' or Ctrl+Space
 	
-![Screenshot3](https://hub.jazz.net/ccm01/service/com.ibm.team.workitem.service.internal.rest.IAttachmentRestService/repo/csid/Attachment/godev-screenshot3.png?itemId=_MzNbQNtwEeKv4ph699mytQ)
-Get content assistance using Ctrl-Space
+![Quick Run](screenshots/quickRun.png)
+Run your program quickly by pressing F8
 
-![Screenshot4](https://hub.jazz.net/ccm01/service/com.ibm.team.workitem.service.internal.rest.IAttachmentRestService/repo/csid/Attachment/godev-screenshot4.png?itemId=_Mznq8NtwEeKv4ph699mytQ)
-Use the shell to run go build or go install
+![GoDoc](screenshots/quickGoDoc.png)
+Bring up GoDocs quickly using Ctrl+Shift+G
 
-![Screenshot5](https://hub.jazz.net/ccm01/service/com.ibm.team.workitem.service.internal.rest.IAttachmentRestService/repo/csid/Attachment/godev-screenshot5.png?itemId=_M0X44NtwEeKv4ph699mytQ)
-Bring up godocs using the GoDoc page
+![Tools Menu](screenshots/toolsMenu.png)
+Bring up extra tools in the tools menu. Plugins can contribute more tools.
+
+![Rich Godocs](screenshots/richGodocs.png)
+The GoDocs page provides full godocs. Quickly navigate to packages using the search at the top.
+
+![Rich Debug](screenshots/richDebug.png)
+The Debug page provides advanced execution, race condition detection and debug (provided by godbg plugin).
 
 # Videos
+[October 2014 Overview](https://www.youtube.com/watch?v=L6hLk5tLpss)
+
 [Youtube](http://www.youtube.com/watch?feature=player_embedded&v=UTfHDbUUECg)
+
 [Quick Start](http://www.youtube.com/watch?feature=player_embedded&v=U7RBElvfCkc)
+
 [Sprint 4 Summary](http://youtube.com/watch?feature=player_embedded&v=WQe5nr1tq3k)
+
 [Sprint 6 Summary](http://youtube.com/watch?feature=player_embedded&v=4cSeZsBfonI)
 
 # Getting Started
@@ -157,6 +168,7 @@ For more information about writing extension check out the design document (http
 
 Having problems with godev? Try these couple of steps before raising an issue or defect:
 
+  + Try again using a new Firefox or Chrome
   + Clear your browser cache
   + In Firefox: History -> Clear Recent History (pick "Everything", "Cache" and "Offline Website Data")
   + In Chrome: Tools -> Clear Browsing Data (pick "the beginning of time", "Empty the cache")

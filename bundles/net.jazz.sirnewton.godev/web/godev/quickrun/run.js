@@ -103,6 +103,7 @@ function(mBootstrap, xhr, terminal) {
 		
 		// Provide a link back to the debug page for this command
 		var debugLinkDiv = document.createElement("div");
+		debugLinkDiv.style.width = "200px";
 		var debugLink = document.createElement("a");
 		
 		debugLinkDiv.appendChild(debugLink);
