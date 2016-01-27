@@ -15,7 +15,7 @@ import (
 	"strings"
 	"sync"
 
-	"code.google.com/p/go.net/websocket"
+	"golang.org/x/net/websocket"
 )
 
 type TestLog struct {

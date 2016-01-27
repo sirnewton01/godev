@@ -5,7 +5,6 @@
 package main
 
 import (
-	"code.google.com/p/go.net/websocket"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -24,6 +23,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/net/websocket"
 )
 
 const (
@@ -449,25 +450,25 @@ func main() {
 	}
 
 	cfs = chainedFileSystem{data: &cfsData{fs: bundleFileSystems, dirs: bundleDirs, pluginKeys: pluginKeys, Plugins: map[string]bool{
-		"plugins/authenticationPlugin.html":        true,
-		"plugins/fileClientPlugin.html":            true,
-		"plugins/jslintPlugin.html":                true,
-		"webtools/plugins/webToolsPlugin.html":     true,
-		"javascript/plugins/javascriptPlugin.html": true,
-		"edit/content/imageViewerPlugin.html":      true,
-		"edit/content/jsonEditorPlugin.html":       true,
-		"plugins/webEditingPlugin.html":            true,
-		"plugins/helpPlugin.html":                  true,
-		"plugins/languages/c/cPlugin.html":         true,
-		"plugins/languages/docker/dockerPlugin.html":true,
-		"plugins/languages/go/goPlugin.html":       true,
-		"plugins/languages/markdown/markdownPlugin.html":true,
-		"plugins/languages/xml/xmlPlugin.html":     true,
-		"plugins/languages/yaml/yamlPlugin.html":   true,
-		"plugins/pageLinksPlugin.html":             true,
-		"plugins/preferencesPlugin.html":           true,
-		"plugins/taskPlugin.html":                  true,
-		"shell/plugins/shellPagePlugin.html":       true,
+		"plugins/authenticationPlugin.html":              true,
+		"plugins/fileClientPlugin.html":                  true,
+		"plugins/jslintPlugin.html":                      true,
+		"webtools/plugins/webToolsPlugin.html":           true,
+		"javascript/plugins/javascriptPlugin.html":       true,
+		"edit/content/imageViewerPlugin.html":            true,
+		"edit/content/jsonEditorPlugin.html":             true,
+		"plugins/webEditingPlugin.html":                  true,
+		"plugins/helpPlugin.html":                        true,
+		"plugins/languages/c/cPlugin.html":               true,
+		"plugins/languages/docker/dockerPlugin.html":     true,
+		"plugins/languages/go/goPlugin.html":             true,
+		"plugins/languages/markdown/markdownPlugin.html": true,
+		"plugins/languages/xml/xmlPlugin.html":           true,
+		"plugins/languages/yaml/yamlPlugin.html":         true,
+		"plugins/pageLinksPlugin.html":                   true,
+		"plugins/preferencesPlugin.html":                 true,
+		"plugins/taskPlugin.html":                        true,
+		"shell/plugins/shellPagePlugin.html":             true,
 
 		"godev/go-godev.html": true,
 	}}}
